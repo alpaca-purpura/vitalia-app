@@ -79,7 +79,7 @@ model: opus
 
 {{VERTICAL}}
 
-(...heredar resto del template idéntico a /pm-nicolify, /pm-vitalia, /pm-comunify, /pm-lupulo
+(...heredar resto del template idéntico a /pm-vitalia
 con placeholders reemplazados...)
 
 ★ MANDATORIO: Bootstrap protocol DEBE incluir "Step 0 — Story closure gate scan"
@@ -264,7 +264,7 @@ Al cierre de cada turn, MUST appendear una entry a la sección 💬 Conversació
 
 ## Referencias
 
-- `.claude/skills/pm-nicolify/SKILL.md` — ejemplo concreto template aplicado
+- `.claude/skills/pm-vitalia/SKILL.md` — ejemplo concreto template aplicado
 - `.claude/skills/pm-luana/SKILL.md` — PM Luana unificado (Modo Portfolio reconoce el brand nuevo después bootstrap + Modo Core recibe futuras promotion candidates del brand). Alias `/pm` apunta acá.
 - `docs/architecture/luana-platform/01-core-audit.md` — plan multibrand original con catálogo 10 brands
 - `docs/process/capability-protocol.md` — schema cap YAML v2 + Fase F.3 4 ramas

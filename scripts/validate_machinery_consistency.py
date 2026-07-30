@@ -449,9 +449,6 @@ CLOSURE_RULE = ".claude/rules/story-closure-gate.md"
 AUDITOR_SKILL = ".claude/skills/auditor/SKILL.md"
 PM_SKILLS = [
     ".claude/skills/pm-vitalia/SKILL.md",
-    ".claude/skills/pm-nicolify/SKILL.md",
-    ".claude/skills/pm-comunify/SKILL.md",
-    ".claude/skills/pm-lupulo/SKILL.md",
 ]
 DOD37_RULE = ".claude/rules/definition-of-done-live-verify.md"
 
@@ -766,9 +763,6 @@ PM_TEMPLATE_CONCEPTS = ["Auto-chain rule", "story-closure-gate", "chris-input", 
 PM_SKILL_FILES = [
     ".claude/skills/_pm-sistema-template/SKILL.md",
     ".claude/skills/pm-vitalia/SKILL.md",
-    ".claude/skills/pm-nicolify/SKILL.md",
-    ".claude/skills/pm-comunify/SKILL.md",
-    ".claude/skills/pm-lupulo/SKILL.md",
 ]
 
 

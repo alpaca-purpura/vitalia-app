@@ -11,10 +11,6 @@
 .claude/skills/backend-expert/SKILL.md :: docs/etl/extraction-contract.md
 .claude/skills/brand-expert/SKILL.md :: docs/domains/brand/INDEX.md
 .claude/skills/data-storyteller/SKILL.md :: references/data-viz-conventions.md
-.claude/skills/nicolify-design-system/SKILL.md :: nicolify/docs/architecture/design-system.md
-.claude/skills/nicolify-design-system/SKILL.md :: nicolify/frontend/src/lib/shell-routes.ts
-.claude/skills/nicolify-design-system/SKILL.md :: nicolify/frontend/tailwind.config.ts
-.claude/skills/nicolify-design-system/SKILL.md :: vitalia/.claude/skills/vitalia-design-system/SKILL.md
 .claude/skills/offer-expert/SKILL.md :: docs/domains/offer/INDEX.md
 .claude/skills/playwright-expert/SKILL.md :: .github/workflows/e2e-tests.yml
 .claude/skills/pm-luana/SKILL.md :: docs/product/outcomes/voice-cloning-platform.md
