@@ -1,0 +1,258 @@
+---
+capability_id: vitalia.configuracion.cuenta
+module: configuracion
+tech_module: configuracion
+slug: cuenta
+status: live                          # ≥12 scenarios + e2e GREEN (config-cuenta.spec 6/6 real-backend)
+license: brand-local
+
+# Dimensiones v3 (4 campos · ADR-vitalia-005)
+agent_owner: configuracion              # caja del mapa — ver SYSTEM-MAP.yaml `zones`
+functional_area: configuracion.cuenta    # <caja>.<area-kebab> — DEBE existir en SYSTEM-MAP
+user_visible: true
+nature: feature                       # feature | scaffold | extension-point
+
+user_facing_name: "Datos de la clínica"
+user_facing_description: >
+  Vista centralizada donde el administrador revisa y edita los datos legales de su clínica
+  (razón social, ID fiscal por país, dirección, contacto, especialidades) y las preferencias
+  regionales (zona horaria, moneda). Los campos se guardan solos (autosave). El país, idioma
+  y tipo de clínica se definen en el alta y son de solo lectura. Cada cambio queda registrado
+  en el historial de auditoría. Acceso de edición restringido al administrador de la clínica.
+
+# DEV_PREVIEW
+dev_preview:
+  route: "/{tenantId}/config/cuenta/datos"
+  how_to_navigate: "Login → Ribbon 'Plataforma' → SubTab 'Mi cuenta' → sub-sub-tabs Datos / Preferencias / Responsable"
+  main_component: "vitalia/frontend/src/features/config/components/cuenta/AccountDataView.tsx"
+  api_endpoints:
+    - "GET /api/v1/clinics/account/"
+    - "PATCH /api/v1/clinics/account/"
+    - "GET /api/v1/clinics/account/specialties-catalog"
+    - "GET /api/v1/clinics/account/dpo"
+  e2e_test: "vitalia/frontend/e2e/shell-organism/config-cuenta.spec.ts"
+  fixtures_required: ["real-backend-forward.fixture (Clerk dr.demo + tenant Sanaré MX)"]
+  storybook_url: null
+  loom_demo: null
+
+# Ledger
+created_in_story: vitalia-fase2-config-cuenta
+created_date: 2026-06-11
+last_modified: 2026-06-12
+parent_cap: null
+derives_capabilities: []
+superseded_by: null
+
+change_log:
+  - story_id: vitalia-fase2-config-cuenta
+    date: 2026-06-12
+    type: fix
+    summary: >-
+      Fix UI post-done (Chris): campos sueltos sobre el fondo — re-agrupados en SectionCard
+      (wrapper canónico de marca/IdentityCard) per mockup ratificado: 🏥 Identidad (nombre,
+      razón social, tipo RO, especialidades) · 🧾 Identificación fiscal (país RO, ID fiscal) ·
+      📍 Dirección y contacto · 🌎 Formato regional (prefs). Section headers + hints del mockup.
+      E2E 6/6 + gates verdes post-fix.
+    merge_sha: pending
+    status: done
+  - story_id: vitalia-fase2-config-cuenta
+    date: 2026-06-12
+    type: new
+    summary: >-
+      Implementación inicial: sub-tab "Mi cuenta" N3-static (Datos/Preferencias/Responsable).
+      BE: Clinic +7 campos, account_router 4 endpoints, fiscal_id_validator (AR/UY checksum),
+      specialty_catalog por país (D3-revoked: especialidades EDITABLES), audit row durable
+      (unit-of-work atómico post C9-1), RBAC {owner, admin_clinic}. FE: autosave 600ms,
+      specialties multi-select (persiste ids), camelize/decamelize boundary, rol per-tenant.
+      Live-verified: E2E browser 6/6 + audit row en DB confirmada por auditor.
+    scenarios_added: [SC-01, SC-02, SC-03, SC-04, SC-04b, SC-05, SC-06, SC-07, SC-08, SC-09, SC-10, SC-11, SC-12]
+    merge_sha: pending-07-merge
+    status: done
+
+# v3.2
+access:
+  entry_points:
+    - "Ribbon 'Plataforma' → SubTab 'Mi cuenta' (ruta /{tenantId}/config/cuenta → redirect leaf /datos)"
+  forbidden_roles: []                  # lectura: cualquier rol autenticado del tenant · edición: ver business_rules RN-1
+  authentication: required
+
+scenarios:
+  - id: SC-01
+    name: "Admin edita nombre comercial → autosave + persiste + audit"
+    actor: admin de la clínica (owner / admin_clinic)
+    given: "Sesión autenticada en /config/cuenta/datos con datos reales del tenant cargados"
+    when: "Edita 'Nombre comercial' y espera el autosave (600ms)"
+    then: "PATCH 200 · valor persiste al recargar · fila en vitalia_audit_log (action=clinic_account_patch)"
+    verified_real: true
+    e2e_test: "vitalia/frontend/e2e/shell-organism/config-cuenta.spec.ts"
+    added_in_story: vitalia-fase2-config-cuenta
+  - id: SC-02
+    name: "ID fiscal inválido por país → 422 + error inline + NO persiste"
+    actor: admin
+    given: "Clínica con país AR/PE/MX/CL/CO/UY"
+    when: "Ingresa un ID fiscal con formato/checksum inválido"
+    then: "422 {field, message} Spanish neutro · error inline · DB sin cambio"
+    verified_real: true
+    e2e_test: "vitalia/backend/tests/modules/vitalia/clinics/test_fiscal_id_validator.py"
+    added_in_story: vitalia-fase2-config-cuenta
+  - id: SC-03
+    name: "Cross-tenant request → 404 sin leak"
+    actor: tenant_B
+    given: "Datos de tenant_A"
+    when: "PATCH con X-Tenant-ID de tenant_B"
+    then: "404 (no 403 — evita leak de existencia)"
+    verified_real: true
+    e2e_test: "vitalia/backend/tests/modules/vitalia/clinics/test_account_router.py"
+    added_in_story: vitalia-fase2-config-cuenta
+  - id: SC-04
+    name: "Rol no-admin → read-only + 403 al PATCH"
+    actor: rol doctor/marketing/recepcion
+    given: "Sesión autenticada sin rol de administrador"
+    when: "Intenta PATCH"
+    then: "403 fail-closed (roles de escritura: owner, admin_clinic)"
+    verified_real: true
+    e2e_test: "vitalia/backend/tests/modules/vitalia/clinics/test_clinic_account_service.py"
+    added_in_story: vitalia-fase2-config-cuenta
+  - id: SC-04b
+    name: "Especialidades editables (D3-revoked) → valida vs catálogo país + persiste config_json"
+    actor: admin
+    given: "Catálogo de especialidades del país cargado (multi-select)"
+    when: "Agrega/quita especialidades válidas"
+    then: "PATCH 200 · config_json.clinic_config.primary_specialties actualizado (ids) · inválida → 422 atómico (nada persiste)"
+    verified_real: true
+    e2e_test: "vitalia/backend/tests/modules/vitalia/clinics/test_specialty_catalog.py"
+    added_in_story: vitalia-fase2-config-cuenta
+  - id: SC-05
+    name: "Cambio timezone → autosave + persiste"
+    actor: admin
+    given: "Sub-sub-tab Preferencias"
+    when: "Selecciona zona horaria (TimezoneSelect ui-kit)"
+    then: "Autosave PATCH · timezone persiste"
+    verified_real: true
+    e2e_test: "vitalia/frontend/e2e/shell-organism/config-cuenta.spec.ts"
+    added_in_story: vitalia-fase2-config-cuenta
+  - id: SC-06
+    name: "Cambio moneda → autosave + símbolo"
+    actor: admin
+    given: "Sub-sub-tab Preferencias"
+    when: "Selecciona moneda (CurrencySelector ui-kit, sin hardcode USD)"
+    then: "Autosave PATCH · currency persiste · fallback TenantLocale si None"
+    verified_real: true
+    e2e_test: "vitalia/frontend/e2e/shell-organism/config-cuenta.spec.ts"
+    added_in_story: vitalia-fase2-config-cuenta
+  - id: SC-07
+    name: "Idioma read-only (derivado del país)"
+    actor: admin
+    given: "Preferencias"
+    when: "Observa el campo idioma"
+    then: "Read-only + badge 'definido en el alta' (back-compat None→es-419)"
+    verified_real: true
+    e2e_test: "vitalia/frontend/e2e/shell-organism/config-cuenta.spec.ts"
+    added_in_story: vitalia-fase2-config-cuenta
+  - id: SC-08
+    name: "País read-only (definido en el alta)"
+    actor: admin
+    given: "Datos"
+    when: "Observa el campo país"
+    then: "Read-only badge · PATCH lo rechaza (no está en el contrato de escritura)"
+    verified_real: true
+    e2e_test: "vitalia/frontend/e2e/shell-organism/config-cuenta.spec.ts"
+    added_in_story: vitalia-fase2-config-cuenta
+  - id: SC-09
+    name: "Tipo clínica read-only (compliance-crítico)"
+    actor: admin
+    given: "Datos"
+    when: "Observa tipo de clínica"
+    then: "Badge 'definido en el alta' · no editable (cambio = soporte)"
+    verified_real: true
+    e2e_test: "vitalia/frontend/e2e/shell-organism/config-cuenta.spec.ts"
+    added_in_story: vitalia-fase2-config-cuenta
+  - id: SC-10
+    name: "DPO referencia read-only + link a Seguridad"
+    actor: admin
+    given: "Sub-sub-tab Responsable"
+    when: "Observa el responsable de tratamiento"
+    then: "Datos del DPO (config_json.compliance.dpo) o empty state 'Aún no configurado' + link a config/seguridad · sin formulario"
+    verified_real: true
+    e2e_test: "vitalia/frontend/e2e/shell-organism/config-cuenta.spec.ts"
+    added_in_story: vitalia-fase2-config-cuenta
+  - id: SC-11
+    name: "Abre Mi cuenta → datos reales del tenant (no placeholder)"
+    actor: admin
+    given: "Login + navegación Plataforma → Mi cuenta"
+    when: "Aterriza en /config/cuenta/datos"
+    then: "Datos reales de BD cargados (GET client React Query) · CuentaPlaceholder retirado"
+    verified_real: true
+    e2e_test: "vitalia/frontend/e2e/shell-organism/config-cuenta.spec.ts"
+    added_in_story: vitalia-fase2-config-cuenta
+  - id: SC-12
+    name: "Live-verify: write + persist + audit observable en logs/DB"
+    actor: admin
+    given: "Stack dev real (FE 3002 + BE 8002 + Clerk)"
+    when: "Ejerce un write real"
+    then: "PATCH 200 · persiste al recargar · fila REAL en vitalia_audit_log (durabilidad post C9-1, no solo structlog)"
+    verified_real: true
+    e2e_test: "vitalia/backend/tests/modules/vitalia/clinics/test_account_audit_durability.py"
+    added_in_story: vitalia-fase2-config-cuenta
+
+business_rules:
+  - id: RN-1
+    rule: "Solo el administrador de la clínica edita (roles owner/admin_clinic — set canónico ALLOWED_BRAND_OWNER_ROLES); otros roles ven read-only y reciben 403 al PATCH."
+    enforcement: "service fail-closed _WRITE_ROLES"
+    code_ref: "vitalia/backend/src/modules/vitalia/clinics/application/clinic_account_service.py (_WRITE_ROLES + patch_account)"
+  - id: RN-2
+    rule: "ID fiscal validado por país (AR CUIT/UY RUT con checksum mód-11; PE RUC/MX RFC/CL-CO NIT formato+longitud; país no soportado → texto libre degradado)."
+    enforcement: "validator pre-persist → 422"
+    code_ref: "vitalia/backend/src/modules/vitalia/_shared/validation/fiscal_id_validator.py"
+  - id: RN-3
+    rule: "País/idioma/tipo de clínica read-only post-alta. Especialidades EDITABLES (D3-revoked) validadas contra el catálogo del país."
+    enforcement: "PatchRequest sin campos read-only + validate_specialties → 422"
+    code_ref: "vitalia/backend/src/modules/vitalia/_shared/catalogs/specialty_catalog.py (validate_specialties)"
+  - id: RN-4
+    rule: "Todo write a datos del tenant escribe fila de auditoría SYNC pre-response, DURABLE (commit garantizado en el mismo unit-of-work atómico)."
+    enforcement: "get_async_session_committing + caller-owned unit-of-work + integration test"
+    code_ref: "vitalia/backend/src/modules/vitalia/clinics/api/account_router.py (_get_db) + tests/modules/vitalia/clinics/test_account_audit_durability.py"
+  - id: RN-5
+    rule: "Datos tenant-scoped; request cross-tenant → 404 sin leak."
+    enforcement: "repo tenant-scoped en toda query"
+    code_ref: "vitalia/backend/src/modules/vitalia/clinics/infrastructure/repositories/clinic_repository.py (get_active_for_tenant)"
+  - id: RN-6
+    rule: "Preferencias regionales sin hardcode: moneda/zona desde clinic.currency con fallback TenantLocale; selectores canónicos del ui-kit."
+    enforcement: "FE canon + master-data rule"
+    code_ref: "vitalia/frontend/src/features/config/components/cuenta/PreferencesView.tsx"
+
+related_capabilities:
+  depends_on: [vitalia.clinics.clinics-brand-extension]
+  enables: []
+  similar: []
+  obsoletes: []
+---
+
+# cuenta
+
+Área **Cuenta del tenant** de la caja **Configuración** (zona Plataforma). Vista user-facing de uso poco
+frecuente (admin) con los datos del propio tenant/clínica: identidad legal/fiscal, contacto,
+especialidades (editables, D3-revoked), preferencias regionales y referencia al DPO.
+
+## Arquitectura
+
+- **BE** (`clinics/`): `account_router` (4 endpoints, prefix `/api/v1/clinics/account` — trailing slash
+  obligatorio, `redirect_slashes=False`) → `ClinicAccountService` → `ClinicRepository` +
+  `ClinicConfigRepository` (RMW de `tenant.config_json.clinic_config.primary_specialties` — engine-boundary,
+  CERO columnas nuevas en engine). Unit-of-work atómico con `get_async_session_committing`
+  (clinic fields + specialties + audit row commitean juntos — fix C9-1). Migración 039.
+- **FE** (`features/config/`): N3-static `SubSubTabsBar` (Datos/Preferencias/Responsable) ·
+  autosave 600ms (`use-autosave`) · `useAccountQuery` (GET client canónico) · camelize/decamelize
+  boundary (BE Pydantic snake sin alias) · rol per-tenant via `useTenants()` (NO `/me` — drift engine).
+- **Catálogos brand-local** (lift candidates): `fiscal_id_validator` + `specialty_catalog` (Tier 1-3 por país).
+
+## Decisiones cardinales
+
+- D1: sin billing (defer pricing) · D2: sin equipo/RBAC CRUD (caja Acceso) · D3-revoked: especialidades editables.
+- Clinic = non-PHI (sin PhiRepositoryBase — rationale en 03-arch § Architecture Decisions, ADR-004 partial).
+- RBAC alineado al canónico de la plataforma ({owner, admin_clinic}).
+
+## Referencias
+
+- Story: `vitalia/docs/archive/2026/stories/vitalia-fase2-config-cuenta/` (post-merge)
+- Audit: T-1/T-2-review.md + CHECKPOINTS.md + 06-audit/gherkin-matrix.md (12/12)

@@ -1,0 +1,1 @@
+../../core-harness/rules/auditor-self-fix-policy.md

@@ -1,0 +1,269 @@
+# F1-S4 vitalia-fase1-shell-layout-5050 — validators (5 categorías ★ v4.1)
+#
+# Each validator: must_pass=true unless explicitly marked. Comando shell EJECUTABLE.
+# ZERO Opus en build (FE no-agentic puro). R23 NO aplica.
+#
+# Categorías v4.1:
+#   1. non_functional      — typecheck, lint, vitest unit + coverage
+#   2. functional          — E2E Playwright (1 spec per Gherkin scenario)
+#   3. visual              — Playwright visual goldens (6 PNG snapshots)
+#   4. agentic_eval        — N/A (declarar razón explícita)
+#   5. architectural_validation — FSD-Lite boundaries + skip-link target + zustand schema + no-cross-brand grep
+
+story_id: vitalia-fase1-shell-layout-5050
+brand: vitalia
+phase: fase-1
+last_modified: 2026-05-23
+architect_iter: 1
+playwright_required: true   # ui-story HARD per v4.1
+
+scenario_coverage:
+  total_scenarios: 4
+  mapped: 4
+  coverage_pct: 100
+  scenarios:
+    - id: SC-1
+      title: "happy · render 50/50 default modo agentic"
+      validator_ids: [val-fe-e2e-render-agentic-default, val-fe-visual-agentic-light]
+    - id: SC-2
+      title: "negative · viewport < md colapsa a 1 columna"
+      validator_ids: [val-fe-e2e-mobile-collapse, val-fe-visual-mobile]
+    - id: SC-3
+      title: "edge · resize boundary clamp + persistencia + snap-up por state change"
+      validator_ids: [val-fe-e2e-resize-and-state]
+    - id: SC-4
+      title: "adversarial · a11y keyboard nav + skip link target"
+      validator_ids: [val-fe-e2e-a11y-keyboard, val-fe-axe]
+
+sub_categories_coverage:
+  race_condition:
+    applies: false
+    not_applicable_reason: "layout sin create/update — sólo render + resize side-effect local browser"
+  concurrent_users:
+    applies: false
+    not_applicable_reason: "layout root sin queries de filtrado — tenant isolation aplica en BE upstream"
+  network_failure:
+    applies: false
+    not_applicable_reason: "layout puro sin fetch propio — F1-S5/S6 cubre cuando agreguen chat fetch"
+  empty_state:
+    applies: false
+    not_applicable_reason: "slots son placeholders por diseño — empty real es scope de F1-S10 empty-states story"
+  large_dataset:
+    applies: false
+    not_applicable_reason: "layout no renderiza listas"
+  accessibility:
+    applies: true
+    covered_by: [val-fe-e2e-a11y-keyboard, val-fe-axe, val-fe-arch-skip-link]
+  i18n:
+    applies: true
+    covered_by: [val-fe-e2e-render-agentic-default]
+
+iteration:
+  max_iterations: 10
+  on_fail: "fix targeted file (single file edit per iter, no scope creep)"
+  cap_reached_action: "escalate Chris with T-{n}-impl-log.md cap_reached summary; do NOT auto-disable any validator"
+
+test_construction_plan:
+  playwright_required: true
+  creation_order:
+    - "T-1: stores/__tests__/shell-store.test.ts (RED) → stores/shell-store.ts (GREEN)"
+    - "T-2: ValeriaSidebarSlot.test.tsx + AppPanelSlot.test.tsx (RED) → Server Components (GREEN)"
+    - "T-3: useViewportGuard.test.ts + ShellOrganismLayout.test.tsx (RED) → hook + layout (GREEN)"
+    - "T-4: app/[tenantId]/(shell-organism)/layout.tsx + page.tsx (redirect test via next/navigation mock)"
+    - "T-5: ShellModeToggle.test.tsx (RED) → disabled chip (GREEN)"
+    - "T-6: full Vitest run coverage threshold + arch tests new"
+    - "T-7: Playwright POM (ShellLayoutPage) + 4 functional specs + visual goldens (--update-snapshots iter 1) + ratchet shrink-only post-ratify"
+  scenario_to_test:
+    SC-1: "vitalia/frontend/e2e/regression/vitalia-fase1-shell-layout-5050/render-agentic-default.spec.ts"
+    SC-2: "vitalia/frontend/e2e/regression/vitalia-fase1-shell-layout-5050/mobile-collapse.spec.ts"
+    SC-3: "vitalia/frontend/e2e/regression/vitalia-fase1-shell-layout-5050/resize-and-state.spec.ts"
+    SC-4: "vitalia/frontend/e2e/regression/vitalia-fase1-shell-layout-5050/a11y-keyboard.spec.ts"
+  poms_required:
+    - path: "vitalia/frontend/e2e/pages/ShellLayoutPage.ts"
+      methods: [gotoShell, setShellModeViaStore, setValeriaStateViaStore, dragResizeHandle, getValeriaWidth, getPersistedSplit]
+  fixtures_required:
+    - "vitalia/frontend/e2e/auth.fixture.ts (REUSE F1-S3 Clerk auth)"
+    - "vitalia/frontend/e2e/fixtures/shell-theme.fixture.ts (NEW — addInitScript setting localStorage `vitalia-theme` + `vitalia-shell-state` pre-navigation, deterministic visual goldens)"
+
+architectural_validation:
+  sub_tests:
+    - id: arch-fsd-imports
+      description: "FSD-Lite: shell-organism components NO importan de features/*"
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test-fsd-imports.test.ts"
+      must_pass: true
+    - id: arch-skip-link
+      description: "Skip-link target: <main id='main-content' tabIndex={-1}> existe en ShellOrganismLayout"
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test-skip-link-target.test.ts"
+      must_pass: true
+      file_new: "vitalia/frontend/src/__tests__/architecture/test-skip-link-target.test.ts"
+    - id: arch-shell-store-schema
+      description: "Zustand shell-store exports ValeriaState, ShellMode, SHELL_STORAGE_KEY matching DC §6.1"
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test-shell-store-schema.test.ts"
+      must_pass: true
+      file_new: "vitalia/frontend/src/__tests__/architecture/test-shell-store-schema.test.ts"
+    - id: arch-no-cross-brand-shell-mirror
+      description: "Grep nicolify/comunify/lupulo for ShellOrganismLayout|shell-store — must be 0 matches"
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test-no-cross-brand-shell-mirror.test.ts"
+      must_pass: true
+      file_new: "vitalia/frontend/src/__tests__/architecture/test-no-cross-brand-shell-mirror.test.ts"
+    - id: arch-no-default-export
+      description: "Ratchet heredado: shell-organism new components use named exports (no default export)"
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test-no-default-export.test.ts"
+      must_pass: true
+
+# ════════════════════════════════════════════════════════════════════
+# § 1 — NON-FUNCTIONAL
+# ════════════════════════════════════════════════════════════════════
+validators:
+  non_functional:
+
+    - id: val-fe-tsc
+      description: "TypeScript strict (no any, no implicit, FSD boundaries respect)"
+      command: "cd vitalia/frontend && npx tsc --noEmit"
+      must_pass: true
+
+    - id: val-fe-lint
+      description: "ESLint cache scoped a archivos F1-S4 + base shell-organism + stores + arch tests"
+      command: "cd vitalia/frontend && npx eslint src/components/shared/shell-organism src/stores src/app/[tenantId] src/__tests__/architecture --cache --cache-location .eslintcache"
+      must_pass: true
+
+    - id: val-fe-prettier
+      description: "Prettier format check on new files"
+      command: "cd vitalia/frontend && npx prettier --check src/components/shared/shell-organism src/stores/shell-store.ts 'src/app/[tenantId]/**/*.{ts,tsx}'"
+      must_pass: true
+
+    - id: val-fe-vitest-unit
+      description: "Vitest unit: shell-store + slots + layout + viewport guard + mode toggle + arch tests new + coverage threshold"
+      command: "cd vitalia/frontend && npx vitest run src/components/shared/shell-organism src/stores src/__tests__/architecture --reporter=default --coverage --coverage.thresholds.lines=20 --coverage.thresholds.functions=20"
+      must_pass: true
+
+  # ════════════════════════════════════════════════════════════════════
+  # § 2 — FUNCTIONAL (E2E Playwright per scenario)
+  # ════════════════════════════════════════════════════════════════════
+  functional:
+
+    - id: val-fe-e2e-render-agentic-default
+      description: "SC-1 happy · render 50/50 default modo agentic + tenantId redirect + skip-link target"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test regression/vitalia-fase1-shell-layout-5050/render-agentic-default.spec.ts"
+      must_pass: true
+      scenario_id: SC-1
+
+    - id: val-fe-e2e-mobile-collapse
+      description: "SC-2 negative · viewport 375x667 colapsa a 1 columna sin overflow"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test regression/vitalia-fase1-shell-layout-5050/mobile-collapse.spec.ts"
+      must_pass: true
+      scenario_id: SC-2
+
+    - id: val-fe-e2e-resize-and-state
+      description: "SC-3 edge · resize boundary clamp (min Valeria 620 'full'/360 'rail') + localStorage persist + snap-up por state change"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test regression/vitalia-fase1-shell-layout-5050/resize-and-state.spec.ts"
+      must_pass: true
+      scenario_id: SC-3
+
+    - id: val-fe-e2e-a11y-keyboard
+      description: "SC-4 adversarial · a11y keyboard nav (Tab order + ArrowLeft/Right resize handle 16px step + skip-link reachable focus)"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test regression/vitalia-fase1-shell-layout-5050/a11y-keyboard.spec.ts"
+      must_pass: true
+      scenario_id: SC-4
+
+    - id: val-fe-axe
+      description: "SC-4 axe-core WCAG 2.1 AA on shell layout (light + dark)"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test regression/vitalia-fase1-shell-layout-5050/a11y-keyboard.spec.ts --grep '@axe'"
+      must_pass: true
+      scenario_id: SC-4
+
+  # ════════════════════════════════════════════════════════════════════
+  # § 3 — VISUAL (6 PNG snapshots — mockup HTML side-by-side ratchet)
+  # ════════════════════════════════════════════════════════════════════
+  visual:
+
+    - id: val-fe-visual-agentic-light
+      description: "Visual golden vs mockups/shell-layout-agentic.html @ 1280x800 light · maxDiffPixelRatio 0.001"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test --project=visual regression/vitalia-fase1-shell-layout-5050/visual-goldens.spec.ts --grep 'agentic light 1280'"
+      must_pass: true
+      snapshot_path: "vitalia/frontend/e2e/__screenshots__/shell-layout-5050/agentic-1280x800-light.png"
+      mockup_ref: "vitalia/docs/product/stories/vitalia-fase1-shell-layout-5050/mockups/shell-layout-agentic.html"
+
+    - id: val-fe-visual-agentic-dark
+      description: "Visual golden vs mockup agentic @ 1280x800 dark"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test --project=visual regression/vitalia-fase1-shell-layout-5050/visual-goldens.spec.ts --grep 'agentic dark 1280'"
+      must_pass: true
+      snapshot_path: "vitalia/frontend/e2e/__screenshots__/shell-layout-5050/agentic-1280x800-dark.png"
+      mockup_ref: "vitalia/docs/product/stories/vitalia-fase1-shell-layout-5050/mockups/shell-layout-agentic.html"
+
+    - id: val-fe-visual-agentic-rail
+      description: "Visual golden agentic valeriaState='rail' @ 1280x800 light"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test --project=visual regression/vitalia-fase1-shell-layout-5050/visual-goldens.spec.ts --grep 'agentic rail 1280'"
+      must_pass: true
+      snapshot_path: "vitalia/frontend/e2e/__screenshots__/shell-layout-5050/agentic-rail-1280x800.png"
+      mockup_ref: "vitalia/docs/product/stories/vitalia-fase1-shell-layout-5050/mockups/shell-layout-agentic.html"
+
+    - id: val-fe-visual-web-light
+      description: "Visual golden vs mockups/shell-layout-web.html @ 1280x800 light"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test --project=visual regression/vitalia-fase1-shell-layout-5050/visual-goldens.spec.ts --grep 'web light 1280'"
+      must_pass: true
+      snapshot_path: "vitalia/frontend/e2e/__screenshots__/shell-layout-5050/web-1280x800-light.png"
+      mockup_ref: "vitalia/docs/product/stories/vitalia-fase1-shell-layout-5050/mockups/shell-layout-web.html"
+
+    - id: val-fe-visual-web-dark
+      description: "Visual golden web @ 1280x800 dark"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test --project=visual regression/vitalia-fase1-shell-layout-5050/visual-goldens.spec.ts --grep 'web dark 1280'"
+      must_pass: true
+      snapshot_path: "vitalia/frontend/e2e/__screenshots__/shell-layout-5050/web-1280x800-dark.png"
+      mockup_ref: "vitalia/docs/product/stories/vitalia-fase1-shell-layout-5050/mockups/shell-layout-web.html"
+
+    - id: val-fe-visual-mobile
+      description: "Visual golden agentic mobile 375x667 — grid 1-col, AppPanel 100%, ValeriaSidebar oculto"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test --project=visual regression/vitalia-fase1-shell-layout-5050/visual-goldens.spec.ts --grep 'agentic mobile 375'"
+      must_pass: true
+      snapshot_path: "vitalia/frontend/e2e/__screenshots__/shell-layout-5050/agentic-mobile-375x667.png"
+      mockup_ref: "vitalia/docs/product/stories/vitalia-fase1-shell-layout-5050/mockups/shell-layout-agentic.html"
+
+  # ════════════════════════════════════════════════════════════════════
+  # § 4 — AGENTIC EVAL (N/A — FE only)
+  # ════════════════════════════════════════════════════════════════════
+  agentic_eval:
+    applies: false
+    not_applicable_reason: "FE only chrome UI story — no LangGraph state, no specialist, no LLM call, no goldens. Sales_agent + Copilot brand extensions out-of-scope F1-S4."
+
+  # ════════════════════════════════════════════════════════════════════
+  # § 5 — ARCHITECTURAL VALIDATION (FSD + skip-link + zustand schema + cross-brand grep)
+  # ════════════════════════════════════════════════════════════════════
+  architectural_validation:
+
+    - id: val-fe-arch-fsd
+      description: "FSD-Lite boundaries (shell-organism no imports features/*)"
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test-fsd-imports.test.ts"
+      must_pass: true
+
+    - id: val-fe-arch-skip-link
+      description: "Skip-link target invariant — <main id='main-content' tabIndex={-1}> in ShellOrganismLayout (NEW gate)"
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test-skip-link-target.test.ts"
+      must_pass: true
+
+    - id: val-fe-arch-shell-store
+      description: "Zustand shell-store schema invariant (NEW gate)"
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test-shell-store-schema.test.ts"
+      must_pass: true
+
+    - id: val-fe-arch-no-cross-brand-mirror
+      description: "Cross-brand mirror guard — grep nicolify/comunify/lupulo for shell-organism artifacts (NEW gate, anti-duplication.md)"
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test-no-cross-brand-shell-mirror.test.ts"
+      must_pass: true
+
+    - id: val-fe-arch-no-default-export
+      description: "Ratchet heredado: named exports (no default) shell-organism + stores"
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test-no-default-export.test.ts"
+      must_pass: true
+
+# ════════════════════════════════════════════════════════════════════
+# Pre-build environment requirements (informacional — no validator)
+# ════════════════════════════════════════════════════════════════════
+preflight:
+  notes: |
+    - Dev stack vitalia must be running for E2E specs: `make dev-vitalia` (ports backend 8002, frontend 3002).
+    - Playwright preflight: `bash scripts/e2e-preflight.sh` (verifica dev stack + Clerk auth state).
+    - Visual goldens iter 1 generation: builder T-7 runs `npx playwright test --update-snapshots` AFTER Chris ratifica
+      visual side-by-side mockup HTML montado en `python3 -m http.server 8888 vitalia/docs/product/stories/{story-id}/mockups/`
+      vs componente real. Post-ratify, ratchet shrink-only.
+    - localStorage state for E2E goldens determinism set via `addInitScript` in shell-theme.fixture.ts.

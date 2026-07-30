@@ -1,0 +1,14 @@
+name: push-wip
+description: T-push sync check + push wip/hotfix/exp branch — advisory si origin/main adelantó + push.
+command: bash scripts/git/push-wip.sh {{branch}}
+arguments:
+  - name: branch
+    description: Branch a pushear (vacío = current). Ej. wip/vitalia-copilot-tools-impl
+    default_value: ""
+tags:
+  - luana
+  - git
+  - worktree
+shells:
+  - bash
+  - zsh

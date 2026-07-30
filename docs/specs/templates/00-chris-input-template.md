@@ -1,0 +1,1 @@
+../../../core-harness/templates/00-chris-input-template.md

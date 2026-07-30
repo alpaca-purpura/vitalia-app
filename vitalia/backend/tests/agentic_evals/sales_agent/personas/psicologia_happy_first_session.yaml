@@ -1,0 +1,18 @@
+# Vitalia Adrián eval persona — psicologia mild anxiety first session
+# voseo-allowed: persona simula lead CL (tuteo CL).
+persona_id: psicologia_happy_first_session
+archetype: caregiver
+dialect: es-CL
+vertical: psicologia
+voice_constraints:
+  formality: informal
+  opening: "Hola, hace un tiempo vengo con ansiedad y quería empezar a hacer terapia. ¿Cómo funcionan las primeras sesiones?"
+  common_objections: []
+  red_flags: []
+profile:
+  intent: book_first_therapy_session
+  urgency: medium
+  budget_hint: 40000_ars
+  emotional_state: vulnerable_open
+  tech_savvy: medium
+  preferred_modality: online

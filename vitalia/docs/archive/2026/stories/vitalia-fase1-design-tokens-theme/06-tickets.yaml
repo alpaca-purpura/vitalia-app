@@ -1,0 +1,535 @@
+# F1-S1 vitalia-fase1-design-tokens-theme — 06-tickets.yaml
+# Schema v4.1 cement 2026-05-19 (gherkin_coverage mandatory post 2026-05-18)
+# Story FE-only no-agentic — ALL tickets Sonnet/qwen-opencode, ZERO Opus
+# DAG: T-1 → {T-2, T-3, T-4}; T-2 → T-3 → T-5; T-4 → T-5; T-5 → T-6 → T-7
+
+brand: vitalia
+story_id: vitalia-fase1-design-tokens-theme
+arch_version: 1
+written_at: 2026-05-22
+
+# ════════════════════════════════════════════════════════════════════════
+# Tickets
+# ════════════════════════════════════════════════════════════════════════
+
+tickets:
+
+  # ──────────────────────────────────────────────────────────────────────
+  # T-1 — npm install next-themes + lockfile commit
+  # ──────────────────────────────────────────────────────────────────────
+
+  - id: T-1
+    title: "fe-next-themes-install — npm install next-themes + lockfile commit"
+    state: ready
+    surface: frontend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: true
+    depends_on: []
+    blocks: [T-2, T-3, T-4]
+    acceptance:
+      validator_ids:
+        - fe_typecheck
+        - fe_lint
+    gherkin_coverage:
+      - scenario: "AC-1 next-themes lockfile committed"
+        tests:
+          - "fe_typecheck (validator)"
+    estimated_hours: 0.5
+    notes_for_downstream: |
+      Comando:
+        cd vitalia/frontend && npm install next-themes
+
+      Esperado: resuelve ^0.3.x latest stable React 19 compat (Q4 2025).
+      Lockfile diff package.json + package-lock.json committed.
+
+      Si peer-dep React 19 conflict → workaround:
+        npm install next-themes --legacy-peer-deps
+
+      lucide-react ya instalado en F1-S0 via Shadcn deps — confirmar
+      via grep package.json (no segundo install necesario).
+
+  # ──────────────────────────────────────────────────────────────────────
+  # T-2 — globals.css complete Shadcn vars verbatim Design Contract § 5.1
+  # ──────────────────────────────────────────────────────────────────────
+
+  - id: T-2
+    title: "fe-globals-css-complete-vars — globals.css :root + .dark verbatim Design Contract § 5.1"
+    state: ready
+    surface: frontend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: true
+    depends_on: [T-1]
+    blocks: [T-3, T-4, T-5]
+    acceptance:
+      validator_ids:
+        - fe_typecheck
+        - fe_lint
+        - fe_shadcn_vars_complete_introspection
+        - visual_agent_tokens_swatch_light_regression
+        - visual_agent_tokens_swatch_dark_regression
+    gherkin_coverage:
+      - scenario: "Scenario 4 — edge agent tokens accessible post-completion"
+        tests:
+          - "fe_shadcn_vars_complete_introspection"
+          - "visual_agent_tokens_swatch_light_regression"
+          - "visual_agent_tokens_swatch_dark_regression"
+    estimated_hours: 1
+    notes_for_downstream: |
+      Path: vitalia/frontend/src/app/globals.css
+
+      Acción: completar bloques :root (light) + .dark (dark variants) con
+      TODAS las CSS vars Shadcn-standard verbatim Design Contract § 5.1
+      (`vitalia/docs/architecture/SHELL-DESIGN-CONTRACT.md`).
+
+      Vars que DEBEN estar presentes :root + .dark:
+        --background, --foreground
+        --card, --card-foreground
+        --popover, --popover-foreground
+        --primary, --primary-foreground
+        --secondary, --secondary-foreground
+        --muted, --muted-foreground
+        --accent, --accent-foreground
+        --destructive, --destructive-foreground
+        --border, --input, --ring
+        --radius (solo :root)
+
+      Plus agent tokens (heredados F1-S0 — VERIFY presentes):
+        --agent-{lisa,lucas,adrian,valeria,camila,mateo,config}
+        --agent-{lisa,lucas,adrian,valeria,camila}-soft
+
+      PRESERVAR bloque .vt-* legacy intacto (NO TOCAR — deprecación final
+      es F2-S23 vitalia-fase2-vt-deprecation-final).
+
+      Format HSL space-separated:
+        --primary: 198 99% 49%;   (NO commas, NO hsl() wrapper)
+
+      Comments preservados para referencia humana.
+
+      Validator fe_shadcn_vars_complete_introspection enforce — vitest
+      injecta globals.css en jsdom + verifica getComputedStyle resolve
+      cada var en :root Y .dark.
+
+  # ──────────────────────────────────────────────────────────────────────
+  # T-3 — tailwind.config.ts verify/complete + darkMode config
+  # ──────────────────────────────────────────────────────────────────────
+
+  - id: T-3
+    title: "fe-tailwind-config-verify-complete — colors extend + darkMode ['class', '[data-theme=dark]']"
+    state: ready
+    surface: frontend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: true
+    depends_on: [T-2]
+    blocks: [T-5]
+    acceptance:
+      validator_ids:
+        - fe_typecheck
+        - fe_lint
+        - fe_shadcn_vars_complete_introspection
+    gherkin_coverage:
+      - scenario: "Scenario 4 — edge agent tokens resolvable via Tailwind"
+        tests:
+          - "fe_shadcn_vars_complete_introspection"
+    estimated_hours: 0.5
+    notes_for_downstream: |
+      Path: vitalia/frontend/tailwind.config.ts
+
+      Config crítico (darkMode):
+        darkMode: ['class', '[data-theme="dark"]']
+
+      Razón: match next-themes attribute="data-theme" (D4 cementada).
+      Tailwind v4 default 'media' usaría prefers-color-scheme OS (NO queremos).
+
+      Colors extend verbatim Design Contract § 5.2:
+        - Shadcn-standard: background, foreground, primary{DEFAULT,foreground},
+          secondary{...}, muted{...}, accent{...}, card{...}, popover{...},
+          border, input, ring, destructive{DEFAULT,foreground}
+        - Agent tokens (heredado F1-S0): agent.{lisa,lucas,adrian,valeria,
+          camila,mateo,config} + soft variants
+
+      borderRadius extend:
+        { lg: 'var(--radius)', md: 'calc(var(--radius) - 2px)', sm: 'calc(var(--radius) - 4px)' }
+
+      F1-S0 ya extendió colors.agent.*. F1-S1 VERIFY que también extendió
+      Shadcn-standard. Si parciales → completar verbatim.
+
+  # ──────────────────────────────────────────────────────────────────────
+  # T-4 — layout.tsx wrap ThemeProvider + suppressHydrationWarning
+  # ──────────────────────────────────────────────────────────────────────
+
+  - id: T-4
+    title: "fe-layout-wrap-theme-provider — layout.tsx wrap + <html lang=es suppressHydrationWarning>"
+    state: ready
+    surface: frontend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: true
+    depends_on: [T-1]
+    blocks: [T-5, T-7]
+    acceptance:
+      validator_ids:
+        - fe_typecheck
+        - fe_lint
+        - fe_theme_provider_props_correct
+        - fe_html_suppress_hydration_warning_present
+        - fe_build_production
+    gherkin_coverage:
+      - scenario: "Scenario 3 — negative FOUC detection (suppressHydrationWarning required)"
+        tests:
+          - "fe_build_production"
+          - "fe_html_suppress_hydration_warning_present"
+          - "fe_theme_provider_props_correct"
+    estimated_hours: 0.5
+    notes_for_downstream: |
+      Path: vitalia/frontend/src/app/layout.tsx
+
+      Wrap verbatim:
+
+        import { ThemeProvider } from 'next-themes'
+        import './globals.css'
+
+        export default function RootLayout({ children }: { children: React.ReactNode }) {
+          return (
+            <html lang="es" suppressHydrationWarning>
+              <body>
+                <ThemeProvider
+                  attribute="data-theme"
+                  defaultTheme="light"
+                  enableSystem={false}
+                  storageKey="vitalia-theme"
+                >
+                  {children}
+                </ThemeProvider>
+              </body>
+            </html>
+          )
+        }
+
+      Props verbatim D1+D4 (4 mandatory):
+        - attribute="data-theme"        (NOT class="dark")
+        - defaultTheme="light"           (D1 ratificada)
+        - enableSystem={false}           (D1 ratificada)
+        - storageKey="vitalia-theme"     (D4 ratificada namespaced)
+
+      <html lang="es" suppressHydrationWarning> obligatorio.
+      Sin suppressHydrationWarning → React emite warning durante hydration
+      (next-themes inyecta data-theme inline <head> ANTES de hydrate React,
+      legitimate SSR vs client mismatch).
+
+      Scenario 3 validator (fe_build_production + console error capture)
+      detecta esto post-build.
+
+  # ──────────────────────────────────────────────────────────────────────
+  # T-5 — ThemeToggle component + vitest unit
+  # ──────────────────────────────────────────────────────────────────────
+
+  - id: T-5
+    title: "fe-theme-toggle-component — ThemeToggle.tsx + ThemeToggle.test.tsx (TDD)"
+    state: ready
+    surface: frontend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: true
+    depends_on: [T-2, T-3, T-4]
+    blocks: [T-6, T-7]
+    acceptance:
+      validator_ids:
+        - fe_typecheck
+        - fe_lint
+        - fe_format
+        - fe_vitest_existing_regression
+        - fe_no_default_exports_grep
+        - fe_no_any_typescript_grep
+    gherkin_coverage:
+      - scenario: "Scenario 1 — happy theme toggle (unit level)"
+        tests:
+          - "fe_vitest_existing_regression (ThemeToggle.test.tsx)"
+      - scenario: "Scenario 6 — i18n aria-label Spanish neutro (unit snapshot)"
+        tests:
+          - "fe_vitest_existing_regression"
+          - "fe_lint (voseo scan)"
+    estimated_hours: 1
+    notes_for_downstream: |
+      ★ TDD MANDATORIO: ThemeToggle.test.tsx escrito ANTES (RED) + luego
+      ThemeToggle.tsx (GREEN). Vitest run debe pasar al final.
+
+      Path component: vitalia/frontend/src/components/shared/shell-organism/ThemeToggle.tsx
+
+      Body verbatim (anclas técnicas):
+
+        'use client'
+
+        import { useTheme } from 'next-themes'
+        import { Button } from '@/components/ui/button'
+        import { Moon, Sun } from 'lucide-react'
+
+        export function ThemeToggle() {
+          const { theme, setTheme } = useTheme()
+          const isDark = theme === 'dark'
+
+          return (
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label={`Cambiar tema (actual: ${isDark ? 'oscuro' : 'claro'})`}
+              aria-pressed={isDark}
+              onClick={() => setTheme(isDark ? 'light' : 'dark')}
+              data-testid="theme-toggle"
+            >
+              {isDark ? <Sun className="h-[1.2rem] w-[1.2rem]" /> : <Moon className="h-[1.2rem] w-[1.2rem]" />}
+              <span className="sr-only">Cambiar tema</span>
+            </Button>
+          )
+        }
+
+      CRÍTICO:
+        - 'use client' directive obligatoria (useTheme hook requiere React runtime)
+        - import { useTheme } from 'next-themes' DIRECTO (NO wrapper — D5 ratificada)
+        - export function ThemeToggle()  ← named export (NO export default — FSD-Lite enforce)
+        - data-testid="theme-toggle"     ← Playwright selector estable
+        - aria-label dinámico Spanish neutro: "Cambiar tema (actual: claro|oscuro)"
+        - aria-pressed dinámico boolean
+        - Conditional icon: Moon (light theme visible) / Sun (dark theme visible)
+        - <span sr-only> screen-reader fallback (a11y defense-in-depth)
+        - NO hex hardcoded, NO any TypeScript, NO default export
+
+      Path unit test: vitalia/frontend/src/components/shared/shell-organism/ThemeToggle.test.tsx
+
+      Tests vitest (≥4):
+        1. it('renders with Moon icon when theme is light') — wrap with ThemeProvider defaultTheme=light
+        2. it('renders with Sun icon when theme is dark') — wrap with ThemeProvider defaultTheme=dark
+        3. it('toggles theme on click') — fireEvent.click + assert next-themes setTheme called
+        4. it('aria-label matches Spanish neutro pattern') — regex /^Cambiar tema \(actual: (claro|oscuro)\)$/
+
+  # ──────────────────────────────────────────────────────────────────────
+  # T-6 — Playwright specs (3) + test page fixture + visual goldens
+  # ──────────────────────────────────────────────────────────────────────
+
+  - id: T-6
+    title: "fe-playwright-specs-3 — behavior + visual goldens + a11y + test page fixture"
+    state: ready
+    surface: frontend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: true
+    depends_on: [T-5]
+    blocks: [T-7]
+    acceptance:
+      validator_ids:
+        - fe_e2e_theme_toggle_interaction
+        - visual_theme_toggle_light
+        - visual_theme_toggle_dark
+        - a11y_theme_toggle_axe
+        - a11y_theme_toggle_keyboard
+        - a11y_theme_toggle_aria_attrs
+    gherkin_coverage:
+      - scenario: "Scenario 1 — happy toggle (E2E + visual)"
+        tests:
+          - "fe_e2e_theme_toggle_interaction"
+          - "visual_theme_toggle_light"
+          - "visual_theme_toggle_dark"
+      - scenario: "Scenario 2 — persistence reload"
+        tests:
+          - "fe_e2e_theme_toggle_interaction"
+      - scenario: "Scenario 3 — negative FOUC console error capture"
+        tests:
+          - "fe_e2e_theme_toggle_interaction (page.on('pageerror'))"
+      - scenario: "Scenario 5 — accessibility WCAG AA + keyboard"
+        tests:
+          - "a11y_theme_toggle_axe"
+          - "a11y_theme_toggle_keyboard"
+          - "a11y_theme_toggle_aria_attrs"
+      - scenario: "Scenario 6 — i18n aria-label assertion exact string"
+        tests:
+          - "a11y_theme_toggle_aria_attrs"
+    estimated_hours: 1.5
+    notes_for_downstream: |
+      ★ Test page fixture PRIMERO, luego specs (test page es target navigate).
+
+      ── Test page fixture ──
+      Path: vitalia/frontend/e2e/__test-pages__/design-tokens-theme/theme-toggle-showcase.tsx
+
+      Body:
+        import { ThemeToggle } from '@/components/shared/shell-organism/ThemeToggle'
+
+        export default function ThemeToggleShowcasePage() {
+          return (
+            <div className="min-h-screen flex items-center justify-center bg-background">
+              <div className="rounded-lg border bg-card p-8 shadow-sm">
+                <ThemeToggle />
+              </div>
+            </div>
+          )
+        }
+
+      Renderiza <ThemeToggle/> aislado en card centrada con padding controlado.
+      Snapshot consistente — viewport 400×300 capture el card centered.
+
+      ── Spec 1: behavior regression ──
+      Path: vitalia/frontend/e2e/regression/design-tokens-theme/theme-toggle-interaction.spec.ts
+
+      Tests (al menos 4):
+        - Scenario 1 happy: navigate /__test-pages__/.../theme-toggle-showcase →
+          click [data-testid="theme-toggle"] → assert <html data-theme="dark"> +
+          localStorage.getItem('vitalia-theme') === 'dark' + aria-pressed="true" +
+          aria-label matches "Cambiar tema (actual: oscuro)"
+        - Scenario 2 persistence: page.addInitScript(() =>
+          localStorage.setItem('vitalia-theme', 'dark')) → page.goto + page.reload →
+          assert <html data-theme="dark"> directly (no FOUC)
+        - Scenario 3 negative FOUC: page.on('pageerror', ...) capture + assert 0
+          console errors during hydration (post-suppressHydrationWarning fix)
+        - Scenario 6 i18n: assert aria-label regex /^Cambiar tema \(actual: (claro|oscuro)\)$/
+
+      ── Spec 2: visual goldens ──
+      Path: vitalia/frontend/e2e/visual/design-tokens-theme/theme-toggle.spec.ts
+
+      Tests (2):
+        - Spec light: navigate → expect(page).toHaveScreenshot('theme-toggle-light.png',
+          { maxDiffPixelRatio: 0.001, animations: 'disabled' })
+        - Spec dark: page.addInitScript(() => localStorage.setItem('vitalia-theme', 'dark'))
+          → page.goto → expect(page).toHaveScreenshot('theme-toggle-dark.png', ...)
+
+      Generación inicial goldens:
+        cd vitalia/frontend && npx playwright test --project=visual \
+          --grep design-tokens-theme/theme-toggle --update-snapshots
+
+      ★ Chris ratify visual ANTES commit goldens — Chris abre PNGs +
+        verifica match con mockup `mockups/theme-toggle.html` (4 states).
+
+      Goldens path:
+        vitalia/frontend/e2e/__screenshots__/design-tokens-theme/theme-toggle-light.png
+        vitalia/frontend/e2e/__screenshots__/design-tokens-theme/theme-toggle-dark.png
+
+      ── Spec 3: a11y ──
+      Path: vitalia/frontend/e2e/a11y/design-tokens-theme/theme-toggle.spec.ts
+
+      Tests (3 sub-tests):
+        - axe-core WCAG 2.1 AA strict:
+            import { injectAxe, checkA11y } from 'axe-playwright'
+            await injectAxe(page)
+            await checkA11y(page, '[data-testid="theme-toggle"]',
+              { axeOptions: { runOnly: ['wcag2aa', 'wcag21aa'] } })
+        - Keyboard nav: page.keyboard.press('Tab') hasta focus button +
+          page.keyboard.press('Enter') activa toggle + page.keyboard.press('Space')
+          activa toggle (second press)
+        - aria-attrs assertion: page.locator('[data-testid="theme-toggle"]')
+          getAttribute('aria-label') matches Spanish neutro pattern;
+          getAttribute('aria-pressed') matches "true"|"false"
+
+      ── Config heredado F1-S0 ──
+      NO modificar vitalia/frontend/playwright.config.ts. Projects existentes:
+        - regression, visual, a11y, smoke
+
+      E2E_BASE_URL=http://localhost:3002 (port vitalia per docker-dev-multibrand).
+
+  # ──────────────────────────────────────────────────────────────────────
+  # T-7 — verify production build + regression goldens F1-S0
+  # ──────────────────────────────────────────────────────────────────────
+
+  - id: T-7
+    title: "verify-build-regression — production build + regression F1-S0 goldens + final verify"
+    state: ready
+    surface: frontend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: false
+    depends_on: [T-1, T-2, T-3, T-4, T-5, T-6]
+    blocks: []
+    acceptance:
+      validator_ids:
+        - fe_build_production
+        - fe_vitest_existing_regression
+        - fe_typecheck
+        - fe_lint
+        - fe_format
+        - visual_dashboard_legacy_light_regression
+        - visual_dashboard_legacy_dark_regression
+        - visual_agent_tokens_swatch_light_regression
+        - visual_agent_tokens_swatch_dark_regression
+        - fe_no_vt_classes_in_new_features
+        - fe_no_cross_brand_imports_grep
+    gherkin_coverage:
+      - scenario: "Scenario 3 — negative FOUC catch via production build"
+        tests:
+          - "fe_build_production"
+      - scenario: "Cross-cutting — legacy (dashboard)/ transparent post ThemeProvider wrap"
+        tests:
+          - "visual_dashboard_legacy_light_regression"
+          - "visual_dashboard_legacy_dark_regression"
+      - scenario: "Scenario 4 — vars completion no regresa F1-S0 baseline"
+        tests:
+          - "visual_agent_tokens_swatch_light_regression"
+          - "visual_agent_tokens_swatch_dark_regression"
+    estimated_hours: 1
+    notes_for_downstream: |
+      Ticket VERIFY-ONLY — no code production change.
+
+      Pasos secuenciales:
+
+      1. Production build:
+         cd vitalia/frontend && npm run build
+         Expected: exit 0. Catchea CSS var faltante / FOUC patterns / hydration
+         mismatch / suppressHydrationWarning missing.
+
+      2. Live verify Chris (opcional pero recomendado):
+         make dev-vitalia
+         # Chris abre http://localhost:3002
+         # Click toggle, verify visual + behavior end-to-end
+         # Verify reload preserva theme (no FOUC)
+
+      3. Regression goldens F1-S0 (deben seguir GREEN):
+         cd vitalia/frontend && npx playwright test --project=visual \
+           --grep "(dashboard-legacy|agent-tokens-swatch)"
+
+         Razón: .vt-* legacy block tiene colores hardcoded — independiente
+         de ThemeProvider wrap. Si dashboard-legacy goldens regresan →
+         ThemeProvider está rompiendo legacy (BUG, no esperado).
+
+         agent-tokens-swatch goldens verifican que vars completion T-2 no
+         rompió el baseline F1-S0.
+
+      4. Arch fitness final:
+         cd vitalia/frontend && npx vitest run \
+           src/__tests__/architecture/test-no-vt-classes-in-new-features.test.ts
+
+         Verify ThemeToggle.tsx NO usa .vt-* (debería ser obvio — usa Shadcn
+         + Tailwind tokens — pero arch test enforces).
+
+      5. Cross-brand check:
+         ! grep -rnE 'from (\"|'"'"')(?:nicolify|comunify|lupulo)/' vitalia/frontend/src/
+         Expected: exit 0 (zero matches).
+
+      6. Final acceptance review:
+         - Manual check AC-1..AC-22 del 01-spec.md § 8
+         - Confirma frontmatter checkpoint.md ratified_visual_by_chris: true
+         - Confirma mockups/theme-toggle.html ratificado (no modificado post-architect)
+
+      Output ticket: T-7-result.md con SHA commits + acceptance checklist
+      check-by-check + verdict APPROVED para emit handoff /auditor.
+
+# ════════════════════════════════════════════════════════════════════════
+# DAG verification
+# ════════════════════════════════════════════════════════════════════════
+
+dag_summary:
+  total_tickets: 7
+  total_estimated_hours: 6
+  parallel_paths:
+    - "T-1 → T-2 → T-3 (linear: install → globals → tailwind config)"
+    - "T-1 → T-4 (parallel with T-2/T-3: layout wrap)"
+    - "T-2 + T-3 + T-4 → T-5 (component depends on tokens + provider)"
+    - "T-5 → T-6 (specs depend on component existence)"
+    - "T-6 → T-7 (verify depends on all impl)"
+  acyclic: true
+  opus_tickets: 0
+  rationale_no_opus: "Story FE no-agentic. ZERO agentic production_code:true. Sonnet ejecuta T-1..T-7 contra validators."
+
+# ════════════════════════════════════════════════════════════════════════
+# Story closure gate
+# ════════════════════════════════════════════════════════════════════════
+
+closure_protocol:
+  on_all_tickets_done: "state=developing → developed + auto-handoff to /auditor vitalia-fase1-design-tokens-theme"
+  defer_audit: false
+  blocks_unblock_downstream:
+    - vitalia-fase1-topbar-global         # F1-S2 embebe ThemeToggle
+    - vitalia-fase1-shell-layout-5050     # F1-S4 consume CSS vars completas
+    - vitalia-fase1-valeria-rail-history  # F1-S5 consume agent tokens + Button
+    - vitalia-fase1-ribbon-6-tabs         # F1-S7 consume agent tokens
+

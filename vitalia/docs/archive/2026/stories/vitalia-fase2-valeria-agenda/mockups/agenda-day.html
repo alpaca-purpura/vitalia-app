@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>F2-S1 · DayCalendar — Vitalia</title>
+<link rel="stylesheet" href="_shared.css">
+<style>
+  .day-shell { padding: 16px 24px; }
+  .day-grid {
+    display: grid;
+    grid-template-columns: 56px repeat(3, 1fr);
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    overflow: hidden;
+  }
+  .day-header-cell {
+    background: var(--bg-elevated);
+    border-bottom: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+    padding: 14px 12px;
+  }
+  .day-header-cell:last-child { border-right: none; }
+  .doctor-name { font-weight: 700; font-size: 13px; }
+  .doctor-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+  .day-time-cell {
+    padding: 6px 8px;
+    font-size: 10px;
+    color: var(--text-muted);
+    text-align: right;
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-elevated);
+  }
+  .day-slot-cell {
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    min-height: 36px;
+    padding: 3px;
+    position: relative;
+  }
+  .day-slot-cell:last-child { border-right: none; }
+  .day-slot-cell .agenda-slot {
+    min-height: 30px;
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+  .day-header-info {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 0;
+  }
+  .day-stats {
+    display: flex;
+    gap: 16px;
+    font-size: 12px;
+    flex-wrap: wrap;
+  }
+</style>
+</head>
+<body>
+
+<button class="theme-btn" onclick="toggleTheme()" style="position:fixed;top:16px;right:16px;z-index:200">🌓 Tema</button>
+
+<!-- Header shell mini -->
+<div class="shell-topbar"><strong>🏥 Vitalia</strong> <span class="muted">|</span> <span>Clínica Sonrisa · Lima, PE</span></div>
+<div class="shell-subtabs">
+  <div class="subtab-link active">Agenda</div>
+  <div class="subtab-link">Pacientes</div>
+</div>
+
+<!-- Header agenda -->
+<div class="day-shell">
+  <div class="day-header-info">
+    <div class="flex items-center gap-4">
+      <h1 class="page-title" style="margin:0">Agenda · Día</h1>
+      <div class="freshness"><span class="freshness-dot"></span>Actualizado hace 4s</div>
+    </div>
+    <div class="flex items-center gap-3">
+      <div class="toggle-pill">
+        <div class="toggle-pill-option active">Día</div>
+        <div class="toggle-pill-option">Semana</div>
+        <div class="toggle-pill-option">Mes</div>
+      </div>
+      <button class="btn btn-outline btn-sm">‹</button>
+      <button class="btn btn-outline btn-sm">📅 Mié 26 May 2026 (hoy)</button>
+      <button class="btn btn-outline btn-sm">›</button>
+      <button class="btn btn-primary">+ Crear cita ▾</button>
+    </div>
+  </div>
+
+  <div class="chip-row" style="margin-bottom:16px">
+    <span class="section-label" style="margin:0">Filtros:</span>
+    <button class="chip active">📅 Hoy</button>
+    <button class="chip">⏰ Por confirmar mañana</button>
+    <button class="chip">↩️ Re-agendar pendientes</button>
+    <button class="chip">🚫 No-shows del día</button>
+    <button class="chip">💰 Saldos pendientes</button>
+  </div>
+
+  <!-- Day grid: 3 doctores columnas -->
+  <div class="day-grid">
+    <div class="day-header-cell" style="background:var(--bg-elevated)"></div>
+    <div class="day-header-cell">
+      <div class="doctor-name">Dr. García</div>
+      <div class="doctor-meta">Odontología general · 4 turnos</div>
+    </div>
+    <div class="day-header-cell">
+      <div class="doctor-name">Dr. Ríos</div>
+      <div class="doctor-meta">Endodoncia · 5 turnos</div>
+    </div>
+    <div class="day-header-cell">
+      <div class="doctor-name">Dra. Vega</div>
+      <div class="doctor-meta">Ortodoncia · 3 turnos</div>
+    </div>
+
+    <!-- 08:00 -->
+    <div class="day-time-cell">08:00</div>
+    <div class="day-slot-cell"></div>
+    <div class="day-slot-cell"></div>
+    <div class="day-slot-cell"></div>
+
+    <!-- 08:30 -->
+    <div class="day-time-cell">08:30</div>
+    <div class="day-slot-cell">
+      <div class="agenda-slot paid"><span class="slot-origin">👤</span><div class="slot-title">M. Quispe</div><div class="slot-meta">Limpieza</div></div>
+    </div>
+    <div class="day-slot-cell"></div>
+    <div class="day-slot-cell"></div>
+
+    <!-- 09:00 -->
+    <div class="day-time-cell">09:00</div>
+    <div class="day-slot-cell">
+      <div class="agenda-slot paid"><span class="slot-origin">👤</span><div class="slot-title">P. Hernández</div><div class="slot-meta">Limpieza · 30min</div></div>
+    </div>
+    <div class="day-slot-cell">
+      <div class="agenda-slot deposit"><span class="slot-origin">📞</span><div class="slot-title">A. Castro</div><div class="slot-meta">Endodoncia · 60min</div></div>
+    </div>
+    <div class="day-slot-cell"></div>
+
+    <!-- 10:00 -->
+    <div class="day-time-cell">10:00</div>
+    <div class="day-slot-cell"></div>
+    <div class="day-slot-cell">
+      <div class="agenda-slot deposit"><span class="slot-origin">📞</span><div class="slot-title">N. Paredes</div><div class="slot-meta">Endodoncia · 90min</div></div>
+    </div>
+    <div class="day-slot-cell">
+      <div class="agenda-slot paid"><span class="slot-origin">🤖</span><div class="slot-title">L. Mendoza</div><div class="slot-meta">Brackets · 45min</div></div>
+    </div>
+
+    <!-- 11:00 -->
+    <div class="day-time-cell">11:00</div>
+    <div class="day-slot-cell">
+      <div class="agenda-slot unpaid"><span class="slot-origin">🤖</span><div class="slot-title">B. Suárez</div><div class="slot-meta">Limpieza</div></div>
+    </div>
+    <div class="day-slot-cell"></div>
+    <div class="day-slot-cell"></div>
+
+    <!-- 12:00 -->
+    <div class="day-time-cell">12:00</div>
+    <div class="day-slot-cell">
+      <div class="agenda-slot paid"><span class="slot-origin">👤</span><div class="slot-title">G. Ramírez</div><div class="slot-meta">Control · 30min</div></div>
+    </div>
+    <div class="day-slot-cell"></div>
+    <div class="day-slot-cell">
+      <div class="agenda-slot paid"><span class="slot-origin">📞</span><div class="slot-title">E. Bermúdez</div><div class="slot-meta">Brackets ajuste</div></div>
+    </div>
+
+    <!-- 13:00 ALMUERZO -->
+    <div class="day-time-cell">13:00</div>
+    <div class="day-slot-cell" style="background:var(--bg-hover)">
+      <div style="padding:6px;text-align:center;font-size:10px;color:var(--text-muted)">🍴 Almuerzo</div>
+    </div>
+    <div class="day-slot-cell" style="background:var(--bg-hover)">
+      <div style="padding:6px;text-align:center;font-size:10px;color:var(--text-muted)">🍴 Almuerzo</div>
+    </div>
+    <div class="day-slot-cell" style="background:var(--bg-hover)">
+      <div style="padding:6px;text-align:center;font-size:10px;color:var(--text-muted)">🍴 Almuerzo</div>
+    </div>
+
+    <!-- 14:00 -->
+    <div class="day-time-cell">14:00</div>
+    <div class="day-slot-cell"></div>
+    <div class="day-slot-cell">
+      <div class="agenda-slot noshow"><span class="slot-origin">👤</span><div class="slot-title">R. Silva</div><div class="slot-meta">No-show · 30min</div></div>
+    </div>
+    <div class="day-slot-cell"></div>
+
+    <!-- 15:00 -->
+    <div class="day-time-cell">15:00</div>
+    <div class="day-slot-cell">
+      <div class="agenda-slot paid"><span class="slot-origin">👤</span><div class="slot-title">S. Aguilar</div><div class="slot-meta">Control</div></div>
+    </div>
+    <div class="day-slot-cell">
+      <div class="agenda-slot deposit"><span class="slot-origin">📞</span><div class="slot-title">V. Cabrera</div><div class="slot-meta">Endodoncia · 90min</div></div>
+    </div>
+    <div class="day-slot-cell"></div>
+
+    <!-- 16:00 -->
+    <div class="day-time-cell">16:00</div>
+    <div class="day-slot-cell"></div>
+    <div class="day-slot-cell">
+      <div class="agenda-slot unpaid"><span class="slot-origin">🤖</span><div class="slot-title">A. Torres</div><div class="slot-meta">Consulta</div></div>
+    </div>
+    <div class="day-slot-cell"></div>
+
+    <!-- 17:00 -->
+    <div class="day-time-cell">17:00</div>
+    <div class="day-slot-cell"></div>
+    <div class="day-slot-cell"></div>
+    <div class="day-slot-cell">
+      <div class="agenda-slot paid"><span class="slot-origin">👤</span><div class="slot-title">H. Pérez</div><div class="slot-meta">Brackets · 45min</div></div>
+    </div>
+
+    <!-- 18:00 -->
+    <div class="day-time-cell">18:00</div>
+    <div class="day-slot-cell"></div>
+    <div class="day-slot-cell"></div>
+    <div class="day-slot-cell"></div>
+  </div>
+
+  <!-- Stats footer -->
+  <div class="summary-footer" style="margin-top:16px">
+    <div class="day-stats">
+      <div class="flex items-center gap-2"><span class="status-pill success"></span><span>4 pagados</span></div>
+      <div class="flex items-center gap-2"><span class="status-pill warning"></span><span>3 depósito</span></div>
+      <div class="flex items-center gap-2"><span class="status-pill destructive"></span><span>2 sin pago</span></div>
+      <div class="flex items-center gap-2"><span class="status-pill muted"></span><span>1 no-show</span></div>
+    </div>
+    <div style="flex:1"></div>
+    <div class="day-stats">
+      <div><span class="muted">Ingresos día:</span> <strong style="color:var(--c-success)">PEN 1.240</strong></div>
+      <div><span class="muted">Saldo pendiente:</span> <strong style="color:var(--c-warning)">PEN 180</strong></div>
+    </div>
+  </div>
+
+  <!-- Virtualization note -->
+  <div class="alert alert-info" style="margin-top:16px;font-size:12px">
+    <span>⚡</span>
+    <div>
+      <strong>Performance:</strong> Day view virtualizado con <code>react-window</code> (FixedSizeList) — renderiza solo los slots visibles en viewport. Clínicas con 240+ slots/día renderizan &lt;100ms.
+    </div>
+  </div>
+</div>
+
+<div style="text-align:center;padding:24px">
+  <a href="agenda-cockpit-grid.html" class="muted text-sm">← Volver al cockpit índice</a>
+</div>
+
+<script>
+function toggleTheme() {
+  const html = document.documentElement;
+  const current = html.getAttribute('data-theme');
+  html.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark');
+}
+</script>
+
+</body>
+</html>

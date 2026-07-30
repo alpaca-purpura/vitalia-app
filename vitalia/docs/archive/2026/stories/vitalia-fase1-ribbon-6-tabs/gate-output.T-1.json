@@ -1,0 +1,59 @@
+{
+  "schema_version": "1.0",
+  "pr_folder": "/home/chalreme/Proyectos/luana-vitalia/vitalia/docs/product/stories/vitalia-fase1-ribbon-6-tabs",
+  "ticket": "T-1",
+  "iter": 1,
+  "command": "test-frontend (tsc + eslint + prettier + vitest scoped + arch-fitness)",
+  "command_alias": "test-fe-vitalia",
+  "started_at": "2026-05-25T02:36:00Z",
+  "finished_at": "2026-05-25T02:36:12Z",
+  "duration_ms": 6159,
+  "exit_code": 0,
+  "raw_log_path": "/home/chalreme/Proyectos/luana-vitalia/vitalia/docs/product/stories/vitalia-fase1-ribbon-6-tabs/gate-logs/iter-1-test-frontend.log",
+  "gates": [
+    {
+      "name": "tsc",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": [],
+      "duration_ms": 2219
+    },
+    {
+      "name": "eslint",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": [],
+      "duration_ms": 1023
+    },
+    {
+      "name": "prettier",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": [],
+      "duration_ms": 392
+    },
+    {
+      "name": "vitest-agent-catalog-test",
+      "status": "PASS",
+      "errors_count": 0,
+      "tests_passed": 51,
+      "first_5_errors": [],
+      "duration_ms": 895
+    },
+    {
+      "name": "arch-fitness-fe",
+      "status": "PASS",
+      "errors_count": 0,
+      "tests_passed": 90,
+      "tests_files": 17,
+      "first_5_errors": [],
+      "duration_ms": 1630
+    }
+  ],
+  "overall": {
+    "any_fail": false,
+    "fail_gate_names": [],
+    "summary": "ALL GATES PASS — tsc 0 errors, eslint 0 errors, prettier OK, vitest 51 tests passed, arch-fitness 90 tests passed across 17 files"
+  },
+  "notes": "T-1 (catalog extend + unit tests). Frontend validators executed natively (no Docker). All gates green: TypeScript strict mode passes, linting clean, formatting valid, 51 unit tests green (agent-catalog scope), 90 architecture fitness tests green across 17 test files (FSD boundaries, no-voseo, no-hardcoded strings, Clerk org ban, PHI/PII guard, page padding, skip-link targets, shell-store schema, cross-brand mirror ban, all pass)."
+}

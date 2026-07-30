@@ -1,0 +1,26 @@
+---
+# vitalia/deploy/k8s/service.yaml
+# ClusterIP Service for vitalia-app — exposes port 8000 internally.
+# Cloudflare Tunnel (cloudflared) connects to this service via tunnel egress.
+#
+# Arch ref: 03-arch.md § 5.3 · T-deploy-1
+# ingress.yaml uses this service as backend.
+apiVersion: v1
+kind: Service
+metadata:
+  name: vitalia-app
+  namespace: vitalia
+  labels:
+    app.kubernetes.io/name: vitalia
+    app.kubernetes.io/component: backend
+    app.kubernetes.io/part-of: luana-platform
+    app.kubernetes.io/managed-by: kubectl
+spec:
+  type: ClusterIP
+  selector:
+    app: vitalia-app
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8000
+      protocol: TCP

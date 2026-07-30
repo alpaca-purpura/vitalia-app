@@ -1,0 +1,324 @@
+# 04-validators.yaml — vitalia-slice-1-fidelizacion
+# Owner: /architect (Opus 4.7 run 2026-05-20)
+# Schema v4.1 — 4 categories: non_functional / functional / visual / agentic_eval
+
+story_id: vitalia-slice-1-fidelizacion
+brand: vitalia
+schema_version: v4.1
+
+validators:
+  # ═══════════════════════════════════════════════════════════════
+  # NON-FUNCTIONAL — lint, format, type-check, arch fitness
+  # ═══════════════════════════════════════════════════════════════
+
+  - id: be_arch_fitness
+    category: non_functional
+    type: pytest
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/architecture/ -x -q --override-ini='addopts='"
+    must_pass: true
+    timeout_sec: 180
+    description: "Vitalia brand arch fitness (DDD boundaries, PHI dual filter, no cross-brand imports, no legacy paths, pgcrypto enforce, audit_log sync write, cron_envelope used, compound_scope_repository used)"
+
+  - id: be_lint_fidelizacion
+    category: non_functional
+    type: shell
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/ruff check src/modules/vitalia/fidelizacion/ tests/modules/vitalia/fidelizacion/ --no-cache"
+    must_pass: true
+    timeout_sec: 30
+    description: "Ruff 70+ rules over fidelización module, 0 errors"
+
+  - id: be_lint_crm_extensions
+    category: non_functional
+    type: shell
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/ruff check src/modules/vitalia/crm/ tests/modules/vitalia/crm/ --no-cache"
+    must_pass: true
+    timeout_sec: 30
+    description: "Ruff over CRM (opt-in/opt-out endpoint additions)"
+
+  - id: be_lint_agentic
+    category: non_functional
+    type: shell
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/ruff check src/modules/vitalia/sales_agent/tools/ src/modules/vitalia/agentic/lucas/tools/ tests/modules/vitalia/sales_agent/ tests/modules/vitalia/agentic/ --no-cache"
+    must_pass: true
+    timeout_sec: 30
+
+  - id: be_format
+    category: non_functional
+    type: shell
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/ruff format --check src/modules/vitalia/fidelizacion/ src/modules/vitalia/sales_agent/tools/ src/modules/vitalia/agentic/lucas/tools/ tests/modules/vitalia/fidelizacion/ tests/modules/vitalia/sales_agent/ tests/modules/vitalia/agentic/"
+    must_pass: true
+    timeout_sec: 30
+
+  - id: be_coverage_module
+    category: non_functional
+    type: pytest
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/fidelizacion/ --cov=src/modules/vitalia/fidelizacion --cov-report=term-missing --cov-fail-under=50 -x -q"
+    must_pass: true
+    timeout_sec: 180
+    description: "Coverage threshold 50% per fidelización module (raised from baseline 43%)"
+
+  - id: fe_typecheck
+    category: non_functional
+    type: shell
+    cmd: "cd vitalia/frontend && npx tsc --noEmit"
+    must_pass: true
+    timeout_sec: 120
+    description: "TypeScript strict, 0 errors"
+
+  - id: fe_lint_fidelizacion
+    category: non_functional
+    type: shell
+    cmd: "cd vitalia/frontend && npx eslint src/features/fidelizacion/ src/components/shared/nps/ --cache --cache-location .eslintcache"
+    must_pass: true
+    timeout_sec: 60
+    description: "ESLint 60+ rules, 0 errors"
+
+  - id: fe_arch_fitness
+    category: non_functional
+    type: shell
+    cmd: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/ --reporter=default"
+    must_pass: true
+    timeout_sec: 90
+    description: "FSD boundaries, no hardcoded colors/strings, no cross-feature imports, server-first, PHI components used, no voseo in copy"
+
+  - id: fe_coverage_module
+    category: non_functional
+    type: shell
+    cmd: "cd vitalia/frontend && npx vitest run src/features/fidelizacion/ src/components/shared/nps/ --coverage --reporter=default --coverage.thresholdAutoUpdate=false --coverage.lines=30 --coverage.functions=30 --coverage.branches=20 --coverage.statements=30"
+    must_pass: true
+    timeout_sec: 120
+    description: "FE coverage 30% per feature (raised from baseline 20%)"
+
+  - id: be_migrations_idempotent
+    category: non_functional
+    type: pytest
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/migrations/test_slice1_fidelizacion_migrations.py -x -q"
+    must_pass: true
+    timeout_sec: 60
+    description: "Slice 1 fidelización migrations idempotent smoke (4 NEW: treatment_plans, re_engagement_events, nps_responses, patients_opt_in_columns)"
+
+  # ═══════════════════════════════════════════════════════════════
+  # FUNCTIONAL — Gherkin scenarios (4 obligatorios per spec)
+  # ═══════════════════════════════════════════════════════════════
+
+  - id: gherkin_sc01_multi_session_happy
+    category: functional
+    type: pytest
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/fidelizacion/test_sc01_multi_session_happy.py -x -v"
+    must_pass: true
+    timeout_sec: 60
+    description: "SC-01 Happy — Cron detecta + Adrián recordatorio + paciente reagenda"
+    gherkin_scenarios: [SC-01]
+
+  - id: gherkin_sc02_absence_no_optin
+    category: functional
+    type: pytest
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/fidelizacion/test_sc02_absence_no_optin.py -x -v"
+    must_pass: true
+    timeout_sec: 60
+    description: "SC-02 Negative — Paciente sin opt-in MARKETING, botón disabled + tooltip"
+    gherkin_scenarios: [SC-02]
+
+  - id: gherkin_sc03_follow_up_doctor_vencido
+    category: functional
+    type: pytest
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/fidelizacion/test_sc03_follow_up_doctor_vencido.py -x -v"
+    must_pass: true
+    timeout_sec: 60
+    description: "SC-03 Edge — Doctor pidió volver en 3 meses + cron T-7d + vencido"
+    gherkin_scenarios: [SC-03]
+
+  - id: gherkin_sc04_adversarial
+    category: functional
+    type: pytest
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/fidelizacion/test_sc04_adversarial.py -x -v"
+    must_pass: true
+    timeout_sec: 60
+    description: "SC-04 Adversarial — opt-out + cross-tenant + PHI role + XSS sanitization"
+    gherkin_scenarios: [SC-04]
+
+  - id: be_unit_tests_fidelizacion
+    category: functional
+    type: pytest
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/fidelizacion/ -x -q --ignore=tests/modules/vitalia/fidelizacion/workers"
+    must_pass: true
+    timeout_sec: 180
+    description: "All fidelización module unit tests (domain + infrastructure + application + api)"
+
+  - id: be_workers_smoke
+    category: functional
+    type: pytest
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/fidelizacion/workers/ -x -q"
+    must_pass: true
+    timeout_sec: 180
+    description: "6 cron jobs smoke (multi_session_gap_sweep, follow_up_due_sweep, maintenance_due_sweep, absence_sweep, nps_post_treatment_sweep, re_engagement_response_timeout_sweep) — idempotency + cron_envelope wrap"
+
+  - id: be_cross_story_contracts
+    category: functional
+    type: pytest
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/integration/test_cross_story_contracts.py -x -v -k 'nps or reengagement'"
+    must_pass: true
+    timeout_sec: 120
+    description: "Cross-story contracts: NPSScoreCollected + ReEngagementTriggered domain events shape verified consumable by /inbox tag chip + future /marketing Lucas card"
+
+  - id: fe_unit_tests_fidelizacion
+    category: functional
+    type: shell
+    cmd: "cd vitalia/frontend && npx vitest run src/features/fidelizacion/ src/components/shared/nps/ --reporter=default"
+    must_pass: true
+    timeout_sec: 120
+    description: "FE unit tests — hooks + components + store"
+
+  # ═══════════════════════════════════════════════════════════════
+  # VISUAL — Playwright smoke + regression + a11y + Chromatic
+  # ═══════════════════════════════════════════════════════════════
+
+  - id: e2e_smoke_fidelizacion
+    category: visual
+    type: playwright
+    cmd: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test specs/smoke/fidelizacion.smoke.spec.ts --project=smoke"
+    must_pass: true
+    timeout_sec: 300
+    description: "Smoke /fidelización mount + tabs nav + KPIs hero visible + no console errors"
+
+  - id: e2e_regression_sc01
+    category: visual
+    type: playwright
+    cmd: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test specs/regression/fidelizacion-multi-session-happy.spec.ts"
+    must_pass: true
+    timeout_sec: 300
+    description: "E2E regression SC-01 Happy path multi-sesión"
+    gherkin_scenarios: [SC-01]
+
+  - id: e2e_regression_sc02
+    category: visual
+    type: playwright
+    cmd: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test specs/regression/fidelizacion-absence-no-optin.spec.ts"
+    must_pass: true
+    timeout_sec: 300
+    gherkin_scenarios: [SC-02]
+
+  - id: e2e_regression_sc03
+    category: visual
+    type: playwright
+    cmd: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test specs/regression/fidelizacion-follow-up-doctor-vencido.spec.ts"
+    must_pass: true
+    timeout_sec: 300
+    gherkin_scenarios: [SC-03]
+
+  - id: e2e_regression_sc04
+    category: visual
+    type: playwright
+    cmd: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test specs/regression/fidelizacion-adversarial.spec.ts"
+    must_pass: true
+    timeout_sec: 300
+    gherkin_scenarios: [SC-04]
+
+  - id: e2e_a11y
+    category: visual
+    type: playwright
+    cmd: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test --grep '@a11y' specs/smoke/fidelizacion.smoke.spec.ts"
+    must_pass: true
+    timeout_sec: 180
+    description: "Axe-core a11y scan /fidelización — WCAG 2.1 AA compliance (contrast, ARIA, keyboard nav)"
+
+  - id: storybook_build
+    category: visual
+    type: shell
+    cmd: "cd vitalia/frontend && npx storybook build --quiet"
+    must_pass: true
+    timeout_sec: 300
+    description: "Storybook builds cleanly with all fidelización + NPS stories (visual regression source)"
+
+  # ═══════════════════════════════════════════════════════════════
+  # AGENTIC EVAL — Lucas re-engagement recommendation + Adrián goldens
+  # ═══════════════════════════════════════════════════════════════
+
+  - id: adrian_reengagement_goldens
+    category: agentic_eval
+    type: pytest
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/agentic_evals/sales_agent/goldens/reengagement/ --trials=3 -x -v"
+    must_pass: true
+    timeout_sec: 600
+    description: "Adrián re-engagement goldens — 4 scenarios × 3 trials, threshold 0.66 (2/3 trials must pass per scenario)"
+    threshold: 0.66
+
+  - id: lucas_reengagement_goldens
+    category: agentic_eval
+    type: pytest
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/agentic_evals/lucas/re_engagement_recommendation/ --trials=3 -x -v"
+    must_pass: true
+    timeout_sec: 600
+    description: "Lucas re-engagement recommendation goldens — 3 scenarios × 3 trials, threshold 0.66"
+    threshold: 0.66
+
+  - id: adrian_voice_fidelity_reengagement
+    category: agentic_eval
+    type: pytest
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/agentic_evals/sales_agent/test_voice_fidelity_reengagement.py -x -v"
+    must_pass: true
+    timeout_sec: 300
+    description: "Adrián voice fidelity grader vs personality_profiles.system_instruction — re-engagement scenarios. Threshold grader_score >= 0.85."
+    threshold: 0.85
+
+  - id: agentic_observability_invariants
+    category: agentic_eval
+    type: pytest
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/agentic_evals/test_observability_invariants.py -x -v -k 'reengagement or lucas'"
+    must_pass: true
+    timeout_sec: 180
+    description: "Verify trace events emit + cache_read_input_tokens populated post-2nd invocation + cost_usd via pop_cost(litellm_call_id) bridge + cost_bucket=evals_only enforced"
+
+  - id: agentic_prompt_cache_validation
+    category: agentic_eval
+    type: pytest
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/agentic_evals/lucas/test_prompt_cache_hit_rate.py -x -v"
+    must_pass: true
+    timeout_sec: 120
+    description: "Lucas re-engagement recommendation cache hit rate ≥ 60% across 5 invocations same tenant+clinic+period"
+    threshold: 0.60
+
+# ═══════════════════════════════════════════════════════════════
+# test_construction_plan — orden + POMs + fixtures (v4.1 cement)
+# ═══════════════════════════════════════════════════════════════
+
+test_construction_plan:
+  order:
+    - "1. BE Domain tests (entities, VOs, events) — pytest RED first"
+    - "2. BE Infrastructure tests (models, repos with CompoundScopeRepositoryBase subclass)"
+    - "3. BE Application tests (services — ReEngagementService, ProactiveOutboundService, NPSService, PausePatientService, ManualCallService, OptOutService, PatientConsentService)"
+    - "4. BE API tests (route handlers + response_model verification + RBAC decorator)"
+    - "5. BE Workers smoke tests (6 crons with mocked sched + Sanaré fixture data)"
+    - "6. BE Agentic tool tests (send_proactive_reengagement, compute_re_engagement_recommendation)"
+    - "7. FE hook tests (use-re-engagement-patterns, use-send-proactive-template, etc.)"
+    - "8. FE component tests (ReEngagementCard variants, ConfirmTemplateModal, PausePatientModal, ...)"
+    - "9. FE store tests (fidelizacion-store)"
+    - "10. FE E2E smoke (fidelizacion.smoke.spec.ts)"
+    - "11. FE E2E regression (4 scenarios)"
+    - "12. Cross-story contracts (NPSScoreCollected + ReEngagementTriggered consumed shape)"
+    - "13. Agentic eval goldens (Adrián 4 + Lucas 3) — last (require all infra GREEN)"
+    - "14. Architecture fitness — runs continuously each commit"
+
+  fixtures:
+    backend:
+      - "vitalia/backend/tests/fixtures/sanare_mx_tenant.py (Sanaré primary test tenant — clinic_id, doctor_id, recepcion_id, admin_clinic_id)"
+      - "vitalia/backend/tests/fixtures/patients_dental_cohort.py (10 patients with treatment_plans various stages)"
+      - "vitalia/backend/tests/fixtures/offers_dental_catalog.py (limpieza, ortodoncia, implante, etc. with maintenance_schedule defaults)"
+      - "vitalia/backend/tests/fixtures/appointments_completed_with_followup.py (10 appts completed + 3 with follow_up_due_at)"
+      - "vitalia/backend/tests/fixtures/re_engagement_events_seed.py (events seed for Lucas cluster detection golden)"
+      - "vitalia/backend/tests/fixtures/whatsapp_templates_meta_approved.py (5 templates JSON config)"
+
+    frontend:
+      - "vitalia/frontend/e2e/fixtures/auth.fixture.ts (Clerk testing token + storage state — Story 11 cement)"
+      - "vitalia/frontend/e2e/fixtures/fidelizacion-seed.fixture.ts (seeds 5 cards per tab via API call pre-test)"
+      - "vitalia/frontend/e2e/fixtures/clinic-context.fixture.ts (X-Clinic-ID injection)"
+
+  pom:
+    - "vitalia/frontend/e2e/pages/fidelizacion.page.ts (POM Page Object Model)"
+    - "Methods: navigateToTab(name) · waitForKPIsLoaded() · getCard(patientIdHash) · clickSendReminder(patientIdHash) · confirmTemplateModal_send() · openPausePatientModal(patientIdHash) · selectPauseDuration(days) · etc."
+
+  gherkin_to_test_mapping:
+    SC-01: gherkin_sc01_multi_session_happy + e2e_regression_sc01
+    SC-02: gherkin_sc02_absence_no_optin + e2e_regression_sc02
+    SC-03: gherkin_sc03_follow_up_doctor_vencido + e2e_regression_sc03
+    SC-04: gherkin_sc04_adversarial + e2e_regression_sc04

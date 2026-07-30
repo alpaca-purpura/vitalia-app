@@ -1,0 +1,137 @@
+---
+capability_id: vitalia-crm-scaffold-slice-1
+module: crm
+slug: crm-scaffold-slice-1
+status: deprecated
+date_introduced: 2026-05-18
+date_updated: 2026-05-20
+story_introduced: vitalia-slice-1-infra-cross-cutting
+story_extended:
+  - vitalia-slice-1-inbox  # Ola 1 — added Conversation + Message + ActionReceipt + ActivityEvent + lead-conversation linking
+package_version: 0.2.0  # bumped from 0.1.0 post Ola 1 inbox extension
+package_path: vitalia/backend/src/modules/vitalia/crm
+license: proprietary
+
+# v3 cement 2026-05-27 · 4 dimensiones + dev_preview (ADR-vitalia-005)
+tech_module: crm
+agent_owner: adrian
+functional_area: adrian.crm
+user_visible: true
+nature: feature
+ui_paradigm: slice-1-superseded  # T-3 reconcile 2026-05-29
+replaced_by_story: vitalia-fase2-valeria-pacientes  # T-3: story F2 que reconstruye esta cap
+
+user_facing_name: "CRM · pacientes y leads"
+user_facing_description: >
+  La estructura base del CRM de Vitalia con las entidades Paciente (PHI con
+  doble filtro HIPAA de tenant y clínica) y Lead (sin datos sensibles). Incluye
+  el hilo de conversaciones, los mensajes, los recibos de acción con ventana de
+  deshacer de 5 minutos y el stream de actividad del agente. Es el núcleo de
+  datos que consumen Adrián, el inbox y los flujos de reactivación.
+
+dev_preview:
+  route: "/adrian/crm"
+  how_to_navigate: "Login → ribbon clic en avatar Adrián → sub-tab CRM para ver el listado de pacientes y leads."
+  main_component: null
+  api_endpoints:
+    - "GET /api/v1/crm/patients/{id}"
+    - "PATCH /api/v1/crm/patients/{id}"
+    - "GET /api/v1/crm/leads"
+  e2e_test: null
+  fixtures_required: ["3-clinic-fixture-latam"]
+  storybook_url: null
+  loom_demo: null
+
+# Capability ledger v2 (cement 2026-05-27)
+created_in_story: vitalia-slice-1-infra-cross-cutting   # v2 cement · mirror of story_introduced
+created_date: 2026-05-18   # v2 cement · mirror of date_introduced
+last_modified: 2026-05-29   # T-3 reconcile 2026-05-29
+parent_cap: null   # v2 cement · mirror of extends_capability
+derives_capabilities: []   # v2 cement · initial empty list
+
+# Capability ledger v2 (cement 2026-05-27)
+
+# Capability change log v2 (cement 2026-05-27)
+change_log:
+  - story_id: vitalia-slice-1-infra-cross-cutting
+    date: 2026-05-18
+    type: new
+    summary: "Implementación inicial · migración legacy a schema v2"
+    merge_sha: null
+    status: done
+map_box: adrian
+
+---
+
+# vitalia-crm-scaffold-slice-1
+
+CRM module Slice 1 scaffold para Vitalia. Patient (PHI dual-filter) + Lead (non-PHI single tenant) + repositories + services con RBAC + endpoints. Raw SQL Slice 1, ORM models pending Slice 2. **Extended Ola 1 (2026-05-20):** Conversation + Message + ActionReceipt + ActivityEvent domain entities + repositories (inbox foundation) + lead-conversation linking.
+
+## Surface
+
+### Domain entities
+- **`Patient`** (`domain/patient.py`) — PHI entity, dual filter (tenant_id + clinic_id). Fields: id, tenant_id, clinic_id, name (PHI), dni (PHI), phone (PHI), email (PHI), date_of_birth (PHI), address (PHI), status_tag, nps_score, last_access_at, created_at, updated_at
+- **`Lead`** (`domain/lead.py`) — non-PHI entity, single filter tenant_id. Fields: id, tenant_id, email, source_channel, stage, conversation_id (FK opcional post Ola 1), created_at
+- **`Conversation`** (`domain/conversation.py`) — ★ NEW Ola 1 — Patient/Lead chat thread. Fields: id, tenant_id, clinic_id, patient_id, lead_id, channel, handler_mode (3-state: agent | human | paused), version (OCC), last_message_at, created_at
+- **`Message`** (`domain/message.py`) — ★ NEW Ola 1 — Single message in conversation. Fields: id, conversation_id, direction (in|out), sender_type (patient|adrian|human), body, audio_url, transcription_confidence, retracted_at, created_at
+- **`ActionReceipt`** (`domain/action_receipt.py`) — ★ NEW Ola 1 — 5min undo lifecycle for Adrián tool calls. Fields: id, conversation_id, action_type, payload, status (active|undone|expired), expires_at (NOW + 5min), created_at
+- **`ActivityEvent`** (`domain/activity_event.py`) — ★ NEW Ola 1 — Agent activity stream events (tool_invoked, mode_changed, message_sent). Fields: id, conversation_id, event_type, actor, payload_redacted, created_at
+
+### Infrastructure repositories
+- **`PatientRepository`** extends `PhiRepositoryBase` — dual filter enforced + audit log sync write on every PHI read/write
+- **`LeadRepository`** (NOT PhiRepositoryBase — Lead non-PHI per spec) — single tenant filter
+- **`ConversationRepository`** (`infrastructure/persistence/conversation_repository.py`) — ★ NEW Ola 1 — dual filter tenant+clinic, OCC version-check on UPDATE handler_mode
+- **`MessageRepository`** (`infrastructure/persistence/message_repository.py`) — ★ NEW Ola 1
+- **`ActionReceiptRepository`** (`infrastructure/persistence/action_receipt_repository.py`) — ★ NEW Ola 1 — 5min TTL sweep job-friendly
+- **`ActivityEventRepository`** (`infrastructure/persistence/activity_event_repository.py`) — ★ NEW Ola 1
+
+### Application services
+- **`PatientService`** — `@require_phi_access(roles=["doctor","nurse","admin_clinic"])` decorator on get_by_id / update / opt_out. `opt_out` restricted `roles=["admin_clinic"]` only
+- **`LeadService`** — no RBAC (Lead non-PHI, all roles)
+- **`PatientConsentService`** (`application/services/patient_consent_service.py`) — ★ NEW Ola 1 — consent + marketing opt-out + audit log (see [[crm-consent-optout]])
+
+### API routes (4 endpoints + Ola 1 consent endpoints, all `response_model=` mandatory)
+- `GET /api/v1/crm/patients/{id}` — fetch patient (PHI dual filter + RBAC + audit log)
+- `PATCH /api/v1/crm/patients/{id}` — update patient (PHI dual filter + RBAC + audit log)
+- `POST /api/v1/crm/patients/{id}/opt-out` — marketing opt-out (admin_clinic only + audit log)
+- `GET /api/v1/crm/leads` — list leads (no RBAC, single tenant filter)
+- Ola 1 consent endpoints — see [[crm-consent-optout]] (api/consent_endpoints.py)
+
+## Test coverage
+
+- 7 CRM repo tests (`test_patient_repository.py` + `test_lead_repository.py`)
+- 6 service tests (`test_patient_service.py` + `test_lead_service.py`)
+- 7 API tests (`test_crm_endpoints.py`)
+- 24 role + dual-filter integration tests (cross-cutting con T-infra-3)
+- 12 misc (validators, edge cases)
+- Ola 1 inbox extension: `test_patient_consent_service.py` (consent + opt-out); ActionReceipt + OCC tested under [[inbox-handler-mode-occ]]
+- Total: 64+ tests PASS (baseline) + Ola 1 deltas tracked en caps específicos
+
+## Dependencies
+
+- `vitalia/backend/src/modules/vitalia/compliance/` (PhiRepositoryBase, @require_phi_access, AuditLogRepository)
+- `vitalia/backend/src/modules/vitalia/iam/` (VitaliaRole, ClinicContext, decoder)
+- `luana-core-extension-sdk` (BrandContext)
+
+## Scenarios live
+
+- Get patient con role=marketing → 403 PHIAccessDeniedError
+- Get patient con role=doctor sin clinic_id en context → 500 MissingClinicFilterError (architectural protection)
+- Get patient cross-tenant (tenant_A solicita tenant_B patient) → 404 (NO leak)
+- Patch patient con admin_clinic en role → audit_log row creada antes 200 response
+- Opt-out con role=doctor → 403 (admin_clinic only)
+- List leads con cualquier role → 200 (no RBAC, single tenant filter aplica)
+- AsyncMock repos en API tests Slice 1 (FastAPI Depends injection pending Slice 2)
+
+## Promotion candidate (cross-brand)
+
+Status: NO — Patient/Lead son medical-vertical concepts brand-specific.
+
+## Referencias
+
+- Spec: `vitalia/docs/product/stories/vitalia-slice-1-infra-cross-cutting/03-arch-be.md § CRM section`
+- Ola 1 spec: `vitalia/docs/archive/2026/stories/vitalia-slice-1-inbox/03-arch-be.md § Conversation/Message/ActionReceipt`
+- Migrations: `vitalia/backend/alembic/versions/2026_05_18_*.py` (patients table + columns) + Ola 1 inbox migrations
+- HIPAA-lite stack: [[hipaa-lite-defensive-stack]]
+- IAM stack: [[iam-scaffold-slice-1]]
+- Inbox extensions: [[inbox-tools-extensions]] · [[inbox-handler-mode-occ]] · [[crm-consent-optout]]

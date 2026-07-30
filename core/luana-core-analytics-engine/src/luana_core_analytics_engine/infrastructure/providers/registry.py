@@ -1,0 +1,98 @@
+"""Provider registry — maps provider names to BaseMetricsProvider classes.
+
+Concrete providers (Meta, Google, TikTok, etc.) register themselves here.
+The ETL pipeline uses get_provider() to resolve the correct adapter at runtime.
+"""
+
+from luana_core_analytics_engine.infrastructure.providers.base import BaseMetricsProvider
+
+# Maps provider name strings (e.g. "meta", "google_analytics") to provider classes
+PROVIDER_REGISTRY: dict[str, type[BaseMetricsProvider]] = {}
+
+
+def register_provider(name: str, cls: type[BaseMetricsProvider]) -> None:
+    """Register a provider adapter class under the given name.
+
+    Args:
+        name: Unique provider identifier (e.g. "meta", "google_analytics").
+        cls: BaseMetricsProvider subclass to instantiate for this provider.
+
+    """
+    PROVIDER_REGISTRY[name] = cls
+
+
+def get_provider(provider_name: str) -> BaseMetricsProvider:
+    """Resolve and instantiate a provider adapter by name.
+
+    Args:
+        provider_name: The provider identifier.
+
+    Returns:
+        An instance of the registered BaseMetricsProvider subclass.
+
+    Raises:
+        ValueError: If no provider is registered under the given name.
+
+    """
+    cls = PROVIDER_REGISTRY.get(provider_name)
+    if cls is None:
+        registered = ", ".join(sorted(PROVIDER_REGISTRY.keys())) or "(none)"
+        msg = f"Unknown provider: '{provider_name}'. Registered providers: {registered}"
+        raise ValueError(msg)
+    return cls()
+
+
+def _register_all() -> None:
+    """Register all concrete provider adapters.
+
+    Uses late-binding imports to avoid circular imports and ensure
+    providers are registered at module import time.
+    """
+    from luana_core_analytics_engine.infrastructure.providers.crm_internal_provider import (
+        CRMInternalProvider,
+    )
+    from luana_core_analytics_engine.infrastructure.providers.google_ads_provider import (
+        GoogleAdsProvider,
+    )
+    from luana_core_analytics_engine.infrastructure.providers.google_analytics_provider import (
+        GoogleAnalyticsProvider,
+    )
+    from luana_core_analytics_engine.infrastructure.providers.mailerlite_provider import (
+        MailerLiteProvider,
+    )
+    from luana_core_analytics_engine.infrastructure.providers.manychat_provider import (
+        ManyChatProvider,
+    )
+    from luana_core_analytics_engine.infrastructure.providers.meta_pixel_provider import (
+        MetaPixelProvider,
+    )
+    from luana_core_analytics_engine.infrastructure.providers.meta_provider import (
+        MetaProvider,
+    )
+    from luana_core_analytics_engine.infrastructure.providers.search_console_provider import (
+        SearchConsoleProvider,
+    )
+    from luana_core_analytics_engine.infrastructure.providers.shopify_provider import (
+        ShopifyProvider,
+    )
+    from luana_core_analytics_engine.infrastructure.providers.tiktok_provider import (
+        TikTokProvider,
+    )
+    from luana_core_analytics_engine.infrastructure.providers.youtube_provider import (
+        YouTubeProvider,
+    )
+
+    register_provider("meta", MetaProvider)
+    register_provider("google_analytics", GoogleAnalyticsProvider)
+    register_provider("google_ads", GoogleAdsProvider)
+    register_provider("tiktok", TikTokProvider)
+    register_provider("youtube", YouTubeProvider)
+    register_provider("crm_internal", CRMInternalProvider)
+    register_provider("shopify", ShopifyProvider)
+    register_provider("manychat", ManyChatProvider)
+    register_provider("mailerlite", MailerLiteProvider)
+    register_provider("meta_pixel", MetaPixelProvider)
+    register_provider("search_console", SearchConsoleProvider)
+
+
+_register_all()

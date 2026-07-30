@@ -1,0 +1,126 @@
+---
+capability_id: vitalia-registries-medical-vertical
+module: connections
+slug: registries-medical-vertical
+status: planned   # nota: forward-declared (status planned · sin código aún)
+date_introduced: 2026-05-18
+story_introduced: vitalia-slice-1-infra-cross-cutting
+package_version: 0.1.0
+package_path: vitalia/backend/src/modules/vitalia/connections
+license: proprietary
+
+# v3 cement 2026-05-27 · 4 dimensiones + dev_preview (ADR-vitalia-005)
+tech_module: connections
+agent_owner: configuracion
+functional_area: configuracion.conexiones
+user_visible: true
+nature: feature
+
+user_facing_name: "Registries médicos del vertical"
+user_facing_description: >
+  Tablas de despacho internas del vertical médico que configuran qué proveedor
+  usar para cada función: pagos (efectivo, tarjeta, Mercado Pago), emisión fiscal
+  (Nubefact Perú), origen de turnos (agente, caminante, manual, reactivación),
+  canal de mensajería (WhatsApp template Meta) e impresión (PDF navegador). Estas
+  configuraciones son extensibles y las conecta el SDK de extensiones de la plataforma.
+
+dev_preview:
+  route: "/configurar/connections/registries"
+  how_to_navigate: "Login como admin_clinic → Configurar → Connections → Registries del vertical"
+  main_component: null
+  api_endpoints: []
+  e2e_test: null
+  fixtures_required: []
+  storybook_url: null
+  loom_demo: null
+
+# Capability ledger v2 (cement 2026-05-27)
+created_in_story: vitalia-slice-1-infra-cross-cutting   # v2 cement · mirror of story_introduced
+created_date: 2026-05-18   # v2 cement · mirror of date_introduced
+last_modified: 2026-05-29   # T-3 reconcile 2026-05-29
+parent_cap: null   # v2 cement · mirror of extends_capability
+derives_capabilities: []   # v2 cement · initial empty list
+
+# Capability ledger v2 (cement 2026-05-27)
+
+# Capability change log v2 (cement 2026-05-27)
+change_log:
+  - story_id: vitalia-slice-1-infra-cross-cutting
+    date: 2026-05-18
+    type: new
+    summary: "Implementación inicial · migración legacy a schema v2"
+    merge_sha: null
+    status: done
+map_box: configuracion
+
+---
+
+# vitalia-registries-medical-vertical
+
+5 dispatch tables brand-internal medical-vertical specific: payment, fiscal, appointment_origin, conversation_initiation, print_method. Wireados via Extension SDK EP-3 (tools) + EP-13 (guardrails) en `extensions.py::register_all(registry)`.
+
+## Surface
+
+### PAYMENT_PROVIDER_REGISTRY (6 slots)
+- `cash` (manual, payment_at_clinic)
+- `card` (manual + future PSP integration)
+- `transfer` (manual + future banking integration)
+- `manual_mp` (Mercado Pago manual hand-off)
+- `other` (catch-all manual)
+- `mercadopago` (placeholder gated `vitalia-payment-adapter-mvp` story — raises NotImplementedError until implemented)
+
+### FISCAL_PROVIDER_REGISTRY (1 slot)
+- `nubefact_pe` (Peru fiscal placeholder gated `vitalia-fiscal-emission-pe` story — raises NotImplementedError until implemented)
+
+### APPOINTMENT_ORIGIN_REGISTRY (4 origins — pure metadata, no logic)
+- `sales_agent` (default — Adrián sales agent booking)
+- `walk_in` (paciente físicamente en clínica)
+- `phone_manual` (recepcionista llama paciente)
+- `proactive_outbound` (re-engagement via Lucas copilot recommendations)
+
+### CONVERSATION_INITIATION_REGISTRY (1 slot)
+- `whatsapp_template_meta` (placeholder w/ `requires_opt_in_if_marketing=True` — verified via VitaliaComplianceAdapter channel guard)
+
+### PRINT_METHOD_REGISTRY (1 slot)
+- `browser_pdf` (FE-only — uses jsPDF or browser print API, no BE involvement)
+
+## Test coverage
+
+- 29 tests bajo `vitalia/backend/tests/test_extensions.py` (Parts A/B/C):
+  - Part A — structural smoke (5 registries import + len() correct)
+  - Part B — invariants (no bare names, namespace consistency `vitalia.*`, all slots have required attrs)
+  - Part C — `register_all()` regression (EP-3 tools count=4 still raise NotImplementedError, EP-13 guardrails count=4 still permissive placeholders)
+- 18 regression tests Story 11 (`tests/unit/test_extensions_register_all.py`) — verifying register_all completa EP-1..EP-18
+- 11 NEW tests bajo `tests/architecture/test_extension_sdk_registration.py` — EP-3/EP-13 coverage gates
+- Total: 47 tests PASS
+
+## Dependencies
+
+- `luana-core-extension-sdk` (engine — `ExtensionPointRegistry` + EP-3 tool handlers + EP-13 guardrails)
+- `vitalia/backend/src/modules/vitalia/compliance/` (channel guard consumer for `conversation_initiation`)
+
+## Scenarios live
+
+- Booking via sales_agent registra `appointment.origin=sales_agent` (verified via integration test)
+- Paciente walk-in registra `appointment.origin=walk_in`
+- Payment con `manual_mp` capture stage → marks payment_at_clinic=true (no PSP webhook expected)
+- Payment con `mercadopago` placeholder → NotImplementedError con citation `vitalia-payment-adapter-mvp story`
+- Fiscal emission con `nubefact_pe` → NotImplementedError con citation `vitalia-fiscal-emission-pe story`
+- WhatsApp message via `whatsapp_template_meta` con `contains_marketing=true` sin opt_in → ComplianceAdapter raises ComplianceViolation
+
+## Slice 2 lift candidates
+
+Documentado en `vitalia/docs/architecture/delta-arch-notes.md`:
+- Si segunda brand (eg. fitflow para gyms) necesita similar registries pattern → lift cualquiera de los 5 a `core/luana-core-connections/` con brand-specific slot configuration.
+- `appointment_origin` es el menos brand-specific (origins son universales) — primer lift candidate si segunda brand opta-in.
+
+## Promotion candidate (cross-brand)
+
+Status: NO en forma actual — todos los 5 son medical-vertical specific (Vitalia-only). Slice 2 lift candidates documentados pero NO promotable hoy.
+
+## Referencias
+
+- Engine: `core/luana-core-extension-sdk/src/luana_core_extension_sdk/extension_points.py` (EP-3, EP-13)
+- Mount: `vitalia/backend/src/modules/vitalia/extensions.py::register_all(registry)`
+- Compliance consumer: [[hipaa-lite-defensive-stack]] (channel guard)
+- Slice 2 lift notes: `vitalia/docs/architecture/delta-arch-notes.md`

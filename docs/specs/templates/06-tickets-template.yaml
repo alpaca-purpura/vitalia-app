@@ -1,0 +1,439 @@
+# 06-tickets.yaml — Template (pila tickets ordenada del story, paradigm v4 post pm-redesign 2026-05)
+# Vive en: {brand}/docs/product/stories/{story-id}/06-tickets.yaml
+# Owner: /architect
+#
+# v4.1 cement 2026-05-19 — adicionalmente cada ticket cita `must_load_skills` resueltas
+# (subset de 05-guidelines.md § must_load_skills aplicable al surface del ticket).
+# Builder MUST entregar T-{n}-result.md § "Skills consulted" listando cada must_load_skill
+# + status (loaded | n/a) + when consulted. Auditor flag CHANGES_REQUESTED si missing.
+#
+# ── Convenciones (origen R6+R8 process-improvement 2026-05-05 + v4.1 2026-05-19) ──
+#
+# 1. decisions_applicable: list of decision IDs (D1, D2, A5, X2, etc.)
+#    ratificadas en 01-spec.md "Decisions" block o 03-arch-*.md
+#    "Architectural decisions" block. Cada ticket DEBE listar las
+#    decisions que le aplican. Builder commit body MUST include sección
+#    "Decisions honored" que cite cómo cada una fue respetada.
+#
+#    Ejemplo:
+#      decisions_applicable: [D1, D3, X2]
+#      # Donde D1 = "use SQLA 2.0 async" (de 03-arch-be.md)
+#      #       D3 = "tenant_id en cada query" (de 01-spec.md)
+#      #       X2 = "schema-mirror exception copilot" (de 03-arch-be.md)
+#
+#    Auditor verifica commit body cita cada D# del decisions_applicable
+#    list. Sin cita = REVIEW.md WARN Cat 11 (Cross-cutting).
+#
+# 2. Sub-ticket numbering convention strict (R8):
+#    - Use T-{N}.a, T-{N}.b, T-{N}.c — NEVER T-Na, T-Nb (sin punto)
+#    - Renumeración prohibida post-architect: una vez asignado T-6.a,
+#      no se renombra a T-7 aunque T-6 base sea cancelado
+#    - Sub-tickets only when architect detects internal sequencing
+#      (e.g., T-6.a = NULL columns, T-6.b = verify gate, T-6.c = DROP).
+#      Independent work = new top-level T-N.
+#    - Origen: PI-12 S1 Story A T-1..T-9 nominal pero arch produjo 11
+#      con T-6a/b/c sin punto → confusión planeación.
+#
+# 3. Single git mv commit BEFORE scope expansion (R9):
+#    - Cuando ticket implica rename file/folder + scope expansion
+#      (e.g., add fields), architect/dev MUST split en 2 commits:
+#        commit 1: `git mv` puro (rename only, zero diff content)
+#        commit 2: scope expansion (modify content)
+#    - Cleaner history. Bisect-friendly. Rename detección git automática.
+#
+# 4. repro_verified field for hot-fix tickets (R26 2026-05-05):
+#    SSoT: .claude/rules/hotfix-repro-mandatory.md
+#
+#    Hot-fix tickets (origin: handoff doc, incident, auditor escalation,
+#    bis sub-numbering) MUST include `repro_verified: bool` + `repro_evidence`:
+#
+#      repro_verified: true
+#      repro_evidence:
+#        command: "cd backend && .venv/bin/pytest tests/X/test_y.py -v"
+#        output: |
+#          AssertionError: '>' not supported between NoneType and int
+#          at line 153 of test_y.py
+#        diagnosis_validates_handoff: false                # if mismatch
+#        diagnosis_correction: "Real cause is X not Y as handoff suggested"
+#
+#    /dev-team Step 0.5 refuses spawn builder if hot-fix ticket missing
+#    `repro_verified: true`. /po Step 2.5 refuses redactar spec without
+#    running repro first. Auditor REVIEW Cat 11 verifies cite presence.
+#
+#    Origen: T-1.bis 2026-05-05. Handoff doc misdiagnosed root cause; sin
+#    repro local, el builder agéntico (flagship) habría implementado wrong scope (~$8 waste).
+#
+# 5. production_code flag + dynamic owner_eligibility (R23, 2026-05-05):
+#    Cada ticket declara `production_code: bool` (default: derivado de surface).
+#    - true  = touches src/ (production runtime code, migrations, schema)
+#    - false = touches tests/, docs/, scripts/ tooling, configs no-runtime
+#
+#    /dev-team Step 1 owner-decision logic:
+#    - production_code: true  + surface AGENTIC → flagship_required: true HARD
+#    - production_code: true  + BE/FE non-agentic → owner pool [qwen, workhorse, flagship]
+#    - production_code: false + ANY surface → owner pool [qwen, workhorse] (el flagship
+#      override-able pero NO required, even si surface AGENTIC)
+#
+#    Origen: T-1.bis 2026-05-05 forzó Opus 4.8 para test-only fix porque ticket
+#    heredó `flagship_required: true` de Story A surface=AGENTIC. Token waste
+#    ~$8 USD para test bridge migration que sonnet/qwen capable.
+#
+#    Default mapping:
+#    - type: backend|agentic|frontend → production_code: true
+#    - type: tests|docs|tooling|migration-only-no-data → production_code: false
+#    Architect MAY override default explicitly cuando ticket es híbrido.
+#
+# 6. gherkin_coverage MANDATORY post-cement-date 2026-05-18 (story-closure-gate):
+#    SSoT: .claude/rules/story-closure-gate.md (Phase D /auditor)
+#
+#    Cada ticket DEBE mapear scenarios Gherkin de 01-spec.md → tests específicos
+#    que cubren ese scenario. /auditor Phase D ejecuta los tests citados y
+#    escribe 06-audit/gherkin-matrix.md (scenario → test path → status PASS/FAIL/NO_COVERAGE).
+#
+#    Schema:
+#      gherkin_coverage:
+#        - scenario: "SC-01 Wizard finaliza con tenant_id válido"
+#          tests:
+#            - "{brand}/backend/tests/modules/{brand}/onboarding/test_wizard_complete.py::test_creates_tenant"
+#        - scenario: "SC-02 Wizard rechaza email duplicado"
+#          tests:
+#            - "{brand}/backend/tests/modules/{brand}/onboarding/test_wizard_complete.py::test_duplicate_email_rejected"
+#            - "{brand}/frontend/e2e/wizard/{story-id}.spec.ts::scenario-02"
+#
+#    Si ticket no toca surface UI o NO tiene scenarios Gherkin asignados, declarar
+#    explícitamente:
+#      gherkin_coverage: []          # ticket es infra puro, scenarios cubiertos en otros tickets
+#    o
+#      gherkin_coverage_note: "Scenarios SC-01..SC-04 cubiertos por T-3 (FE). Este ticket aporta BE service layer únicamente."
+#
+#    Auditor Phase D agrega gherkin_coverage cross-ticket → matrix completa.
+#    Cualquier scenario en 01-spec.md SIN mapping en algún ticket → CHANGES_REQUESTED
+#    (post-cement-date 2026-05-18 forward-only).
+#
+#    Origen: caso vitalia 2026-05-18 (story-closure-gate). Stories sin gherkin_coverage
+#    transitioned a reviewing antes de cement-date quedan exentas; post-cement-date
+#    es FAIL obligatorio.
+#
+# 7. must_load_skills enforceable v4.1 (cement 2026-05-19):
+#    SSoT: 05-guidelines.md § must_load_skills + .claude/rules/auditor-self-fix-policy.md
+#
+#    Cada ticket DECLARA un subset RESUELTO de must_load_skills aplicable al ticket
+#    (no las "when:" generales del 05-guidelines.md, sino la lista final ya resuelta
+#    según surface + module del ticket).
+#
+#    Schema:
+#      must_load_skills:
+#        - backend-expert
+#        - playwright-expert
+#        - .claude/rules/tenant-isolation.md
+#        - .claude/rules/spanish-text.md
+#        - .claude/rules/auditor-self-fix-policy.md
+#        - FastAPI canonical patterns
+#        - pytest async testing patterns
+#
+#    /dev-team Step 2 cita esta lista verbatim en builder spawn prompt.
+#    Builder T-{n}-result.md DEBE incluir sección "Skills consulted (must_load enforcement v4.1)"
+#    con tabla skill/rule + status + when consulted. Auditor verifica.
+#
+#    Origen: conversación 2026-05-19 ratificada Chris (autonomy v4.1).
+#
+# 8. assignment block MANDATORY (R: .claude/rules/architect-autonomous-mode.md Step 7.5):
+#    Cada ticket DECLARA un bloque `assignment` con el dispatch explícito que /dev-team respeta:
+#      assignment:
+#        primary_agent: builder-backend            # builder-backend | builder-frontend | builder-agentic (NUNCA general-purpose)
+#        model_preference: workhorse                  # workhorse | flagship | qwen-opencode (tiers → project.config.yaml::models) · AGENTIC production_code → flagship HARD (R23)
+#        forbidden_to_touch: [...]                 # paths explícitos que el builder NO toca
+#        rationale: "why this agent + this model"
+#    NO duplicar `must_load_skills` ni `inputs` dentro de assignment — esos son los campos
+#    ticket-level de arriba (assignment los referencia, no los copia → evita drift).
+#    /architect además produce dispatch-plan.md (ver docs/specs/templates/dispatch-plan-template.md).
+
+---
+# NOTE — two distinct state-spaces in this file:
+#   • TICKET states (field `state:` per ticket): draft | ready | developing | done | blocked
+#     → sub-states internal to this pila; owned by /dev-team; NOT the story-level macro-states.
+#   • STORY macro-states (10 estados): idea | refining | refined | ready | developing | developed |
+#     reviewing | done | parked | dropped  → live in {brand}/docs/product/stories/{id}/checkpoint.md
+#     owned by /pm-{brand}. Do NOT confuse the two.
+story_id: STORY_ID
+brand: BRAND_SLUG                                  # ★ v4.1 — vitalia | nicolify | comunify | lupulo
+sprint: SN-SLUG                                    # DEPRECATED — legacy field (no PI/Sprint vocab; event-driven releases post pm-redesign)
+pi: PI-N                                           # DEPRECATED — legacy field idem; remove when creating real stories
+generated_at: 2026-05-04T15:00Z
+generated_by: /architect
+schema_version: v4.1                               # ★ post 2026-05-19 — must_load_skills enforceable per ticket
+total_tickets: 3
+estimated_total_hours: 8
+
+# ── Resumen pila (alto nivel) ────────────────
+summary:
+  - id: T-1
+    title: "BE endpoint + service + migration"
+    surface: BE
+    owner_pool: [qwen-opencode, workhorse, flagship]
+    state: draft
+    blocks: [T-2, T-3]
+  - id: T-2
+    title: "Agentic tool wire + prompt slot + eval suite"
+    surface: AGENTIC
+    owner_pool: [flagship]                    # ⚠️ qwen y sonnet PROHIBIDOS
+    state: draft
+    blocked_by: [T-1]
+    blocks: [T-3]
+  - id: T-3
+    title: "FE button + telemetry + e2e smoke"
+    surface: FE
+    owner_pool: [qwen-opencode, workhorse, flagship]
+    state: draft
+    blocked_by: [T-2]
+
+# ── Detalle (uno por ticket) ─────────────────
+# Ver template ticket-template.yaml para schema completo
+tickets:
+  - $ref: "#/T1"
+  - $ref: "#/T2"
+  - $ref: "#/T3"
+
+T1:
+  id: T-1
+  title: "POST /api/v1/copilot/brand-audit endpoint"
+  type: backend
+  surface: BE
+  production_code: true                            # R23 — touches src/, migration, runtime code
+  state: draft
+  owner_eligibility:
+    qwen_opencode: true
+    claude_sonnet: true
+    flagship_required: false
+  priority: 1
+  estimate_hours: 2
+  decisions_applicable: [D1, D3, X2]            # ⚠️ R6 — list decisions ratified upstream que este ticket honra
+                                                #          Cita en commit body sección "Decisions honored"
+  inputs:
+    spec: "../01-spec.md"
+    arch_doc: "../03-arch-be.md"
+    story_yaml: "../../../../../product/stories/copilot/brand-audit.yaml"
+    rules: [".claude/rules/backend-ddd.md", ".claude/rules/tenant-isolation.md", ".claude/rules/backend-migrations.md"]
+    canonical_docs: ["FastAPI canonical patterns", "pytest async testing patterns"]
+    domain_skills: ["backend-expert", "copilot-expert"]
+  # ★ v4.1 enforceable — lista resuelta must_load aplicable a este ticket (subset de 05-guidelines.md)
+  must_load_skills:
+    - backend-expert
+    - copilot-expert
+    - .claude/rules/tenant-isolation.md
+    - .claude/rules/backend-ddd.md
+    - .claude/rules/backend-migrations.md
+    - .claude/rules/spanish-text.md
+    - .claude/rules/auditor-self-fix-policy.md
+    - .claude/rules/tdd-mandatory.md
+  # ★ assignment block (R: architect-autonomous-mode.md Step 7.5) — dispatch explícito
+  assignment:
+    primary_agent: builder-backend                 # NUNCA general-purpose
+    model_preference: workhorse                        # qwen-opencode fallback ok; flagship_required:false
+    # must_load_skills + must_load_artifacts → campos `must_load_skills` + `inputs` arriba (NO duplicar)
+    forbidden_to_touch:
+      - "core/luana-core-*/src/"                    # engine → /pm-luana lift gate
+      - "{other_brand}/"                            # cross-brand prohibido
+      - "{brand}/backend/src/modules/{brand}/{copilot,sales_agent}/"  # agentic → builder-agentic
+    rationale: "BE CRUD non-agentic — Sonnet sweet spot; flagship_required:false"
+  deliverables:
+    - "DTO RequestDTO + ResponseDTO en {brand}/backend/src/modules/{brand}/copilot/api/dtos.py"
+    - "Endpoint @router.post('/brand-audit') en {brand}/backend/src/modules/{brand}/copilot/api/routes.py"
+    - "Service BrandAuditService en application/services/"
+    - "Repo BrandAuditRepository en infrastructure/repositories/"
+    - "Migration alembic — tabla brand_audit_log si aplica"
+    - "Tests test_brand_audit_service.py + test_brand_audit_endpoint.py"
+    - "T-{n}-result.md sección 'Skills consulted (must_load enforcement v4.1)' obligatoria"
+  out_of_scope:
+    - "Tool wire en agente (es T-2)"
+    - "FE button (es T-3)"
+  acceptance:
+    - { id: A1, description: "POST happy → 200 + ResponseDTO shape", verifier: { type: pytest, path: "tests/modules/copilot/test_brand_audit_endpoint.py::test_happy" } }
+    - { id: A2, description: "Cross-tenant → 403", verifier: { type: pytest, path: "...::test_tenant_isolation" } }
+    - { id: A3, description: "Migration idempotente", verifier: { type: bash, cmd: "docker exec luana-dev-{brand}_backend_dev-1 alembic upgrade head && docker exec luana-dev-{brand}_backend_dev-1 alembic upgrade head" } }
+  # ★ gherkin_coverage MANDATORY post-cement-date 2026-05-18 (story-closure-gate)
+  gherkin_coverage:
+    - scenario: "SC-01 POST /brand-audit con tenant válido retorna 200 + análisis"
+      tests:
+        - "backend/tests/modules/copilot/test_brand_audit_endpoint.py::test_happy"
+    - scenario: "SC-02 POST /brand-audit cross-tenant retorna 403"
+      tests:
+        - "backend/tests/modules/copilot/test_brand_audit_endpoint.py::test_tenant_isolation"
+  quality_gates:
+    - "/test-backend completo verde"
+    - "Coverage del módulo no baja"
+  depends_on: []
+  blocks: ["T-2", "T-3"]
+  transitions:
+    - { state: draft, at: "2026-05-04T15:00Z", by: "/architect" }
+  assigned_to: null
+
+T2:
+  id: T-2
+  title: "Agentic: tool wire brand_audit + prompt slot 4 + eval suite"
+  type: agentic
+  surface: AGENTIC
+  production_code: true                            # R23 — touches modules/{copilot,sales_agent}/ runtime + prompts + tools
+  state: draft
+  owner_eligibility:
+    qwen_opencode: false                          # ⛔
+    claude_sonnet: false                          # ⛔
+    flagship_required: true                    # ✅ tier flagship OBLIGATORIO (production_code AGENTIC HARD rule)
+  priority: 1
+  estimate_hours: 3
+  decisions_applicable: [D5, A2, A4]              # ⚠️ R6 — agentic decisions (slot architecture, voice fidelity, cost budget)
+  inputs:
+    spec: "../01-spec.md"
+    arch_doc: "../03-arch-agentic.md"
+    agentic_design: "../02-design-agentic.md"
+    story_yaml: "../../../../../product/stories/copilot/brand-audit.yaml"
+    rules: [".claude/rules/sales-agent-brand-voice.md"]
+    canonical_docs: ["LangGraph canonical docs", "claude-api"]
+    domain_skills: ["copilot-expert"]
+  # ★ assignment block — AGENTIC production_code → flagship HARD (R23)
+  assignment:
+    primary_agent: builder-agentic                 # NUNCA general-purpose
+    model_preference: flagship                          # ⛔ HARD — qwen/sonnet PROHIBIDOS (R23)
+    forbidden_to_touch:
+      - "core/luana-core-copilot/src/"             # engine → /pm-luana lift gate
+      - "core/luana-core-sales-agent/src/"
+      - "{other_brand}/"
+    rationale: "AGENTIC production code R23 → tier flagship obligatorio. NUNCA opencode/workhorse."
+  deliverables:
+    - "Tool definition en backend/src/modules/copilot/tools/brand_audit_tool.py con @tool decorator"
+    - "Tool registry update en agents/copilot_agent.py"
+    - "Prompt slot 4 en prompts/brand_audit.j2"
+    - "Eval suite backend/tests/agentic_evals/copilot/brand_audit_eval.py"
+    - "Personas: cargar tenant-novato-tech.yaml + lead-frio-impaciente.yaml"
+    - "Rubrics: completeness.md + voice-fidelity.md + no-hallucination.md + no-overpromise.md"
+    - "Trial policy: trials=3, pass^3 >= 0.5, cost <= $0.50/trial"
+  out_of_scope:
+    - "BE endpoint (T-1)"
+    - "FE button (T-3)"
+  acceptance:
+    - { id: A1, description: "Eval scenario happy-path-typical-persona pass^3 >= 0.5", verifier: { type: pytest, path: "tests/agentic_evals/copilot/brand_audit_eval.py::test_happy_path", extra: "--trials=3" } }
+    - { id: A2, description: "Scenario no-hallucination rubric >= 0.9", verifier: { type: pytest, path: "...::test_no_hallucination" } }
+    - { id: A3, description: "Scenario adversarial-hostile-persona rubric no-overpromise >= 0.9", verifier: { type: pytest, path: "...::test_adversarial" } }
+    - { id: A4, description: "Voice fidelity grader >= 0.8", verifier: { type: pytest, path: "...::test_voice_fidelity" } }
+    - { id: A5, description: "Cost per session p95 <= $0.50", verifier: { type: pytest, path: "...::test_cost_budget" } }
+  # ★ gherkin_coverage MANDATORY post-cement-date 2026-05-18 (story-closure-gate)
+  gherkin_coverage:
+    - scenario: "SC-03 Agente brand_audit responde sin alucinaciones (rubric ≥ 0.9)"
+      tests:
+        - "backend/tests/agentic_evals/copilot/brand_audit_eval.py::test_no_hallucination"
+    - scenario: "SC-04 Agente brand_audit no sobrepromete bajo presión adversarial (rubric ≥ 0.9)"
+      tests:
+        - "backend/tests/agentic_evals/copilot/brand_audit_eval.py::test_adversarial"
+    - scenario: "SC-05 Voice fidelity ≥ 0.8 cross-trial"
+      tests:
+        - "backend/tests/agentic_evals/copilot/brand_audit_eval.py::test_voice_fidelity"
+  quality_gates:
+    - "/test-backend backend gates verde"
+    - "Eval suite local 100% verde"
+    - "copilot_trace_event registrado per trial"
+    - "PII redaction verificada"
+  depends_on: ["T-1"]
+  blocks: ["T-3"]
+  transitions:
+    - { state: draft, at: "2026-05-04T15:00Z", by: "/architect" }
+  assigned_to: null
+
+T3:
+  id: T-3
+  title: "FE: botón 'Auditar marca' en copilot drawer + telemetría + e2e smoke"
+  type: frontend
+  surface: FE
+  production_code: true                            # R23 — touches frontend/src/ + e2e smoke spec
+  state: draft
+  owner_eligibility:
+    qwen_opencode: true
+    claude_sonnet: true
+    flagship_required: false
+  priority: 2
+  estimate_hours: 2
+  decisions_applicable: [D2, A3]                  # ⚠️ R6 — FE decisions (RHF+Zod, Spanish neutro)
+  inputs:
+    spec: "../01-spec.md"
+    ui_design: "../01-spec.md § Wireframes"          # 02-design-ui.md DEAD (paradigma v4) → wireframes en 01-spec
+    arch_doc: "../03-arch-fe.md"
+    story_yaml: "../../../../../product/stories/copilot/brand-audit.yaml"
+    rules: [".claude/rules/frontend-fsd.md", ".claude/rules/spanish-text.md"]
+    canonical_docs: ["Shadcn UI conventions", "Tailwind conventions", "React patterns baseline", "Zod validation"]
+    domain_skills: ["frontend-expert", "copilot-expert"]
+  # ★ assignment block — FE standard
+  assignment:
+    primary_agent: builder-frontend                # NUNCA general-purpose
+    model_preference: workhorse                        # qwen-opencode fallback ok
+    forbidden_to_touch:
+      - "{brand}/frontend/src/components/ui/"       # Shadcn primitives (escalate /pm-{brand})
+      - "{brand}/frontend/src/lib/api/fetchClient.ts"
+      - "{other_brand}/"
+    rationale: "FE standard form/button — Sonnet sweet spot"
+  deliverables:
+    - "Botón 'Auditar marca' en frontend/src/features/copilot/components/CopilotDrawer.tsx"
+    - "Mutation hook useBrandAuditMutation en api/use-brand-audit.ts"
+    - "Telemetría event copilot_brand_audit_clicked"
+    - "E2E spec frontend/e2e/regression/copilot-brand-audit.spec.ts"
+    - "Vitest test del componente"
+  out_of_scope:
+    - "BE (T-1)"
+    - "Agente (T-2)"
+  acceptance:
+    - { id: A1, description: "Botón visible cuando user en /copilot. Click → mutation → toast", verifier: { type: vitest, path: "..." } }
+    - { id: A2, description: "E2E smoke pass", verifier: { type: e2e, path: "frontend/e2e/regression/copilot-brand-audit.spec.ts" } }
+    - { id: A3, description: "Spanish neutro labels", verifier: { type: bash, cmd: "grep -E '\\b(podés|tenés)\\b' src/features/copilot/" } }
+  # ★ gherkin_coverage MANDATORY post-cement-date 2026-05-18 (story-closure-gate)
+  gherkin_coverage:
+    - scenario: "SC-06 Usuario click 'Auditar marca' en copilot drawer → resultado visible"
+      tests:
+        - "frontend/e2e/regression/copilot-brand-audit.spec.ts::scenario-06"
+    - scenario: "SC-07 Labels en español neutro LatAm"
+      tests:
+        - "frontend/e2e/regression/copilot-brand-audit.spec.ts::scenario-07-spanish-neutro"
+  quality_gates:
+    - "/test-frontend gates verde"
+    - "E2E smoke pass"
+  depends_on: ["T-2"]
+  blocks: []
+  transitions:
+    - { state: draft, at: "2026-05-04T15:00Z", by: "/architect" }
+  assigned_to: null
+
+# Optional T-N.bis test-only or docs-only sub-ticket pattern (R23 production_code: false).
+# Example: hot-fix ticket migrating tests after upstream T-N introduced new bridge architecture.
+T4_example_test_only:
+  id: T-4.bis
+  title: "Test bridge migration — fixtures need litellm_call_id stash post-T-1"
+  type: tests
+  surface: BE                                      # surface still BE (tests live there) but production_code=false
+  production_code: false                           # R23 — touches tests/ ONLY, no src/ changes
+  state: ready
+  owner_eligibility:
+    qwen_opencode: true                            # OK for tests-only fix
+    claude_sonnet: true                            # PREFERRED — cheap + capable for test fixtures
+    flagship_required: false                    # NOT required even though Story is AGENTIC-adjacent
+  priority: 1
+  estimate_hours: 2
+  decisions_applicable: [D-T1bis-1, D-T1bis-2]     # cite test-side fix decisions, not production
+  inputs:
+    spec: "../01-spec.md"
+    arch_doc: "../03-arch-be.md"
+    rules: [".claude/rules/tdd-mandatory.md"]
+    canonical_docs: ["pytest async testing patterns"]
+    domain_skills: ["sales-agent-expert", "copilot-expert"]
+  deliverables:
+    - "MODIFY tests/modules/{copilot,sales_agent}/observability/test_callback_handler*.py — bridge cost via _stash + litellm_call_id injection"
+    - "OPTIONAL: helper en tests/conftest.py si pattern reused 2+ times"
+  out_of_scope:
+    - "Production cost_recorder.py / base_callback_handler.py (NO src/ touches)"
+  acceptance:
+    - { id: A1, description: "2 repro tests PASS", verifier: { type: pytest, path: "..." } }
+    - { id: A2, description: "Cero src/ in diff", verifier: { type: bash, cmd: "git diff --name-only HEAD~1 | grep '^backend/src/' | wc -l | grep -E '^0$'" } }
+  quality_gates:
+    - "Tests scoped + downstream regression pass"
+  depends_on: ["T-1"]
+  blocks: []
+  transitions:
+    - { state: draft, at: "2026-05-05T11:35Z", by: "/dev-team-orchestrator" }
+    - { state: ready, at: "2026-05-05T11:35Z", by: "/dev-team-orchestrator" }
+  assigned_to: null

@@ -1,0 +1,138 @@
+---
+# vitalia/deploy/k8s/admin-deployment.yaml
+# Vitalia Admin Streamlit Deployment — separate container per D7.
+#
+# Scope: super-admin panel (tenants + usuarios, 2 pages). D2 ratified.
+# Auth: bcrypt env-var VITALIA_ADMIN_PASSWORD_HASH (single password, D8 ratified).
+# Namespace: vitalia (assume created; if not: kubectl create namespace vitalia)
+#
+# Build + push before apply:
+#   docker build -f vitalia/deploy/Dockerfile.admin \
+#     -t ghcr.io/alpacapurpura/vitalia-admin:latest vitalia/backend/
+#   docker push ghcr.io/alpacapurpura/vitalia-admin:latest
+#
+# Apply:
+#   kubectl apply -f vitalia/deploy/k8s/admin-deployment.yaml -n vitalia
+#
+# Arch ref: vitalia-auth-base-functional T-5 D7 · admin-panel.md
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vitalia-admin
+  namespace: vitalia
+  labels:
+    app.kubernetes.io/name: vitalia-admin
+    app.kubernetes.io/component: admin
+    app.kubernetes.io/part-of: vitalia
+    app.kubernetes.io/managed-by: kubectl
+    env: dev
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vitalia-admin
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: vitalia-admin
+        app.kubernetes.io/name: vitalia-admin
+        app.kubernetes.io/component: admin
+        app.kubernetes.io/part-of: vitalia
+        env: dev
+    spec:
+      # Security context — run as non-root (matches Dockerfile USER vitalia uid=1001)
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        fsGroup: 1001
+
+      containers:
+        - name: vitalia-admin
+          # Replace :latest with specific SHA or semver in CI/CD pipeline.
+          # CI: kubectl set image deployment/vitalia-admin vitalia-admin=ghcr.io/alpacapurpura/vitalia-admin:<SHA>
+          image: ghcr.io/alpacapurpura/vitalia-admin:latest
+
+          imagePullPolicy: IfNotPresent
+
+          ports:
+            - name: streamlit
+              containerPort: 8501
+              protocol: TCP
+
+          # ── Secrets from vitalia-secrets (envFrom for bulk secret load) ────
+          # Admin needs DB access + Clerk Backend API key + admin password hash.
+          # We load the whole secret and rely on Streamlit code to read only what it needs.
+          envFrom:
+            - secretRef:
+                name: vitalia-secrets
+
+          # ── Non-sensitive config ─────────────────────────────────────────
+          env:
+            - name: APP_ENV
+              value: "production"
+            - name: LOG_LEVEL
+              value: "INFO"
+            - name: POSTGRES_HOST
+              value: "postgres-vitalia"
+            - name: POSTGRES_PORT
+              value: "5432"
+            - name: POSTGRES_DB
+              value: "vitalia_prod"
+            - name: POSTGRES_USER
+              value: "vitalia_app"
+            - name: VITALIA_COMPLIANCE_LEVEL
+              value: "hipaa_lite"
+            - name: VITALIA_BRAND_SLUG
+              value: "vitalia"
+
+          # ── Liveness probe — Streamlit native /healthz endpoint ─────────
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: streamlit
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            failureThreshold: 3
+            timeoutSeconds: 5
+
+          # ── Readiness probe ─────────────────────────────────────────────
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: streamlit
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            failureThreshold: 3
+            timeoutSeconds: 3
+
+          # ── Resource limits (Streamlit admin is light — 1 admin user) ──
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+
+          # ── Security context per container ───────────────────────────────
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
+
+      # ── Image pull secrets for GHCR private registry ───────────────────
+      # ghcr-creds created by Chris: kubectl create secret docker-registry ghcr-creds \
+      #   --docker-server=ghcr.io --docker-username=alpacapurpura \
+      #   --docker-password=<GITHUB_PAT> -n vitalia
+      imagePullSecrets:
+        - name: ghcr-creds
+
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30

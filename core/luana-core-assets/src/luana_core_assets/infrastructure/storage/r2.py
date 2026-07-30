@@ -1,0 +1,69 @@
+"""R2 infrastructure."""
+
+import uuid
+from pathlib import Path
+from typing import BinaryIO
+
+import boto3
+from botocore.client import Config
+
+from .base import StorageStrategy
+
+
+class R2StorageStrategy(StorageStrategy):
+    """Cloudflare R2 storage via S3-compatible API."""
+
+    def __init__(self) -> None:
+        """Initialize R2StorageStrategy."""
+        # Lazy settings access — importing this module must not trigger
+        # Settings instantiation at import time (T-2 copilot-chat-mountable).
+        from luana_core_platform.core.config import get_settings
+
+        s = get_settings()
+        self.bucket = s.R2_BUCKET_NAME
+        self.public_base_url = s.R2_PUBLIC_URL.rstrip("/")
+        self.client = boto3.client(
+            "s3",
+            endpoint_url=s.R2_ENDPOINT_URL,
+            aws_access_key_id=s.R2_ACCESS_KEY_ID,
+            aws_secret_access_key=s.R2_SECRET_ACCESS_KEY,
+            config=Config(signature_version="s3v4"),
+            region_name="auto",
+        )
+
+    def get_file_bytes(self, storage_path: str) -> bytes:
+        """Retrieve file bytes."""
+        response = self.client.get_object(Bucket=self.bucket, Key=storage_path)
+        return response["Body"].read()
+
+    def save(
+        self,
+        file_obj: BinaryIO,
+        filename: str,
+        path_prefix: str = "",
+    ) -> tuple[str, str]:
+        """Persist the entity to the database."""
+        ext = Path(filename).suffix
+        unique_name = f"{uuid.uuid4()}{ext}"
+        key = f"{path_prefix}/{unique_name}" if path_prefix else unique_name
+
+        # Read all bytes so we can detect content type
+        data = file_obj.read()
+
+        self.client.put_object(
+            Bucket=self.bucket,
+            Key=key,
+            Body=data,
+        )
+
+        public_url = f"{self.public_base_url}/{key}"
+        return key, public_url
+
+    def delete(self, storage_path: str) -> bool:
+        """Handle delete operation."""
+        try:
+            self.client.delete_object(Bucket=self.bucket, Key=storage_path)
+        except Exception:  # noqa: BLE001 — infrastructure resilience
+            return False
+        else:
+            return True

@@ -1,0 +1,148 @@
+# 04-validators.yaml — copilot-chat-mountable (technical-story)
+# verification_nature: técnica → gates automáticos + verificación-por-efecto (boot + import + 401/200). Sin demo UI.
+# ${WS} = root del worktree core (~/Proyectos/luana-core-copilot-mountable). Builder corre `uv sync` en el worktree antes (venv propio).
+
+verification_nature: técnica
+demo_required: false
+demo_skip_reason: "engine refactor sin UI — DoD = verificación-por-efecto (boot marca env-multibrand + /chat 401/200) + R3"
+
+# ─── Scope reconciliation (auditor Carril R · 2026-06-16) ───
+# Story shipea el UNBLOCK (T-1/T-2/T-3); T-4 (end-state C, retirar shim) + T-5-full
+# (401/200 mounted + arch-suite 4 marcas) DEFERIDOS por decisión Chris (G signoff
+# SATISFIED_WITH_FOLLOWUPS). Los validators de scope deferido quedan must_pass:false
+# con tag `deferred:` — NO son verde-fantasma, son scope de la story follow-up.
+# IN-SCOPE GREEN (verificado por el auditor): be_platform_unit · be_copilot_unit ·
+#   be_iam_unit · v_no_eager_module_settings (T-1) · v_chat_import_multibrand_env (T-2,
+#   acceptance) · v_changelog_bumped · v_4brands_boot (R3-light, vía import de src.main).
+# Nota upstream: be_platform_arch/be_copilot_arch fueron escritos con path brand-style
+#   `tests/architecture/` que NO existe en los paquetes core (arch-fitness corre inline
+#   en be_*_unit) → reconciliados a advisory.
+
+technical_gates:
+  baseline: [ruff_max_warnings_0, mypy_strict, arch_fitness_per_package]
+  opt_in: []          # no endpoint nuevo (Schemathesis n/a); no invariante domain nuevo (Hypothesis n/a)
+  mutation:
+    enabled: false    # refactor mecánico, no lógica nueva crítica (commit/dinero/PHI) — advisory
+    mode: advisory
+
+validators:
+  # ─── NON-FUNCTIONAL (lint + arch per touched package) ───
+  - id: be_platform_lint
+    category: non_functional
+    cmd: "cd ${WS}/core/luana-core-platform && ${WS}/.venv/bin/ruff check src/ --no-cache && ${WS}/.venv/bin/ruff format --check src/"
+    must_pass: true
+    timeout_sec: 30
+  - id: be_platform_arch
+    category: architectural_validation
+    cmd: "cd ${WS}/core/luana-core-platform && ${WS}/.venv/bin/pytest tests/architecture/ -x -q"
+    must_pass: false   # advisory: core/luana-core-platform no tiene tests/architecture/ — arch-fitness inline en be_platform_unit (290 GREEN)
+    deferred: "path brand-style inexistente en core pkg — reconciliado a inline"
+    timeout_sec: 120
+  - id: be_platform_unit
+    category: functional
+    cmd: "cd ${WS}/core/luana-core-platform && ${WS}/.venv/bin/pytest -x -q"
+    must_pass: true
+    timeout_sec: 300
+  - id: be_copilot_lint
+    category: non_functional
+    cmd: "cd ${WS}/core/luana-core-copilot && ${WS}/.venv/bin/ruff check src/ --no-cache && ${WS}/.venv/bin/ruff format --check src/"
+    must_pass: true
+    timeout_sec: 30
+  - id: be_copilot_arch
+    category: architectural_validation
+    cmd: "cd ${WS}/core/luana-core-copilot && ${WS}/.venv/bin/pytest tests/architecture/ -x -q"
+    must_pass: false   # advisory: core/luana-core-copilot no tiene tests/architecture/ — arch-fitness inline en be_copilot_unit (1641 GREEN)
+    deferred: "path brand-style inexistente en core pkg — reconciliado a inline"
+    timeout_sec: 120
+  - id: be_copilot_unit
+    category: functional
+    cmd: "cd ${WS}/core/luana-core-copilot && ${WS}/.venv/bin/pytest -x -q"
+    must_pass: true
+    timeout_sec: 300
+  - id: be_iam_unit
+    category: functional
+    cmd: "cd ${WS}/core/luana-core-iam && ${WS}/.venv/bin/pytest -x -q"
+    must_pass: true
+    timeout_sec: 180
+  - id: be_all_touched_pkgs_lint
+    category: non_functional
+    cmd: "for p in connections sales-agent assets llm campaigns analytics-engine scheduling events brand-studio tenant-domains; do cd ${WS}/core/luana-core-$p && ${WS}/.venv/bin/ruff check src/ --no-cache || exit 1; done"
+    must_pass: false   # T-4 scope: el unblock solo tocó copilot/platform/events/assets (esos GREEN). Resto migra en follow-up.
+    deferred: "T-4 follow-up (pkgs no tocados por el unblock)"
+    timeout_sec: 120
+  - id: be_all_touched_pkgs_unit
+    category: functional
+    cmd: "for p in connections sales-agent assets llm campaigns analytics-engine scheduling events brand-studio tenant-domains; do cd ${WS}/core/luana-core-$p && ${WS}/.venv/bin/pytest -x -q || exit 1; done"
+    must_pass: false   # T-4 scope (idem). events+assets (sí tocados) verificados GREEN aparte.
+    deferred: "T-4 follow-up (pkgs no tocados por el unblock)"
+    timeout_sec: 600
+
+  # ─── VERIFICACIÓN-POR-EFECTO (el corazón de la DoD técnica) ───
+  - id: v_no_eager_module_settings
+    category: functional
+    description: "Importar config.py + database.py NO instancia Settings ni engine/redis a module-load (T-1)"
+    cmd: "cd ${WS}/core/luana-core-platform && ${WS}/.venv/bin/pytest tests/test_lazy_settings_no_eager.py -x -q"
+    must_pass: true
+    timeout_sec: 60
+  - id: v_chat_import_multibrand_env
+    category: functional
+    description: "import luana_core_copilot.api.chat con SOLO env multibrand (sin POSTGRES_*/WHATSAPP_*/QDRANT_URL) NO levanta ValidationError (T-2 driver)"
+    cmd: "cd ${WS}/core/luana-core-copilot && ${WS}/.venv/bin/pytest tests/test_chat_import_multibrand_env.py -x -q"
+    must_pass: true
+    timeout_sec: 60
+  - id: v_no_global_settings_import
+    category: architectural_validation
+    description: "End-state C: ningún src del engine importa el global `settings` (solo get_settings()). Shim deprecado tolerado."
+    cmd: "! grep -rn 'from luana_core_platform.core.config import settings' ${WS}/core/*/src --include='*.py' | grep -v '__getattr__\\|# shim'"
+    must_pass: false   # T-4 scope: 49 call-sites off-path siguen vía shim deprecado (funcionan). End-state limpio = follow-up.
+    deferred: "T-4 follow-up (retirar shim cuando los ~47 off-path migren)"
+    timeout_sec: 15
+  - id: v_changelog_bumped
+    category: non_functional
+    description: "CHANGELOG + pyproject minor bumpeados en platform + copilot"
+    cmd: "grep -q 'minor' ${WS}/core/luana-core-copilot/CHANGELOG.md && grep -q 'minor' ${WS}/core/luana-core-platform/CHANGELOG.md"
+    must_pass: true
+    timeout_sec: 10
+
+  # ─── R3 DOWNSTREAM (4 marcas — auditor-downstream-regression.md) ───
+  - id: v_4brands_boot
+    category: functional
+    description: "Las 4 marcas bootean su app con env multibrand (sin vars legacy) — sin crash en import/startup"
+    cmd: "for b in vitalia nicolify comunify lupulo; do cd ${WS}/$b/backend && ${WS}/.venv/bin/python -c 'import importlib,os; importlib.import_module(\"src.main\")' || exit 1; done"
+    must_pass: true
+    timeout_sec: 240
+    note: "R3-light VERIFICADO por el auditor (2026-06-16): vitalia/nicolify/comunify importan src.main limpio con env multibrand; lupulo = placeholder sin src/main.py. Es la verificación-por-efecto del unblock."
+  - id: v_chat_401_200
+    category: functional
+    description: "El /chat del engine MONTADO en un BE de marca responde 401 sin auth + 200 stream con auth (ejercer endpoint, NO GET vacío)"
+    cmd: "cd ${WS}/core/luana-core-copilot && ${WS}/.venv/bin/pytest tests/test_chat_mounted_brand_401_200.py -x -q"
+    must_pass: false   # T-5 deferido: test_chat_mounted_brand_401_200.py NO creado. El mount real lo ejerce la story downstream comunify-shell-organism (re-mount). Unblock no lo requiere.
+    deferred: "T-5 follow-up / verificado al re-montar en comunify"
+    timeout_sec: 120
+  - id: be_downstream_4brands_arch
+    category: architectural_validation
+    description: "arch-suite de las 4 marcas verde (R3 — el cambio core no rompe boundaries de marca)"
+    cmd: "for b in vitalia nicolify comunify lupulo; do cd ${WS}/$b/backend && ${WS}/.venv/bin/pytest tests/architecture/ -x -q || exit 1; done"
+    must_pass: false   # T-5 deferido: el refactor lazy (additive, shim-preserving) no toca boundaries de marca; R3-light (import) cubre el unblock. Arch-suite full = ci-parity en el merge.
+    deferred: "T-5 follow-up / cubierto por ci-parity al merge a main"
+    timeout_sec: 480
+
+scenario_coverage:
+  - scenario_id: unblock_import      # T-1+T-2
+    validators: [v_no_eager_module_settings, v_chat_import_multibrand_env]
+  - scenario_id: end_state_C         # T-4
+    validators: [v_no_global_settings_import, be_all_touched_pkgs_unit]
+  - scenario_id: contract            # T-3
+    validators: [be_copilot_arch, v_changelog_bumped]
+  - scenario_id: R3_downstream       # T-5
+    validators: [v_4brands_boot, v_chat_401_200, be_downstream_4brands_arch]
+
+regression_guard:
+  description: "La suite existente del engine NO debe cambiar comportamiento (solo lazy-ificación). test_rate_limit.py (único que importa el chat router) debe seguir verde."
+  must_stay_green: [be_platform_unit, be_copilot_unit, be_iam_unit]
+
+iteration:
+  max_iterations: 10
+  on_fail: "fix targeted module based on test output, re-run failing validator only"
+  on_all_pass: "state developing→developed + impl-log"
+  on_cap_reached: "state developing→blocked, escalate Chris con last trace"

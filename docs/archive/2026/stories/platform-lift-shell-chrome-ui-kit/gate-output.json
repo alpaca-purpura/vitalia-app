@@ -1,0 +1,118 @@
+{
+  "schema_version": "1.0",
+  "pr_folder": "/home/chalreme/Proyectos/luana-vitalia/docs/product/stories/platform-lift-shell-chrome-ui-kit/",
+  "ticket": "audit-1",
+  "iter": "audit-1",
+  "command": "exact (11 explicit gates + 1 external-run e2e)",
+  "command_alias": null,
+  "started_at": "2026-06-11T19:09:46Z",
+  "finished_at": "2026-06-11T19:12:11Z",
+  "duration_ms": 145000,
+  "exit_code": 0,
+  "raw_log_path": "/home/chalreme/Proyectos/luana-vitalia/docs/product/stories/platform-lift-shell-chrome-ui-kit/gate-logs/iter-audit-1-explicit-gates-20260611T190946Z.log",
+  "gates": [
+    {
+      "name": "kit-vitest",
+      "status": "PASS",
+      "errors_count": 0,
+      "expected": "Tests 259 passed",
+      "observed": "Test Files 20 passed (20) · Tests 259 passed (259)",
+      "first_5_errors": []
+    },
+    {
+      "name": "kit-tsc-organism",
+      "status": "PASS",
+      "errors_count": 0,
+      "expected": "0 organism-SOURCE errors (test-file errors pre-existentes excluidos por instrucción)",
+      "observed": "grep -c organism = 26 matches BUT all 26 are in src/organism/shell/__tests__/*.test.tsx (pre-existing 'toBeInTheDocument' matcher type errors, kit-wide test tooling). 0 errors in organism non-test SOURCE files. Per instruction intent, source-error count = 0.",
+      "first_5_errors": []
+    },
+    {
+      "name": "vitalia-tsc",
+      "status": "PASS",
+      "errors_count": 0,
+      "expected": "exit 0",
+      "observed": "exit 0, 0 error TS",
+      "first_5_errors": []
+    },
+    {
+      "name": "vitalia-eslint",
+      "status": "PASS",
+      "errors_count": 0,
+      "expected": "exit 0",
+      "observed": "exit 0, no problems",
+      "first_5_errors": []
+    },
+    {
+      "name": "vitalia-vitest",
+      "status": "PASS",
+      "errors_count": 0,
+      "expected": "0 failed",
+      "observed": "Test Files 214 passed (214) · Tests 2073 passed (2073) · 0 failed",
+      "first_5_errors": []
+    },
+    {
+      "name": "vitalia-arch",
+      "status": "PASS",
+      "errors_count": 0,
+      "expected": "PASS",
+      "observed": "Test Files 30 passed (30) · Tests 187 passed (187)",
+      "first_5_errors": []
+    },
+    {
+      "name": "nicolify-tsc",
+      "status": "PASS",
+      "errors_count": 0,
+      "expected": "exit 0",
+      "observed": "exit 0, 0 error TS",
+      "first_5_errors": []
+    },
+    {
+      "name": "nicolify-vitest",
+      "status": "PASS",
+      "errors_count": 0,
+      "expected": "0 failed",
+      "observed": "Test Files 34 passed (34) · Tests 514 passed (514) · 0 failed",
+      "first_5_errors": []
+    },
+    {
+      "name": "nicolify-arch",
+      "status": "PASS",
+      "errors_count": 0,
+      "expected": "PASS",
+      "observed": "Test Files 5 passed (5) · Tests 117 passed (117)",
+      "first_5_errors": []
+    },
+    {
+      "name": "kit-grep-brand",
+      "status": "PASS",
+      "errors_count": 0,
+      "expected": "0",
+      "observed": "grep -riE '#01b2f8' core/@luana/ui-kit/src/organism --include='*.ts*' | wc -l = 0",
+      "first_5_errors": []
+    },
+    {
+      "name": "mirror-basename",
+      "status": "PASS",
+      "errors_count": 0,
+      "expected": "0",
+      "observed": "comm -12 (vitalia vs nicolify shell-organism basenames matching Sidebar|Chat|Ribbon|Layout|TopBar) | wc -l = 0. vitalia: no matching basenames; nicolify: EntityWorkspaceLayout.{tsx,test.tsx}. Intersection empty = no cross-brand mirror.",
+      "first_5_errors": []
+    },
+    {
+      "name": "vitalia-e2e",
+      "status": "PASS",
+      "errors_count": 0,
+      "source": "external-run",
+      "expected": "84 passed / 1 skipped-fixme / 0 failed + resizer-matrix 7/7",
+      "observed": "external run bcahr2m2j 2026-06-11: 84 passed / 1 skipped (fixme) / 0 failed + resizer-matrix 7/7. NOT re-run by gate-runner (e2e ~17min).",
+      "first_5_errors": []
+    }
+  ],
+  "overall": {
+    "any_fail": false,
+    "fail_gate_names": [],
+    "summary": "12/12 gates PASS. kit-vitest 259 passed · kit-tsc-organism 0 source errors (26 grep matches all pre-existing test-tooling) · vitalia tsc/eslint/vitest(2073)/arch(187) green · nicolify tsc/vitest(514)/arch(117) green · kit brand-color grep 0 · mirror-basename 0 · vitalia-e2e 84pass/1skip/0fail (external-run bcahr2m2j)."
+  },
+  "notes": "Gate kit-tsc-organism: raw 'grep -c organism' = 26 but ALL are pre-existing 'toBeInTheDocument' matcher type errors in src/organism/shell/__tests__/*.test.tsx (kit-wide test tooling, explicitly excluded per instruction 'errores kit-wide en files de test viejos = pre-existentes, NO gate'). 0 errors in organism non-test SOURCE → PASS. vitalia-vitest stderr lines are intentional error-path test logs, not failures. vitalia-e2e = external-run bcahr2m2j 2026-06-11, NOT re-executed. All test gates ran >0 tests (HB-45 zero-tests guard clear)."
+}

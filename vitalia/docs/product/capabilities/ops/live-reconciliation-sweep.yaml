@@ -1,0 +1,143 @@
+---
+capability_id: vitalia.ops.live-reconciliation-sweep
+module: ops
+slug: live-reconciliation-sweep
+status: live
+date_introduced: 2026-05-29
+story_introduced: vitalia-cockpit-live-reconciliation
+package_version: 0.1.0
+package_path: vitalia/frontend/e2e/regression/live-reconciliation/
+license: proprietary
+
+# v3 cement 2026-05-27 · 4 dimensiones + dev_preview (ADR-vitalia-005)
+tech_module: ops
+agent_owner: plataforma-tecnica
+functional_area: plataforma-tecnica.reconciliation
+user_visible: false
+nature: diagnostic
+ui_paradigm: infra-only  # T-3 reconcile 2026-05-29
+
+user_facing_name: "Sweep de reconciliacion live"
+user_facing_description: >
+  Suite Playwright de diagnostico que barre todas las superficies navegables
+  del shell-organism de Vitalia, captura HTTP status / errores de consola /
+  screenshots / a11y snapshot por ruta, y produce la matriz viva
+  vitalia/docs/domains/ops/live-reconciliation.md. Es el mecanismo por el
+  cual el equipo mantiene el ledger de capabilities honesto: cada capability
+  declarada live debe tener su ruta navegable verificada en el sweep. El sweep
+  se puede regenerar en cualquier momento para detectar regresiones post-merge.
+
+dev_preview:
+  route: null
+  how_to_navigate: >
+    cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002
+    npx playwright test e2e/regression/live-reconciliation/ --reporter=line
+  main_component: "vitalia/frontend/e2e/regression/live-reconciliation/sweep.spec.ts"
+  api_endpoints: []
+  e2e_test: "vitalia/frontend/e2e/regression/live-reconciliation/sweep.spec.ts"
+  fixtures_required: ["3-clinic-fixture-latam"]
+  storybook_url: null
+  loom_demo: null
+
+# Capability ledger v2 (cement 2026-05-27)
+created_in_story: vitalia-cockpit-live-reconciliation
+created_date: 2026-05-29
+last_modified: 2026-05-29   # T-3 reconcile 2026-05-29
+parent_cap: null
+derives_capabilities: []
+
+# Capability change log v2 (cement 2026-05-27)
+change_log:
+  - story_id: vitalia-cockpit-live-reconciliation
+    date: 2026-05-29
+    type: new
+    summary: "T-3 reconciliacion: cap nueva ops.live-reconciliation-sweep. Sweep spec existe en filesystem."
+    merge_sha: null
+    status: done
+
+access:
+  entry_points:
+    - path: null
+      navigation: "CLI: npx playwright test e2e/regression/live-reconciliation/"
+      requires_role: []
+      requires_clinic_scope: false
+      entry_type: cli
+  forbidden_roles: []
+  authentication: none
+
+scenarios:
+  - id: sweep-barre-superficies-navegables
+    name: "Sweep barre todas las superficies navegables del shell-organism"
+    actor: developer
+    status: live
+    given: "Stack vitalia corriendo en localhost:3002 con seed 3-clinic-fixture-latam"
+    when: "Se ejecuta npx playwright test e2e/regression/live-reconciliation/"
+    then: >
+      El harness navega cada ruta enumerada por surface-catalog.ts,
+      captura HTTP status + errores consola + screenshot, y emite findings
+      JSON. Ninguna ruta da 500 no esperado.
+    e2e_test: "vitalia/frontend/e2e/regression/live-reconciliation/sweep.spec.ts"
+    story_spec_ref: "vitalia/docs/product/stories/vitalia-cockpit-live-reconciliation/01-spec.md"
+    atomic_ref: null
+    edge_cases:
+      - "Ruta que da 404 esperado (placeholder vacío F2) → sweep_verdict=OK con nota"
+      - "Ruta que da 500 → sweep_verdict=ROTO con screenshot en .evidence/"
+      - "Ruta con console error no fatal → sweep_verdict=WARN registrado"
+    added_in_story: vitalia-cockpit-live-reconciliation
+    added_date: 2026-05-29
+
+business_rules:
+  - id: sweep-honesty-rule
+    rule: >
+      El sweep NO repara lo que encuentra; solo registra. Toda superficie ROTO
+      se mapea a una story F2 de backlog, no se arregla inline (scope discipline).
+    enforcement:
+      - "vitalia/docs/product/stories/vitalia-cockpit-live-reconciliation/03-arch.md § Fase 2+3"
+    code_ref: "vitalia/frontend/e2e/regression/live-reconciliation/sweep.spec.ts"
+    severity: high
+    audit_trail: false
+  - id: no-phi-in-evidence
+    rule: >
+      Screenshots de evidencia NO deben contener PHI real. El seed de test usa
+      datos ficticios (3-clinic-fixture-latam). Si se detecta PHI real en
+      screenshot → redactar antes de commitear.
+    enforcement:
+      - "vitalia/.claude/rules/hipaa-lite.md"
+    code_ref: "vitalia/frontend/e2e/regression/live-reconciliation/sweep.spec.ts"
+    severity: critical
+    audit_trail: false
+
+related_capabilities:
+  depends_on:
+    - auth.clerk-middleware
+    - shell-organism.shell-vitalia
+    - fixtures.3-clinic-fixture-latam
+  enables:
+    - ops.live-reconciliation-sweep
+  similar: []
+  obsoletes: []
+map_box: plataforma-tecnica
+
+---
+
+# Live Reconciliation Sweep — ops
+
+Suite Playwright de diagnostico cross-surfaces. Produce `vitalia/docs/domains/ops/live-reconciliation.md` (matriz viva cap por cap).
+
+## Surfaces
+
+- **E2E spec:** `vitalia/frontend/e2e/regression/live-reconciliation/sweep.spec.ts`
+- **Catalogo superficies:** `vitalia/frontend/e2e/regression/live-reconciliation/surface-catalog.ts`
+- **Matriz output:** `vitalia/docs/domains/ops/live-reconciliation.md`
+- **Evidencia screenshots:** `vitalia/frontend/e2e/regression/live-reconciliation/.evidence/`
+
+## Ejecucion
+
+```bash
+cd vitalia/frontend
+E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/live-reconciliation/ --reporter=line
+```
+
+## Promotable
+
+Patron candidato a lift cross-brand cuando comunify o lupulo necesiten reconciliar su propio ledger post mass-merge.

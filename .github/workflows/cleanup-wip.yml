@@ -1,0 +1,53 @@
+name: Cleanup WIP branches
+
+# Weekly cron cleanup of stale wip/* branches (>30 days without commits).
+# Also triggerable manually via workflow_dispatch with dry_run + max_age_days inputs.
+#
+# Safety:
+#   - Protected branches (main, release/*) are explicitly excluded in cleanup script.
+#   - Default dry_run=true: first run only lists candidates, does NOT delete.
+#   - Deletion requires explicit input dry_run=false via workflow_dispatch.
+#   - Uses GH_TOKEN (GITHUB_TOKEN) with branch delete via gh api.
+
+on:
+  schedule:
+    # Every Sunday at 02:00 UTC
+    - cron: '0 2 * * 0'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run — list candidates only, do not delete'
+        required: true
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+      max_age_days:
+        description: 'Max age in days before branch becomes cleanup candidate'
+        required: false
+        default: '30'
+        type: string
+
+# Write permission needed to delete branches via gh api
+permissions:
+  contents: write
+
+jobs:
+  cleanup-wip-branches:
+    name: cleanup-wip-branches
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: List and optionally delete stale WIP branches
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DRY_RUN: ${{ github.event.inputs.dry_run || 'true' }}
+          MAX_AGE_DAYS: ${{ github.event.inputs.max_age_days || '30' }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          bash scripts/git/cleanup-wip-branches.sh

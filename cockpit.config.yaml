@@ -1,0 +1,14 @@
+# Cockpit · configuración de navegación por workspace (opcional · 2026-06-11).
+# La lista `nav` define QUÉ tabs muestra el sidebar y EN QUÉ ORDEN.
+# - Quitar una línea = ocultar ese módulo.
+# - Reordenar líneas = reordenar el sidebar.
+# - Borrar el archivo (o la key `nav`) = volver al default (todos los tabs).
+# IDs disponibles hoy: roadmap · evolucion · board · map · drift · learnings · harness
+nav:
+  - roadmap
+  - evolucion
+  - board
+  - map
+  - drift
+  - learnings
+  - harness

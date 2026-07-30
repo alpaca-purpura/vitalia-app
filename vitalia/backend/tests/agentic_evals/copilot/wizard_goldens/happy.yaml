@@ -1,0 +1,67 @@
+# Vitalia Valeria wizard golden — happy path (URL Instagram + 5 slots confirmed)
+# Story T-ag-evals-1 sub-task B.
+golden_id: wizard_happy_v1
+flow: wizard_onboarding
+scenario: happy
+persona: tenant_novato_tech_dental.yaml
+input_conversation:
+  - role: tenant
+    content: "Hola, soy de Clínica Dental Norte de Lima"
+  - role: assistant
+    content: "Hola, soy Valeria. Te voy a acompañar para dejar tu cuenta lista en pocos minutos. Anoté 'Clínica Dental Norte' en Lima. ¿Está bien así?"
+  - role: tenant
+    content: "Sí está bien"
+  - role: assistant
+    content: "Perfecto. Para empezar bien, ¿podés pasarme algún link de tu clínica? Web, Instagram, ficha de Google Maps — cualquiera de esos sirve."
+  - role: tenant
+    content: "https://www.instagram.com/clinica.dental.norte"
+  - role: assistant
+    content: "Genial, extraigo info de ahí para acelerar la configuración. Confirma estos datos: especialidad principal=odontología general, ubicación=Lima Perú, tono inicial=cercano profesional. ¿Está bien?"
+  - role: tenant
+    content: "Sí está perfecto"
+  - role: assistant
+    content: "Listo. Última cosa: ¿algún rasgo de tono que quieras destacar? Por ejemplo: ¿más informal, más técnico, o cómo está bien así?"
+  - role: tenant
+    content: "Así está bien, cercano"
+  - role: assistant
+    content: "Perfecto. Generé un preview de cómo se vería el primer mensaje hacia un paciente. ¿Querés revisarlo antes de confirmar la configuración final?"
+  - role: tenant
+    content: "Sí mostrame"
+  - role: assistant
+    content: "[Preview shown] Si te gusta, confirmamos. Si querés ajustar tono, lo cambiamos antes de aplicar."
+  - role: tenant
+    content: "Está bien, confirmo"
+  - role: assistant
+    content: "Listo, configuración aplicada. Tu cuenta está lista para empezar. Cualquier cosa, ahí mismo en el dashboard tenés ayuda."
+expected_tools_trajectory:
+  - tool: extract_tenant_context
+    args:
+      url: "https://www.instagram.com/clinica.dental.norte"
+  - tool: confirm_slot
+    args:
+      slot_id: tenant.name
+      value: "Clínica Dental Norte"
+  - tool: confirm_slot
+    args:
+      slot_id: tenant.vertical
+      value: dental
+  - tool: confirm_slot
+    args:
+      slot_id: tenant.location
+      value: "Lima, Perú"
+  - tool: simulate_personality
+    args: {}
+  - tool: complete_onboarding
+    args: {}
+expected_voice_fidelity_score: 0.85
+expected_voice_constraints:
+  uses_tuteo: true
+  no_voseo: true
+  no_ai_reveal: true
+expected_outcome:
+  status: onboarded
+  draft_state: completed
+  slots_confirmed: 4
+notes: |
+  Happy path wizard — 5 slots confirmed, Instagram URL extraction works.
+  Voice: tuteo neutro, NO voseo (Valeria es Spanish neutro), NO IA reveal.

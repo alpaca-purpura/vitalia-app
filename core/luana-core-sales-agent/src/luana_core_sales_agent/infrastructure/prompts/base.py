@@ -1,0 +1,225 @@
+"""Base infrastructure module."""
+
+import logging
+from pathlib import Path
+from typing import Any
+from uuid import UUID
+
+from jinja2 import Environment, FileSystemLoader, select_autoescape
+from luana_core_iam.infrastructure.models.tenant_model import TenantModel as Tenant
+from luana_core_platform.core.config import settings
+from luana_core_platform.core.context import get_tenant_id
+from luana_core_platform.core.database import SessionLocal
+from luana_core_platform.core.enums import PromptSource
+from luana_core_platform.domain.datetime_utils import utc_now
+from sqlalchemy import desc, select
+
+from luana_core_sales_agent.infrastructure.models.prompt_version_model import (
+    PromptVersion,
+)
+
+logger = logging.getLogger(__name__)
+
+
+class PromptLoader:
+    """Gestor de Prompts Híbrido Multitenant (DB + Caché + Archivo).
+
+    Controlado por settings.PROMPT_SOURCE (Hybrid, File, DB).
+    """
+
+    def __init__(
+        self,
+        templates_dir: str | None = None,
+    ) -> None:
+        """Initialize instance."""
+        # 1. Configurar File System Loader (Fallback)
+        # Default: templates shipped WITH the engine package — cwd-independent, multibrand-safe.
+        # Override (explicit param): absolute as-is, relative resolved against cwd (back-compat).
+        if templates_dir is None:
+            full_path = str(Path(__file__).resolve().parent / "templates")
+        else:
+            _p = Path(templates_dir)
+            full_path = str(_p if _p.is_absolute() else Path.cwd() / _p)
+        self.templates_dir = full_path
+
+        self.fs_env = Environment(
+            loader=FileSystemLoader(full_path),
+            autoescape=select_autoescape(["html", "xml"]),
+            trim_blocks=True,
+            lstrip_blocks=True,
+        )
+
+        # 2. Caché en Memoria Multitenant
+        # Keyed by (key, tenant_id) tuples; values hold content, version, and loaded_at
+        self._cache: dict[tuple[str, UUID | None], dict[str, Any]] = {}
+
+        # 3. Caché de Configuración de Tenant (para evitar query en cada render)
+        self._tenant_config_cache: dict[UUID, dict[str, Any]] = {}
+
+    def _get_tenant_config(self, tenant_id: UUID) -> dict[str, Any]:
+        """Recupera la configuración del Tenant (variables globales)."""
+        # Check cache
+        if tenant_id in self._tenant_config_cache:
+            # Simple TTL logic could be added here
+            return self._tenant_config_cache[tenant_id]
+
+        db = SessionLocal()
+        try:
+            tenant = (
+                db.execute(select(Tenant).where(Tenant.id == tenant_id))
+                .scalars()
+                .first()
+            )
+            config = tenant.config_json if tenant and tenant.config_json else {}
+            self._tenant_config_cache[tenant_id] = config
+        except (KeyError, ValueError, AttributeError) as e:
+            logger.warning("Error loading tenant config: %s", e)
+            return {}
+        else:
+            return config
+        finally:
+            db.close()
+
+    def _get_from_db(self, key: str, tenant_id: UUID | None) -> str | None:
+        """Intenta recuperar el prompt activo de la BD (Specific -> Default)."""
+        db = SessionLocal()
+        try:
+            # 1. Intentar Tenant Specific Override
+            if tenant_id:
+                prompt = (
+                    db.execute(
+                        select(PromptVersion)
+                        .where(
+                            PromptVersion.key == key,
+                            PromptVersion.is_active,
+                            PromptVersion.tenant_id == tenant_id,
+                        )
+                        .order_by(desc(PromptVersion.version)),
+                    )
+                    .scalars()
+                    .first()
+                )
+
+                if prompt:
+                    self._update_cache(key, tenant_id, prompt)
+                    return prompt.content
+
+            # 2. Intentar System Default (Fallback)
+            prompt = (
+                db.execute(
+                    select(PromptVersion)
+                    .where(
+                        PromptVersion.key == key,
+                        PromptVersion.is_active,
+                        PromptVersion.tenant_id.is_(None),
+                    )
+                    .order_by(desc(PromptVersion.version)),
+                )
+                .scalars()
+                .first()
+            )
+
+            if prompt:
+                self._update_cache(key, tenant_id, prompt)
+                return prompt.content
+
+        except (KeyError, ValueError, AttributeError) as e:
+            logger.warning("Error loading prompt '%s' from DB: %s", key, e)
+            return None
+        else:
+            return None
+        finally:
+            db.close()
+
+    def _update_cache(
+        self, key: str, tenant_id: UUID | None, prompt: PromptVersion
+    ) -> None:
+        self._cache[(key, tenant_id)] = {
+            "content": prompt.content,
+            "version": prompt.version,
+            "loaded_at": utc_now().timestamp(),
+        }
+
+    def _load_from_file(self, key: str, template_name: str, **kwargs: Any) -> str:  # noqa: ANN401 — dynamic template context
+        """Carga y renderiza directamente desde archivo."""
+        fname = f"{key}.j2" if not template_name.endswith(".j2") else template_name
+        template = self.fs_env.get_template(fname)
+        return template.render(**kwargs)
+
+    def render(self, template_name: str, **kwargs: Any) -> str:  # noqa: ANN401 — dynamic template context
+        """Renderiza un prompt con las variables inyectadas + Contexto Tenant."""
+        # Normalizar key
+        key = template_name.replace(".j2", "")
+        mode = settings.PROMPT_SOURCE
+
+        # Obtener Tenant Context
+        tenant_id = get_tenant_id()
+
+        # Inyectar Variables del Tenant (Auto-Configuration)
+        if tenant_id:
+            tenant_config = self._get_tenant_config(tenant_id)
+            # Merge: kwargs tiene prioridad sobre config del tenant
+            # (aunque idealmente config del tenant son "constantes" para ese tenant)
+            # Vamos a hacer que kwargs sobreescriba config por si acaso.
+            full_context = {**tenant_config, **kwargs}
+        else:
+            full_context = kwargs
+
+        # 1. Modo FILE: Ignorar DB
+        if mode == PromptSource.FILE:
+            return self._load_from_file(key, template_name, **full_context)
+
+        # 2. Modo DB/Hybrid
+        template_content = None
+        cache_key = (key, tenant_id)
+
+        # A. Intentar Caché
+        ttl_seconds = 60
+        if cache_key in self._cache:
+            last_load = self._cache[cache_key].get("loaded_at", 0)
+            if utc_now().timestamp() - last_load < ttl_seconds:
+                template_content = self._cache[cache_key]["content"]
+
+        # B. Intentar DB
+        if not template_content:
+            template_content = self._get_from_db(key, tenant_id)
+
+        # C. Renderizar
+        try:
+            if template_content:
+                template = self.fs_env.from_string(template_content)
+                return template.render(**full_context)
+            if mode == PromptSource.DB:
+                msg = f"Prompt '{key}' not found in DB (Strict Mode)"
+                raise ValueError(msg)  # noqa: TRY301
+
+            # Fallback a archivo (System Defaults locales)
+            return self._load_from_file(key, template_name, **full_context)
+
+        except Exception:
+            logger.exception("Error rendering prompt '%s'", key)
+            if mode != PromptSource.DB:
+                return self._load_from_file(key, template_name, **full_context)
+            raise
+
+    def invalidate_cache(self, key: str) -> None:
+        """Limpia caché (OJO: Limpia para TODOS los tenants por seguridad o solo uno?)."""
+        # Simple: Limpiar todo lo relacionado a esa key
+        keys_to_remove = [k for k in self._cache if k[0] == key]
+        for k in keys_to_remove:
+            del self._cache[k]
+
+    def invalidate_tenant(self, tenant_id: UUID) -> None:
+        """Invalidate per-tenant config cache + all template renders.
+
+        Used by the ``personality_profile_updated`` subscriber so the next
+        turn picks up the freshly recompiled ``system_instruction``.
+        Idempotent — silently no-ops when the tenant has no cached entries.
+        """
+        self._tenant_config_cache.pop(tenant_id, None)
+        # Render cache key shape is (template_key, args_hash) — drop them all
+        # since per-tenant rendered prompts may include the stale voice text.
+        self._cache.clear()
+
+
+prompt_loader = PromptLoader()

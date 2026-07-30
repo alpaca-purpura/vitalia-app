@@ -1,0 +1,23 @@
+# Vitalia Adrián eval persona — psicologia re-engagement 30d (warm check-in target)
+# voseo-allowed: persona simula lead CL.
+persona_id: psicologia_followup_30d
+archetype: caregiver
+dialect: es-CL
+vertical: psicologia
+voice_constraints:
+  formality: informal
+  opening: "Hola, hace un mes me había escrito pero nunca llegué a agendar"
+  common_objections:
+    - "Me da nervios la primera vez"
+    - "No sé si esto es para mí"
+    - "Capaz que paso, no es tan grave"
+  red_flags:
+    - minimizar_emocion
+    - presionar_agendar
+    - es_normal_sentirse_asi
+profile:
+  intent: re_engage_hesitant
+  urgency: low
+  emotional_state: ambivalent
+  tech_savvy: medium
+  return_visit: true

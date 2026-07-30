@@ -1,0 +1,182 @@
+---
+capability_id: vitalia.admin.streamlit-tenants-users
+module: admin
+slug: streamlit-tenants-users
+status: live
+date_introduced: 2026-05-18
+story_introduced: vitalia-auth-base-functional
+package_version: vitalia-backend@0.1.0
+package_path: vitalia/backend/src/modules/vitalia/admin/
+license: proprietary
+compliance_level: hipaa_lite
+
+# v3 cement 2026-05-27 · 4 dimensiones + dev_preview (ADR-vitalia-005)
+tech_module: admin
+agent_owner: configuracion
+functional_area: admin.panel
+user_visible: true
+nature: feature
+ui_paradigm: admin-panel  # T-3 reconcile 2026-05-29
+
+user_facing_name: "Admin · vista tenants y users"
+user_facing_description: >
+  Vista unificada del panel admin que muestra la lista de tenants y usuarios con
+  filtros y búsqueda. Permite crear tenants con su clínica inicial y users con
+  asignación de rol, enviar magic link de acceso vía Clerk y ver el estado de cada
+  cuenta. Cumple con aislamiento cross-tenant y registro de auditoría.
+
+dev_preview:
+  route: "http://localhost:8502 (Streamlit)"
+  how_to_navigate: "Abrir admin Streamlit (http://localhost:8502) → navegar a Tenants o Usuarios en el menú lateral"
+  main_component: "vitalia/backend/src/modules/vitalia/admin/app.py"
+  api_endpoints: []
+  e2e_test: null
+  fixtures_required: []
+  storybook_url: null
+  loom_demo: null
+
+# Capability ledger v2 (cement 2026-05-27)
+created_in_story: vitalia-auth-base-functional   # v2 cement · mirror of story_introduced
+created_date: 2026-05-18   # v2 cement · mirror of date_introduced
+last_modified: 2026-05-30   # backfill scenarios vitalia-stub-caps-scenario-backfill
+parent_cap: null   # v2 cement · mirror of extends_capability
+derives_capabilities: []   # v2 cement · initial empty list
+
+# Capability ledger v2 (cement 2026-05-27)
+
+# Capability change log v2 (cement 2026-05-27)
+change_log:
+  - story_id: vitalia-auth-base-functional
+    date: 2026-05-18
+    type: new
+    summary: "Implementación inicial · migración legacy a schema v2"
+    merge_sha: null
+    status: done
+  - story_id: vitalia-stub-caps-scenario-backfill
+    date: 2026-05-30
+    type: extend
+    summary: "backfill scenario+e2e → verified-live (deployed-visible)"
+    added_in_story: vitalia-stub-caps-scenario-backfill
+    status: done
+
+scenarios:
+  - id: admin-panel-tenants-navegacion-formulario
+    name: "Panel admin muestra navegación Tenants y Usuarios con formulario de creación"
+    actor: sistema
+    status: live
+    given: "El panel admin Streamlit está levantado en :8501 (o :8502) y el administrador navega a él"
+    when: "El administrador se autentica (si hay password gate) y accede al panel"
+    then: "El sidebar muestra los ítems Tenants y Usuarios; la sección Tenants muestra el formulario de creación de tenant"
+    e2e_test: "vitalia/frontend/e2e/admin/tenants-users.spec.ts"
+    verification_method: admin-panel
+    story_spec_ref: "vitalia/docs/product/stories/vitalia-stub-caps-scenario-backfill/01-spec.md"
+    atomic_ref: null
+    added_in_story: vitalia-stub-caps-scenario-backfill
+    added_date: 2026-05-30
+  - id: admin-panel-usuarios-formulario-sin-phi
+    name: "Panel admin sección Usuarios muestra formulario de creación sin PHI médico"
+    actor: sistema
+    status: live
+    given: "El panel admin está accesible y el administrador navega a la sección Usuarios"
+    when: "Se hace clic en Usuarios en el menú lateral del admin"
+    then: "La sección Usuarios muestra el formulario de creación; no se expone PHI médico (diagnóstico, tratamiento, medicación no visibles)"
+    e2e_test: "vitalia/frontend/e2e/admin/tenants-users.spec.ts"
+    verification_method: admin-panel
+    story_spec_ref: "vitalia/docs/product/stories/vitalia-stub-caps-scenario-backfill/01-spec.md"
+    atomic_ref: null
+    added_in_story: vitalia-stub-caps-scenario-backfill
+    added_date: 2026-05-30
+  - id: tenant-user-link-write-ui-e2e-pendiente-hardening
+    name: "Operación de escritura (tenant↔user link) ejercida end-to-end vía UI admin Streamlit"
+    actor: super_admin
+    status: live
+    given: "El admin Streamlit carga (login OK, navegacion OK, st.dataframe renderiza, db-state 200 tras fix async commit 882f9f49)"
+    when: "Un e2e completa el form de creacion/edicion y verifica el efecto en db-state + audit_log"
+    then: "Row creada/modificada + audit_log row. PENDIENTE: selectores Streamlit fragiles (getByLabel matchea boton Help for X; st.dataframe headers en canvas glide-grid) -> test-hardening en story separada. NO es cap break: el panel funciona hands-on (verificado por orchestrator)."
+    e2e_test: null
+    verification_method: admin-panel
+    added_in_story: vitalia-stub-caps-scenario-backfill
+    added_date: 2026-05-30
+map_box: admin
+
+---
+
+# Admin Streamlit — Tenants + Usuarios
+
+Panel admin Streamlit Vitalia con scope mínimo: 2 pages (tenants + usuarios). Pattern espejado de Nicolify pero código brand-specific reescrito (1500 diff lines vs nicolify, ≥50 threshold).
+
+## Surfaces
+
+- **Backend (DDD Inside-Out application-layer):**
+  - `vitalia/backend/src/modules/vitalia/admin/app.py` (entry, `st.set_page_config` único, registry-based `st.navigation`)
+  - `vitalia/backend/src/modules/vitalia/admin/pages/{tenants,usuarios}.py` (thin wrappers)
+  - `vitalia/backend/src/modules/vitalia/admin/modules/{tenants,users}.py` (forms + logic)
+  - `vitalia/backend/src/modules/vitalia/admin/_shared/{auth,db}.py` (bcrypt super-admin gate + sync SessionLocal)
+- **Tests:**
+  - Unit: `vitalia/backend/tests/admin/test_admin_contract.py` (8 contract tests — PAGE_SPECS registry, slug uniqueness, callable)
+  - Integration: `vitalia/backend/tests/integration/admin/{test_clerk_webhook_integration,test_audit_log_verify,test_cross_tenant_isolation}.py` (gated by Postgres; SKIP graceful in unit run)
+- **Compliance:** `vitalia/backend/src/modules/vitalia/compliance/{audit,domain/phi_fields}.py` (HIPAA-lite audit log + PHI sanitization)
+
+## Comportamiento
+
+### Tenants page
+- Form crear tenant + clinic + location atomicamente
+- UUIDv5 determinista con `NAMESPACE_DNS` (`uuid.uuid5(NAMESPACE_DNS, f"{entity_type}.{slug}.vitalia.com")`)
+- INSERT clinics + tenants + locations sync (Streamlit sync paradigm)
+- Audit log row sync write antes response (`vitalia_audit_log` table, `action=admin.tenant.create`)
+
+### Usuarios page
+- Form crear user con Clerk Backend API
+- INSERT `user_profiles` con tenant_id + clinic_id auto-asociado
+- Magic link email vía Clerk (Q4 default: 1 admin password env-var, multi-admin defer)
+- Audit log row (auditor flagged magic-link write missing — follow-up ticket)
+
+### Auth gate
+- bcrypt password vs `VITALIA_ADMIN_PASSWORD_HASH` env-var (per D8)
+- Sin OAuth, sin multi-admin (per Q4 ratified default)
+
+## HIPAA-lite invariants enforced
+
+- Audit log sync write antes response (no async fire-forget)
+- `payload_redacted`: identity ok (`clinic_name`, `country`, `email`), NO PHI fields (per `compliance/domain/phi_fields.py`)
+- Cross-tenant isolation: query `tenant_id_A` con `clinic_id_B` → 404 (dual filter)
+- Webhook HMAC validation strict (T-4 commit handles invalid sig → 400 per D2 design choice "no auth semantics leakage")
+
+## Verification
+
+```yaml
+commands:
+  - "WS=$(git rev-parse --show-toplevel) && cd $WS/vitalia/backend && $WS/.venv/bin/ruff check src/modules/vitalia/admin/ tests/admin/ tests/integration/admin/"
+  - "WS=$(git rev-parse --show-toplevel) && cd $WS/vitalia/backend && $WS/.venv/bin/pytest tests/admin/test_admin_contract.py -v"
+  - "WS=$(git rev-parse --show-toplevel) && cd $WS/vitalia/backend && $WS/.venv/bin/pytest tests/integration/admin/ -v"
+  - "diff <(cat vitalia/backend/src/modules/vitalia/admin/modules/{tenants,users}.py) <(cat nicolify/backend/src/modules/nicolify/admin/modules/{tenants,users}.py) | wc -l  # > 50 = PASS anti-dup"
+gherkin_evidence:
+  - SC-05: "vitalia/backend/tests/integration/admin/test_clerk_webhook_integration.py (PENDING_DEPLOY Postgres-gated)"
+  - SC-08: "vitalia/backend/tests/admin/test_admin_contract.py::test_tenants_page_registered_and_callable (PASS contract 8/8)"
+  - SC-09: "vitalia/backend/tests/admin/test_admin_contract.py::test_usuarios_page_registered_and_callable (PASS contract)"
+  - SC-11: "vitalia/backend/tests/integration/admin/test_cross_tenant_isolation.py (PENDING_DEPLOY)"
+  - SC-12: "vitalia/backend/tests/integration/admin/test_clerk_webhook_integration.py::test_invalid_hmac_returns_401_no_row (PENDING_DEPLOY)"
+  - SC-13: "vitalia/backend/tests/integration/admin/test_audit_log_verify.py (PENDING_DEPLOY)"
+```
+
+## Dependencies
+
+- `streamlit` (pinned in pyproject.toml T-4)
+- `passlib[bcrypt]` (admin auth)
+- `clerk-backend-api` (create user)
+- Postgres (integration tests)
+- K8s `VITALIA_ADMIN_PASSWORD_HASH` secret (deploy)
+- K8s `VITALIA_CLERK_WEBHOOK_SECRET` secret (webhook HMAC verify)
+
+## Follow-up ticket required
+
+Per auditor-backend WARNs (non-blocking):
+1. super-admin global-read isolation docstring in `_shared/db.py`
+2. Refactor `log_admin_action()` async helper duplication
+3. Magic-link admin action audit log row (HIPAA-lite gap)
+
+## Notes
+
+- T-4 commit 2b056a5.
+- Anti-duplication validated: 1500 diff lines vs nicolify admin (≥50 threshold = PASS).
+- Deploy K8s separado (admin pod en subdomain `vitalia-admin.vitalialat.com`, port 8501) per D7.

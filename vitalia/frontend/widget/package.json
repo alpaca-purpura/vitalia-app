@@ -1,0 +1,31 @@
+{
+  "name": "@luana/vitalia-booking-widget",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Embeddable iframe booking widget for Vitalia clinics",
+  "main": "dist/widget.umd.js",
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "dev": "vite"
+  },
+  "dependencies": {
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.5.2",
+    "@types/react": "^19.2.8",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^4.3.4",
+    "@vitest/coverage-v8": "^2.1.9",
+    "happy-dom": "^13.10.0",
+    "typescript": "^5.9.3",
+    "vite": "^5.4.0",
+    "vitest": "^2.1.9"
+  }
+}

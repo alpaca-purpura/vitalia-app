@@ -1,0 +1,93 @@
+{
+  "schema_version": "1.0",
+  "pr_folder": "vitalia/docs/product/stories/vitalia-slice-1-marketing",
+  "brand": "vitalia",
+  "story_id": "vitalia-slice-1-marketing",
+  "ticket": "audit-1",
+  "iter": 1,
+  "command": "test-vitalia (scoped: marketing module + arch fitness)",
+  "command_alias": null,
+  "started_at": "2026-05-20T23:40:59Z",
+  "finished_at": "2026-05-20T23:41:12Z",
+  "duration_ms": null,
+  "exit_code": 0,
+  "raw_log_path": "vitalia/docs/product/stories/vitalia-slice-1-marketing/gate-logs/audit-1-marketing.log",
+  "gates": [
+    {
+      "name": "ruff-check",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": []
+    },
+    {
+      "name": "ruff-format",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": []
+    },
+    {
+      "name": "pytest-architecture",
+      "status": "PASS",
+      "errors_count": 0,
+      "summary": "270 passed, 2 warnings in 3.62s",
+      "first_5_errors": []
+    },
+    {
+      "name": "pytest-marketing-module",
+      "status": "PASS",
+      "errors_count": 0,
+      "summary": "152 passed, 1 skipped, 3 warnings in 1.15s (marketing module + connections + workers)",
+      "first_5_errors": []
+    },
+    {
+      "name": "tsc",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": []
+    },
+    {
+      "name": "eslint",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": []
+    },
+    {
+      "name": "vitest-marketing",
+      "status": "PASS",
+      "errors_count": 0,
+      "summary": "19 test files, 116 tests passed (1.58s total)",
+      "first_5_errors": []
+    },
+    {
+      "name": "vitest-architecture",
+      "status": "PASS",
+      "errors_count": 0,
+      "summary": "10 test files, 42 tests passed (550ms total)",
+      "first_5_errors": []
+    }
+  ],
+  "overall": {
+    "any_fail": false,
+    "fail_gate_names": [],
+    "summary": "8 gates executed: all PASS. 152 backend module tests, 270 arch fitness tests, 158 frontend tests. No lint/format violations. Ready for merge."
+  },
+  "deferred_gates": [
+    {
+      "name": "e2e_smoke_marketing",
+      "reason": "Turbopack dev server connection instability (documented issue)"
+    },
+    {
+      "name": "visual_a11y_axe",
+      "reason": "Turbopack dev server connection instability (documented issue)"
+    },
+    {
+      "name": "visual_perf_budget_lighthouse",
+      "reason": "Turbopack dev server connection instability (documented issue)"
+    },
+    {
+      "name": "visual_regression_bowtie_svg::chromatic",
+      "reason": "CHROMATIC_PROJECT_TOKEN missing (env not configured)"
+    }
+  ],
+  "notes": "Story vitalia-slice-1-marketing: 13 tickets (T-mk-be-{1..6} + T-mk-fe-{1..7}) all gates green. Backend: ruff lint/format + arch fitness (270 tests) + marketing module tests (152 tests) PASS. Frontend: tsc + eslint + vitest marketing (116 tests) + arch fitness (42 tests) PASS. Deferred gates documented (Turbopack instability, missing Chromatic token)."
+}

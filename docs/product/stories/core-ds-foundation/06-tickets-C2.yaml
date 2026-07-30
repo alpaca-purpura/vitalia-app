@@ -1,0 +1,189 @@
+# 06-tickets-C2.yaml — core-ds-foundation · Fase C · Tramo C2 (SPINE)
+# Technical-story (platform-engineering · user_visible:false) · reduced package (tickets + validators).
+# Modelo fijado por ADR-016 (accepted 2026-06-25). NO re-litigar doctrina — esto es ejecución.
+# Approach B1: incluye el unwind del dual-system de vitalia (T-3).
+# ENGINE BOUNDARY (T-2/T-4 tocan core/@luana): ADR-016 accepted = la ratificación · technical-story
+#   core-targeting → NO promotion proposal aparte (la story justifica el build de core).
+# Suffix -C2 (no clobbera Fase 0). Checkpoint lo maneja /pm-luana (story sigue developing).
+
+story_id: core-ds-foundation
+tramo: C2-SPINE
+adr: ADR-016-design-system-inventory-governance
+
+arch_note: |
+  4 piezas, todas sobre lo REAL (cero mirror, cero CSS-ship descartado por canon §6.8):
+  - T-1: catálogo generado del source (index.ts + react-docgen + storybook-static/index.json) +
+    gate de paridad 1:1 (shrink-only · lifecycle exime · allowlist RETIRING_NO_STORY).
+  - T-2: design-tokens = SSoT de los VALORES (shadow.ts NEW + values a typo/radius + semantic/contrast a color),
+    respetando split shared-value ⊥ brand-identity (RN-5). Consumo vía @theme guardado por arch-test no-drift
+    (NO se shipea CSS — canon §6.8). BLOQUEA T-3.
+  - T-3: unwind vitalia OFF dual-system (105 --vitalia-* defs / ~121 consumers) → @theme que proyecta design-tokens.
+    Riesgo VISUAL (app idéntica post-migración) → funcional/ambas + live-verify + demo + dod_evidence.
+  - T-4: superficies de extensión de los 4 tier-2 (EntityInfoCard/Chart/RichSelect/SmartDatetimePicker) + 1
+    consumer-story c/u (ejerce el slot) → le da dientes al extension-contract gate de C3.
+  FUERA DE C2: C3 (promote-gate · extension-contract-gate · no-div/no-select replication · comunify-eslint) ·
+  C4 (wiring catálogo en skills/po-ux/architect) · C5 (adopción mirrors/dead-stubs) · C6 (e2e). Solo el spine.
+
+tickets:
+  # ───────────────────────────────────────────────────────────────────────────
+  - id: C2-T1
+    title: "Catálogo generado del source real + gate de paridad 1:1"
+    surface: FE-tooling
+    production_code: false        # tooling/script — no runtime
+    verification_nature: técnica
+    depends_on: []
+    blocks: [C2-T3]               # (soft: el flujo SDD cita el catálogo; no es dep dura de build)
+    deliverables:
+      - "scripts/generate_ui_catalog.mjs — cruza 3 fuentes existentes (cero tooling de props nuevo):"
+      - "  · fuente A: core/@luana/ui-kit/src/index.ts (~156 exports)"
+      - "  · fuente B: react-docgen-typescript (MISMO config que .storybook/main.ts) — props referenciadas, NO duplicadas"
+      - "  · fuente C: storybook-static/index.json (story-IDs + tags lifecycle + autodocs 'cuándo usar')"
+      - "  emite: core/@luana/ui-kit/catalog.json (máquina · GITIGNORED output R3) + catalog.md (humano · por capa · links a iframe.html?id=<story>)"
+      - "Makefile target `ui-catalog` (regenera ambos)"
+      - "Gate de paridad 1:1 = scripts/_check_catalog_parity.mjs + arch-test FE (vitest en core/@luana/ui-kit/tests/):"
+      - "  · export `vigente` sin story O sin código → FAIL · entrada de catálogo huérfana → FAIL"
+      - "  · lifecycle exime: tag story `deprecated`/`retiring` exime del requisito de story"
+      - "  · export SIN story = `vigente` por default salvo allowlist RETIRING_NO_STORY (shrink-only · justif. al agregar); siembra AutosaveBadge"
+      - "fixtures RED: export plantado sin story (gate DEBE fallar) + retiring-no-story (gate NO debe fallar)"
+    acceptance:
+      validator_ids: [c2_cat_gen_runs, c2_cat_covers_exports, c2_parity_gate_has_teeth, c2_lifecycle_exempts]
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: workhorse
+      must_load_skills:
+        - frontend-expert
+        - ".claude/rules/anti-duplication.md"
+        - ".claude/rules/architectural-fitness.md"
+      must_load_artifacts:
+        - "docs/product/stories/core-ds-foundation/03-arch-C2.md (§2 pieza T-1 · §3 CONN · §4 TOOLING)"
+        - "docs/architecture/luana-platform/ADR-016-design-system-inventory-governance.md (§4 inventario-espina · §6 backstops)"
+        - "core/@luana/ui-kit/.storybook/main.ts (config react-docgen a espejar)"
+      forbidden_to_touch:
+        - "core/@luana/ui-kit/src/**"      # el catálogo LEE el source, NO lo modifica
+        - "{brand}/frontend/src/**"
+      rationale: "Tooling node que LEE el source (no lo modifica). Ponytail: parse módulo+exports + reuso del pipeline autodocs existente; props NO se duplican (viven en Storybook). Es FE-domain (kit/Storybook) → builder/auditor-frontend."
+
+  # ───────────────────────────────────────────────────────────────────────────
+  - id: C2-T2
+    title: "design-tokens = SSoT de los valores (shadow NEW + values color/typo/radius · @theme guardado)"
+    surface: FE-engine     # core/@luana/design-tokens
+    production_code: true
+    verification_nature: técnica
+    depends_on: []
+    blocks: [C2-T3]        # ★ dep DURA: vitalia (T-3) consume los valores nuevos
+    deliverables:
+      - "core/@luana/design-tokens/src/shadow.ts (NEW) — escala de elevación = VALOR compartido cross-brand (idioma spacing.ts/z-index.ts)"
+      - "typography.ts — agregar la escala compartida (size/line-height/weight por tier) como VALUES (family queda per-brand override)"
+      - "radius.ts — agregar relaciones de escala (sm/md/lg deltas · control=md-2px) como VALUES (magnitud base --radius per-brand)"
+      - "color — semantic-defaults compartidos + contrato de CONTRASTE (agent-mateo/lucas → foreground oscuro, canon §2.8); accents de identidad de agente quedan superficie de override per-brand (RN-5 preservado)"
+      - "index.ts barrel exporta los nuevos módulos"
+      - "EXTEND el arch-test no-drift per-brand (nicolify test-ds-single-token-source + vitalia test-ds-tokens-lock): igualdad para shared-value · completitud+contraste para color"
+      - "★ NO shipear CSS desde el package (canon §6.8 lo descartó 2026-06-16) — el consumo es @theme per-brand guardado. Guard: scripts/_assert_no_css_in_tokens_pkg.mjs"
+    acceptance:
+      validator_ids: [c2_shadow_module_exists, c2_value_axes_present, c2_no_css_shipped, c2_nodrift_guard_extended, c2_value_change_visible]
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: workhorse
+      must_load_skills:
+        - frontend-expert
+        - ".claude/rules/frontend-visual-fidelity.md"
+        - ".claude/rules/architectural-fitness.md"
+      must_load_artifacts:
+        - "docs/product/stories/core-ds-foundation/03-arch-C2.md (§2 pieza T-2 · §1 decisión cardinal NO-CSS-ship · §4 ENGINE-TOKENS)"
+        - "docs/architecture/luana-platform/design-system-canon.md (§6.8 descarte CSS-ship · §6.1 tokens · §2.8 contraste · §2.10 dark)"
+        - "core/@luana/design-tokens/src/{spacing,z-index,color-names,radius,typography}.ts (idioma a seguir)"
+        - "nicolify/frontend/src/app/globals.css (@theme = el patrón bueno guardado) + nicolify .../architecture/test-ds-single-token-source.test.ts"
+      forbidden_to_touch:
+        - "{brand}/frontend/src/**"        # T-2 NO migra marcas (eso es T-3); solo el package + el contrato del guard
+        - "core/@luana/ui-kit/src/**"
+      rationale: "Engine core/@luana ratificado por ADR-016 (technical-story core-targeting, NO lift aparte). FE-domain (Tailwind v4 @theme, tokens CSS) → builder/auditor-frontend, NO backend (cero Python/DDD). Cardinal: NO reintroducir el CSS-ship descartado (§6.8)."
+
+  # ───────────────────────────────────────────────────────────────────────────
+  - id: C2-T3
+    title: "Migración vitalia OFF dual-system → @theme que proyecta design-tokens (unwind B1)"
+    surface: FE-brand      # vitalia/frontend
+    production_code: true
+    verification_nature: ambas        # ★ funcional — RIESGO VISUAL (app idéntica post-migración)
+    depends_on: [C2-T2]               # ★ dura: consume los valores nuevos de design-tokens
+    blocks: []
+    deliverables:
+      - "vitalia/frontend/src/app/globals.css — reemplazar valores INVENTADOS (color/typo/shadow/radius) por la proyección @theme de design-tokens (off-invención)"
+      - "eliminar/reconciliar la capa legacy --vitalia-* (105 defs) — alias-then-migrate: completar alias al token canónico + migrar los ~121 consumers (var(--vitalia-*)/.vt-*) al token canónico + borrar defs huérfanas"
+      - "consumer sin equiv canónico (ej. --vitalia-verde-lima) → promover a NAME del contrato o documentar como override de identidad"
+      - "@config legacy: migrar off (a @custom-variant) es OPCIONAL (canon §2.10 lo acepta como equivalente · gate=efecto). NO regresionar dark-wiring ni el @source JIT scan"
+      - "EXTEND arch-test vitalia (test-ds-tokens-lock) al nuevo contrato de valor"
+      - "dod_evidence: live-verify dev-app vitalia (shell + ≥2 hojas reales) · antes/después idéntico · dark toggle · logs"
+    acceptance:
+      validator_ids: [c2_vitalia_tokens_lock, c2_vitalia_dark_wiring, c2_vitalia_legacy_unwound, c2_vitalia_tsc_green, c2_vitalia_visual_parity]
+    dod_evidence_required: true       # ★ funcional → dod_live_verified + dod_evidence obligatorio antes de done
+    repro_evidence:
+      applies: false
+      reason: "no es bug-fix — es migración planificada (unwind dual-system). El riesgo es visual-regresión, cubierto por la live-verify, no por un repro."
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: workhorse
+      must_load_skills:
+        - frontend-expert
+        - vitalia-design-system
+        - chrome-devtools-verify
+        - ".claude/rules/frontend-visual-fidelity.md"
+        - ".claude/rules/definition-of-done-live-verify.md"
+        - ".claude/rules/tenant-isolation.md"      # FE tenant_id de useTenantId, NO Clerk org (footgun si toca shell)
+      must_load_artifacts:
+        - "docs/product/stories/core-ds-foundation/03-arch-C2.md (§2 pieza T-3 · §4 BRAND-VITALIA · §9 Open Q2 @config)"
+        - "docs/architecture/luana-platform/design-system-canon.md (§2.10 + §6.8 dark-wiring · @config equivalente legacy aceptado)"
+        - "vitalia/frontend/src/app/globals.css + vitalia/frontend/tailwind.config.ts (el dual-system a desarmar)"
+      forbidden_to_touch:
+        - "core/@luana/**"                 # T-3 consume los tokens (T-2 ya los puso), NO los edita
+        - "nicolify/**"                    # otras marcas intactas
+        - "comunify/**"
+        - "lupulo/**"
+      rationale: "Ticket de MÁS RIESGO (121 consumers · app debe verse idéntica). funcional/ambas → live-verify + demo Chris (G) es el gate de cierre, NO solo arch-test verde. Footgun: el @source JIT scan o el dark-wiring se rompen → estilos rotos que tsc NO ve (gate = visual). Solo vitalia."
+
+  # ───────────────────────────────────────────────────────────────────────────
+  - id: C2-T4
+    title: "Superficies de extensión de los 4 tier-2 + consumer-story c/u"
+    surface: FE-engine     # core/@luana/ui-kit
+    production_code: true
+    verification_nature: técnica
+    depends_on: []
+    blocks: []                        # independiente — paralelo a T-1
+    deliverables:
+      - "EntityInfoCard.tsx — slot (children/render-prop) para contenido custom de marca sin tocar el grid fijo (ej. badge/footer custom)"
+      - "chart.tsx — render-prop/children pass-through a recharts (marca compone series/tooltips sin forkear el wrapper)"
+      - "rich-select.tsx — render-prop del item (marca controla el render de la opción · superficie hacia el windowed-futuro)"
+      - "smart-datetime-picker.tsx — slot/prop para la pieza de UI hoy hardcodeada (ej. trigger/footer)"
+      - "TODOS los cambios ADITIVOS (slot/prop opcional · back-compat · cero break de consumers actuales · composición sobre config · NUNCA fork del interno)"
+      - "1 story-consumidora por tier-2 en core/@luana/ui-kit/stories/ que EJERCE el slot (badge custom / tooltip custom / item custom / trigger custom)"
+      - "declarar la superficie de extensión en la entrada del componente (catálogo/doc) — prep del extension-contract gate de C3"
+    acceptance:
+      validator_ids: [c2_tier2_slots_render, c2_tier2_backcompat, c2_tier2_surface_declared]
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: workhorse
+      must_load_skills:
+        - frontend-expert
+        - ".claude/rules/frontend-visual-fidelity.md"
+      must_load_artifacts:
+        - "docs/product/stories/core-ds-foundation/03-arch-C2.md (§2 pieza T-4 · §4 KIT)"
+        - "docs/architecture/luana-platform/ADR-016-design-system-inventory-governance.md (§3 toolkit de extensión nombrado · §6 extension-contract gate)"
+        - "core/@luana/ui-kit/src/{EntityInfoCard,chart,rich-select,smart-datetime-picker}.tsx (los 4 tier-2 a extender)"
+      forbidden_to_touch:
+        - "{brand}/frontend/src/**"        # los slots se agregan al kit, la marca los CONSUME (C5 adopción)
+        - "core/@luana/ui-kit/src/** salvo los 4 tier-2 nombrados"   # scope discipline: NO refactor de otros componentes
+      rationale: "Engine core/@luana ratificado (ADR-016). Composición sobre config (ADR-016 §3): slot/render-prop, NUNCA fork del interno. Aditivo = back-compat. Le da dientes al extension-contract gate (que se construye en C3, no acá). FE-domain → builder/auditor-frontend."
+
+dag: |
+  C2-T2 → C2-T3   (vitalia consume los valores nuevos de design-tokens)
+  C2-T1   ‖   C2-T4   (independientes · paralelos · independientes de T-2/T-3)
+  Orden recomendado: arrancar T-1 + T-2 + T-4 en paralelo; T-3 tras GREEN de T-2.
+  Buckets multi-sesión: T-1=code · T-2/T-4=code:ui-kit (serializan entre sí: ambos tocan core/@luana — T-2=design-tokens, T-4=ui-kit/src, scopes distintos dentro de core → OK paralelo) · T-3=code:vitalia-fe.
+
+autonomous_mode: false              # default — Chris opt-in. T-3 funcional EXIGE su firma en G (live-verify). Ver dispatch-plan-C2.md.
+
+out_of_scope_C2: |
+  C3: promote-gate (HB-107) · extension-contract gate (T-4 le da dientes pero NO lo construye) ·
+      no-div-layout/no-native-select replication cross-brand · comunify-eslint no-arbitrary (pre-req de Fase C, separate).
+  C4: wiring del catálogo en skills/po-ux/architect · brand-skills→routers que leen el catálogo.
+  C5: adopción (mirrors shadcn vitalia · 4 dead-stubs · 7 shell cross-brand · UniversalIntake lift) — per marca, /pm-{brand}.
+  C6: verificación e2e end-to-end (necesidad→mockup→arch→dev→diff demuestra mockup===resultado).

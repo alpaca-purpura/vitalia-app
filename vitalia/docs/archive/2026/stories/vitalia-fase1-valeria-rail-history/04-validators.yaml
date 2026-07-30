@@ -1,0 +1,404 @@
+# F1-S5 vitalia-fase1-valeria-rail-history — validators (5 categorías ★ v4.1)
+#
+# Each validator: must_pass=true unless explicitly marked. Comando shell EJECUTABLE.
+# ZERO Opus en build (FE no-agentic puro). R23 NO aplica.
+#
+# Categorías v4.1:
+#   1. non_functional      — tsc, lint, prettier, vitest unit + coverage
+#   2. functional          — E2E Playwright (1 spec per Gherkin scenario, 9 scenarios mapeados 1:1)
+#   3. visual              — Playwright visual goldens (7 logical states × theme = 13 PNGs)
+#   4. agentic_eval        — N/A (declarar razón explícita)
+#   5. architectural_validation — FSD-Lite boundaries + arch tests heredados extend + 1 arch test NEW invariant + spanish neutro + no-hex grep
+
+story_id: vitalia-fase1-valeria-rail-history
+brand: vitalia
+phase: fase-1
+last_modified: 2026-05-24
+architect_iter: 1
+playwright_required: true   # ui-story HARD per v4.1
+
+scenario_coverage:
+  total_scenarios: 9
+  mapped: 9
+  coverage_pct: 100
+  scenarios:
+    - id: SC-1
+      title: "happy · keyboard cycle de estados (r/f/c/Esc/r) + auto-coupling shellMode + persistencia"
+      validator_ids: [val-fe-e2e-keyboard-cycle, val-fe-visual-rail-light, val-fe-visual-rail-dark, val-fe-visual-full-light, val-fe-visual-full-dark, val-fe-visual-collapsed-light, val-fe-visual-collapsed-dark]
+    - id: SC-2
+      title: "negative · typing en composer NO dispara shortcuts (input focus guard)"
+      validator_ids: [val-fe-e2e-typing-guard]
+    - id: SC-3
+      title: "edge · IME composition (e.isComposing) skip shortcuts"
+      validator_ids: [val-fe-e2e-ime-composition]
+    - id: SC-4
+      title: "adversarial · shell-store tampering devtools setState invalid → fallback gracefully"
+      validator_ids: [val-fe-e2e-store-tampering]
+    - id: SC-5
+      title: "edge · click rail PanelLeftClose mientras shellMode='agentic' → collapsed+web"
+      validator_ids: [val-fe-e2e-click-collapse]
+    - id: SC-6
+      title: "empty_state · búsqueda sin resultados → EmptyStateInline + grupos hidden"
+      validator_ids: [val-fe-e2e-history-empty-search, val-fe-visual-history-empty-light, val-fe-visual-history-empty-dark]
+    - id: SC-7
+      title: "accessibility · keyboard navigation completo + aria + axe wcag2aa light+dark"
+      validator_ids: [val-fe-e2e-a11y-keyboard, val-fe-axe]
+    - id: SC-8
+      title: "accessibility · mobile drawer aria-modal + focus trap + restoration"
+      validator_ids: [val-fe-e2e-a11y-mobile-drawer, val-fe-axe-mobile, val-fe-visual-drawer-mobile]
+    - id: SC-9
+      title: "i18n · Spanish neutro LatAm rendered (28 strings ratificados) + cero PHI"
+      validator_ids: [val-fe-e2e-i18n-spanish-neutro]
+
+sub_categories_coverage:
+  race_condition:
+    applies: false
+    not_applicable_reason: "Story no crea/edita recursos persistentes con unique constraint. Mock data es read-only hardcoded import; valeriaState transitions son setState local sin DB."
+  concurrent_users:
+    applies: false
+    not_applicable_reason: "Shell chrome per-user (zustand local + localStorage). No comparte estado entre tenants/users."
+  network_failure:
+    applies: false
+    not_applicable_reason: "F1-S5 no realiza fetch API alguno. Mock conversaciones son import estático desde _mock-conversations.ts. F1-S6+ introducen WebSocket/HTTP — sus scenarios cubrirán network_failure."
+  large_dataset:
+    applies: false
+    not_applicable_reason: "Mock data = 8 items hardcoded. Pagination/virtualization queda para Fase 2 cuando se conecte API real (out-of-scope F1-S5)."
+  empty_state:
+    applies: true
+    covered_by: [val-fe-e2e-history-empty-search, val-fe-visual-history-empty-light, val-fe-visual-history-empty-dark]
+  accessibility:
+    applies: true
+    covered_by: [val-fe-e2e-a11y-keyboard, val-fe-axe, val-fe-e2e-a11y-mobile-drawer, val-fe-axe-mobile]
+  i18n:
+    applies: true
+    covered_by: [val-fe-e2e-i18n-spanish-neutro]
+
+iteration:
+  max_iterations: 10
+  on_fail: "fix targeted file (single file edit per iter, no scope creep beyond § 5 files_in_scope of 05-guidelines.md)"
+  cap_reached_action: "escalate Chris with T-{n}-impl-log.md cap_reached summary; do NOT auto-disable any validator"
+
+test_construction_plan:
+  playwright_required: true
+  creation_order:
+    - "T-1: hooks/__tests__/useKeyboardShortcuts.test.ts (RED) → hooks/useKeyboardShortcuts.ts (GREEN). Foundation, no deps."
+    - "T-2: _mock-conversations.ts (data + types, no dedicated test — pure data, consumer types verify via T-3/T-4)"
+    - "T-3: ValeriaRail.test.tsx + ValeriaChatSlot.test.tsx (RED) → ValeriaRail.tsx + ValeriaChatSlot.tsx + HistoryItem.tsx + HistoryGroup.tsx + EmptyStateInline.tsx (GREEN). Átomos+moléculas low-level."
+    - "T-4: ValeriaHistory.test.tsx (RED) → ValeriaHistory.tsx (GREEN). Consume T-2 + T-3."
+    - "T-5: ValeriaSidebar.test.tsx (RED) → ValeriaSidebar.tsx (GREEN). Consume T-1 + T-3 + T-4 + useShellStore."
+    - "T-6: TopBarGlobal.test.tsx update assertions (RED) → TopBarGlobal.tsx add hamburger button (GREEN). Independent MODIFY parallelizable con T-3..T-5."
+    - "T-7: ShellOrganismLayout.test.tsx update assertions (RED) + test-shell-store-schema-readonly-f1-s5.test.ts (RED) → ShellOrganismLayoutClient.tsx MODIFY + DELETE ValeriaSidebarSlot{,.test}.tsx + extend arch tests allowlists (GREEN). Integration."
+    - "T-8: Playwright POM ValeriaSidebarPage + 9 functional specs + visual-goldens.spec.ts + 13 PNG snapshots (--update-snapshots iter 1 post Chris ratify side-by-side)."
+  scenario_to_test:
+    SC-1: "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/keyboard-cycle.spec.ts"
+    SC-2: "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/typing-guard.spec.ts"
+    SC-3: "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/ime-composition.spec.ts"
+    SC-4: "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/store-tampering.spec.ts"
+    SC-5: "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/click-collapse.spec.ts"
+    SC-6: "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/history-empty-search.spec.ts"
+    SC-7: "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/a11y-keyboard.spec.ts"
+    SC-8: "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/a11y-mobile-drawer.spec.ts"
+    SC-9: "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/i18n-spanish-neutro.spec.ts"
+  poms_required:
+    - path: "vitalia/frontend/e2e/pages/ValeriaSidebarPage.ts"
+      methods:
+        - gotoShell
+        - setValeriaStateViaStore
+        - setShellModeViaStore
+        - getAriaSidebar
+        - getRailButton
+        - pressKey
+        - typeInSearch
+        - clickHamburger
+        - clickBackdrop
+        - getLiveRegionText
+        - getActiveHistoryItemTitle
+        - getHistoryGroupLabels
+        - getEmptyStateNode
+        - setViewport
+  fixtures_required:
+    - path: "vitalia/frontend/e2e/fixtures/shell-theme.fixture.ts"
+      action: "REUSE F1-S4 + extend addInitScript helpers para vitalia-shell-state con valeriaState/shellMode initial set per spec"
+    - path: "vitalia/frontend/e2e/fixtures/clerk-auth.fixture.ts"
+      action: "REUSE F1-S3 — public route /test-stack/shell-layout bypassa Clerk gate"
+
+architectural_validation:
+  sub_tests:
+    - id: arch-fsd-imports
+      description: "FSD-Lite: shell-organism components NO importan de features/*. NEW files (Valeria*, History*, EmptyStateInline, useKeyboardShortcuts) verificados."
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test_fsd_boundaries.test.ts"
+      must_pass: true
+    - id: arch-no-cross-brand-shell-mirror
+      description: "Grep nicolify/comunify/lupulo for shell-organism artifacts (extend NEW names — must be 0 matches each)"
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test-no-cross-brand-shell-mirror.test.ts"
+      must_pass: true
+      file_modify: "vitalia/frontend/src/__tests__/architecture/test-no-cross-brand-shell-mirror.test.ts"
+      extend_names:
+        - ValeriaSidebar
+        - ValeriaRail
+        - ValeriaHistory
+        - ValeriaChatSlot
+        - HistoryItem
+        - HistoryGroup
+        - EmptyStateInline
+        - useKeyboardShortcuts
+    - id: arch-shell-store-schema-readonly
+      description: "NEW invariant: F1-S5 NO modifica shell-store.ts schema (regression guard). Verifies exports + defaults + setters."
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test-shell-store-schema-readonly-f1-s5.test.ts"
+      must_pass: true
+      file_new: "vitalia/frontend/src/__tests__/architecture/test-shell-store-schema-readonly-f1-s5.test.ts"
+    - id: arch-server-first
+      description: "'use client' allowlist extend NEW client components — shrink only (justify in commit body)"
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test_server_first.test.ts"
+      must_pass: true
+      file_modify: "vitalia/frontend/src/__tests__/architecture/test_server_first.test.ts"
+    - id: arch-no-hex-colors
+      description: "NEW files NO contienen hex literals (#01b2f8, etc) — tokens semánticos ONLY"
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test_no_hardcoded_colors.test.ts"
+      must_pass: true
+    - id: arch-no-voseo
+      description: "NEW components + microcopy validated against voseo glossary (.claude/rules/spanish-text.md)"
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test-vitalia-ui-strings-no-voseo.test.ts"
+      must_pass: true
+    - id: arch-skip-link-target
+      description: "Skip-link target invariant — <main id='main-content' tabIndex={-1}> in ShellOrganismLayoutClient NO afectado por F1-S5 MODIFY"
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test-skip-link-target.test.ts"
+      must_pass: true
+    - id: arch-no-default-export
+      description: "Ratchet heredado: NEW files use named exports (no default export)"
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test_server_first.test.ts"
+      must_pass: true
+
+# ════════════════════════════════════════════════════════════════════
+# § 1 — NON-FUNCTIONAL
+# ════════════════════════════════════════════════════════════════════
+validators:
+  non_functional:
+
+    - id: val-fe-tsc
+      description: "TypeScript strict (no any, no implicit, FSD boundaries respect, React 19 types ok)"
+      command: "cd vitalia/frontend && npx tsc --noEmit"
+      must_pass: true
+
+    - id: val-fe-lint
+      description: "ESLint cache scoped a archivos F1-S5 + shell-organism + hooks + arch tests"
+      command: "cd vitalia/frontend && npx eslint src/components/shared/shell-organism src/hooks src/__tests__/architecture --cache --cache-location .eslintcache"
+      must_pass: true
+
+    - id: val-fe-prettier
+      description: "Prettier format check on new + modified files"
+      command: "cd vitalia/frontend && npx prettier --check 'src/components/shared/shell-organism/{Valeria,History,EmptyStateInline}*.tsx' 'src/components/shared/shell-organism/_mock-conversations.ts' 'src/hooks/useKeyboardShortcuts.ts' 'src/components/shared/shell-organism/{ShellOrganismLayoutClient,TopBarGlobal,ShellOrganismLayout}*.{ts,tsx}'"
+      must_pass: true
+
+    - id: val-fe-jscpd
+      description: "jscpd: zero new copy-paste blocks shell-organism (threshold heredado)"
+      command: "cd vitalia/frontend && npx jscpd src/components/shared/shell-organism --threshold 0 --silent || echo 'jscpd warning informational only'"
+      must_pass: false  # informational only, no block
+      
+    - id: val-fe-vitest-unit
+      description: "Vitest unit: hook + Valeria* + History* + EmptyStateInline + arch tests new + TopBarGlobal extended + ShellOrganismLayout modified + coverage threshold 20%"
+      command: "cd vitalia/frontend && npx vitest run src/components/shared/shell-organism src/hooks src/__tests__/architecture --reporter=default --coverage --coverage.thresholds.lines=20 --coverage.thresholds.functions=20"
+      must_pass: true
+
+  # ════════════════════════════════════════════════════════════════════
+  # § 2 — FUNCTIONAL (E2E Playwright per scenario, 9 specs 1:1)
+  # ════════════════════════════════════════════════════════════════════
+  functional:
+
+    - id: val-fe-e2e-keyboard-cycle
+      description: "SC-1 happy · keyboard cycle r→f→c→Esc→r + auto-coupling shellMode + localStorage persist"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test regression/vitalia-fase1-valeria-rail-history/keyboard-cycle.spec.ts"
+      must_pass: true
+      scenario_id: SC-1
+
+    - id: val-fe-e2e-typing-guard
+      description: "SC-2 negative · typing 'COMPRAR' en composer NO dispara shortcuts c/r — letras escritas normalmente"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test regression/vitalia-fase1-valeria-rail-history/typing-guard.spec.ts"
+      must_pass: true
+      scenario_id: SC-2
+
+    - id: val-fe-e2e-ime-composition
+      description: "SC-3 edge · IME composition (e.isComposing=true) skip shortcuts handler"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test regression/vitalia-fase1-valeria-rail-history/ime-composition.spec.ts"
+      must_pass: true
+      scenario_id: SC-3
+
+    - id: val-fe-e2e-store-tampering
+      description: "SC-4 adversarial · useShellStore.setState({valeriaState:'INVALID'}) → console.warn + render fallback graceful (cero white screen)"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test regression/vitalia-fase1-valeria-rail-history/store-tampering.spec.ts"
+      must_pass: true
+      scenario_id: SC-4
+
+    - id: val-fe-e2e-click-collapse
+      description: "SC-5 edge · click rail PanelLeftClose → collapsed+web autocouple + transition 50/50 → [60|1px|AppPanel 1fr]"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test regression/vitalia-fase1-valeria-rail-history/click-collapse.spec.ts"
+      must_pass: true
+      scenario_id: SC-5
+
+    - id: val-fe-e2e-history-empty-search
+      description: "SC-6 empty_state · search 'xyzabc123' → EmptyStateInline + grupos hidden + Esc clears query (no colapsa Valeria)"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test regression/vitalia-fase1-valeria-rail-history/history-empty-search.spec.ts"
+      must_pass: true
+      scenario_id: SC-6
+
+    - id: val-fe-e2e-a11y-keyboard
+      description: "SC-7 a11y · Tab order TopBar → Rail buttons → ChatSlot composer + aria-labels + live region + contrast"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test regression/vitalia-fase1-valeria-rail-history/a11y-keyboard.spec.ts"
+      must_pass: true
+      scenario_id: SC-7
+
+    - id: val-fe-axe
+      description: "SC-7 axe-core WCAG 2.1 AA on ValeriaSidebar states collapsed/rail/full · light + dark"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test regression/vitalia-fase1-valeria-rail-history/a11y-keyboard.spec.ts --grep '@axe'"
+      must_pass: true
+      scenario_id: SC-7
+
+    - id: val-fe-e2e-a11y-mobile-drawer
+      description: "SC-8 a11y mobile drawer · aria-modal + focus auto-mueve first interactive + focus trap Tab cycle + Esc cierra + focus restoration al hamburger"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test regression/vitalia-fase1-valeria-rail-history/a11y-mobile-drawer.spec.ts"
+      must_pass: true
+      scenario_id: SC-8
+
+    - id: val-fe-axe-mobile
+      description: "SC-8 axe-core wcag2aa mobile drawer (375x667) — 0 violations modal pattern"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test regression/vitalia-fase1-valeria-rail-history/a11y-mobile-drawer.spec.ts --grep '@axe'"
+      must_pass: true
+      scenario_id: SC-8
+
+    - id: val-fe-e2e-i18n-spanish-neutro
+      description: "SC-9 i18n · 28 strings ratificados + regex voseo glossary cero matches + cero PHI patterns en mock data + aria-labels Spanish neutro"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test regression/vitalia-fase1-valeria-rail-history/i18n-spanish-neutro.spec.ts"
+      must_pass: true
+      scenario_id: SC-9
+
+  # ════════════════════════════════════════════════════════════════════
+  # § 3 — VISUAL (7 logical states × theme = 13 PNG snapshots, mockup HTML side-by-side ratchet)
+  # ════════════════════════════════════════════════════════════════════
+  visual:
+
+    - id: val-fe-visual-rail-light
+      description: "Visual golden vs mockups/valeria-rail.html (state RAIL, light) @ 1280x800 · maxDiffPixelRatio 0.001"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test --project=visual regression/vitalia-fase1-valeria-rail-history/visual-goldens.spec.ts --grep 'rail light 1280'"
+      must_pass: true
+      snapshot_path: "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/visual-goldens.spec.ts-snapshots/valeria-rail-light-1280x800.png"
+      mockup_ref: "vitalia/docs/product/stories/vitalia-fase1-valeria-rail-history/mockups/valeria-rail.html"
+
+    - id: val-fe-visual-rail-dark
+      description: "Visual golden vs mockups/valeria-rail.html (state RAIL, dark) @ 1280x800"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test --project=visual regression/vitalia-fase1-valeria-rail-history/visual-goldens.spec.ts --grep 'rail dark 1280'"
+      must_pass: true
+      snapshot_path: "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/visual-goldens.spec.ts-snapshots/valeria-rail-dark-1280x800.png"
+      mockup_ref: "vitalia/docs/product/stories/vitalia-fase1-valeria-rail-history/mockups/valeria-rail.html"
+
+    - id: val-fe-visual-collapsed-light
+      description: "Visual golden vs mockups/valeria-rail.html (state COLLAPSED — auto-coupled shellMode='web', solo rail 60px + AppPanel 100%) @ 1280x800 light"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test --project=visual regression/vitalia-fase1-valeria-rail-history/visual-goldens.spec.ts --grep 'collapsed light 1280'"
+      must_pass: true
+      snapshot_path: "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/visual-goldens.spec.ts-snapshots/valeria-collapsed-light-1280x800.png"
+      mockup_ref: "vitalia/docs/product/stories/vitalia-fase1-valeria-rail-history/mockups/valeria-rail.html"
+
+    - id: val-fe-visual-collapsed-dark
+      description: "Visual golden vs mockup valeria-rail.html (state COLLAPSED, dark) @ 1280x800"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test --project=visual regression/vitalia-fase1-valeria-rail-history/visual-goldens.spec.ts --grep 'collapsed dark 1280'"
+      must_pass: true
+      snapshot_path: "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/visual-goldens.spec.ts-snapshots/valeria-collapsed-dark-1280x800.png"
+      mockup_ref: "vitalia/docs/product/stories/vitalia-fase1-valeria-rail-history/mockups/valeria-rail.html"
+
+    - id: val-fe-visual-full-light
+      description: "Visual golden vs mockups/valeria-history.html (state FULL — history 280 + chat 1fr) @ 1280x800 light"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test --project=visual regression/vitalia-fase1-valeria-rail-history/visual-goldens.spec.ts --grep 'full light 1280'"
+      must_pass: true
+      snapshot_path: "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/visual-goldens.spec.ts-snapshots/valeria-full-light-1280x800.png"
+      mockup_ref: "vitalia/docs/product/stories/vitalia-fase1-valeria-rail-history/mockups/valeria-history.html"
+
+    - id: val-fe-visual-full-dark
+      description: "Visual golden vs mockup valeria-history.html (state FULL, dark) @ 1280x800"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test --project=visual regression/vitalia-fase1-valeria-rail-history/visual-goldens.spec.ts --grep 'full dark 1280'"
+      must_pass: true
+      snapshot_path: "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/visual-goldens.spec.ts-snapshots/valeria-full-dark-1280x800.png"
+      mockup_ref: "vitalia/docs/product/stories/vitalia-fase1-valeria-rail-history/mockups/valeria-history.html"
+
+    - id: val-fe-visual-history-empty-light
+      description: "Visual golden empty state (searchQuery='xyzabc') @ 1280x800 light · EmptyStateInline visible · grupos hidden"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test --project=visual regression/vitalia-fase1-valeria-rail-history/visual-goldens.spec.ts --grep 'history empty light 1280'"
+      must_pass: true
+      snapshot_path: "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/visual-goldens.spec.ts-snapshots/valeria-history-empty-light-1280x800.png"
+      mockup_ref: "vitalia/docs/product/stories/vitalia-fase1-valeria-rail-history/mockups/valeria-history.html"
+
+    - id: val-fe-visual-history-empty-dark
+      description: "Visual golden empty state dark @ 1280x800"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test --project=visual regression/vitalia-fase1-valeria-rail-history/visual-goldens.spec.ts --grep 'history empty dark 1280'"
+      must_pass: true
+      snapshot_path: "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/visual-goldens.spec.ts-snapshots/valeria-history-empty-dark-1280x800.png"
+      mockup_ref: "vitalia/docs/product/stories/vitalia-fase1-valeria-rail-history/mockups/valeria-history.html"
+
+    - id: val-fe-visual-drawer-mobile
+      description: "Visual golden mobile drawer abierto @ 375x667 light — sidebar fixed inset-y-0 left-0 + backdrop + history + chat slot"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test --project=visual regression/vitalia-fase1-valeria-rail-history/visual-goldens.spec.ts --grep 'drawer mobile 375'"
+      must_pass: true
+      snapshot_path: "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/visual-goldens.spec.ts-snapshots/valeria-drawer-mobile-375x667.png"
+      mockup_ref: "vitalia/docs/product/stories/vitalia-fase1-valeria-rail-history/mockups/valeria-history.html"
+
+  # ════════════════════════════════════════════════════════════════════
+  # § 4 — AGENTIC EVAL (N/A — FE only chrome UI sin LangGraph/specialist/LLM)
+  # ════════════════════════════════════════════════════════════════════
+  agentic_eval:
+    applies: false
+    not_applicable_reason: "FE only chrome UI story (shell organism). NO LangGraph state, NO specialist node, NO LLM call, NO goldens. Sales_agent + Copilot brand extensions out-of-scope F1-S5 (F1-S6+ introducirá chat skeleton sin LLM real; F2 conectará agentic real)."
+
+  # ════════════════════════════════════════════════════════════════════
+  # § 5 — ARCHITECTURAL VALIDATION (FSD + shell-store invariant + no-cross-brand + spanish + skip-link)
+  # ════════════════════════════════════════════════════════════════════
+  architectural_validation:
+
+    - id: val-fe-arch-fsd
+      description: "FSD-Lite boundaries — NEW shell-organism components NO importan features/*"
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test_fsd_boundaries.test.ts"
+      must_pass: true
+
+    - id: val-fe-arch-no-cross-brand-mirror
+      description: "Cross-brand mirror guard — extend NEW component names (anti-duplication.md cardinal rule)"
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test-no-cross-brand-shell-mirror.test.ts"
+      must_pass: true
+
+    - id: val-fe-arch-shell-store-readonly
+      description: "NEW invariant: F1-S5 NO modifica shell-store.ts schema (regression guard)"
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test-shell-store-schema-readonly-f1-s5.test.ts"
+      must_pass: true
+
+    - id: val-fe-arch-server-first
+      description: "'use client' allowlist extend (shrink only — justify in commit body)"
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test_server_first.test.ts"
+      must_pass: true
+
+    - id: val-fe-arch-no-hex
+      description: "NEW files NO contienen hex literals — tokens semánticos ONLY"
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test_no_hardcoded_colors.test.ts"
+      must_pass: true
+
+    - id: val-fe-arch-no-voseo
+      description: "NEW components microcopy validated against Spanish neutro glossary"
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test-vitalia-ui-strings-no-voseo.test.ts"
+      must_pass: true
+
+    - id: val-fe-arch-skip-link
+      description: "Skip-link target invariant preservado (F1-S4 cementado, F1-S5 NO afecta)"
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test-skip-link-target.test.ts"
+      must_pass: true
+
+# ════════════════════════════════════════════════════════════════════
+# Pre-build environment requirements (informacional — no validator)
+# ════════════════════════════════════════════════════════════════════
+preflight:
+  notes: |
+    - Dev stack vitalia must be running for E2E specs: `make dev-vitalia` (ports backend 8002, frontend 3002).
+    - Playwright preflight: `bash scripts/e2e-preflight.sh` (verifica dev stack + Clerk auth state).
+    - Public route /test-stack/shell-layout sigue siendo el entry point E2E (sin Clerk gate, hereda F1-S4).
+    - Visual goldens iter 1 generation: builder T-8 monta mockups en
+      `python3 -m http.server 8888 vitalia/docs/product/stories/vitalia-fase1-valeria-rail-history/mockups/`
+      side-by-side con componente real `localhost:3002/test-stack/shell-layout`.
+      Solo cuando Chris valida side-by-side OK, builder corre:
+      `cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test --project=visual --update-snapshots regression/vitalia-fase1-valeria-rail-history/visual-goldens.spec.ts`
+      Post-ratify Chris, ratchet shrink-only enforced.
+    - localStorage state for E2E goldens determinism set via `addInitScript` en `shell-theme.fixture.ts` (extend F1-S4).
+    - 13 PNG snapshots: 5 desktop states (rail/collapsed/full × theme = 6) + history-empty × theme (2) + drawer-mobile (1) + visual goldens viejos F1-S4 NO afectados.

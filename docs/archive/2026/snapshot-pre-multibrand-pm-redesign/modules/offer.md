@@ -1,0 +1,68 @@
+---
+module: offer
+last_audit: 2026-05-04
+status: active                                  # active | maintenance | placeholder
+links:
+  capabilities_dir: "../capabilities/offer/"
+  stories_dir: "../stories/offer/"
+  domain_doc: "../../domains/module_offer.md"
+active_projects: []                              # auto-populated by /pm cuando hay PIs activos tocando este módulo
+---
+
+# offer — Estado funcional
+
+## Meta
+| Campo | Valor |
+|---|---|
+| Studio padre | Offer Studio |
+| Estado | activo |
+| Última actualización | 2026-04-29 (bootstrap) |
+| Doc técnico | `docs/domains/module_offer.md` |
+
+## Qué hace por el user
+Construye Offer Ladder (gratis → low → high ticket). Para cada oferta individual, blueprint de producto con info completa (qué incluye, precio, posicionamiento, value level, archetype, variantes).
+
+## Capacidades
+> Auto-list generated from `docs/product/capabilities/offer/`.
+> See `docs/product/BACKLOG.md` "Capabilities snapshot" for current count + status.
+
+## Capacidades operables desde copilot
+- Auto-fill desde docs/scraping (sólido)
+- Crear oferta nueva conversacionalmente (parcial)
+- Modificar fields existentes (sólido)
+- Sugerir oferta faltante en ladder (parcial)
+
+## Estado calidad funcional
+| Capacidad | Estado | Notas |
+|---|---|---|
+| Offer Ladder | sólido | UI homologada 2026-04 |
+| Presets catalog | sólido | 76 presets, conditional questions |
+| Form-runtime | sólido | Cards/Split mode automático |
+| Sections homologadas | sólido | 21 secciones (de 23, eliminadas duplicadas con brand) |
+| Multi-currency | sólido | TenantLocale-driven |
+
+## Conexiones cross-módulo
+- **Lee de:** crm, copilot, landing, analytics (ports)
+- **Lo lee:** sales_agent, copilot, landing, crm, analytics
+
+## Dolor user / oportunidades detectadas
+_Pendiente captura._
+
+## PIs históricos
+| PI | Cambio | Fecha cierre |
+|---|---|---|
+| Offer Studio homologation | UI + sections refactor | 2026-04 |
+
+## Decisiones producto vinculadas
+| Fecha | Decisión | Razón |
+|---|---|---|
+| 2026-04 | Eliminadas METHODOLOGY + CREDENTIALS sections | Duplicaban brand-studio |
+| 2026-04 | OfferTypePreset 7th catalog axis | Modelar presets por tipo negocio + archetype |
+
+## Capabilities (auto-mapped 2026-05-04)
+
+- [offer-ladder](../capabilities/offer/offer-ladder.yaml) — live, 2 stories
+- [offer-blueprint](../capabilities/offer/offer-blueprint.yaml) — live, 3 stories
+- [offer-extraction](../capabilities/offer/offer-extraction.yaml) — live, 1 story
+- [offer-editions-launch](../capabilities/offer/offer-editions-launch.yaml) — live, 2 stories
+- [offer-presets-catalogs](../capabilities/offer/offer-presets-catalogs.yaml) — live, 1 story

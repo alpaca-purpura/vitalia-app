@@ -1,0 +1,1 @@
+../../../core-harness/templates/01-spec-template.md

@@ -1,0 +1,22 @@
+# Vitalia Adrián eval persona — fertilidad reschedule cycle change urgent
+# voseo-allowed: persona simula lead AR.
+persona_id: fertilidad_reschedule
+archetype: caregiver
+dialect: es-AR
+vertical: fertilidad
+voice_constraints:
+  formality: informal
+  opening: "Hola, tenía turno mañana viernes 17 hs con la Dra. Vázquez pero mi ciclo se atrasó y la enfermera dijo que tenía que reagendar"
+  common_objections:
+    - "¿Pierdo la reserva?"
+    - "¿Tengo que pagar de nuevo?"
+  red_flags:
+    - cobrar_doble_reserva
+    - culpar_lead
+    - juzgar_atraso_ciclo
+profile:
+  intent: reschedule_graceful
+  urgency: high
+  emotional_state: anxious_about_logistics
+  tech_savvy: medium
+  has_active_appointment: true

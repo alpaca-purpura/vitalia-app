@@ -1,0 +1,60 @@
+---
+module: assets
+last_audit: 2026-05-04
+status: active                                  # active | maintenance | placeholder
+links:
+  capabilities_dir: "../capabilities/assets/"
+  stories_dir: "../stories/assets/"
+  domain_doc: "../../domains/module_assets.md"
+active_projects: []                              # auto-populated by /pm cuando hay PIs activos tocando este módulo
+---
+
+# assets — Estado funcional
+
+## Meta
+| Campo | Valor |
+|---|---|
+| Studio padre | Assets |
+| Estado | activo |
+| Última actualización | 2026-04-29 (bootstrap) |
+| Doc técnico | `docs/domains/module_assets.md` |
+
+## Qué hace por el user
+Genera material promocional automático. Copies para redes/ads/videos, flyers, imágenes, brochures. Acceso desde Offer individual y Brand Studio.
+
+## Capacidades
+> Auto-list generated from `docs/product/capabilities/assets/`.
+> See `docs/product/BACKLOG.md` "Capabilities snapshot" for current count + status.
+
+## Capacidades operables desde copilot
+- Generar copy para X canal (parcial)
+- **Gap:** loop conversacional iterativo (ajustar tono, generar variantes)
+
+## Estado calidad funcional
+| Capacidad | Estado | Notas |
+|---|---|---|
+| Copy gen | activo | LLM-driven |
+| Flyer gen | parcial | Templates limitadas |
+| Image gen | parcial | Pipeline básico |
+| Video ideas | activo | Solo ideas, no producción |
+| Brochures | placeholder | |
+
+## Conexiones cross-módulo
+- **Lee de:** —
+- **Lo lee:** —
+
+## Dolor user / oportunidades detectadas
+_Probable: gap entre "ideas video" y "video producido". Oportunidad expansión._
+
+## PIs históricos
+_Sin tracked aún._
+
+## Decisiones producto vinculadas
+_Pendiente._
+
+## Capabilities (auto-mapped 2026-05-04)
+
+- [assets-copy-generation](../capabilities/assets/assets-copy-generation.yaml) — live, 1 story
+- [assets-storage-management](../capabilities/assets/assets-storage-management.yaml) — live, 2 stories
+- [assets-offer-gallery](../capabilities/assets/assets-offer-gallery.yaml) — live, 1 story
+- [assets-flyer-image-gen](../capabilities/assets/assets-flyer-image-gen.yaml) — in-progress, 0 stories

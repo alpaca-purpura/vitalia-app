@@ -1,0 +1,670 @@
+# vitalia-copilot-tools-impl — Tickets
+# Owner: /architect Opus 4.7 · 2026-05-18
+# Consumer: /dev-team picks tickets per WIP cap + DAG + blocked_by
+# Paradigm v4 cap: ≤10 tickets per story (this story = 10 atomic).
+# R23 cost-routing enforced: AGENTIC production_code=true → Opus 4.7 mandatory; AGENTIC production_code=false → Sonnet OK; BE → Sonnet/qwen-opencode default.
+
+version: 1
+story_id: vitalia-copilot-tools-impl
+brand: vitalia
+state_target: developing → developed when all tickets GREEN
+total_tickets: 10
+parent_story: vitalia-ux-discovery
+blocked_by_external:
+  - vitalia-slice-1-infra-cross-cutting   # T-infra-1 migrations 002-016 + T-infra-2 Extension SDK registries + T-infra-3 PHI compliance infrastructure prerequisite
+parallel_safe: true
+
+# DAG legend:
+#   T-be-migrations-1 (foundation, no deps) → T-be-services-{1,2,3} (parallel after migrations) → T-ag-tools-{1,2,3} (parallel after services) → T-ag-workflows-{1,2} (after tools) → T-ag-evals-1 (last)
+
+tickets:
+
+  # ============================================================
+  # T-be-migrations-1  (BE foundation — Sonnet/qwen-opencode)
+  # ============================================================
+  - id: T-be-migrations-1
+    title: Migrations 017-021 idempotent + schema mirror persistence models
+    sub_story: vitalia-copilot-tools-impl
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: false  # migrations are infra config, not agentic runtime
+    surface: backend
+    estimated_loc: 600
+    scope: |
+      Create 5 Alembic migrations + 8 SA 2.0 schema-mirror persistence models per 03-arch-be.md § 9 + § 10.
+
+      Migrations (all raw SQL IF NOT EXISTS, NEVER sa.Enum create_type=True):
+        017_lead_screening_events.py — table lead_screening_events + 2 indexes
+        018_attribution_matrix_snapshots.py — table + indexes
+        019_referrals_leaderboard_snapshots.py — table + indexes
+        020_langgraph_checkpoint_tables.py — wrap AsyncPostgresSaver.setup() with prefixes vitalia_wizard_onboarding_ + vitalia_lucas_analysis_
+        021_screening_outcome_enum_check.py — CHECK constraint on outcome column
+
+      Schema mirror persistence models (per backend-ddd.md schema-mirror exception):
+        vitalia/backend/src/modules/vitalia/copilot/persistence/models/{copilot_trace_event,copilot_llm_call}.py
+        vitalia/backend/src/modules/vitalia/sales_agent/persistence/models/{sales_agent_trace_event,sales_agent_llm_call,lead_screening_event}.py
+        vitalia/backend/src/modules/vitalia/agentic/lucas/persistence/models/{stage_recommendation,attribution_matrix_snapshot,referrals_leaderboard_snapshot}.py
+
+      SA 2.0 syntax mandatory: mapped_column() only.
+      tenant_id + clinic_id cardinal indexes on PHI tables.
+      Soft delete deleted_at on every table.
+    acceptance:
+      test_paths:
+        - vitalia/backend/tests/migrations/test_slice1_migrations.py
+        - vitalia/backend/tests/unit/modules/vitalia/copilot/persistence/test_schema_mirror.py
+      validator_ids:
+        - be_lint_ruff_check
+        - be_format_ruff
+        - be_arch_fitness_brand_scoped
+        - be_test_migrations_smoke
+    state: pushed
+    pushed_at: "2026-05-18"
+    push_commit_sha: "3adea2cf7c5be27b7c23b660bcbcf535e4bc9564"
+    result_artifact: vitalia/docs/product/stories/vitalia-copilot-tools-impl/T-be-migrations-1-result.md
+    test_summary: "arch_fitness=216/216 schema_mirror=34/34 migration=131/131(12skip)"
+    deps: []
+    blocked_by:
+      - vitalia-slice-1-infra-cross-cutting/T-infra-1   # external blocker — parent migrations 002-016 prerequisite
+    notes: |
+      Idempotent re-run test: docker exec ... alembic upgrade head TWICE → second run no-op no errors.
+      Clone DB pre-prod test per .claude/rules/backend-migrations.md.
+
+  # ============================================================
+  # T-be-services-1  (Valeria wizard backend services — Sonnet)
+  # ============================================================
+  - id: T-be-services-1
+    title: Valeria wizard backend services (4 services + repos + adapters + API routes)
+    sub_story: vitalia-copilot-tools-impl
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: true
+    surface: backend
+    estimated_loc: 1200
+    scope: |
+      DDD Inside-Out per 03-arch-be.md § 1 + § 8.1+8.2+8.3.
+
+      Domain:
+        vitalia/backend/src/modules/vitalia/copilot/domain/entities/{onboarding_draft,wizard_slot}.py
+        vitalia/backend/src/modules/vitalia/copilot/domain/enums/wizard_state.py
+        vitalia/backend/src/modules/vitalia/copilot/domain/ports/personality_service_port.py
+
+      Infrastructure:
+        repositories/{onboarding_draft,onboarding_progress}_repository.py  (tenant_id cardinal)
+        adapters/personality_service_adapter.py  (consume engine luana_core_brand_studio)
+        adapters/website_scraper_adapter.py  (timeout 30s + fallback per tessl__graceful-degradation)
+        adapters/document_extractor_adapter.py
+        adapters/whisper_stt_adapter.py  (OpenAI Whisper API)
+
+      Application services:
+        onboarding_draft_service.py — persist_slot / load_draft / mark_complete with sync audit_log
+        extract_tenant_context_service.py — orchestrate 3 adapters + sanitize_payload(compliance_level="hipaa_lite")
+        simulate_personality_service.py — throttle 5/min/tenant (Redis sliding window) + cache 10min TTL + wrap engine personality_service.simulate
+        complete_onboarding_service.py — engine compile_full + BrandStudio commit + tenant.is_onboarded=true + seed default WhatsApp templates + sync audit_log + emit TenantOnboardedEvent (outbox per USE_OUTBOX_PATTERN_COPILOT=True default)
+
+      Pydantic v2 DTOs (api/dtos/):
+        extract_dto.py / confirm_slot_dto.py / simulate_dto.py / complete_dto.py
+        ConfigDict(from_attributes=True), explicit types, response_model= ready.
+
+      FastAPI routes (api/routes/wizard_onboarding_routes.py):
+        POST /api/v1/vitalia/onboarding/start
+        POST /api/v1/vitalia/onboarding/extract
+        POST /api/v1/vitalia/onboarding/confirm-slot
+        POST /api/v1/vitalia/onboarding/simulate-personality
+        POST /api/v1/vitalia/onboarding/complete
+        GET  /api/v1/vitalia/onboarding/stream/{draft_id}  (SSE EventStream — no response_model)
+        GET  /api/v1/vitalia/onboarding/progress/{draft_id}
+        Bearer + X-Tenant-ID required. response_model= every non-stream route.
+
+      TDD RED first per layer: domain → infra → application → API.
+    acceptance:
+      test_paths:
+        - vitalia/backend/tests/unit/modules/vitalia/copilot/domain/test_onboarding_draft.py
+        - vitalia/backend/tests/unit/modules/vitalia/copilot/application/services/test_onboarding_draft_service.py
+        - vitalia/backend/tests/unit/modules/vitalia/copilot/application/services/test_extract_tenant_context_service.py
+        - vitalia/backend/tests/unit/modules/vitalia/copilot/application/services/test_simulate_personality_service.py
+        - vitalia/backend/tests/unit/modules/vitalia/copilot/application/services/test_complete_onboarding_service.py
+        - vitalia/backend/tests/integration/modules/vitalia/copilot/api/test_wizard_onboarding_routes.py
+      validator_ids:
+        - be_lint_ruff_check
+        - be_format_ruff
+        - be_arch_fitness_brand_scoped
+        - be_test_unit_copilot
+        - be_test_integration_api_wizard_routes
+        - be_coverage_threshold
+    state: pushed
+    pushed_at: "2026-05-18"
+    result_artifact: vitalia/docs/product/stories/vitalia-copilot-tools-impl/T-be-services-1-result.md
+    test_summary: "domain=14/14 onboarding_draft_service=7/7 extract_service=4/4 simulate_service=6/6 complete_service=6/6 api_routes=11/11 full_suite=1317passed/58skipped/0failed"
+    deps: [T-be-migrations-1]
+    blocked_by:
+      - vitalia-slice-1-infra-cross-cutting/T-infra-3   # PHI compliance infrastructure (audit_log_repo, sanitize_payload wrap) prerequisite
+
+  # ============================================================
+  # T-be-services-2  (Adrián sales_agent backend services — Sonnet)
+  # ============================================================
+  - id: T-be-services-2
+    title: Adrián sales_agent backend services (3 services + repo + adapters + channel guards)
+    sub_story: vitalia-copilot-tools-impl
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: true
+    surface: backend
+    estimated_loc: 900
+    scope: |
+      DDD Inside-Out per 03-arch-be.md § 1 + § 8.4+8.5.
+
+      Domain:
+        sales_agent/domain/entities/lead_screening_event.py
+        sales_agent/domain/enums/screening_outcome.py
+
+      Infrastructure:
+        repositories/lead_screening_event_repository.py  (tenant + clinic dual filter cardinal)
+        adapters/mercadopago_adapter.py  (create_preference + webhook signature HMAC validate + timeout 10s + retry 1x backoff 2s)
+        adapters/whatsapp_business_adapter.py  (send_template_message + retract API placeholder for Slice 2)
+
+      Application services:
+        screening_questions_service.py — load YAML SSoT (vitalia/backend/src/modules/vitalia/agentic/screening/screening_questions_by_vertical.yaml) + LLM nano evaluation (engine LiteLLMService kimi-k2.6 OR deepseek-v4-flash) + sanitize_payload + persist lead_screening_events row + sync audit_log
+        payment_link_service.py — ChannelGuardService.validate pre-send + MercadoPago preference + WhatsApp template send + DB write payment_events + sync audit_log + idempotency key (appointment_id, deposit_percent) partial unique index
+        reschedule_appointment_service.py — AppointmentService update + emit appointment_rescheduled outbox event + operator notification + sync audit_log
+
+      Channel guard service:
+        compliance/application/services/channel_guard_service.py wraps core.luana_core_compliance.ComplianceService.validate_outbound_message — Adrián calls BEFORE every send → catches BlockedChannelError → response derive-portal alternative
+
+      SSoT YAML data:
+        agentic/screening/screening_questions_by_vertical.yaml (4 verticals × 2-4 questions × contraindications list)
+        Schema validated by NEW arch test test_screening_yaml_completeness.py
+    acceptance:
+      test_paths:
+        - vitalia/backend/tests/unit/modules/vitalia/sales_agent/domain/test_lead_screening_event.py
+        - vitalia/backend/tests/unit/modules/vitalia/sales_agent/application/services/test_screening_questions_service.py
+        - vitalia/backend/tests/unit/modules/vitalia/sales_agent/application/services/test_payment_link_service.py
+        - vitalia/backend/tests/unit/modules/vitalia/sales_agent/application/services/test_reschedule_appointment_service.py
+        - vitalia/backend/tests/unit/modules/vitalia/sales_agent/test_channel_guards.py
+        - vitalia/backend/tests/architecture/test_screening_yaml_completeness.py
+      validator_ids:
+        - be_lint_ruff_check
+        - be_format_ruff
+        - be_arch_fitness_brand_scoped
+        - be_test_unit_sales_agent
+        - ae_channel_guards_phi_blocking
+        - ae_screening_yaml_completeness
+        - be_coverage_threshold
+    deps: [T-be-migrations-1]
+    blocked_by:
+      - vitalia-slice-1-infra-cross-cutting/T-infra-3   # PHI infrastructure
+
+  # ============================================================
+  # T-be-services-3  (Lucas growth setter backend services + cron — Sonnet)
+  # ============================================================
+  - id: T-be-services-3
+    title: Lucas growth setter backend services + cron TZ-aware (3 services + repos + analytics adapter + APScheduler)
+    sub_story: vitalia-copilot-tools-impl
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: true
+    surface: backend
+    estimated_loc: 800
+    scope: |
+      DDD Inside-Out per 03-arch-be.md § 1 + § 8.6+8.7.
+
+      Domain:
+        agentic/lucas/domain/entities/{stage_recommendation,attribution_matrix_snapshot,referrals_leaderboard_snapshot}.py
+        agentic/lucas/domain/enums/stage.py
+
+      Infrastructure:
+        repositories/{stage_recommendation,attribution_matrix_snapshot,referrals_leaderboard_snapshot}_repository.py
+        adapters/analytics_engine_query_adapter.py — port to luana_core_analytics_engine ChannelRegistry + STAGE_CHANNEL_MAP reads (NO _GROUP_MAP mirror per analytics-metrics.md)
+
+      Application services:
+        lucas_stage_recommendation_service.py — orchestrate Kimi reasoning per stage (reads analytics via adapter)
+        lucas_attribution_service.py — pure DB analytics (no LLM) via engine ChannelRegistry
+        lucas_referrals_service.py — pure DB analytics
+
+      Cron scheduler:
+        vitalia/backend/src/modules/vitalia/agentic/lucas/infrastructure/cron/lucas_cron_scheduler.py
+        APScheduler CronTrigger(hour=6, minute=0, timezone=tenant.timezone)
+        Resolves tenant timezone via core.luana_core_platform.contracts.TenantLocationContract (Fase A engine lift)
+        Calls internal POST /api/v1/vitalia/lucas/trigger with LUCAS_CRON_SECRET token + tenant scope
+
+      Internal API route:
+        copilot/api/routes/lucas_cron_trigger_routes.py (Bearer LUCAS_CRON_SECRET + X-Tenant-ID)
+
+      BudgetGuard integration:
+        Pre-LLM call BudgetGuard.check(tenant_id, agent_kind="copilot", estimated_cost_usd=...)
+        Exceeded → status='skipped_budget' for that stage row
+    acceptance:
+      test_paths:
+        - vitalia/backend/tests/unit/modules/vitalia/agentic/lucas/domain/test_stage_recommendation.py
+        - vitalia/backend/tests/unit/modules/vitalia/agentic/lucas/application/services/test_lucas_stage_recommendation_service.py
+        - vitalia/backend/tests/unit/modules/vitalia/agentic/lucas/application/services/test_lucas_attribution_service.py
+        - vitalia/backend/tests/unit/modules/vitalia/agentic/lucas/application/services/test_lucas_referrals_service.py
+        - vitalia/backend/tests/unit/modules/vitalia/agentic/lucas/infrastructure/cron/test_lucas_cron_scheduler.py
+        - vitalia/backend/tests/architecture/test_lucas_cron_tz_aware.py
+      validator_ids:
+        - be_lint_ruff_check
+        - be_format_ruff
+        - be_arch_fitness_brand_scoped
+        - be_test_unit_lucas
+        - ae_lucas_cron_tz_aware
+        - be_coverage_threshold
+    deps: [T-be-migrations-1]
+    blocked_by:
+      - vitalia-slice-1-infra-cross-cutting/T-infra-1   # tenants.timezone column from Fase A engine lift parent migration 014
+    state: pushed
+    pushed_at: 2026-05-18
+    push_commit_sha: 476a7558d87737e6d54e7631d03e22580eeedd9d
+    result_artifact: T-be-services-3-result.md
+
+  # ============================================================
+  # T-ag-tools-1  (Valeria 4 tools + slot prompts MD — Opus 4.7 R23)
+  # ============================================================
+  - id: T-ag-tools-1
+    title: Valeria 4 wizard tools + observability subclass + slot prompts MD + persona YAML
+    sub_story: vitalia-copilot-tools-impl
+    owner_eligibility: [claude-opus]                # ★ R23 enforce — agentic production_code=true ★
+    production_code: true
+    surface: agentic
+    estimated_loc: 700
+    scope: |
+      Per 03-arch-agentic.md § 4.1 + § 5.2 + § 6.1+6.3.
+
+      Tools (LangChain @tool, async, args_schema Pydantic v2):
+        copilot/tools/extract_tenant_context.py — fires extract_tenant_context_service (wraps 3 adapters)
+        copilot/tools/confirm_slot.py — fires onboarding_draft_service.persist_slot
+        copilot/tools/simulate_personality.py — fires simulate_personality_service (throttle + cache)
+        copilot/tools/complete_onboarding.py — fires complete_onboarding_service
+
+      Slot prompts MD (5-slot architecture Valeria):
+        copilot/prompts/valeria_persona.md (Slot 4 — cementado design § 1.5 voice constraints: tuteo, no IA reveal, cálido+profesional+claro+breve)
+        copilot/prompts/wizard_role_vitalia.md (Slot 2 — wizard role + Vitalia onboarding context)
+        copilot/prompts/extractor_subagent.md (deepagents extract_subagent system prompt — sandbox instructions)
+
+      Persona YAML (data — Sonnet OK sub-task):
+        (none for Valeria — single persona in prompts/valeria_persona.md)
+
+      Observability subclass (ANTI-DUPLICATION §0 cardinal):
+        copilot/observability/recording/callback_handler.py:
+          class VitaliaCopilotCallbackHandler(BaseAgentCallbackHandler):  # imports from luana_core_observability
+              async def _persist_llm_call_row(self, payload: dict) -> None: ...
+              async def _persist_trace_event_row(self, payload: dict) -> None: ...
+        copilot/observability/recording/turn_envelope.py:
+          class VitaliaCopilotObservabilityContext(BaseObservabilityContext): pass
+
+      NEW arch fitness gate test:
+        vitalia/backend/tests/architecture/test_no_observability_mirror_copilot.py
+
+      Extension SDK registration in vitalia/backend/src/modules/vitalia/extensions.py:
+        EXTEND existing register_all — replace EP-3 placeholders with real callables for 4 Valeria tools.
+    acceptance:
+      test_paths:
+        - vitalia/backend/tests/unit/modules/vitalia/copilot/tools/test_extract_tenant_context.py
+        - vitalia/backend/tests/unit/modules/vitalia/copilot/tools/test_confirm_slot.py
+        - vitalia/backend/tests/unit/modules/vitalia/copilot/tools/test_simulate_personality.py
+        - vitalia/backend/tests/unit/modules/vitalia/copilot/tools/test_complete_onboarding.py
+        - vitalia/backend/tests/unit/modules/vitalia/copilot/observability/test_callback_handler.py
+        - vitalia/backend/tests/architecture/test_no_observability_mirror_copilot.py
+      validator_ids:
+        - be_lint_ruff_check
+        - be_format_ruff
+        - be_arch_fitness_brand_scoped
+        - be_test_unit_copilot
+        - be_test_observability_cost_canonicalization
+        - ae_anti_duplication_no_observability_mirror
+        - anti_duplication_cross_module_audit
+        - cross_brand_mirror_scan
+        - engine_boundary_no_modification_audit
+        - spanish_neutro_voseo_check_chrome
+    deps: [T-be-services-1]
+    blocked_by:
+      - vitalia-slice-1-infra-cross-cutting/T-infra-2   # Extension SDK registries placeholders prerequisite
+    notes: |
+      R23 enforce: Opus 4.7 mandatory. Slot 4 valeria_persona.md cement per design § 1.5.
+      Cache hit rate validation: cache_creation_input_tokens + cache_read_input_tokens logged per LLM call (claude-api).
+
+  # ============================================================
+  # T-ag-tools-2  (Adrián 3 tools subset MVP + Slot 4 MEDICAL_SAFETY_RAILS + personas YAML — Opus 4.7 R23 production code; YAML sub-task Sonnet)
+  # ============================================================
+  - id: T-ag-tools-2
+    title: Adrián 3 tools subset MVP + Slot 4 MEDICAL_SAFETY_RAILS prompt + Slot 2 medical_vertical + observability subclass + 4 medical guardrails real impl + 5 personas YAML + state overlay
+    sub_story: vitalia-copilot-tools-impl
+    owner_eligibility: [claude-opus]                # ★ R23 enforce ★
+    production_code: true
+    surface: agentic
+    estimated_loc: 900
+    scope: |
+      Per 03-arch-agentic.md § 4.2 + § 5.1 + § 6.2+6.3 + 03-arch.md § 3.7.
+
+      Tools (3 MVP per Q1 default, LangChain @tool):
+        sales_agent/tools/send_payment_link.py — ChannelGuard pre-check + payment_link_service.run
+        sales_agent/tools/reschedule_appointment.py — reschedule_appointment_service.run
+        sales_agent/tools/screening_questions.py — screening_questions_service.run (with/without lead_response param)
+
+      Slot prompts MD (6-slot architecture engine compiler v2 + brand slot 2+4):
+        sales_agent/prompts/medical_vertical.md (Slot 2 — domain context Vitalia medical)
+        sales_agent/prompts/medical_safety_rails.md (Slot 4 — ★ NEW Slice 1 cementado D1 ★ hard prohibitions + required footers + channel guards + voice fidelity guidance)
+
+      State overlay:
+        sales_agent/workflows/vitalia_state_overlay.py — VitaliaSalesAgentStateExtension TypedDict (clinic_id mandatory, vertical, screening_outcome, medical_disclaimer_shown, phi_blocked_messages)
+        Register via engine `register_state_extension()` API (READ-ONLY engine consume — no engine modify)
+
+      Personas YAML (Sonnet OK sub-task — data, production_code=false sub-scope):
+        sales_agent/personas/warm_close_default.yaml
+        sales_agent/personas/warm_close_dental.yaml
+        sales_agent/personas/warm_close_estetica.yaml
+        sales_agent/personas/warm_close_psicologia.yaml
+        sales_agent/personas/warm_close_fertilidad.yaml
+
+      Observability subclass (ANTI-DUPLICATION §0):
+        sales_agent/observability/recording/callback_handler.py — VitaliaSalesAgentCallbackHandler(BaseAgentCallbackHandler)
+        sales_agent/observability/recording/turn_envelope.py — VitaliaSalesAgentObservabilityContext(BaseObservabilityContext)
+
+      4 medical guardrails real impl (REPLACE existing scaffold placeholders per 03-arch-be.md § 10 MODIFIED + 03-arch.md § 3.7):
+        compliance/guardrails/medical_safety_no_diagnosis.py — diagnosis term regex + LLM nano classifier
+        compliance/guardrails/medical_safety_no_prescription.py — medication+dosage regex + LLM nano classifier
+        compliance/guardrails/medical_disclaimer_required.py — append disclaimer if medical info terms + missing footer
+        compliance/guardrails/prompt_injection_block_reuse.py — pattern regex (engine reuse pattern)
+
+      NEW arch fitness gate test:
+        vitalia/backend/tests/architecture/test_no_observability_mirror_sales_agent.py
+
+      Extension SDK registration in vitalia/backend/src/modules/vitalia/extensions.py:
+        EXTEND existing register_all — replace EP-3 placeholders with real callables for 3 Adrián tools.
+        EXTEND EP-13 placeholders with 4 real medical guardrail callables.
+    acceptance:
+      test_paths:
+        - vitalia/backend/tests/unit/modules/vitalia/sales_agent/tools/test_send_payment_link.py
+        - vitalia/backend/tests/unit/modules/vitalia/sales_agent/tools/test_reschedule_appointment.py
+        - vitalia/backend/tests/unit/modules/vitalia/sales_agent/tools/test_screening_questions.py
+        - vitalia/backend/tests/unit/modules/vitalia/sales_agent/observability/test_callback_handler.py
+        - vitalia/backend/tests/agentic_evals/sales_agent/test_medical_guardrails.py
+        - vitalia/backend/tests/architecture/test_no_observability_mirror_sales_agent.py
+        - vitalia/backend/tests/architecture/test_vitalia_slot_4_safety_markers_present.py    # existing gate keeps green
+        - vitalia/backend/tests/architecture/test_vitalia_personas_yaml_completeness.py       # existing gate validates 5 NEW personas
+      validator_ids:
+        - be_lint_ruff_check
+        - be_format_ruff
+        - be_arch_fitness_brand_scoped
+        - be_test_unit_sales_agent
+        - be_test_observability_cost_canonicalization
+        - ae_medical_guardrails
+        - ae_anti_duplication_no_observability_mirror
+        - anti_duplication_cross_module_audit
+        - cross_brand_mirror_scan
+        - engine_boundary_no_modification_audit
+    deps: [T-be-services-2]
+    blocked_by:
+      - vitalia-slice-1-infra-cross-cutting/T-infra-2
+    notes: |
+      Slot 4 MEDICAL_SAFETY_RAILS NEW Slice 1 cementado D1 (no delta-spec needed per Chris ratify).
+      Adrián consumes engine sales_agent LangGraph DIRECTLY — NO parallel graph in vitalia/ (§3 NO se toca).
+      Voice fidelity: Adrián OUTPUT respects tenant voice (slot 5 personality_profiles.system_instruction) — voseo OK if tenant configures.
+
+  # ============================================================
+  # T-ag-tools-3  (Lucas 3 tools + persona YAML + slot prompts — Opus 4.7 R23)
+  # ============================================================
+  - id: T-ag-tools-3
+    title: Lucas 3 tools (compute_stage_recommendation, compute_attribution_matrix, compute_referrals_leaderboard) + persona YAML + Lucas slot prompts MD
+    sub_story: vitalia-copilot-tools-impl
+    owner_eligibility: [claude-opus]                # ★ R23 enforce ★
+    production_code: true
+    surface: agentic
+    estimated_loc: 600
+    scope: |
+      Per 03-arch-agentic.md § 4.3 + § 5.3.
+
+      Tools (LangChain @tool):
+        agentic/lucas/tools/compute_stage_recommendation.py — fires lucas_stage_recommendation_service.run (LLM call Kimi reasoning)
+        agentic/lucas/tools/compute_attribution_matrix.py — fires lucas_attribution_service.run (pure DB)
+        agentic/lucas/tools/compute_referrals_leaderboard.py — fires lucas_referrals_service.run (pure DB)
+
+      Persona + prompts (Sonnet OK sub-task for YAML data):
+        agentic/lucas/personas/lucas_growth_setter.yaml — analítico + insights claros + structured RecommendationDTO output
+        agentic/lucas/prompts/lucas_growth_setter_role.md (Slot 1 — Lucas persona)
+        agentic/lucas/prompts/lucas_stage_reasoning_frame.md (Slot 2 — stage-specific reasoning frame; 5 stages = 5 frame variants OR single frame parametric)
+
+      NO Extension SDK registration for Lucas (cron-only Slice 1, internal — invoked by cron worker direct import, NOT EP-3 dispatch).
+
+      Cost validation: tools log cache_creation_input_tokens + cache_read_input_tokens per LLM call (claude-api validator catches silent invalidators).
+    acceptance:
+      test_paths:
+        - vitalia/backend/tests/unit/modules/vitalia/agentic/lucas/tools/test_compute_stage_recommendation.py
+        - vitalia/backend/tests/unit/modules/vitalia/agentic/lucas/tools/test_compute_attribution_matrix.py
+        - vitalia/backend/tests/unit/modules/vitalia/agentic/lucas/tools/test_compute_referrals_leaderboard.py
+      validator_ids:
+        - be_lint_ruff_check
+        - be_format_ruff
+        - be_arch_fitness_brand_scoped
+        - be_test_unit_lucas
+        - spanish_neutro_voseo_check_chrome    # Lucas output text in tuteo per § 3.5 design
+        - anti_duplication_cross_module_audit
+        - cross_brand_mirror_scan
+        - engine_boundary_no_modification_audit
+    deps: [T-be-services-3]
+    blocked_by: []
+    notes: |
+      R23 enforce: Opus 4.7 mandatory.
+      Lucas cron-only Slice 1 per Q2 default. NO chat-invokable. Defer Slice 3.
+      Spanish neutro tuteo profesional (Lucas chrome — UI not sales_agent voice).
+
+  # ============================================================
+  # T-ag-workflows-1  (Valeria wizard supervisor LangGraph + deepagents extract_subagent — Opus 4.7 R23)
+  # ============================================================
+  - id: T-ag-workflows-1
+    title: Valeria wizard LangGraph supervisor topology + deepagents extract_subagent + AsyncPostgresSaver
+    sub_story: vitalia-copilot-tools-impl
+    owner_eligibility: [claude-opus]                # ★ R23 enforce ★
+    production_code: true
+    surface: agentic
+    estimated_loc: 700
+    scope: |
+      Per 03-arch-agentic.md § 2.1 + § 3.1+3.2 + § 7.
+
+      State schema (TypedDict):
+        copilot/workflows/wizard_onboarding_state.py — WizardOnboardingState per design § 1.2 state machine
+
+      LangGraph supervisor topology:
+        copilot/workflows/wizard_onboarding_graph.py — build_wizard_onboarding_graph()
+          Nodes: supervisor (router) + extract_subagent + slot_question_router + live_preview_router + completion_router
+          Conditional edges: every branch → END or named node
+          Max-iter guard: if state["iterations"] > 25 → END
+          AsyncPostgresSaver.from_conn_string(settings.postgres_dsn) — table_prefix vitalia_wizard_onboarding_
+
+      deepagents extract_subagent:
+        copilot/workflows/extract_subagent.py — create_subagent(name="vitalia_wizard_extractor", tools=[scrape, parse_doc, transcribe_audio], middleware=SubAgentMiddleware(allowed_keys_to_subagent={"extraction_subagent_input","tenant_id"}, allowed_keys_from_subagent={"extraction_subagent_output"}), instructions=open("prompts/extractor_subagent.md").read())
+
+      Subagent sandbox sub-tools (explicit, NO inherit parent):
+        copilot/workflows/extract_subagent_tools.py — scrape_website_tool + parse_document_tool + transcribe_audio_tool
+
+      Extension SDK registration EP-4 (copilot_workflow_register):
+        Extend vitalia/backend/src/modules/vitalia/extensions.py — register wizard_onboarding_graph under EP-4.
+
+      SSE v2 stream emission via LangGraph astream_events (modes: updates + messages).
+
+      Cost + latency validation:
+        TTFT p95 <3s (Valeria first message after user action)
+        Wizard wall time p95 <15min
+        Budget cap $0.10 USD per session (BudgetGuard agent_kind="copilot")
+    acceptance:
+      test_paths:
+        - vitalia/backend/tests/unit/modules/vitalia/copilot/workflows/test_wizard_onboarding_state.py
+        - vitalia/backend/tests/integration/modules/vitalia/copilot/workflows/test_wizard_onboarding_graph.py
+        - vitalia/backend/tests/integration/modules/vitalia/copilot/workflows/test_extract_subagent_sandbox.py
+        - vitalia/backend/tests/agentic_evals/cache/test_vitalia_cache_hit_rate.py
+        - vitalia/backend/tests/agentic_evals/cost_budget/test_vitalia_cost_budget.py
+      validator_ids:
+        - be_lint_ruff_check
+        - be_format_ruff
+        - be_arch_fitness_brand_scoped
+        - be_test_integration_wizard_graph
+        - ae_cache_hit_rate_smoke
+        - ae_cost_budget_smoke
+        - anti_duplication_cross_module_audit
+        - engine_boundary_no_modification_audit
+    deps: [T-ag-tools-1, T-be-services-1]
+    blocked_by: []
+
+  # ============================================================
+  # T-ag-workflows-2  (Lucas daily analysis LangGraph ReAct + cron integration — Opus 4.7 R23)
+  # ============================================================
+  - id: T-ag-workflows-2
+    title: Lucas daily analysis LangGraph ReAct topology + AsyncPostgresSaver + cron integration smoke
+    sub_story: vitalia-copilot-tools-impl
+    owner_eligibility: [claude-opus]                # ★ R23 enforce ★
+    production_code: true
+    surface: agentic
+    estimated_loc: 500
+    scope: |
+      Per 03-arch-agentic.md § 2.3 + § 3.4.
+
+      State schema:
+        agentic/lucas/workflows/lucas_analysis_state.py — LucasAnalysisState TypedDict
+
+      LangGraph ReAct topology:
+        agentic/lucas/workflows/lucas_daily_analysis_graph.py — build_lucas_daily_analysis_graph()
+          Nodes: init → stage_analyze (loop 5 stages) → attribution → referrals → END
+          Bounded by stages list (no max-iter guard >25 needed)
+          AsyncPostgresSaver — table_prefix vitalia_lucas_analysis_
+
+      Integration with cron scheduler (T-be-services-3 produced):
+        Cron daily 06:00 LOCAL tenant TZ → invokes internal POST /api/v1/vitalia/lucas/trigger → spawns lucas_daily_analysis_graph execution per tenant
+        Persist outputs to lucas_recommendations + attribution_matrix_snapshots + referrals_leaderboard_snapshots
+        Emit lucas_daily_analysis_complete domain event (outbox) → fan-out cards refresh /marketing + /pipeline (FE sub-story consumes)
+
+      Cost + latency validation:
+        Per tenant daily wall time p95 <2min
+        Budget cap $0.25 USD per tenant per cron run (BudgetGuard agent_kind="copilot" Others pool)
+        Per-stage try/except → status='skipped_timeout' or 'skipped_budget' on failure (partial success OK)
+    acceptance:
+      test_paths:
+        - vitalia/backend/tests/unit/modules/vitalia/agentic/lucas/workflows/test_lucas_analysis_state.py
+        - vitalia/backend/tests/integration/modules/vitalia/agentic/lucas/workflows/test_lucas_daily_analysis_graph.py
+        - vitalia/backend/tests/agentic_evals/agentic/lucas/test_lucas_smoke.py
+      validator_ids:
+        - be_lint_ruff_check
+        - be_format_ruff
+        - be_arch_fitness_brand_scoped
+        - be_test_integration_lucas_graph
+        - ae_lucas_smoke
+        - ae_cost_budget_smoke
+        - anti_duplication_cross_module_audit
+        - engine_boundary_no_modification_audit
+    deps: [T-ag-tools-3, T-be-services-3]
+    blocked_by: []
+
+  # ============================================================
+  # T-ag-evals-1  (16 goldens YAML + 16 personas YAML + runners + voice fidelity + pass^k harness — Sonnet OK data files; Opus for runner harness production_code=true)
+  # ============================================================
+  - id: T-ag-evals-1
+    title: Eval goldens + personas YAML + voice fidelity grader smoke + pass^k runners (16 goldens total Slice 1)
+    sub_story: vitalia-copilot-tools-impl
+    owner_eligibility: [claude-opus, claude-sonnet] # split sub-tasks: YAML data → Sonnet (production_code=false); runners harness → Opus (production_code=true per R23)
+    production_code: true                            # mixed; gate by ticket-level Opus default; sub-tasks YAML may be Sonnet OK
+    surface: agentic
+    estimated_loc: 1200
+    scope: |
+      Per 03-arch-agentic.md § 9 + 04-validators.yaml § agentic_eval + design § 1.7 + § 2.8 + § 3.7.
+
+      Sub-task A — Adrián 12 goldens YAML + 12 personas YAML (Sonnet OK sub-task — production_code=false data):
+        vitalia/backend/tests/agentic_evals/sales_agent/goldens/dental/{happy_curious,objection_price,adversarial_phi}.yaml
+        vitalia/backend/tests/agentic_evals/sales_agent/goldens/estetica/{happy_high_ticket,objection_time,adversarial_contraindication}.yaml
+        vitalia/backend/tests/agentic_evals/sales_agent/goldens/psicologia/{happy_first_session,followup_30d,adversarial_crisis}.yaml
+        vitalia/backend/tests/agentic_evals/sales_agent/goldens/fertilidad/{happy_sensitive,couple,reschedule}.yaml
+        vitalia/backend/tests/agentic_evals/sales_agent/personas/{dental_happy_curious,dental_objection_price,dental_adversarial_phi,estetica_happy_high_ticket,estetica_objection_time,estetica_adversarial_contraindication,psicologia_happy_first_session,psicologia_followup_30d,psicologia_adversarial_crisis,fertilidad_happy_sensitive,fertilidad_couple,fertilidad_reschedule}.yaml
+        Each golden YAML schema: golden_id + vertical + scenario + persona + input_conversation + expected_tools_trajectory + expected_voice_fidelity_score + expected_medical_guardrails + expected_channel_guards + expected_outcome
+
+      Sub-task B — Wizard 4 goldens YAML + 4 personas YAML (Sonnet OK):
+        vitalia/backend/tests/agentic_evals/copilot/wizard_goldens/{happy,negative,edge_browser_close,adversarial}.yaml
+        vitalia/backend/tests/agentic_evals/copilot/wizard_personas/{tenant_novato_tech_dental,tenant_apurado_no_attaches_only_text,tenant_distraido_se_va_vuelve,tenant_malicioso_intenta_jailbreak}.yaml
+
+      Sub-task C — Runners harness (Opus R23 production_code=true):
+        vitalia/backend/tests/agentic_evals/sales_agent/test_pass_k_evaluation.py — parametrize 12 goldens × 3 trials, grades via 5 rubrics, asserts pass_k ≥ 0.5
+        vitalia/backend/tests/agentic_evals/copilot/test_wizard_pass_k_evaluation.py — same for 4 wizard goldens
+        vitalia/backend/tests/agentic_evals/sales_agent/test_voice_fidelity_vitalia.py — voice fidelity grader smoke (engine grader from core/luana-core-brand-studio/) anchored per-tenant personality_profile.system_instruction
+        Consume engine `core/luana-core-brand-studio/src/luana_core_brand_studio/application/voice_fidelity/grader.py` (READ-ONLY)
+
+      Trial policy (cementado design):
+        trials_per_scenario = 3
+        per_trial_threshold = 0.66 (≥2/3 dimensions pass per trial)
+        pass_k_threshold = 0.5 (≥50% goldens pass k=3)
+        Rubrics: voice-fidelity + no-hallucination + tool-trajectory + pii-redaction + safety
+        voice_fidelity_min: 0.85
+    acceptance:
+      test_paths:
+        - vitalia/backend/tests/agentic_evals/sales_agent/test_pass_k_evaluation.py
+        - vitalia/backend/tests/agentic_evals/sales_agent/test_voice_fidelity_vitalia.py
+        - vitalia/backend/tests/agentic_evals/sales_agent/test_medical_guardrails.py
+        - vitalia/backend/tests/agentic_evals/copilot/test_wizard_pass_k_evaluation.py
+        - vitalia/backend/tests/agentic_evals/agentic/lucas/test_lucas_smoke.py
+      validator_ids:
+        - be_lint_ruff_check
+        - be_format_ruff
+        - be_arch_fitness_brand_scoped
+        - ae_voice_fidelity_vitalia
+        - ae_medical_guardrails
+        - ae_pass_k_adrian_goldens
+        - ae_pass_k_wizard_goldens
+        - ae_lucas_smoke
+        - ae_cache_hit_rate_smoke
+        - ae_cost_budget_smoke
+    deps: [T-ag-tools-1, T-ag-tools-2, T-ag-tools-3, T-ag-workflows-1, T-ag-workflows-2]
+    blocked_by: []
+    notes: |
+      Lucas SMOKE only Slice 1 per Q3 default (full eval goldens Lucas → defer Slice 2).
+      R23: YAML data sub-tasks Sonnet OK (production_code=false); runners harness Opus (production_code=true).
+      Hardcoded YAML Slice 1 per Q3 default — plugin EP-tessl__eval/goldens registry defer Slice 2.
+
+# ============================================================
+# DAG visualization
+# ============================================================
+dag:
+  - T-be-migrations-1: []
+  - T-be-services-1: [T-be-migrations-1]
+  - T-be-services-2: [T-be-migrations-1]
+  - T-be-services-3: [T-be-migrations-1]
+  - T-ag-tools-1: [T-be-services-1]
+  - T-ag-tools-2: [T-be-services-2]
+  - T-ag-tools-3: [T-be-services-3]
+  - T-ag-workflows-1: [T-ag-tools-1, T-be-services-1]
+  - T-ag-workflows-2: [T-ag-tools-3, T-be-services-3]
+  - T-ag-evals-1: [T-ag-tools-1, T-ag-tools-2, T-ag-tools-3, T-ag-workflows-1, T-ag-workflows-2]
+
+# ============================================================
+# Parallel execution windows
+# ============================================================
+parallel_windows:
+  wave_1:
+    - T-be-migrations-1
+  wave_2_parallel:
+    - T-be-services-1   # Valeria
+    - T-be-services-2   # Adrián
+    - T-be-services-3   # Lucas
+  wave_3_parallel:
+    - T-ag-tools-1      # Valeria tools
+    - T-ag-tools-2      # Adrián tools
+    - T-ag-tools-3      # Lucas tools
+  wave_4_parallel:
+    - T-ag-workflows-1  # Valeria graph
+    - T-ag-workflows-2  # Lucas graph
+  wave_5:
+    - T-ag-evals-1      # Goldens + runners (last — depends on all)
+
+# ============================================================
+# R23 enforcement summary
+# ============================================================
+r23_routing:
+  opus_required:
+    - T-ag-tools-1
+    - T-ag-tools-2
+    - T-ag-tools-3
+    - T-ag-workflows-1
+    - T-ag-workflows-2
+    - T-ag-evals-1     # runners sub-task production_code=true (YAML sub-task may be Sonnet OK)
+  sonnet_default:
+    - T-be-migrations-1
+    - T-be-services-1
+    - T-be-services-2
+    - T-be-services-3
+  notes: |
+    /dev-team picks model per ticket owner_eligibility. AGENTIC production_code=true MUST Opus 4.7 (R23).
+    Sub-tasks within tickets may be Sonnet OK if explicitly data/docs scope (e.g., YAML personas in T-ag-tools-2, YAML goldens in T-ag-evals-1).
+
+# ============================================================
+# Hot-fix N/A
+# ============================================================
+hotfix_repro: not_applicable    # this story is feature build, not hot-fix

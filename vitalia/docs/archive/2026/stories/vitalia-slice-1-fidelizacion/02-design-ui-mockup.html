@@ -1,0 +1,428 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Vitalia · /fidelización — mockup v1 Batch 5 reframe</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    :root {
+      --vitalia-cian: 198 99% 49%;
+      --vitalia-purpura: 287 53% 37%;
+      --vitalia-amarillo: 53 99% 51%;
+      --vitalia-azul-marino: 244 84% 32%;
+      --vitalia-verde-lima: 70 73% 51%;
+      --vitalia-bg: 220 28% 98%;
+      --vitalia-surface: 0 0% 100%;
+      --vitalia-surface-alt: 220 38% 98%;
+      --vitalia-muted: 220 33% 96%;
+      --vitalia-text: 226 36% 16%;
+      --vitalia-text-muted: 220 9% 46%;
+      --vitalia-text-faint: 220 9% 65%;
+      --vitalia-border: 222 18% 93%;
+      --vitalia-border-soft: 220 25% 96%;
+      --vitalia-success: 142 76% 36%;
+      --vitalia-warning: 33 91% 44%;
+      --vitalia-danger: 0 73% 50%;
+      --vitalia-info: 199 89% 48%;
+    }
+    body { font-family: 'Inter', system-ui, sans-serif; background: hsl(var(--vitalia-bg)); color: hsl(var(--vitalia-text)); }
+    .grad-valeria { background: linear-gradient(135deg, #01B2F8 0%, #7B2D91 100%); }
+    .grad-adrian  { background: linear-gradient(135deg, #7B2D91 0%, #180D95 100%); }
+    .grad-lucas   { background: linear-gradient(135deg, #B8DC2A 0%, #01B2F8 100%); }
+    .pill { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; font-size: 10px; font-weight: 600; }
+    .urgency-critical { color: hsl(var(--vitalia-danger)); }
+    .urgency-alert { color: hsl(var(--vitalia-warning)); }
+    .urgency-waiting { color: hsl(var(--vitalia-cian)); }
+    .urgency-up_to_date { color: hsl(var(--vitalia-success)); }
+    .tab-active { background: linear-gradient(to right, hsl(var(--vitalia-cian)/0.10), transparent); border-left: 3px solid hsl(var(--vitalia-cian)); color: hsl(var(--vitalia-azul-marino)); font-weight: 600; }
+  </style>
+</head>
+<body class="min-h-screen">
+  <div class="px-4 py-2 bg-[hsl(var(--vitalia-azul-marino))] text-white text-[11px] flex items-center justify-between">
+    <span>📐 <strong>Mockup Vitalia · /fidelización v1 Batch 5 (reframe ratificado 2026-05-17)</strong> · scope = Adherencia + Re-engagement · NPS reducido a stat card</span>
+    <span class="opacity-70">5 tabs por patrón · 6 cron jobs · 5 templates Meta · 4 patrones automatización agentic</span>
+  </div>
+
+  <div class="h-[940px] grid" style="grid-template-columns: 240px 1fr 280px 80px;">
+    <!-- Sidebar 240 -->
+    <aside class="bg-white border-r border-[hsl(var(--vitalia-border))] flex flex-col">
+      <div class="h-14 px-4 flex items-center gap-2 border-b border-[hsl(var(--vitalia-border))]">
+        <div class="w-7 h-7 rounded grad-valeria flex items-center justify-center text-white font-bold text-[11px]">V</div>
+        <span class="font-bold text-[hsl(var(--vitalia-azul-marino))] text-sm">Vitalia</span>
+      </div>
+      <div class="px-4 py-3 border-b border-[hsl(var(--vitalia-border-soft))]">
+        <div class="text-[10px] text-[hsl(var(--vitalia-text-muted))] uppercase tracking-wide mb-1">Clínica</div>
+        <button class="w-full text-left flex items-center justify-between px-2 py-1.5 rounded hover:bg-[hsl(var(--vitalia-muted))]">
+          <span class="text-xs font-semibold">Dental Sonríe</span>
+          <i data-lucide="chevron-down" class="w-3 h-3 text-[hsl(var(--vitalia-text-muted))]"></i>
+        </button>
+      </div>
+      <nav class="flex-1 px-2 py-3 space-y-1 overflow-auto">
+        <a class="flex items-center gap-2.5 px-3 py-2 rounded text-sm text-[hsl(var(--vitalia-text-muted))] hover:bg-[hsl(var(--vitalia-bg))]"><i data-lucide="message-square" class="w-4 h-4"></i><span>Inbox</span><span class="ml-auto pill bg-[hsl(var(--vitalia-danger)/0.12)] text-[hsl(var(--vitalia-danger))]">3</span></a>
+        <a class="flex items-center gap-2.5 px-3 py-2 rounded text-sm text-[hsl(var(--vitalia-text-muted))] hover:bg-[hsl(var(--vitalia-bg))]"><i data-lucide="layout-grid" class="w-4 h-4"></i><span>Pipeline</span></a>
+        <a class="flex items-center gap-2.5 px-3 py-2 rounded text-sm text-[hsl(var(--vitalia-text-muted))] hover:bg-[hsl(var(--vitalia-bg))]"><i data-lucide="calendar-days" class="w-4 h-4"></i><span>Agenda</span></a>
+        <a class="flex items-center gap-2.5 px-3 py-2 rounded text-sm font-semibold text-[hsl(var(--vitalia-azul-marino))] bg-gradient-to-r from-[hsl(var(--vitalia-cian)/0.10)] to-transparent border-l-[3px] border-[hsl(var(--vitalia-cian))] pl-[9px]"><i data-lucide="heart-handshake" class="w-4 h-4"></i><span>Fidelización</span></a>
+        <a class="flex items-center gap-2.5 px-3 py-2 rounded text-sm text-[hsl(var(--vitalia-text-muted))] hover:bg-[hsl(var(--vitalia-bg))]"><i data-lucide="bar-chart-3" class="w-4 h-4"></i><span>Marketing</span></a>
+        <div class="h-px bg-[hsl(var(--vitalia-border-soft))] my-3"></div>
+        <a class="flex items-center gap-2.5 px-3 py-2 rounded text-sm text-[hsl(var(--vitalia-text-muted))] hover:bg-[hsl(var(--vitalia-bg))]"><i data-lucide="users" class="w-4 h-4"></i><span>CRM</span></a>
+        <a class="flex items-center gap-2.5 px-3 py-2 rounded text-sm text-[hsl(var(--vitalia-text-muted))] hover:bg-[hsl(var(--vitalia-bg))]"><i data-lucide="stethoscope" class="w-4 h-4"></i><span>Tratamientos</span></a>
+        <a class="flex items-center gap-2.5 px-3 py-2 rounded text-sm text-[hsl(var(--vitalia-text-muted))] hover:bg-[hsl(var(--vitalia-bg))]"><i data-lucide="package" class="w-4 h-4"></i><span>Ofertas</span></a>
+      </nav>
+      <div class="border-t border-[hsl(var(--vitalia-border))] px-3 py-2.5 flex items-center gap-2">
+        <div class="w-7 h-7 rounded-full bg-[hsl(var(--vitalia-azul-marino))] text-white text-[11px] font-bold flex items-center justify-center">CM</div>
+        <div class="flex-1 min-w-0">
+          <div class="text-xs font-semibold truncate">Carla M.</div>
+          <div class="text-[10px] text-[hsl(var(--vitalia-text-muted))]">Recepción</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN /fidelización -->
+    <main class="flex flex-col overflow-hidden">
+      <header class="h-14 bg-white border-b border-[hsl(var(--vitalia-border))] px-4 flex items-center gap-4">
+        <h1 class="text-base font-semibold text-[hsl(var(--vitalia-azul-marino))]">Fidelización</h1>
+        <span class="text-xs text-[hsl(var(--vitalia-text-muted))]">Adherencia + Re-engagement · maximizar la vuelta</span>
+        <div class="ml-auto flex items-center gap-3">
+          <button class="text-xs text-[hsl(var(--vitalia-text-muted))] hover:text-[hsl(var(--vitalia-text))] flex items-center gap-1.5 px-2 py-1 rounded hover:bg-[hsl(var(--vitalia-muted))]">
+            <i data-lucide="search" class="w-3.5 h-3.5"></i><span>⌘K</span>
+          </button>
+          <button class="relative w-8 h-8 rounded hover:bg-[hsl(var(--vitalia-muted))] flex items-center justify-center">
+            <i data-lucide="bell" class="w-4 h-4 text-[hsl(var(--vitalia-text-muted))]"></i>
+            <span class="absolute top-1 right-1 w-2 h-2 rounded-full bg-[hsl(var(--vitalia-danger))]"></span>
+          </button>
+        </div>
+      </header>
+
+      <!-- KPIs hero (5 stat cards) -->
+      <div class="bg-white border-b border-[hsl(var(--vitalia-border))] px-4 py-4 grid grid-cols-5 gap-3">
+        <div class="bg-[hsl(var(--vitalia-surface))] border border-[hsl(var(--vitalia-border))] rounded-lg p-3 shadow-sm">
+          <div class="text-[10px] font-semibold uppercase tracking-wide text-[hsl(var(--vitalia-text-muted))] mb-1">Pacientes seguimiento</div>
+          <div class="text-2xl font-bold text-[hsl(var(--vitalia-azul-marino))]">180</div>
+          <div class="text-[10px] text-[hsl(var(--vitalia-success))] mt-1">+12 vs semana anterior</div>
+        </div>
+        <div class="bg-[hsl(var(--vitalia-surface))] border border-[hsl(var(--vitalia-warning))] border-opacity-30 rounded-lg p-3 shadow-sm">
+          <div class="text-[10px] font-semibold uppercase tracking-wide text-[hsl(var(--vitalia-text-muted))] mb-1">Próximos a abandonar</div>
+          <div class="text-2xl font-bold text-[hsl(var(--vitalia-warning))]">8 ⚠</div>
+          <div class="text-[10px] text-[hsl(var(--vitalia-text-muted))] mt-1">requieren acción</div>
+        </div>
+        <div class="bg-[hsl(var(--vitalia-surface))] border border-[hsl(var(--vitalia-border))] rounded-lg p-3 shadow-sm">
+          <div class="text-[10px] font-semibold uppercase tracking-wide text-[hsl(var(--vitalia-text-muted))] mb-1">Tasa retorno</div>
+          <div class="text-2xl font-bold text-[hsl(var(--vitalia-azul-marino))]">74%</div>
+          <div class="text-[10px] text-[hsl(var(--vitalia-success))] mt-1">+6pp vs período ant.</div>
+        </div>
+        <div class="bg-[hsl(var(--vitalia-surface))] border border-[hsl(var(--vitalia-border))] rounded-lg p-3 shadow-sm">
+          <div class="text-[10px] font-semibold uppercase tracking-wide text-[hsl(var(--vitalia-text-muted))] mb-1">Re-engaged este mes</div>
+          <div class="text-2xl font-bold text-[hsl(var(--vitalia-success))]">12 ✓</div>
+          <div class="text-[10px] text-[hsl(var(--vitalia-success))] mt-1">+4 vs mes anterior</div>
+        </div>
+        <div class="bg-[hsl(var(--vitalia-surface))] border border-[hsl(var(--vitalia-border))] rounded-lg p-3 shadow-sm">
+          <div class="text-[10px] font-semibold uppercase tracking-wide text-[hsl(var(--vitalia-text-muted))] mb-1">NPS promedio · 142r</div>
+          <div class="text-2xl font-bold text-[hsl(var(--vitalia-azul-marino))]">72</div>
+          <div class="text-[10px] text-[hsl(var(--vitalia-success))] mt-1">+5 vs período ant.</div>
+        </div>
+      </div>
+
+      <!-- Body: Tabs vertical + content -->
+      <div class="flex-1 flex overflow-hidden">
+        <!-- Tabs vertical 220px -->
+        <nav class="w-[220px] bg-white border-r border-[hsl(var(--vitalia-border))] p-3 space-y-1 overflow-auto">
+          <div class="text-[10px] font-bold uppercase tracking-wide text-[hsl(var(--vitalia-text-muted))] px-2 pb-2">Patrones de re-engagement</div>
+          <button class="w-full text-left px-3 py-2.5 rounded text-sm tab-active flex items-center gap-2">
+            <i data-lucide="repeat" class="w-4 h-4"></i>
+            <span class="flex-1">Tratamientos en curso</span>
+            <span class="pill bg-[hsl(var(--vitalia-cian))] text-white">12</span>
+          </button>
+          <button class="w-full text-left px-3 py-2.5 rounded text-sm text-[hsl(var(--vitalia-text-muted))] hover:bg-[hsl(var(--vitalia-muted))] flex items-center gap-2">
+            <i data-lucide="stethoscope" class="w-4 h-4"></i>
+            <span class="flex-1">Follow-ups médicos</span>
+            <span class="pill bg-[hsl(var(--vitalia-muted))] text-[hsl(var(--vitalia-text))]">5</span>
+          </button>
+          <button class="w-full text-left px-3 py-2.5 rounded text-sm text-[hsl(var(--vitalia-text-muted))] hover:bg-[hsl(var(--vitalia-muted))] flex items-center gap-2">
+            <i data-lucide="calendar-check" class="w-4 h-4"></i>
+            <span class="flex-1">Mantenimientos</span>
+            <span class="pill bg-[hsl(var(--vitalia-muted))] text-[hsl(var(--vitalia-text))]">23</span>
+          </button>
+          <button class="w-full text-left px-3 py-2.5 rounded text-sm text-[hsl(var(--vitalia-text-muted))] hover:bg-[hsl(var(--vitalia-muted))] flex items-center gap-2">
+            <i data-lucide="user-x" class="w-4 h-4"></i>
+            <span class="flex-1">Ausencias largas</span>
+            <span class="pill bg-[hsl(var(--vitalia-muted))] text-[hsl(var(--vitalia-text))]">8</span>
+          </button>
+          <button class="w-full text-left px-3 py-2.5 rounded text-sm text-[hsl(var(--vitalia-text-muted))] hover:bg-[hsl(var(--vitalia-muted))] flex items-center gap-2">
+            <i data-lucide="star" class="w-4 h-4"></i>
+            <span class="flex-1">NPS recibido</span>
+            <span class="pill bg-[hsl(var(--vitalia-muted))] text-[hsl(var(--vitalia-text))]">142</span>
+          </button>
+          <div class="h-px bg-[hsl(var(--vitalia-border-soft))] my-3"></div>
+          <div class="px-3 py-2 text-[10px] text-[hsl(var(--vitalia-text-faint))] leading-relaxed">
+            <p class="mb-1.5"><strong>6 cron jobs</strong> scheduled detectan patrones automático.</p>
+            <p>Adrián envía recordatorios via <code class="bg-[hsl(var(--vitalia-muted))] px-1 rounded">proactive_outbound</code> origin (atribución correcta).</p>
+          </div>
+        </nav>
+
+        <!-- Tab content "Tratamientos en curso" -->
+        <div class="flex-1 overflow-auto bg-[hsl(var(--vitalia-surface-alt))]">
+          <!-- Filters tab -->
+          <div class="px-4 py-3 bg-white border-b border-[hsl(var(--vitalia-border))] flex items-center gap-2 flex-wrap text-xs">
+            <span class="text-[hsl(var(--vitalia-text-muted))] uppercase tracking-wide text-[9px] font-bold">Tratamientos en curso (12)</span>
+            <span class="text-[hsl(var(--vitalia-text-muted))]">—</span>
+            <span class="text-[hsl(var(--vitalia-text-muted))]">Orden por urgencia gap_days</span>
+            <div class="ml-auto flex items-center gap-2">
+              <button class="px-2.5 py-1.5 rounded border border-[hsl(var(--vitalia-border))] bg-white flex items-center gap-1.5">
+                <span>Vertical:</span><span class="font-semibold">Todas</span>
+                <i data-lucide="chevron-down" class="w-3 h-3"></i>
+              </button>
+              <button class="px-2.5 py-1.5 rounded border border-[hsl(var(--vitalia-border))] bg-white flex items-center gap-1.5">
+                <span>Doctor:</span><span class="font-semibold">Todos</span>
+                <i data-lucide="chevron-down" class="w-3 h-3"></i>
+              </button>
+              <label class="px-2.5 py-1.5 rounded border border-[hsl(var(--vitalia-border-soft))] bg-[hsl(var(--vitalia-muted))] flex items-center gap-1.5 cursor-pointer">
+                <input type="checkbox" class="w-3 h-3" /> <span>Solo críticos</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Cards list -->
+          <div class="p-4 space-y-3">
+            <!-- Card 1 CRÍTICO -->
+            <div class="bg-white border border-[hsl(var(--vitalia-danger))] border-opacity-40 rounded-lg p-4 shadow-sm">
+              <div class="flex items-start justify-between gap-3">
+                <div class="flex-1">
+                  <div class="flex items-center gap-2 mb-1.5">
+                    <span class="pill bg-[hsl(var(--vitalia-danger)/0.12)] text-[hsl(var(--vitalia-danger))]">⚠ CRÍTICO</span>
+                    <strong class="text-sm font-semibold">M. Rodríguez</strong>
+                    <span class="text-xs text-[hsl(var(--vitalia-text-muted))]">·</span>
+                    <span class="text-xs text-[hsl(var(--vitalia-text-muted))]">Ortodoncia</span>
+                    <span class="text-xs font-medium text-[hsl(var(--vitalia-text))]">· 4/12 sesiones</span>
+                  </div>
+                  <div class="text-[11px] text-[hsl(var(--vitalia-text-muted))]">
+                    <strong class="text-[hsl(var(--vitalia-danger))]">32d sin actividad</strong> · Dr. Mendoza · última 18 Abr 2026
+                  </div>
+                </div>
+                <button class="text-[hsl(var(--vitalia-text-muted))] hover:text-[hsl(var(--vitalia-text))] w-7 h-7 rounded hover:bg-[hsl(var(--vitalia-muted))] flex items-center justify-center">
+                  <i data-lucide="more-horizontal" class="w-4 h-4"></i>
+                </button>
+              </div>
+              <div class="mt-3 flex items-center gap-2">
+                <button class="text-xs px-3 py-1.5 rounded bg-[hsl(var(--vitalia-azul-marino))] text-white font-semibold hover:bg-[hsl(var(--vitalia-purpura))] flex items-center gap-1.5">
+                  <span class="text-[10px]">📲</span> Adrián recordatorio WA
+                </button>
+                <button class="text-xs px-3 py-1.5 rounded border border-[hsl(var(--vitalia-cian))] text-[hsl(var(--vitalia-azul-marino))] hover:bg-[hsl(var(--vitalia-cian)/0.05)] flex items-center gap-1.5">
+                  <i data-lucide="calendar-plus" class="w-3 h-3"></i> Sugerir slots
+                </button>
+                <button class="text-xs px-3 py-1.5 rounded border border-[hsl(var(--vitalia-border))] text-[hsl(var(--vitalia-text-muted))] hover:bg-[hsl(var(--vitalia-muted))] flex items-center gap-1.5">
+                  <i data-lucide="pause" class="w-3 h-3"></i> Pausar 30d
+                </button>
+              </div>
+            </div>
+
+            <!-- Card 2 CRÍTICO -->
+            <div class="bg-white border border-[hsl(var(--vitalia-danger))] border-opacity-40 rounded-lg p-4 shadow-sm">
+              <div class="flex items-start justify-between gap-3">
+                <div class="flex-1">
+                  <div class="flex items-center gap-2 mb-1.5">
+                    <span class="pill bg-[hsl(var(--vitalia-danger)/0.12)] text-[hsl(var(--vitalia-danger))]">⚠ CRÍTICO</span>
+                    <strong class="text-sm font-semibold">A. Vega</strong>
+                    <span class="text-xs text-[hsl(var(--vitalia-text-muted))]">·</span>
+                    <span class="text-xs text-[hsl(var(--vitalia-text-muted))]">Depilación láser</span>
+                    <span class="text-xs font-medium text-[hsl(var(--vitalia-text))]">· 2/6 sesiones</span>
+                  </div>
+                  <div class="text-[11px] text-[hsl(var(--vitalia-text-muted))]">
+                    <strong class="text-[hsl(var(--vitalia-danger))]">47d sin actividad</strong> · Dra. Soto · última 4 Abr 2026
+                  </div>
+                </div>
+                <button class="text-[hsl(var(--vitalia-text-muted))] hover:text-[hsl(var(--vitalia-text))] w-7 h-7 rounded hover:bg-[hsl(var(--vitalia-muted))] flex items-center justify-center">
+                  <i data-lucide="more-horizontal" class="w-4 h-4"></i>
+                </button>
+              </div>
+              <div class="mt-3 flex items-center gap-2">
+                <button class="text-xs px-3 py-1.5 rounded bg-[hsl(var(--vitalia-azul-marino))] text-white font-semibold hover:bg-[hsl(var(--vitalia-purpura))] flex items-center gap-1.5">
+                  <span class="text-[10px]">📲</span> Adrián recordatorio WA
+                </button>
+                <button class="text-xs px-3 py-1.5 rounded border border-[hsl(var(--vitalia-cian))] text-[hsl(var(--vitalia-azul-marino))] hover:bg-[hsl(var(--vitalia-cian)/0.05)] flex items-center gap-1.5">
+                  <i data-lucide="calendar-plus" class="w-3 h-3"></i> Sugerir slots
+                </button>
+                <button class="text-xs px-3 py-1.5 rounded border border-[hsl(var(--vitalia-border))] text-[hsl(var(--vitalia-text-muted))] hover:bg-[hsl(var(--vitalia-muted))] flex items-center gap-1.5">
+                  <i data-lucide="pause" class="w-3 h-3"></i> Pausar 30d
+                </button>
+              </div>
+            </div>
+
+            <!-- Card 3 ESPERANDO (Adrián envió, esperando respuesta) -->
+            <div class="bg-white border border-[hsl(var(--vitalia-cian))] border-opacity-40 rounded-lg p-4 shadow-sm">
+              <div class="flex items-start justify-between gap-3">
+                <div class="flex-1">
+                  <div class="flex items-center gap-2 mb-1.5">
+                    <span class="pill bg-[hsl(var(--vitalia-cian)/0.12)] text-[hsl(var(--vitalia-cian))]">✓ ESPERANDO</span>
+                    <strong class="text-sm font-semibold">J. Pérez</strong>
+                    <span class="text-xs text-[hsl(var(--vitalia-text-muted))]">·</span>
+                    <span class="text-xs text-[hsl(var(--vitalia-text-muted))]">Implante</span>
+                    <span class="text-xs font-medium text-[hsl(var(--vitalia-text))]">· 1/3 sesiones</span>
+                  </div>
+                  <div class="text-[11px] text-[hsl(var(--vitalia-text-muted))] mb-1">14d · Dr. Mendoza · última 5 May 2026</div>
+                  <div class="flex items-center gap-1.5 mt-2 text-[11px]">
+                    <div class="w-5 h-5 rounded-full grad-adrian text-white text-[9px] font-bold flex items-center justify-center">A</div>
+                    <span class="text-[hsl(var(--vitalia-text-muted))]">Adrián envió recordatorio hace 2d · esperando respuesta</span>
+                  </div>
+                </div>
+                <button class="text-[hsl(var(--vitalia-text-muted))] hover:text-[hsl(var(--vitalia-text))] w-7 h-7 rounded hover:bg-[hsl(var(--vitalia-muted))] flex items-center justify-center">
+                  <i data-lucide="more-horizontal" class="w-4 h-4"></i>
+                </button>
+              </div>
+              <div class="mt-3 flex items-center gap-2">
+                <button class="text-xs px-3 py-1.5 rounded border border-[hsl(var(--vitalia-cian))] text-[hsl(var(--vitalia-azul-marino))] hover:bg-[hsl(var(--vitalia-cian)/0.05)] flex items-center gap-1.5">
+                  <i data-lucide="message-square" class="w-3 h-3"></i> Ver conversación
+                  <i data-lucide="external-link" class="w-3 h-3"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Card 4 AL DÍA (visible para context, no requiere acción) -->
+            <div class="bg-[hsl(var(--vitalia-surface-alt))] border border-[hsl(var(--vitalia-border-soft))] rounded-lg p-3 opacity-75">
+              <div class="flex items-center gap-2">
+                <span class="pill bg-[hsl(var(--vitalia-success)/0.12)] text-[hsl(var(--vitalia-success))]">✓ AL DÍA</span>
+                <strong class="text-xs font-semibold">S. López</strong>
+                <span class="text-[10px] text-[hsl(var(--vitalia-text-muted))]">· Ortodoncia 6/12 · próx 22 May confirmada</span>
+              </div>
+            </div>
+
+            <!-- Pausado -->
+            <div class="bg-[hsl(var(--vitalia-surface-alt))] border border-[hsl(var(--vitalia-border-soft))] rounded-lg p-3 opacity-65">
+              <div class="flex items-center gap-2">
+                <span class="pill bg-[hsl(var(--vitalia-text-muted)/0.12)] text-[hsl(var(--vitalia-text-muted))]">🔇 PAUSADO</span>
+                <strong class="text-xs font-semibold">R. Cruz</strong>
+                <span class="text-[10px] text-[hsl(var(--vitalia-text-muted))]">· Estética facial 3/6 · pausado hasta 15 Jun · razón: viaje paciente</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Activity footer -->
+          <div class="border-t border-[hsl(var(--vitalia-border))] bg-white px-4 py-2.5 text-[11px] text-[hsl(var(--vitalia-text-muted))] italic">
+            <span class="font-semibold text-[hsl(var(--vitalia-azul-marino))]">Adrián</span> envió 3 recordatorios hoy · 1 reagendó · 1 esperando ·
+            Sistema ejecutó <code class="bg-[hsl(var(--vitalia-muted))] px-1.5 py-0.5 rounded not-italic text-[10px]">cron multi_session_gap_sweep</code> hace 1h
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- ContactSidebar 280 (M. Rodríguez seleccionado) -->
+    <aside class="bg-white border-l border-[hsl(var(--vitalia-border))] flex flex-col overflow-auto">
+      <div class="px-4 py-3 border-b border-[hsl(var(--vitalia-border))] flex items-center justify-between">
+        <button class="text-[hsl(var(--vitalia-text-muted))] hover:text-[hsl(var(--vitalia-text))] text-xs flex items-center gap-1">
+          <i data-lucide="x" class="w-3.5 h-3.5"></i> Cerrar
+        </button>
+        <button class="text-[hsl(var(--vitalia-text-muted))] hover:text-[hsl(var(--vitalia-text))] w-7 h-7 rounded hover:bg-[hsl(var(--vitalia-muted))] flex items-center justify-center">
+          <i data-lucide="more-horizontal" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div class="px-4 py-4 flex items-start gap-3 border-b border-[hsl(var(--vitalia-border-soft))]">
+        <div class="w-10 h-10 rounded-full bg-[hsl(var(--vitalia-muted))] text-[hsl(var(--vitalia-azul-marino))] font-bold text-sm flex items-center justify-center">MR</div>
+        <div class="flex-1 min-w-0">
+          <div class="text-sm font-semibold">M. Rodríguez</div>
+          <div class="text-[11px] text-[hsl(var(--vitalia-text-muted))] flex items-center gap-1.5 mt-0.5">
+            <i data-lucide="phone" class="w-3 h-3"></i>+51 9** ***-4567
+            <button class="ml-1 text-[hsl(var(--vitalia-cian))] hover:underline text-[10px]">🔓</button>
+          </div>
+          <div class="text-[11px] text-[hsl(var(--vitalia-text-muted))] flex items-center gap-1.5 mt-0.5">
+            <i data-lucide="mail" class="w-3 h-3"></i>m***@gmail.com
+            <button class="ml-1 text-[hsl(var(--vitalia-cian))] hover:underline text-[10px]">🔓</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Treatment plan -->
+      <div class="px-4 py-3 border-b border-[hsl(var(--vitalia-border-soft))]">
+        <div class="text-[10px] font-bold tracking-wide uppercase text-[hsl(var(--vitalia-text-muted))] mb-2">Tratamiento</div>
+        <div class="space-y-1.5 text-xs">
+          <div class="flex justify-between"><span class="text-[hsl(var(--vitalia-text-muted))]">Oferta</span><span class="font-medium">Ortodoncia completa</span></div>
+          <div class="flex justify-between"><span class="text-[hsl(var(--vitalia-text-muted))]">Progreso</span><span class="font-medium">4 de 12 sesiones</span></div>
+          <div class="flex justify-between"><span class="text-[hsl(var(--vitalia-text-muted))]">Doctor</span><span class="font-medium">Dr. C. Mendoza</span></div>
+          <div class="flex justify-between"><span class="text-[hsl(var(--vitalia-text-muted))]">Última sesión</span><span class="font-medium">18 Abr 2026</span></div>
+          <div class="flex justify-between"><span class="text-[hsl(var(--vitalia-text-muted))]">Gap actual</span><span class="font-bold text-[hsl(var(--vitalia-danger))]">32d (crítico)</span></div>
+          <div class="flex justify-between"><span class="text-[hsl(var(--vitalia-text-muted))]">Próxima cita</span><span class="font-medium text-[hsl(var(--vitalia-text-muted))]">— sin agendar —</span></div>
+        </div>
+      </div>
+
+      <!-- Acciones -->
+      <div class="px-4 py-3 border-b border-[hsl(var(--vitalia-border-soft))]">
+        <div class="text-[10px] font-bold tracking-wide uppercase text-[hsl(var(--vitalia-text-muted))] mb-2">Acciones</div>
+        <div class="space-y-1.5">
+          <button class="w-full text-left text-xs px-2.5 py-2 rounded bg-[hsl(var(--vitalia-azul-marino))] text-white hover:bg-[hsl(var(--vitalia-purpura))] flex items-center gap-2 font-semibold">
+            <span class="text-[10px]">📲</span> Adrián recordatorio WA
+          </button>
+          <button class="w-full text-left text-xs px-2.5 py-2 rounded hover:bg-[hsl(var(--vitalia-muted))] flex items-center gap-2 border border-[hsl(var(--vitalia-cian))] text-[hsl(var(--vitalia-azul-marino))]">
+            <i data-lucide="calendar-plus" class="w-3.5 h-3.5"></i>
+            <span>Sugerir slots disponibles</span>
+          </button>
+          <button class="w-full text-left text-xs px-2.5 py-2 rounded hover:bg-[hsl(var(--vitalia-muted))] flex items-center gap-2 border border-[hsl(var(--vitalia-border))] text-[hsl(var(--vitalia-text-muted))]">
+            <i data-lucide="pause" class="w-3.5 h-3.5"></i>
+            <span>Pausar 30d</span>
+          </button>
+          <button class="w-full text-left text-xs px-2.5 py-2 rounded hover:bg-[hsl(var(--vitalia-muted))] flex items-center gap-2 text-[hsl(var(--vitalia-danger))]">
+            <i data-lucide="x-circle" class="w-3.5 h-3.5"></i>
+            <span>Marcar decidió no continuar</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Timeline re-engagement events -->
+      <div class="px-4 py-3 border-b border-[hsl(var(--vitalia-border-soft))]">
+        <div class="text-[10px] font-bold tracking-wide uppercase text-[hsl(var(--vitalia-text-muted))] mb-2">Historial seguimiento</div>
+        <div class="space-y-2.5 text-[11px]">
+          <div class="flex gap-2 items-start">
+            <div class="w-6 h-6 rounded-full bg-[hsl(var(--vitalia-cian))] text-white text-[9px] font-bold flex items-center justify-center flex-shrink-0">📞</div>
+            <div>
+              <div>Recepción registró cita inicial</div>
+              <div class="text-[hsl(var(--vitalia-text-faint))]">12 Feb 2026 · Carla M.</div>
+            </div>
+          </div>
+          <div class="flex gap-2 items-start">
+            <div class="w-6 h-6 rounded-full bg-[hsl(var(--vitalia-success))] text-white text-[9px] font-bold flex items-center justify-center flex-shrink-0">✓</div>
+            <div>
+              <div>4 sesiones completadas</div>
+              <div class="text-[hsl(var(--vitalia-text-faint))]">15 Feb · 1 Mar · 22 Mar · 18 Abr</div>
+            </div>
+          </div>
+          <div class="flex gap-2 items-start">
+            <div class="w-6 h-6 rounded-full bg-[hsl(var(--vitalia-warning))] text-white text-[9px] font-bold flex items-center justify-center flex-shrink-0">⚠</div>
+            <div>
+              <div><span class="font-semibold">Sistema</span> detectó gap 32d</div>
+              <div class="text-[hsl(var(--vitalia-text-muted))] italic">cron multi_session_gap_sweep</div>
+              <div class="text-[hsl(var(--vitalia-text-faint))]">hoy 09:00</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cross-link conversation -->
+      <div class="px-4 py-3 mt-auto border-t border-[hsl(var(--vitalia-border))]">
+        <button class="w-full text-xs font-semibold px-3 py-2 rounded border border-[hsl(var(--vitalia-cian))] text-[hsl(var(--vitalia-azul-marino))] hover:bg-[hsl(var(--vitalia-cian)/0.05)] flex items-center justify-center gap-2">
+          <i data-lucide="message-square" class="w-3.5 h-3.5"></i> Ver conversación
+          <i data-lucide="external-link" class="w-3 h-3"></i>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Copilot rail Valeria 80 -->
+    <aside class="bg-white border-l border-[hsl(var(--vitalia-border))] flex flex-col items-center py-4 gap-3">
+      <div class="w-12 h-12 rounded-full grad-valeria text-white font-bold flex items-center justify-center text-base shadow-md">V</div>
+      <div class="text-[10px] font-semibold text-[hsl(var(--vitalia-azul-marino))]">Valeria</div>
+      <div class="text-[9px] text-center text-[hsl(var(--vitalia-text-muted))] px-2 leading-tight">"¿Te ayudo a re-engaged?"</div>
+      <button class="mt-2 w-9 h-9 rounded-full bg-[hsl(var(--vitalia-muted))] hover:bg-[hsl(var(--vitalia-cian)/0.15)] flex items-center justify-center">
+        <i data-lucide="message-circle-plus" class="w-4 h-4 text-[hsl(var(--vitalia-cian))]"></i>
+      </button>
+    </aside>
+  </div>
+
+  <footer class="border-t border-[hsl(var(--vitalia-border))] bg-white px-4 py-3 text-[11px] text-[hsl(var(--vitalia-text-muted))] flex items-center justify-between gap-4 flex-wrap">
+    <div><strong>Mockup:</strong> Tab "Tratamientos en curso" activa · M. Rodríguez seleccionado (urgency=CRÍTICO 32d) abriendo ContactSidebar + timeline cron multi_session_gap_sweep detection</div>
+    <div class="flex gap-3 text-right">
+      <span>📐 4 patrones · 6 cron jobs · 5 templates Meta · NPS reducido stat card secundaria</span>
+    </div>
+  </footer>
+
+  <script>lucide.createIcons();</script>
+</body>
+</html>

@@ -1,0 +1,183 @@
+Run FULL quality suite (backend + frontend + migrations) natively.
+This is the DEFINITIVE pre-commit/pre-deploy verification. Mirrors CI quality-gates.
+
+**CRITICAL:** All tools run natively in Linux (host). NEVER `docker exec` for lint/tests.
+Docker ONLY for: migrations test (Step 11).
+
+**E2E:** NOT part of `/test-all`. Run separately with `/test-frontend` or the
+native Playwright command when needed — E2E is too slow + flaky to gate every
+pre-commit / pre-deploy run and blocks the quick iteration loop.
+
+## Execution: run ALL steps sequentially. Stop on first BLOCKER failure.
+
+### Step 0: Pre-flight
+```bash
+cd $(git rev-parse --show-toplevel)/backend && .venv/bin/ruff --version && .venv/bin/pytest --version && cd $(git rev-parse --show-toplevel)/frontend && npx vitest --version
+```
+If anything fails: install dependencies first.
+
+---
+
+## BACKEND QUALITY GATES (blockers)
+
+### Step 1: Backend lint (ruff check)
+```bash
+cd $(git rev-parse --show-toplevel)/backend && .venv/bin/ruff check src/ tests/ --no-cache
+```
+
+### Step 2: Backend format (ruff format)
+```bash
+cd $(git rev-parse --show-toplevel)/backend && .venv/bin/ruff format --check src/ tests/
+```
+
+### Step 3: Architecture fitness tests (10 gates)
+```bash
+cd $(git rev-parse --show-toplevel)/backend && .venv/bin/pytest tests/architecture/ -v --override-ini="addopts="
+```
+DDD boundaries + API contracts + conventions + currency + ETL contract + master data +
+Meta invariants + **snake_case naming + DDD folder structure + domain purity**.
+
+### Step 4: Backend tests with coverage
+```bash
+cd $(git rev-parse --show-toplevel)/backend && .venv/bin/pytest --cov=src/modules --cov=src/shared --cov-report=term-missing -x -q --tb=short
+```
+Threshold: **43%**. pytest-randomly active (randomized order). pytest-timeout: 30s.
+
+---
+
+## FRONTEND QUALITY GATES (blockers)
+
+### Step 5: TypeScript strict
+```bash
+cd $(git rev-parse --show-toplevel)/frontend && npx tsc --noEmit
+```
+
+### Step 6: ESLint (60+ rules)
+```bash
+cd $(git rev-parse --show-toplevel)/frontend && ./node_modules/.bin/eslint src/ --cache --cache-location .eslintcache
+```
+0 errors required. Count warnings for report.
+
+### Step 7: Frontend tests with coverage
+```bash
+cd $(git rev-parse --show-toplevel)/frontend && npx vitest run --coverage --reporter=default --reporter=json --outputFile=/tmp/vitest-coverage.json
+```
+Thresholds: **all 20%** (statements, branches, functions, lines).
+
+**Why ``--reporter=json --outputFile=...``** (mandatory, not optional):
+deploy-prod.yml runs vitest with this flag pair. Native runs **without**
+it silently swallow v8 coverage post-processing failures — e.g. a
+PARSE_ERROR when the coverage ``include`` glob captures a non-JS file
+(``*.md``, ``*.json``). Run 25027765663 (2026-04-28) failed in CI on
+``PENDING-REFACTOR.md`` while every native ``/test-all`` reported PASS,
+because the JSON reporter forces full coverage map serialization and
+the default reporter does not. **If you skip the reporter flags, you
+have not run /test-all.**
+
+---
+
+## HEALTH CHECKS (informational — report, don't block)
+
+### Step 8: Code duplication — BOTH stacks
+```bash
+cd $(git rev-parse --show-toplevel) && npx jscpd frontend/src/ --threshold 5 --reporters console
+cd $(git rev-parse --show-toplevel) && npx jscpd backend/src/ --threshold 5 --reporters console
+```
+Baselines: Frontend 4.52%, Backend 3.63%. Warn >5%, critical >8%.
+
+### Step 9: Dead code + circular imports (frontend)
+```bash
+cd $(git rev-parse --show-toplevel)/frontend && npx knip 2>&1 | head -40
+cd $(git rev-parse --show-toplevel)/frontend && npx madge --circular src/ --extensions ts,tsx
+```
+knip baseline: 63 unused (many false positives). madge baseline: 2 cycles.
+
+### Step 10: Docstring coverage + security
+```bash
+cd $(git rev-parse --show-toplevel)/backend && .venv/bin/interrogate -vv src/modules/ src/shared/ --fail-under=0
+cd $(git rev-parse --show-toplevel)/backend && .venv/bin/pip-audit --strict --desc
+cd $(git rev-parse --show-toplevel)/frontend && npm audit --audit-level=high
+```
+
+---
+
+## MIGRATIONS (optional — run when deploying)
+
+### Step 11: Migration verification (fresh DB)
+```bash
+docker exec -t luana-dev-luana_postgres_dev-1 psql -U postgres -c "DROP DATABASE IF EXISTS migration_test;"
+docker exec -t luana-dev-luana_postgres_dev-1 psql -U postgres -c "CREATE DATABASE migration_test;"
+docker exec -t luana-dev-{brand}_backend_dev-1 bash -c "cd /app && DATABASE_URL=postgresql://postgres:postgres@postgres:5432/migration_test alembic upgrade head"
+docker exec -t luana-dev-luana_postgres_dev-1 psql -U postgres -c "DROP DATABASE migration_test;"
+```
+If fails: broken or non-idempotent migration.
+
+---
+
+## CI PARITY (mandatory pre-push gate — catches CI-only failures)
+
+### Step 12: Run the GitHub Actions ``quality-gates`` job locally
+```bash
+bash scripts/ci-parity.sh
+# or:
+make ci-parity
+```
+
+Native steps 1-7 are fast (~30s) but diverge from CI in four ways that
+have caused 5+ failed deploys in a single afternoon:
+
+| Eje | Native | CI | Past failure |
+|---|---|---|---|
+| Env vars | reads ``backend/.env`` (~84 keys) | reads ``backend/.env.test`` baked-in | Kimi K2 clamp tests when ``AI_MODEL_AGENT`` defaulted to gpt-4o |
+| Timezone | host (``America/...``, UTC-3..-5) | UTC | ``test_lima_locale_changes_period_window`` — seed at host TZ fell outside Lima window in UTC midnight |
+| Node heap | host RAM 16GB+ | container ~1GB default | ``tsc --noEmit`` SIGABRT (run 25025593709) |
+| Build context | filesystem complete | ``.dockerignore`` excludes ``data/``, ``frontend/node_modules/`` | ``test_seed_marketing_kb`` FileNotFoundError |
+
+``ci-parity.sh`` builds the SAME Docker test images CI builds (``test``
+stage of each Dockerfile), runs the SAME steps with ``TZ=UTC`` and
+``NODE_OPTIONS=--max-old-space-size=4096``. Cold runs ~5-8 min, warm
+~2 min (Docker layer cache).
+
+This is the deterministic gate before every ``git push origin main``.
+Failing this step locally is cheaper than failing it remotely on CI.
+
+Variants for faster iteration when only one stack changed:
+```bash
+make ci-parity-be   # skip FE (BE-only changes)
+make ci-parity-fe   # skip BE (FE-only changes)
+```
+
+---
+
+## FINAL REPORT
+
+| Gate | Step | Result | Details |
+|------|------|--------|---------|
+| **BACKEND** | | | |
+| QUALITY | Lint (ruff) | PASS/FAIL | 0 errors |
+| QUALITY | Format (ruff) | PASS/FAIL | 0 reformats |
+| QUALITY | Arch fitness (10) | PASS/FAIL | DDD + naming + purity |
+| FUNCTIONAL | Tests | PASS/FAIL (N) | coverage XX% (min 43%) |
+| HEALTH | Duplication | X.XX% | baseline 3.63% |
+| HEALTH | Docstrings | XX% | trend tracking |
+| HEALTH | Security (pip-audit) | PASS/FAIL | N vulns |
+| **FRONTEND** | | | |
+| QUALITY | TypeScript (tsc) | PASS/FAIL | strict mode |
+| QUALITY | ESLint (60+) | PASS/FAIL | 0 errors, N warnings |
+| FUNCTIONAL | Tests | PASS/FAIL (N) | coverage XX% (min 20%) |
+| HEALTH | Duplication | X.XX% | baseline 4.52% |
+| HEALTH | Dead code (knip) | N unused | focus on NEW |
+| HEALTH | Circulars (madge) | N cycles | baseline 2 |
+| HEALTH | Security (npm) | PASS/FAIL | N vulns |
+| **DEPLOY** | | | |
+| MIGRATIONS | Fresh DB | PASS/FAIL/SKIP | if Docker available |
+| CI PARITY | Docker quality-gates replay | PASS/FAIL/SKIP | mandatory pre-push, mirrors deploy-prod.yml |
+
+**All QUALITY + FUNCTIONAL + CI PARITY pass:** "Full suite PASS — safe to deploy."
+**Any fail:** list failures. Fix before deploying.
+**HEALTH degraded:** warn user, track trend, suggest fixes.
+
+> **Pre-push contract**: skipping Step 12 is allowed for fast iteration
+> commits inside a feature branch but is **forbidden** before
+> ``git push origin main``. ``/pase-produccion`` enforces this gate as
+> the last blocker in Fase 3 (see ``.claude/skills/pase-produccion/SKILL.md``).

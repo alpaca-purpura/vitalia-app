@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es-LA" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<title>F1-S10 · Camila/Voz placeholder</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="_shared.css">
+</head>
+<body>
+<div class="mockup-frame">
+  <div class="mockup-header">
+    <div>
+      <div class="mockup-title">Camila · Voz del paciente — placeholder Fase 1</div>
+      <div class="mockup-subtitle">F1-S10 mockup standalone · 3-modos toggle (decorativo Fase 1) · 3 cards stats</div>
+    </div>
+    <button class="theme-btn" onclick="document.documentElement.dataset.theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'">🌓 Tema</button>
+  </div>
+
+  <article class="panel rounded-lg p-5">
+    <div class="flex items-start justify-between mb-4 gap-4">
+      <div class="flex-1">
+        <h2 class="text-base font-semibold">Voz del paciente</h2>
+        <p class="text-xs muted">Camila pide feedback al paciente tras la visita y categoriza la respuesta para derivarla a reactivación, reputación o nueva venta.</p>
+      </div>
+      <div class="toggle-pill" data-toggle="t1">
+        <div class="toggle-pill-option active" data-state="decide">🤖 Camila decide</div>
+        <div class="toggle-pill-option" data-state="curaduria">🔍 Curaduría</div>
+        <div class="toggle-pill-option" data-state="manual">✋ Manual</div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="ph-card text-center" style="padding: 24px 16px;">
+        <div style="font-size: 36px; margin-bottom: 8px;">📥</div>
+        <div class="text-camila" style="font-size: 32px; font-weight: 700; line-height: 1;">12</div>
+        <div class="text-sm font-medium mt-2">Entrante</div>
+        <div class="text-xs muted mt-2 px-1">Pacientes que respondieron — esperando que Camila analice y categorice</div>
+      </div>
+      <div class="ph-card text-center" style="padding: 24px 16px;">
+        <div style="font-size: 36px; margin-bottom: 8px;">🔍</div>
+        <div class="text-camila" style="font-size: 32px; font-weight: 700; line-height: 1;">4</div>
+        <div class="text-sm font-medium mt-2">Curaduría</div>
+        <div class="text-xs muted mt-2 px-1">Casos ambiguos que necesitan tu revisión antes de derivar</div>
+      </div>
+      <div class="ph-card text-center" style="padding: 24px 16px;">
+        <div style="font-size: 36px; margin-bottom: 8px;">🔁</div>
+        <div class="text-camila" style="font-size: 32px; font-weight: 700; line-height: 1;">47</div>
+        <div class="text-sm font-medium mt-2">Ciclos activos</div>
+        <div class="text-xs muted mt-2 px-1">Pacientes en flujo de seguimiento automático</div>
+      </div>
+    </div>
+
+    <div class="text-center text-[11px] muted mt-6 pt-4 border-t border-app">
+      Camila gestiona el ciclo de voz del paciente: te avisa cuando algo sale del patrón esperado · te ahorra responder cada feedback uno por uno.
+    </div>
+  </article>
+</div>
+
+<script>
+document.querySelectorAll('.toggle-pill').forEach((pill) => {
+  pill.querySelectorAll('.toggle-pill-option').forEach((opt) => {
+    opt.addEventListener('click', () => {
+      pill.querySelectorAll('.toggle-pill-option').forEach((o) => o.classList.remove('active'));
+      opt.classList.add('active');
+    });
+  });
+});
+</script>
+</body>
+</html>

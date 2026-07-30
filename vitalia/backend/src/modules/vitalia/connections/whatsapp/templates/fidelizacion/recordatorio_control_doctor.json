@@ -1,0 +1,29 @@
+{
+  "name": "vitalia_recordatorio_control_doctor",
+  "category": "UTILITY",
+  "language": "es",
+  "components": [
+    {
+      "type": "BODY",
+      "text": "Hola {{1}}, es momento de tu control de seguimiento en {{2}}. Agenda tu cita para que el equipo médico pueda evaluar tu evolución. Tu salud es nuestra prioridad.",
+      "example": {
+        "body_text": [
+          ["Carlos López", "Clínica Vitalia"]
+        ]
+      }
+    },
+    {
+      "type": "FOOTER",
+      "text": "Vitalia — seguimiento médico personalizado"
+    },
+    {
+      "type": "BUTTONS",
+      "buttons": [
+        {
+          "type": "QUICK_REPLY",
+          "text": "Agendar control"
+        }
+      ]
+    }
+  ]
+}

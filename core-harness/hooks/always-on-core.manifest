@@ -1,0 +1,19 @@
+# core-harness · slim always-on rule core (the ≤10k SessionStart-injected set).
+# One rule filename per line, relative to core-harness/rules/. '#' comments + blank lines ignored.
+# session-start-rules.sh cat's each listed file, concatenates, caps at 9500 chars (headroom under
+# the 10,000-char additionalContext cap), and injects it on SessionStart for PLUGIN adopters (who
+# have NO native always-on-rules channel). The FULL 21-rule corpus loads natively via
+# /harness:bootstrap → .claude/rules/ (symlink/copy), so this slim set is the gap-filler.
+#
+# CURATION (W7, 2026-06-09): the 3 hard always-on CONSTRAINTS that must fire on EVERY action
+# regardless of which skill is invoked, sized to fit the cap WITHOUT mid-rule truncation
+# (3715 + 2731 + 1821 = 8267 chars). Priority order = most-cardinal first.
+#   · anti-duplication      — grep-before-write (the explicitly always-on invariant; anti-Frankenstein)
+#   · git-safety            — forbidden git ops (no pull/force/--no-verify/add -A)
+#   · tdd-mandatory         — tests-first (RED→GREEN→REFACTOR)
+# The PROCESS orientation (paradigm 3-planos, story-closure-gate spine, anti-orphan, DoD,
+# parallel-safety, …) loads via /harness:bootstrap (full corpus) — it does not fit the slim cap
+# and the agent reaches it through the copied .claude/rules/ + the spine skills.
+anti-duplication.md
+git-safety.md
+tdd-mandatory.md

@@ -1,0 +1,444 @@
+"""Audit repository."""
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
+
+from luana_core_platform.infrastructure.models.crm import LeadModel
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session, joinedload
+
+from luana_core_sales_agent.domain.memory.repository import EpisodicMemoryStore
+from luana_core_sales_agent.infrastructure.models.agent_trace_model import AgentTrace
+from luana_core_sales_agent.infrastructure.models.llm_log_model import LLMLog
+from luana_core_sales_agent.infrastructure.models.message_model import (
+    MessageModel as Message,
+)
+
+if TYPE_CHECKING:
+    from uuid import UUID
+
+
+class AuditRepository(EpisodicMemoryStore):
+    """Repository for audit persistence."""
+
+    def __init__(self, db: Session) -> None:
+        """Initialize repository with database session."""
+        self.db = db
+
+    # --- EpisodicMemoryStore Implementation ---
+
+    def get_chat_history(self, user_id: str, limit: int = 10) -> list[Any]:
+        """Retrieve chat history."""
+        # Return last N messages in ascending order (oldest to newest) for context
+        msgs = (
+            self.db.execute(
+                select(Message)
+                .where(Message.user_id == user_id)
+                .order_by(Message.created_at.desc())
+                .limit(limit),
+            )
+            .scalars()
+            .all()
+        )
+        return list(reversed(msgs))
+
+    def log_message(
+        self,
+        user_id: str,
+        role: str,
+        content: str,
+        channel: str,
+        tenant_id: str | None = None,
+    ) -> Any:  # noqa: ANN401 — matches abstract interface
+        """Log message."""
+        msg = Message(
+            user_id=user_id,
+            tenant_id=tenant_id,
+            role=role,
+            content=content,
+            channel=channel,
+        )
+        self.db.add(msg)
+        self.db.commit()
+        return msg
+
+    def get_last_message(self, user_id: str) -> Any:  # noqa: ANN401 — matches abstract interface
+        """Retrieve last message."""
+        return (
+            self.db.execute(
+                select(Message)
+                .where(Message.user_id == user_id)
+                .order_by(Message.created_at.desc()),
+            )
+            .scalars()
+            .first()
+        )
+
+    # --- Audit / Monitoring Specific Methods ---
+
+    def create_trace(
+        self,
+        user_id: UUID | None,
+        session_id: str,
+        node_name: str,
+        input_state: dict[str, Any],
+        output_state: dict[str, Any],
+        execution_time_ms: float,
+        tenant_id: UUID | None = None,
+    ) -> AgentTrace:
+        """Create trace."""
+        trace = AgentTrace(
+            user_id=user_id,
+            tenant_id=tenant_id,
+            session_id=session_id,
+            node_name=node_name,
+            input_state=input_state,
+            output_state=output_state,
+            execution_time_ms=execution_time_ms,
+        )
+        self.db.add(trace)
+        self.db.commit()
+        self.db.refresh(trace)
+        return trace
+
+    def create_llm_log(
+        self,
+        trace_id: UUID | None,
+        model: str,
+        prompt_template: str | None,
+        prompt_rendered: str,
+        response_text: str,
+        tokens_input: int,
+        tokens_output: int,
+        metadata: dict[str, Any] | None = None,
+    ) -> LLMLog:
+        """Create llm log."""
+        log = LLMLog(
+            trace_id=trace_id,
+            model=model,
+            prompt_template=prompt_template,
+            prompt_rendered=prompt_rendered,
+            response_text=response_text,
+            tokens_input=tokens_input,
+            tokens_output=tokens_output,
+            metadata_info=metadata or {},
+        )
+        self.db.add(log)
+        self.db.commit()
+        return log
+
+    def get_recent_users(self, tenant_id: UUID | None, limit: int = 20) -> list[Any]:
+        """Retrieve recent users."""
+        # Join AgentTrace with LeadModel to get recent active leads
+        # Query Traces, group by user_id, max(created_at)
+        base_stmt = select(
+            AgentTrace.user_id,
+            func.max(AgentTrace.created_at).label("last_activity"),
+        )
+        if tenant_id:
+            base_stmt = base_stmt.where(AgentTrace.tenant_id == tenant_id)
+
+        subquery = base_stmt.group_by(AgentTrace.user_id).subquery()
+
+        stmt = (
+            select(LeadModel, subquery.c.last_activity)
+            .join(subquery, LeadModel.id == subquery.c.user_id)
+            .order_by(subquery.c.last_activity.desc())
+            .limit(limit)
+        )
+
+        return self.db.execute(stmt).all()
+
+    def clear_user_history(self, lead_id: str, tenant_id: str) -> bool:
+        """Clear user history.
+
+        S1: extended to also wipe ``sales_agent_trace_event`` +
+        ``sales_agent_llm_call`` rows for the same lead so the
+        admin "🗑️ Limpiar Conversación" stays consistent during the
+        dual-write window.
+        """
+        from sqlalchemy import text
+
+        lead_uuid = str(lead_id)
+        # Legacy tables.
+        self.db.execute(
+            text(
+                "DELETE FROM llm_logs WHERE trace_id IN (SELECT id FROM agent_traces WHERE user_id = :lid)",
+            ),
+            {"lid": lead_uuid},
+        )
+        self.db.execute(
+            text(
+                "DELETE FROM llm_call_logs WHERE trace_id IN (SELECT id FROM agent_traces WHERE user_id = :lid)",
+            ),
+            {"lid": lead_uuid},
+        )
+        self.db.execute(
+            text("DELETE FROM agent_traces WHERE user_id = :lid"),
+            {"lid": lead_uuid},
+        )
+        # Event-sourced tables (S1).
+        self.db.execute(
+            text(
+                "DELETE FROM sales_agent_trace_event WHERE lead_id = :lid AND tenant_id = :tid"
+            ),
+            {"lid": lead_uuid, "tid": str(tenant_id)},
+        )
+        self.db.execute(
+            text(
+                "DELETE FROM sales_agent_llm_call WHERE lead_id = :lid AND tenant_id = :tid"
+            ),
+            {"lid": lead_uuid, "tid": str(tenant_id)},
+        )
+        self.db.execute(
+            text("DELETE FROM messages WHERE user_id = :lid"),
+            {"lid": lead_uuid},
+        )
+        self.db.execute(
+            text("DELETE FROM agent_state_checkpoints WHERE lead_id = :lid"),
+            {"lid": lead_uuid},
+        )
+        self.db.execute(
+            text(
+                "UPDATE leads SET "
+                "profile_data = '{}', fit_score = 0, intent_score = 0, "
+                "temperature = 'COLD', conversation_summary = NULL, "
+                "key_objections_history = '[]', style_profile = '{}', "
+                "custom_system_instruction = NULL, last_interaction_date = NULL "
+                "WHERE id = :lid",
+            ),
+            {"lid": lead_uuid},
+        )
+        self.db.commit()
+        return True
+
+    # ── S1 dual-read support (sales_audit.py admin migration) ───────────
+
+    def get_event_sourced_rows(
+        self,
+        lead_id: str,
+        tenant_id: str,
+        limit: int = 200,
+    ) -> list[dict[str, Any]]:
+        """Return event-sourced rows for a lead in legacy-timeline shape.
+
+        Reads ``sales_agent_trace_event`` + ``sales_agent_llm_call`` and
+        adapts each row to the dict shape the admin timeline already
+        consumes. Each entry is::
+
+            {
+              "type": "trace" | "llm_call",
+              "id": str,
+              "node": str,            # event_type or model
+              "input": dict,          # data JSONB or {}
+              "output": dict,
+              "execution_time": float,
+              "llm_summary": dict | None,
+              "created_at": datetime,
+              "_source": "event_sourced",
+            }
+
+        Empty list when no rows — caller falls back to legacy.
+        """
+        from luana_core_sales_agent.observability.persistence.models.llm_call_model import (
+            SalesAgentLlmCallModel,
+        )
+        from luana_core_sales_agent.observability.persistence.models.trace_event_model import (
+            SalesAgentTraceEventModel,
+        )
+
+        events_stmt = (
+            select(SalesAgentTraceEventModel)
+            .where(
+                SalesAgentTraceEventModel.tenant_id == tenant_id,
+                SalesAgentTraceEventModel.lead_id == lead_id,
+            )
+            .order_by(SalesAgentTraceEventModel.created_at.desc())
+            .limit(limit)
+        )
+        events = self.db.execute(events_stmt).scalars().all()
+
+        llm_stmt = (
+            select(SalesAgentLlmCallModel)
+            .where(
+                SalesAgentLlmCallModel.tenant_id == tenant_id,
+                SalesAgentLlmCallModel.lead_id == lead_id,
+            )
+            .order_by(SalesAgentLlmCallModel.started_at.desc())
+            .limit(limit)
+        )
+        llm_calls = self.db.execute(llm_stmt).scalars().all()
+        llm_by_turn: dict[Any, list] = {}
+        for c in llm_calls:
+            llm_by_turn.setdefault(c.turn_id, []).append(c)
+
+        out: list[dict[str, Any]] = []
+        for e in events:
+            llm_summary = None
+            calls = llm_by_turn.get(e.turn_id) or []
+            if calls and e.event_type == "llm_call":
+                first = calls[0]
+                llm_summary = {
+                    "model": first.model_responded,
+                    "total_tokens": int(
+                        (first.input_tokens or 0) + (first.output_tokens or 0)
+                    ),
+                    "prompt_template": e.name or "unknown",
+                }
+            out.append(
+                {
+                    "type": "trace",
+                    "id": str(e.id),
+                    "node": e.event_type if not e.name else f"{e.event_type}:{e.name}",
+                    "input": dict(e.data or {}),
+                    "output": {"status": e.status, "duration_ms": e.duration_ms},
+                    "execution_time": float(e.duration_ms or 0),
+                    "llm_summary": llm_summary,
+                    "created_at": e.created_at,
+                    "_source": "event_sourced",
+                    "turn_id": str(e.turn_id),
+                },
+            )
+        return out
+
+    def get_last_event_sourced_state(
+        self,
+        lead_id: str,
+        tenant_id: str,
+    ) -> dict[str, Any] | None:
+        """Return the most recent ``turn_end`` data for a lead, or None.
+
+        Replaces the legacy ``AgentTrace.output_state`` query in the
+        admin sidebar "Ver Último Estado" — preferred during dual-read.
+        """
+        from luana_core_sales_agent.observability.persistence.models.trace_event_model import (
+            SalesAgentTraceEventModel,
+        )
+
+        stmt = (
+            select(SalesAgentTraceEventModel)
+            .where(
+                SalesAgentTraceEventModel.tenant_id == tenant_id,
+                SalesAgentTraceEventModel.lead_id == lead_id,
+                SalesAgentTraceEventModel.event_type == "turn_end",
+            )
+            .order_by(SalesAgentTraceEventModel.created_at.desc())
+            .limit(1)
+        )
+        row = self.db.execute(stmt).scalars().first()
+        return dict(row.data) if row and row.data else None
+
+    def get_full_timeline(
+        self, lead_id: str, tenant_id: str, limit: int = 50
+    ) -> list[dict[str, Any]]:
+        """Retrieve full timeline."""
+        messages = (
+            self.db.execute(
+                select(Message)
+                .where(Message.user_id == lead_id)
+                .order_by(Message.created_at.desc())
+                .limit(limit),
+            )
+            .scalars()
+            .all()
+        )
+
+        traces = (
+            self.db.execute(
+                select(AgentTrace)
+                .options(joinedload(AgentTrace.llm_logs))
+                .where(AgentTrace.user_id == lead_id)
+                .order_by(AgentTrace.created_at.desc())
+                .limit(limit),
+            )
+            .scalars()
+            .all()
+        )
+
+        timeline = [
+            {
+                "type": "message",
+                "id": str(m.id),
+                "role": m.role,
+                "content": m.content,
+                "created_at": m.created_at,
+            }
+            for m in messages
+        ]
+
+        for t in traces:
+            llm_summary = None
+            if t.llm_logs:
+                total_tokens = sum(
+                    (log_entry.tokens_input or 0) + (log_entry.tokens_output or 0)
+                    for log_entry in t.llm_logs
+                )
+                first_log = t.llm_logs[0]
+                llm_summary = {
+                    "model": first_log.model,
+                    "total_tokens": total_tokens,
+                    "prompt_template": first_log.prompt_template,
+                }
+
+            timeline.append(
+                {
+                    "type": "trace",
+                    "id": str(t.id),
+                    "node": t.node_name,
+                    "input": t.input_state,
+                    "output": t.output_state,
+                    "execution_time": t.execution_time_ms,
+                    "llm_summary": llm_summary,
+                    "created_at": t.created_at,
+                },
+            )
+
+        timeline.sort(key=lambda x: x["created_at"], reverse=True)
+        return timeline[:limit]
+
+    def get_trace_details(self, trace_id: str, tenant_id: str) -> dict[str, Any] | None:
+        """Retrieve trace details."""
+        trace = (
+            self.db.execute(select(AgentTrace).where(AgentTrace.id == trace_id))
+            .scalars()
+            .first()
+        )
+        if not trace:
+            return None
+
+        logs = (
+            self.db.execute(select(LLMLog).where(LLMLog.trace_id == trace_id))
+            .scalars()
+            .all()
+        )
+
+        return {
+            "trace": {
+                "id": str(trace.id),
+                "node": trace.node_name,
+                "input": trace.input_state,
+                "output": trace.output_state,
+                "created_at": trace.created_at,
+                "execution_time": trace.execution_time_ms,
+            },
+            "llm_logs": [
+                {
+                    "id": str(log_entry.id),
+                    "model": log_entry.model,
+                    "prompt_template": log_entry.prompt_template or "unknown",
+                    "prompt": log_entry.prompt_rendered,
+                    "response": log_entry.response_text,
+                    "tokens": {
+                        "in": log_entry.tokens_input,
+                        "out": log_entry.tokens_output,
+                    },
+                    "metadata": log_entry.metadata_info,
+                }
+                for log_entry in logs
+            ],
+        }
+
+    def close(self) -> None:
+        """Close."""
+        self.db.close()

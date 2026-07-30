@@ -1,0 +1,33 @@
+{
+  "name": "vitalia_recordatorio_proxima_sesion",
+  "category": "UTILITY",
+  "language": "es",
+  "components": [
+    {
+      "type": "BODY",
+      "text": "Hola {{1}}, te recordamos que tienes una consulta programada el {{2}} en {{3}}. Si necesitas cambiar el horario, puedes comunicarte con nosotros.",
+      "example": {
+        "body_text": [
+          ["María García", "martes 27 de mayo a las 10:00 h", "Clínica Vitalia"]
+        ]
+      }
+    },
+    {
+      "type": "FOOTER",
+      "text": "Vitalia — tu salud, nuestra prioridad"
+    },
+    {
+      "type": "BUTTONS",
+      "buttons": [
+        {
+          "type": "QUICK_REPLY",
+          "text": "Confirmar cita"
+        },
+        {
+          "type": "QUICK_REPLY",
+          "text": "Necesito cambiar"
+        }
+      ]
+    }
+  ]
+}

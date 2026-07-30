@@ -1,0 +1,84 @@
+---
+module: analytics
+last_audit: 2026-05-04
+status: active                                  # active | maintenance | placeholder
+links:
+  capabilities_dir: "../capabilities/analytics/"
+  stories_dir: "../stories/analytics/"
+  domain_doc: "../../domains/module_analytics.md"
+active_projects: []                              # auto-populated by /pm cuando hay PIs activos tocando este módulo
+---
+
+# analytics — Estado funcional
+
+## Meta
+| Campo | Valor |
+|---|---|
+| Studio padre | Growth |
+| Estado | activo |
+| Última actualización | 2026-04-29 (bootstrap) |
+| Doc técnico | `docs/domains/module_analytics.md` |
+
+## Qué hace por el user
+ETL + dashboards. Visualiza desempeño marketing/ventas end-to-end via diagrama Bowtie (Vistas → Leads → Clientes → Reventas). User ve dónde está sangrando dinero, dónde puede optimizar.
+
+## Capacidades
+> Auto-list generated from `docs/product/capabilities/analytics/`.
+> See `docs/product/BACKLOG.md` "Capabilities snapshot" for current count + status.
+
+## Capacidades operables desde copilot
+- Preguntas sobre métricas (parcial)
+- Diagnóstico "por qué bajó X" (parcial)
+- **Gap:** crear campaña desde nodo Bowtie conversacionalmente
+- **Gap:** ajustar copy ad desde Growth Studio conversacionalmente
+
+## Estado calidad funcional
+| Capacidad | Estado | Notas |
+|---|---|---|
+| ETL providers | sólido | 12+ providers, idempotente |
+| Bowtie visual | sólido | Interactive, end-to-end |
+| Verification layer | sólido | 4-layer protocol |
+| Action triggers | parcial | UI existe, integraciones limitadas |
+| Stage services | sólido | DDD compliant, progressive loading |
+| Multi-currency | sólido | TenantLocale-driven |
+| Email-stage channels | sólido | `email-{stage}` slugs |
+| Meta provider | sólido | Period invariants enforced |
+| Google providers | sólido | GA4 + Ads completos |
+
+## Conexiones cross-módulo
+- **Lee de:** connections, crm, offer (ports)
+- **Lo lee:** copilot, connections, offer
+
+## Dolor user / oportunidades detectadas
+_Pendiente captura. Hipótesis: action triggers → expansión es siguiente palanca de valor._
+
+## Capacidades corregidas
+
+### Cap: Growth Studio — drawer/bowtie layout correcto multi-viewport
+- Fix: PR-1 (PI-8, S1-drawer-bowtie-hotfix, commit `00bf51f6`, 2026-05-01)
+- Estado: live
+- Detalle: `DetailPanel` mobile `max-md:z-[60]` sobre copilot `z-50`. `StageSummaryRow` respeta `copilotWidth` via `useCopilotOffset`. Arch fitness ratchet (6 KNOWN_VIOLATIONS PI-9/PI-10 territory, shrink-only).
+- Operable copilot: no (layout-only)
+- Smoke manual: PENDIENTE Chris (5 stages × mobile + desktop)
+
+## PIs históricos
+| PI | Cambio | Fecha cierre |
+|---|---|---|
+| ETL Google complete | GA4 + Ads, 5 bugs fixed | 2026 |
+| Verification layer | 4-layer protocol pipeline | 2026 |
+| PI-8-growth-studio-stability | Fix drawer/bowtie z-index + offset layout bugs (FE-only) | 2026-05-01 |
+
+## Decisiones producto vinculadas
+| Fecha | Decisión | Razón |
+|---|---|---|
+| Permanente | Currency desde data source, nunca hardcoded | Multi-tenant LATAM |
+| Permanente | Datetime UTC en DB siempre | Multi-timezone |
+
+## Capabilities
+
+| ID | Name | Status | Stories live/total |
+|---|---|---|---|
+| etl-pipeline-providers | ETL pipeline multi-provider | live | 3/3 |
+| bowtie-progressive-loading | Bowtie funnel + progressive loading 4-tier | live | 3/3 |
+| verification-layer | Verification layer 4-protocolo | live | 2/2 |
+| metric-catalog-channel-registry | Metric catalog + channel registry SSoT | live | 2/2 |

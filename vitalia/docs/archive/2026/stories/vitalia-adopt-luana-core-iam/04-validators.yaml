@@ -1,0 +1,324 @@
+# 04-validators.yaml — vitalia-adopt-luana-core-iam
+# Validators que /dev-team ejecuta iterativamente contra GREEN gate.
+# Cada validator must_pass=true bloquea state=developed.
+# Categorías: non_functional · functional · visual · agentic_eval
+#
+# Convención: ${WS} = /home/chalreme/Proyectos/luana-vitalia (worktree canónico vitalia).
+# Native commands (NO docker exec ruff/pytest/npx).
+
+story_id: vitalia-adopt-luana-core-iam
+brand: vitalia
+state: ready
+
+validators:
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # CATEGORY: non_functional (lint + format + arch fitness + type-check)
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - id: be_lint_ruff_check
+    category: non_functional
+    must_pass: true
+    description: "Ruff lint vitalia backend src + tests (admin + clinics + audit + tests/architecture)"
+    command: |
+      WS=$(git rev-parse --show-toplevel)
+      cd ${WS}/vitalia/backend && \
+        ${WS}/.venv/bin/ruff check \
+          src/modules/vitalia/admin/ \
+          src/modules/vitalia/clinics/ \
+          src/modules/vitalia/audit/ \
+          tests/modules/vitalia/admin/ \
+          tests/modules/vitalia/clinics/ \
+          tests/integration/ \
+          tests/architecture/ \
+          --no-cache
+
+  - id: be_format_ruff
+    category: non_functional
+    must_pass: true
+    description: "Ruff format check (double quotes, spaces, line 120)"
+    command: |
+      WS=$(git rev-parse --show-toplevel)
+      cd ${WS}/vitalia/backend && \
+        ${WS}/.venv/bin/ruff format --check \
+          src/modules/vitalia/admin/ \
+          src/modules/vitalia/clinics/ \
+          src/modules/vitalia/audit/ \
+          tests/
+
+  - id: be_arch_fitness_brand
+    category: non_functional
+    must_pass: true
+    description: "All existing vitalia arch fitness gates green (DDD boundaries, dual filter, migrations idempotent)"
+    command: |
+      WS=$(git rev-parse --show-toplevel)
+      cd ${WS}/vitalia/backend && \
+        ${WS}/.venv/bin/pytest tests/architecture/ -v --tb=short \
+          --override-ini="addopts="
+
+  - id: be_arch_dual_filter_phi
+    category: non_functional
+    must_pass: true
+    description: "Existing test_phi_dual_filter.py keeps passing — ClinicRepository requires tenant_id"
+    command: |
+      WS=$(git rev-parse --show-toplevel)
+      cd ${WS}/vitalia/backend && \
+        ${WS}/.venv/bin/pytest tests/architecture/test_phi_dual_filter.py -v --tb=short \
+          --override-ini="addopts="
+
+  - id: be_arch_no_raw_sql_in_admin
+    category: non_functional
+    must_pass: true
+    description: "NEW gate — admin/modules/{tenants,users,clinics}.py contain ZERO session.execute(text(SELECT|INSERT|UPDATE|DELETE)) raw SQL"
+    command: |
+      WS=$(git rev-parse --show-toplevel)
+      cd ${WS}/vitalia/backend && \
+        ${WS}/.venv/bin/pytest tests/architecture/test_admin_no_raw_sql.py -v --tb=short \
+          --override-ini="addopts="
+
+  - id: be_arch_admin_consumes_engine_repos
+    category: non_functional
+    must_pass: true
+    description: "NEW gate — admin/modules/{tenants,users}.py MUST import luana_core_iam.infrastructure.repositories"
+    command: |
+      WS=$(git rev-parse --show-toplevel)
+      cd ${WS}/vitalia/backend && \
+        ${WS}/.venv/bin/pytest tests/architecture/test_admin_consumes_engine_repos.py -v --tb=short \
+          --override-ini="addopts="
+
+  - id: be_arch_clinics_domain_no_engine_imports
+    category: non_functional
+    must_pass: true
+    description: "NEW gate — clinics/domain/clinic.py has ZERO imports from luana_core_iam (domain layer pure)"
+    command: |
+      WS=$(git rev-parse --show-toplevel)
+      cd ${WS}/vitalia/backend && \
+        ${WS}/.venv/bin/pytest tests/architecture/test_clinics_domain_no_engine_imports.py -v --tb=short \
+          --override-ini="addopts="
+
+  - id: be_arch_phantom_tables_zero_refs
+    category: non_functional
+    must_pass: true
+    description: "NEW gate — grep vitalia_user_profiles + vitalia_tenants in admin/ → 0 hits (SC-13)"
+    command: |
+      WS=$(git rev-parse --show-toplevel)
+      cd ${WS}/vitalia/backend && \
+        ${WS}/.venv/bin/pytest tests/architecture/test_phantom_tables_zero_refs.py -v --tb=short \
+          --override-ini="addopts="
+
+  - id: be_arch_migrations_idempotent
+    category: non_functional
+    must_pass: true
+    description: "Existing arch test — migrations 022 + 023 use IF NOT EXISTS / IF EXISTS guards"
+    command: |
+      WS=$(git rev-parse --show-toplevel)
+      cd ${WS}/vitalia/backend && \
+        ${WS}/.venv/bin/pytest tests/architecture/test_migrations_idempotent.py -v --tb=short \
+          --override-ini="addopts="
+
+  - id: fe_typecheck_e2e_admin
+    category: non_functional
+    must_pass: true
+    description: "TypeScript strict on Playwright admin-smoke specs (e2e/admin/**)"
+    command: |
+      WS=$(git rev-parse --show-toplevel)
+      cd ${WS}/vitalia/frontend && \
+        npx tsc --noEmit --project tsconfig.json
+
+  - id: phantom_code_zero_grep
+    category: non_functional
+    must_pass: true
+    description: "SHELL grep — SC-13 enforce — phantom tables references in admin/modules/ = 0"
+    command: |
+      WS=$(git rev-parse --show-toplevel)
+      cd ${WS}/vitalia/backend && \
+        ! grep -E "vitalia_user_profiles|vitalia_tenants" src/modules/vitalia/admin/modules/tenants.py src/modules/vitalia/admin/modules/users.py 2>/dev/null && \
+        ! grep -E "session\.execute\(text\(.*SELECT" src/modules/vitalia/admin/modules/tenants.py src/modules/vitalia/admin/modules/users.py 2>/dev/null && \
+        ! grep -E "session\.execute\(text\(.*(INSERT|UPDATE|DELETE)" src/modules/vitalia/admin/modules/tenants.py src/modules/vitalia/admin/modules/users.py 2>/dev/null
+      # NOTA: `&&` chain — todos los grep deben retornar 1 (NO match)
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # CATEGORY: functional (pytest unit + integration)
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - id: be_test_unit_admin_tenants
+    category: functional
+    must_pass: true
+    description: "Unit tests — admin tenants.py rewrite cubre SC-02, SC-03, SC-07"
+    command: |
+      WS=$(git rev-parse --show-toplevel)
+      cd ${WS}/vitalia/backend && \
+        ${WS}/.venv/bin/pytest tests/modules/vitalia/admin/test_tenants_crud.py -v --tb=short
+
+  - id: be_test_unit_admin_users
+    category: functional
+    must_pass: true
+    description: "Unit tests — admin users.py rewrite cubre SC-04, SC-05, SC-06"
+    command: |
+      WS=$(git rev-parse --show-toplevel)
+      cd ${WS}/vitalia/backend && \
+        ${WS}/.venv/bin/pytest tests/modules/vitalia/admin/test_users_crud.py -v --tb=short
+
+  - id: be_test_unit_clinics_module
+    category: functional
+    must_pass: true
+    description: "Unit tests — ClinicRepository + ClinicService cubre SC-08"
+    command: |
+      WS=$(git rev-parse --show-toplevel)
+      cd ${WS}/vitalia/backend && \
+        ${WS}/.venv/bin/pytest tests/modules/vitalia/clinics/ -v --tb=short
+
+  - id: be_test_unit_hipaa_dual_filter
+    category: functional
+    must_pass: true
+    description: "Unit tests — @require_clinic_access decorator cubre SC-09, SC-10, SC-11"
+    command: |
+      WS=$(git rev-parse --show-toplevel)
+      cd ${WS}/vitalia/backend && \
+        ${WS}/.venv/bin/pytest tests/modules/vitalia/clinics/test_require_clinic_access.py -v --tb=short
+
+  - id: be_test_integration_migrations_022_023
+    category: functional
+    must_pass: true
+    description: "Integration test — DB real verifica CREATE TABLE users/tenants/user_tenants/vitalia_clinics post-022+023 (SC-14)"
+    command: |
+      WS=$(git rev-parse --show-toplevel)
+      cd ${WS}/vitalia/backend && \
+        ${WS}/.venv/bin/pytest tests/integration/test_alembic_head.py -v --tb=short
+
+  - id: be_test_alembic_head_upgrade
+    category: functional
+    must_pass: true
+    description: "Integration test — alembic upgrade 001→023 succeeds end-to-end sin errores (SC-14)"
+    command: |
+      WS=$(git rev-parse --show-toplevel)
+      cd ${WS}/vitalia/backend && \
+        ${WS}/.venv/bin/pytest tests/integration/test_alembic_head.py::test_upgrade_001_to_023_succeeds -v --tb=short
+
+  - id: be_test_audit_log_sync
+    category: functional
+    must_pass: true
+    description: "Unit tests — write_audit_log_sync helper writes row before return (HIPAA invariant)"
+    command: |
+      WS=$(git rev-parse --show-toplevel)
+      cd ${WS}/vitalia/backend && \
+        ${WS}/.venv/bin/pytest tests/modules/vitalia/admin/test_audit_log_sync.py -v --tb=short
+
+  - id: be_test_admin_helper_endpoints
+    category: functional
+    must_pass: true
+    description: "Unit tests — /api/v1/vitalia/admin/db-state + /audit-log endpoints (Playwright support)"
+    command: |
+      WS=$(git rev-parse --show-toplevel)
+      cd ${WS}/vitalia/backend && \
+        ${WS}/.venv/bin/pytest \
+          tests/modules/vitalia/clinics/test_admin_helpers_db_state.py \
+          tests/modules/vitalia/clinics/test_admin_helpers_audit_log.py \
+          -v --tb=short
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # CATEGORY: visual (Playwright admin-smoke E2E — port 8502)
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Pre-condition: stack vitalia + vitalia_admin_dev corriendo via `make dev-vitalia-admin`
+  # ENV VARS REQUIRED:
+  #   E2E_ADMIN_BASE_URL=http://127.0.0.1:8502
+  #   E2E_BACKEND_URL=http://127.0.0.1:8002
+  #   VITALIA_ADMIN_PASSWORD=<plaintext matching VITALIA_ADMIN_PASSWORD_HASH>
+  #   VITALIA_INTERNAL_API_TOKEN=<openssl rand hex 32>
+
+  - id: visual_playwright_admin_smoke
+    category: visual
+    must_pass: true
+    description: "Playwright admin-smoke project — 5 specs en e2e/admin/ targeting port 8502"
+    command: |
+      WS=$(git rev-parse --show-toplevel)
+      cd ${WS}/vitalia/frontend && \
+        E2E_ADMIN_BASE_URL=http://127.0.0.1:8502 \
+        E2E_BACKEND_URL=http://127.0.0.1:8002 \
+        npx playwright test --project=admin-smoke --reporter=line
+
+  - id: visual_playwright_admin_login
+    category: visual
+    must_pass: true
+    description: "Playwright SC-01 + SC-12 — login bcrypt OK + logout destroys session"
+    command: |
+      WS=$(git rev-parse --show-toplevel)
+      cd ${WS}/vitalia/frontend && \
+        E2E_ADMIN_BASE_URL=http://127.0.0.1:8502 \
+        E2E_BACKEND_URL=http://127.0.0.1:8002 \
+        npx playwright test e2e/admin/admin-login.spec.ts --project=admin-smoke --reporter=line
+
+  - id: visual_playwright_admin_tenants_crud
+    category: visual
+    must_pass: true
+    description: "Playwright SC-02 + SC-03 + SC-07 — create + list + suspend tenant via UI + DB verify"
+    command: |
+      WS=$(git rev-parse --show-toplevel)
+      cd ${WS}/vitalia/frontend && \
+        E2E_ADMIN_BASE_URL=http://127.0.0.1:8502 \
+        E2E_BACKEND_URL=http://127.0.0.1:8002 \
+        npx playwright test e2e/admin/admin-tenants-crud.spec.ts --project=admin-smoke --reporter=line
+
+  - id: visual_playwright_admin_users_crud
+    category: visual
+    must_pass: true
+    description: "Playwright SC-04 + SC-05 + SC-06 — create+link + list+filter + ban user via UI + DB verify + audit log"
+    command: |
+      WS=$(git rev-parse --show-toplevel)
+      cd ${WS}/vitalia/frontend && \
+        E2E_ADMIN_BASE_URL=http://127.0.0.1:8502 \
+        E2E_BACKEND_URL=http://127.0.0.1:8002 \
+        npx playwright test e2e/admin/admin-users-crud.spec.ts --project=admin-smoke --reporter=line
+
+  - id: visual_playwright_admin_clinics_extension
+    category: visual
+    must_pass: true
+    description: "Playwright SC-08 + SC-13 — create clinic via UI + phantom-free grep assert"
+    command: |
+      WS=$(git rev-parse --show-toplevel)
+      cd ${WS}/vitalia/frontend && \
+        E2E_ADMIN_BASE_URL=http://127.0.0.1:8502 \
+        E2E_BACKEND_URL=http://127.0.0.1:8002 \
+        npx playwright test e2e/admin/admin-clinics-extension.spec.ts --project=admin-smoke --reporter=line
+
+  - id: visual_playwright_admin_hipaa_dual_filter
+    category: visual
+    must_pass: true
+    description: "Playwright SC-09 + SC-10 + SC-11 — dropdown filter UI + cross-clinic 403 + dual filter query result"
+    command: |
+      WS=$(git rev-parse --show-toplevel)
+      cd ${WS}/vitalia/frontend && \
+        E2E_ADMIN_BASE_URL=http://127.0.0.1:8502 \
+        E2E_BACKEND_URL=http://127.0.0.1:8002 \
+        npx playwright test e2e/admin/admin-hipaa-dual-filter.spec.ts --project=admin-smoke --reporter=line
+
+# ═══════════════════════════════════════════════════════════════════════════
+# CATEGORY: agentic_eval — top-level key (NOT a validator entry)
+# ═══════════════════════════════════════════════════════════════════════════
+# NO APLICA — story sin agentic touchpoints. Admin Streamlit es CRUD interno
+# consumiendo engine luana-core-iam directamente. NO LangGraph, NO LLM calls,
+# NO sales_agent/copilot extensions. Auditor-agentic NO se spawnea para esta story.
+
+agentic_eval: []
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Gherkin coverage matrix — auditor Phase D consume this mapping
+# ═══════════════════════════════════════════════════════════════════════════
+# Cada scenario SC-NN del 01-spec.md MUST tener al menos 1 test path mapeado
+# (cf. 06-tickets.yaml::gherkin_coverage por ticket).
+
+gherkin_coverage_summary:
+  SC-01: [visual_playwright_admin_login]
+  SC-02: [be_test_unit_admin_tenants, visual_playwright_admin_tenants_crud]
+  SC-03: [be_test_unit_admin_tenants, visual_playwright_admin_tenants_crud]
+  SC-04: [be_test_unit_admin_users, visual_playwright_admin_users_crud]
+  SC-05: [be_test_unit_admin_users, visual_playwright_admin_users_crud]
+  SC-06: [be_test_unit_admin_users, visual_playwright_admin_users_crud]
+  SC-07: [be_test_unit_admin_tenants, visual_playwright_admin_tenants_crud]
+  SC-08: [be_test_unit_clinics_module, visual_playwright_admin_clinics_extension]
+  SC-09: [be_test_unit_hipaa_dual_filter, visual_playwright_admin_hipaa_dual_filter]
+  SC-10: [be_test_unit_hipaa_dual_filter, visual_playwright_admin_hipaa_dual_filter]
+  SC-11: [be_test_unit_hipaa_dual_filter, visual_playwright_admin_hipaa_dual_filter]
+  SC-12: [visual_playwright_admin_login]
+  SC-13: [phantom_code_zero_grep, be_arch_phantom_tables_zero_refs, visual_playwright_admin_clinics_extension]
+  SC-14: [be_test_integration_migrations_022_023, be_test_alembic_head_upgrade]

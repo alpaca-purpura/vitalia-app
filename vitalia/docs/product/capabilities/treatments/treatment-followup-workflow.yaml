@@ -1,0 +1,130 @@
+---
+capability_id: vitalia-treatment-followup-workflow
+module: treatments
+slug: treatment-followup-workflow
+status: deprecated
+date_introduced: 2026-05-15
+story_introduced: luana-vitalia-bootstrap
+package_version: 0.1.0
+package_path: vitalia/backend/src/modules/vitalia/copilot/workflows
+fe_planned_phase2: vitalia-fase2-valeria-pacientes
+license: proprietary
+
+# v3 cement 2026-05-27 · 4 dimensiones + dev_preview (ADR-vitalia-005)
+tech_module: treatments
+agent_owner: camila
+functional_area: camila.reactivar
+user_visible: true
+nature: feature
+ui_paradigm: slice-1-superseded  # T-3 reconcile 2026-05-29
+replaced_by_story: vitalia-fase2-camila-reactivar  # T-3: story F2 que reconstruye esta cap
+
+user_facing_name: "Camila · workflow de seguimiento de tratamientos"
+user_facing_description: >
+  Flujo LangGraph cron-driven que acompaña a los pacientes durante su
+  plan de tratamiento: verifica el balance prepago, solicita consentimientos
+  para el próximo procedimiento, detecta necesidad de reagendar y realiza
+  el seguimiento clínico en 7 dimensiones (estado, constantes, adherencia,
+  efectos adversos, satisfacción, próximos pasos y escalada al médico).
+
+dev_preview:
+  route: "/camila/followup"
+  how_to_navigate: "Login → ribbon clic en avatar Camila → sub-tab Seguimiento para ver el dashboard de follow-ups activos y el historial del paciente."
+  main_component: "vitalia/frontend/src/features/vitalia/components/treatment-followup-dashboard-client.tsx"
+  api_endpoints:
+    - "GET /api/v1/vitalia/treatments"
+    - "GET /api/v1/vitalia/treatments/{id}/followup"
+    - "POST /api/v1/vitalia/treatments/{id}/start-followup"
+    - "POST /api/v1/vitalia/treatments/{id}/manual-handoff"
+    - "POST /api/v1/vitalia/treatments/{id}/release-handoff"
+  e2e_test: null
+  fixtures_required: ["3-clinic-fixture-latam"]
+  storybook_url: null
+  loom_demo: null
+
+# Capability ledger v2 (cement 2026-05-27)
+created_in_story: luana-vitalia-bootstrap   # v2 cement · mirror of story_introduced
+created_date: 2026-05-15   # v2 cement · mirror of date_introduced
+last_modified: 2026-05-29   # T-3 reconcile 2026-05-29
+parent_cap: null   # v2 cement · mirror of extends_capability
+derives_capabilities: []   # v2 cement · initial empty list
+
+# Capability ledger v2 (cement 2026-05-27)
+
+# Capability change log v2 (cement 2026-05-27)
+change_log:
+  - story_id: vitalia-bootstrap-inventory-2026-05-15
+    date: 2026-05-15
+    type: new
+    summary: "Implementación inicial · migración legacy a schema v2"
+    merge_sha: null
+    status: done
+map_box: camila
+
+---
+
+# vitalia-treatment-followup-workflow
+
+LangGraph 2.0 `TreatmentFollowupWorkflow` orquesta seguimientos médicos multi-step cron-driven. Timeline visual del tratamiento por paciente + dashboard de follow-ups activos. Soporta handoff manual a doctor + release.
+
+## Surface
+
+### Backend (`vitalia/backend/src/modules/vitalia/`)
+
+- **`copilot/workflows/treatment_followup_workflow.py`** — LangGraph 2.0 + RedisSaver-ready
+- **`copilot/workflows/cron_handler.py`** — integración con `core/luana-core-scheduling` cron_worker
+- **`copilot/workflows/module_registry_entry_helpers.py`**
+- **`application/services/treatment_followup_service.py`**
+- **`infrastructure/models/treatment_followup_model.py`** + **`adherence_record_model.py`**
+- **`infrastructure/repositories/treatment_followup_repository.py`**
+- **API endpoints**:
+  - `GET /api/v1/vitalia/treatments` — listado
+  - `GET /api/v1/vitalia/treatments/{id}` — detalle
+  - `GET /api/v1/vitalia/treatments/{id}/followup` — snapshot del workflow
+  - `POST /api/v1/vitalia/treatments/{id}/start-followup` — arranca workflow
+  - `POST /api/v1/vitalia/treatments/{id}/manual-handoff` — pausa workflow, asigna a doctor
+  - `POST /api/v1/vitalia/treatments/{id}/release-handoff` — re-activa workflow
+
+### Frontend (`vitalia/frontend/`)
+
+- **Rutas dashboard**:
+  - `src/app/(dashboard)/treatments/page.tsx` — listado
+  - `src/app/(dashboard)/treatments/[id]/page.tsx` — detalle + timeline
+  - `src/app/(dashboard)/treatments/[id]/followup/page.tsx` — dashboard de follow-up activo
+- **Componentes** (`features/vitalia/components/`):
+  - `treatment-list-table.tsx`
+  - `treatment-timeline.tsx`
+  - `treatment-followup-dashboard-client.tsx`
+- **Schemas + hooks**: `schemas/treatment-schema.ts`, `schemas/handoff-schema.ts`, `api/use-treatments.ts`, `api/use-treatment.ts`, `api/use-treatment-create.ts`, `api/use-treatment-snapshot.ts`, `api/use-treatment-followup-start.ts`
+
+### Workflow steps (LangGraph nodes)
+
+1. Verifica prepaid balance (`prepaid_payment_check` tool) → si bajo, prompt top-up
+2. Requesta consentimiento próximo procedimiento (`medical_consent_request` tool) → paciente firma
+3. Detecta necesidad de reschedule (`appointment_reschedule_with_doctor` tool) → busca slot + notifica
+4. Loop check seguimiento (`treatment_followup_check` tool, 7 acciones: status, vitals, adherence, side-effects, satisfaction, next-steps, escalation)
+
+## Test coverage
+
+- `vitalia/backend/tests/agentic_evals/tools/test_treatment_followup_check.py`
+- `vitalia/backend/tests/agentic_evals/cost_budget/test_cost_budget_followup_turn.py`
+- `vitalia/frontend/tests/unit/features/vitalia/components/treatment-timeline.test.ts`
+- `vitalia/frontend/tests/unit/features/vitalia/components/treatment-followup-dashboard-client.test.tsx`
+- E2E smoke: `treatment-followup-sanare.smoke.spec.ts`, `treatment-followup-mindful.smoke.spec.ts`, `treatment-followup-aurora.smoke.spec.ts`
+
+## Dependencies
+
+- `core/luana-core-platform` (LangGraph 2.0 base + RedisSaver)
+- `core/luana-core-scheduling` (cron_worker + calendar EXTEND)
+- `core/luana-core-llm` (LLM router para tool reasoning)
+- `vitalia.agentic.tools.*` (4 tools consumidos por workflow)
+
+## Scenarios live
+
+- Cron dispara secuencia de follow-up para plan de tratamiento activo
+- Workflow checa pago prepaid → si bajo, prompt al paciente para top-up
+- Workflow requesta consentimiento → paciente firma vía consent_signature_modal
+- Workflow detecta reschedule needed → busca slot doctor → notifica ambas partes
+- Doctor toma handoff manual → workflow pausa → conversación humana
+- Doctor libera handoff → workflow resume desde checkpoint
+- Follow-up check loop cubre 7 acciones (status, vitals, adherence, side-effects, satisfaction, next steps, escalation)

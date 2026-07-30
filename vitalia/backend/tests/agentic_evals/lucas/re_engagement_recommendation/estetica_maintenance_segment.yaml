@@ -1,0 +1,98 @@
+# Vitalia Lucas golden — estetica_maintenance_segment (60d, 25 maintenance vencidos)
+# Story vitalia-slice-1-fidelizacion T-15 (R23 production_code=false — goldens/tests Sonnet OK)
+#
+# Scenario:
+#   Tenant Sanaré MX, clínica estética, período 60 días.
+#   25 eventos de mantenimiento periódico vencido (botox, depilación, peeling, etc.).
+#   Lucas segmenta por sub-tipo y genera recommendations focalizadas en mantenimiento.
+#   Top recommendation: maintenance pattern con alto expected_impact_pct (volumen alto).
+#
+# Tool under test: compute_re_engagement_recommendation (T-10, shipped)
+# HIPAA-lite: datos agregados por clínica (estética — menor sensibilidad que médico,
+# pero dual filter tenant+clinic aplica igualmente por arquitectura).
+
+golden_id: lucas_estetica_maintenance_segment_v1
+tenant_context:
+  tenant_alias: "Sanaré MX"
+  clinic_vertical: estetica
+  dialect: es-MX
+
+tool_input:
+  tenant_id: "<dynamic-uuid>"
+  clinic_id: "<dynamic-uuid>"
+  period: "60d"
+  top_n: 5
+
+simulated_re_engagement_events:
+  - pattern: maintenance
+    count: 25
+    avg_months_overdue: 3.2
+    sub_types:
+      - botox_followup: 8
+      - depilacion_laser: 10
+      - peeling_quimico: 7
+  - pattern: absence
+    count: 5
+    avg_days_since_last_visit: 70
+  - pattern: follow_up
+    count: 3
+    avg_days_overdue: 12
+
+expected_output_shape:
+  tenant_id: "<dynamic>"
+  clinic_id: "<dynamic>"
+  stage: "fidelizacion"
+  recommendations:
+    count: 5
+    required_fields_per_item:
+      - pattern
+      - priority
+      - action
+      - expected_impact_pct
+    action_language: es
+    top_pattern: maintenance
+    top_priority: high
+    expected_impact_pct_range:
+      min: 1
+      max: 100
+
+expected_top_recommendation:
+  pattern: maintenance
+  priority: high
+  expected_impact_pct_min: 40
+
+expected_observability:
+  trace_event_emitted: true
+  trace_event_type: "tool.compute_re_engagement_recommendation.completed"
+  trace_payload_includes:
+    - period
+    - clinic_id
+    - top_n
+    - recommendations_count
+  trace_payload_excludes:
+    - action
+    - rationale
+    - patient_name
+    - patient_phone
+
+expected_tenant_isolation:
+  tenant_id_in_service_call: true
+  clinic_id_in_service_call: true
+  cross_tenant_leak: false
+
+notes: |
+  Estética clinic with high-volume maintenance backlog over 60 days.
+  Lucas segments by maintenance pattern (highest count=25) → top recommendation.
+
+  Key invariants:
+  - Top recommendation MUST be pattern=maintenance (highest signal volume).
+  - 5 recommendations returned (top_n=5).
+  - Actions in Spanish neutro (Sanaré MX es-MX → tuteo register expected from LLM).
+  - expected_impact_pct ∈ [1, 100]; top maintenance item ≥40%.
+  - 60d period allows richer cluster detection than 15d period.
+  - Aggregate data only — no per-patient sub-types leak in output.
+  - Trace event payload excludes action/rationale bodies.
+
+  Estética vertical notes:
+  - Sensibilidad PHI menor que psicología/dental, pero dual filter aplica.
+  - No medical_guardrails beyond standard (no diagnosis in output).

@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="es-LA" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<title>F1-S10 · Valeria/Agenda placeholder (enriquecido)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="_shared.css">
+<style>
+  .agenda-grid {
+    display: grid;
+    grid-template-columns: 70px repeat(6, 1fr);
+    gap: 0;
+    font-size: 11px;
+  }
+  .agenda-head { font-weight: 600; text-align: center; padding: 8px 4px 6px; color: var(--text-muted); text-transform: uppercase; font-size: 10px; letter-spacing: 0.04em; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); background: var(--bg-panel); }
+  .agenda-head.today { color: var(--c-valeria); }
+  .agenda-head .day-num { display: block; font-size: 15px; font-weight: 700; color: var(--text-primary); margin-top: 2px; }
+  .agenda-head.today .day-num { color: var(--c-adrian); }
+  .agenda-time { color: var(--text-muted); text-align: right; padding: 4px 8px; font-size: 11px; border-top: 1px solid var(--border); }
+  .agenda-cell { border-top: 1px solid var(--border); border-right: 1px solid var(--border); min-height: 56px; padding: 2px; cursor: pointer; background: var(--bg-panel); transition: background .15s; }
+  .agenda-cell:hover { background: var(--bg-hover); }
+  .agenda-cell.empty:hover::after { content: "+ Crear cita"; font-size: 10px; color: var(--text-muted); display: block; padding: 4px; }
+  .slot-block { height: 100%; padding: 4px 6px; border-radius: 0 4px 4px 0; }
+  .slot-block.paid { border-left: 3px solid #10b981; background: linear-gradient(135deg, rgba(16,185,129,.12), rgba(16,185,129,.04)); }
+  .slot-block.deposit { border-left: 3px solid var(--c-adrian); background: linear-gradient(135deg, rgba(1,178,248,.12), rgba(1,178,248,.04)); }
+  .slot-block.unpaid { border-left: 3px solid #f59e0b; background: linear-gradient(135deg, rgba(245,158,11,.12), rgba(245,158,11,.04)); }
+  .slot-block.noshow { border-left: 3px solid #ef4444; background: linear-gradient(135deg, rgba(239,68,68,.12), rgba(239,68,68,.04)); color: var(--text-muted); }
+  .slot-block .name { font-weight: 600; font-size: 11px; color: var(--text-primary); }
+  .slot-block.noshow .name { text-decoration: line-through; }
+  .slot-block .detail { font-size: 10px; color: var(--text-muted); margin-top: 1px; }
+  .slot-pill { display: inline-flex; align-items: center; padding: 1px 6px; border-radius: 999px; font-size: 9px; font-weight: 600; }
+  .pill-paid { background: rgba(16,185,129,.18); color: #047857; }
+  .pill-deposit { background: rgba(1,178,248,.18); color: #0369a1; }
+  .pill-unpaid { background: rgba(245,158,11,.18); color: #a16207; }
+  .pill-noshow { background: rgba(239,68,68,.18); color: #b91c1c; }
+  [data-theme="dark"] .pill-paid { color: #6ee7b7; }
+  [data-theme="dark"] .pill-deposit { color: #7dd3fc; }
+  [data-theme="dark"] .pill-unpaid { color: #fcd34d; }
+  [data-theme="dark"] .pill-noshow { color: #fca5a5; }
+  .filter-chip { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-panel); font-size: 11px; color: var(--text-secondary); cursor: pointer; transition: all .15s; }
+  .filter-chip:hover { background: var(--bg-hover); }
+  .filter-chip strong { color: var(--text-primary); font-weight: 600; }
+  .filter-checkbox { padding-left: 6px; }
+  .period-toggle { display: inline-flex; background: var(--bg-hover); border-radius: 6px; padding: 2px; font-size: 11px; }
+  .period-toggle button { padding: 4px 10px; border-radius: 4px; color: var(--text-muted); cursor: pointer; border: none; background: transparent; font: inherit; }
+  .period-toggle button.active { background: var(--bg-panel); color: var(--text-primary); font-weight: 600; box-shadow: var(--shadow-sm); }
+  [data-theme="dark"] .period-toggle button.active { background: var(--bg-elevated); }
+</style>
+</head>
+<body>
+<div class="mockup-frame" style="max-width: 1280px;">
+  <div class="mockup-header">
+    <div>
+      <div class="mockup-title">Valeria · Agenda — placeholder Fase 1 (enriquecido)</div>
+      <div class="mockup-subtitle">F1-S10 · toolbar period nav + filters visuales + grid 6d + slots con doctor/service + footer Adrián summary · funcionalidad real difiere a F2-S1 valeria-agenda</div>
+    </div>
+    <button class="theme-btn" onclick="document.documentElement.dataset.theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'">🌓 Tema</button>
+  </div>
+
+  <article class="panel rounded-lg overflow-hidden">
+
+    <!-- ─── Header con título + CTA ─── -->
+    <div class="px-4 py-3 border-b border-app flex items-start justify-between">
+      <div>
+        <h2 class="text-base font-semibold">Agenda</h2>
+        <p class="text-xs muted">Tus turnos del día + cobranza · 6 días</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <button class="theme-btn" style="font-size: 12px;" title="Búsqueda global">🔍 <span class="text-[10px]">⌘K</span></button>
+        <button class="theme-btn" title="Notificaciones" style="position: relative;">🔔 <span style="position: absolute; top: 4px; right: 4px; width: 6px; height: 6px; background: #ef4444; border-radius: 999px;"></span></button>
+      </div>
+    </div>
+
+    <!-- ─── Toolbar period nav + CTA ─── -->
+    <div class="px-4 py-3 border-b border-app flex items-center justify-between flex-wrap gap-3">
+      <div class="flex items-center gap-2 flex-wrap">
+        <button class="theme-btn" style="width: 28px; padding: 4px;">‹</button>
+        <div class="text-sm font-semibold">Semana 26-31 May 2026</div>
+        <button class="theme-btn" style="width: 28px; padding: 4px;">›</button>
+        <div class="period-toggle ml-2">
+          <button>Día</button>
+          <button class="active">Semana</button>
+          <button>Mes</button>
+        </div>
+        <button class="theme-btn" style="font-size: 12px;">📅 Hoy</button>
+      </div>
+      <div class="relative">
+        <button class="bg-valeria-soft text-valeria px-3 py-1.5 rounded-md text-sm font-semibold flex items-center gap-1.5" style="border: 1px solid var(--c-valeria); cursor: pointer;">
+          + Crear cita <span class="text-[10px]">▾</span>
+        </button>
+        <div class="absolute right-0 mt-1 panel rounded-lg shadow-md-app p-1 z-10 hidden" data-cta-menu style="min-width: 240px;">
+          <button class="w-full text-left px-3 py-2 rounded hover:bg-app-hover flex items-start gap-2 text-xs"><span class="text-base">🚶</span><div><div class="font-semibold">Walk-in</div><div class="muted text-[10px]">Paciente presente ahora</div></div></button>
+          <button class="w-full text-left px-3 py-2 rounded hover:bg-app-hover flex items-start gap-2 text-xs"><span class="text-base">📞</span><div><div class="font-semibold">Reserva por teléfono</div><div class="muted text-[10px]">Fecha futura</div></div></button>
+          <button class="w-full text-left px-3 py-2 rounded hover:bg-app-hover flex items-start gap-2 text-xs"><span class="text-base">✉</span><div><div class="font-semibold">Reagendar proactivamente</div><div class="muted text-[10px]">Desde un lead caliente</div></div></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── Filters row (visuales — funcional diferido F2-S1) ─── -->
+    <div class="px-4 py-2.5 border-b border-app flex items-center gap-2 flex-wrap" style="background: var(--bg-app);">
+      <div class="filter-chip"><span>🔍</span><input type="text" placeholder="Buscar paciente" class="bg-transparent outline-none text-xs" style="width: 110px;" disabled></div>
+      <button class="filter-chip">🩺 Doctor: <strong>Todos</strong> ▾</button>
+      <button class="filter-chip">📋 Especialidad: <strong>Todas</strong> ▾</button>
+      <button class="filter-chip">💰 Status pago: <strong>Todos</strong> ▾</button>
+      <label class="filter-chip filter-checkbox" style="background: var(--bg-hover);"><input type="checkbox" style="width: 11px; height: 11px;"> Solo riesgo no-show</label>
+      <label class="filter-chip filter-checkbox" style="background: var(--bg-hover);"><input type="checkbox" style="width: 11px; height: 11px;"> Solo walk-in</label>
+    </div>
+
+    <!-- ─── Grid 6 días × 8 horas ─── -->
+    <div class="overflow-x-auto" style="background: var(--bg-app);">
+      <div class="agenda-grid" style="min-width: 900px;">
+        <!-- day headers -->
+        <div class="agenda-head"></div>
+        <div class="agenda-head today">Lun <span class="day-num">26</span></div>
+        <div class="agenda-head">Mar <span class="day-num">27</span></div>
+        <div class="agenda-head">Mié <span class="day-num">28</span></div>
+        <div class="agenda-head">Jue <span class="day-num">29</span></div>
+        <div class="agenda-head">Vie <span class="day-num">30</span></div>
+        <div class="agenda-head">Sáb <span class="day-num">31</span></div>
+
+        <!-- 08:00 -->
+        <div class="agenda-time">08:00</div>
+        <div class="agenda-cell empty"></div>
+        <div class="agenda-cell empty"></div>
+        <div class="agenda-cell empty"></div>
+        <div class="agenda-cell empty"></div>
+        <div class="agenda-cell empty"></div>
+        <div class="agenda-cell empty"></div>
+
+        <!-- 09:00 -->
+        <div class="agenda-time">09:00</div>
+        <div class="agenda-cell">
+          <div class="slot-block paid">
+            <div class="flex items-center justify-between"><span class="name truncate">M. Rodríguez</span><span class="slot-pill pill-paid">✓ PAG</span></div>
+            <div class="detail">Limpieza · Dr. Mendoza</div>
+          </div>
+        </div>
+        <div class="agenda-cell empty"></div>
+        <div class="agenda-cell">
+          <div class="slot-block deposit">
+            <div class="flex items-center justify-between"><span class="name truncate">S. López</span><span class="slot-pill pill-deposit">30%</span></div>
+            <div class="detail">Blanqueamiento · Dra. Soto</div>
+          </div>
+        </div>
+        <div class="agenda-cell empty"></div>
+        <div class="agenda-cell empty"></div>
+        <div class="agenda-cell empty"></div>
+
+        <!-- 10:00 -->
+        <div class="agenda-time">10:00</div>
+        <div class="agenda-cell">
+          <div class="slot-block deposit">
+            <div class="flex items-center justify-between"><span class="name truncate">L. Vega 📞</span><span class="slot-pill pill-deposit">30%</span></div>
+            <div class="detail">Consulta · Dra. Soto</div>
+          </div>
+        </div>
+        <div class="agenda-cell">
+          <div class="slot-block deposit">
+            <div class="flex items-center justify-between"><span class="name truncate">J. Pérez</span><span class="slot-pill pill-deposit">30%</span></div>
+            <div class="detail">Consulta · Dr. Mendoza</div>
+          </div>
+        </div>
+        <div class="agenda-cell empty"></div>
+        <div class="agenda-cell">
+          <div class="slot-block unpaid">
+            <div class="flex items-center justify-between"><span class="name truncate">A. Ruiz 🚶</span><span class="slot-pill pill-unpaid">SIN PAGO</span></div>
+            <div class="detail">Consulta · Dr. Mendoza</div>
+          </div>
+        </div>
+        <div class="agenda-cell empty"></div>
+        <div class="agenda-cell empty"></div>
+
+        <!-- 11:00 -->
+        <div class="agenda-time">11:00</div>
+        <div class="agenda-cell">
+          <div class="slot-block paid">
+            <div class="flex items-center justify-between"><span class="name truncate">P. Sosa</span><span class="slot-pill pill-paid">✓ PAG</span></div>
+            <div class="detail">Endodoncia · Dr. Mendoza</div>
+          </div>
+        </div>
+        <div class="agenda-cell empty"></div>
+        <div class="agenda-cell empty"></div>
+        <div class="agenda-cell empty"></div>
+        <div class="agenda-cell">
+          <div class="slot-block deposit">
+            <div class="flex items-center justify-between"><span class="name truncate">M. Díaz ✉</span><span class="slot-pill pill-deposit">30%</span></div>
+            <div class="detail">Blanqueamiento · Dra. Soto</div>
+          </div>
+        </div>
+        <div class="agenda-cell empty"></div>
+
+        <!-- 12:00 -->
+        <div class="agenda-time">12:00</div>
+        <div class="agenda-cell empty"></div>
+        <div class="agenda-cell empty"></div>
+        <div class="agenda-cell">
+          <div class="slot-block deposit">
+            <div class="flex items-center justify-between"><span class="name truncate">R. Cruz</span><span class="slot-pill pill-deposit">30%</span></div>
+            <div class="detail">Consulta · Dr. Mendoza</div>
+          </div>
+        </div>
+        <div class="agenda-cell empty"></div>
+        <div class="agenda-cell empty"></div>
+        <div class="agenda-cell empty"></div>
+
+        <!-- 13:00 -->
+        <div class="agenda-time">13:00</div>
+        <div class="agenda-cell empty" style="background: repeating-linear-gradient(45deg, var(--bg-app), var(--bg-app) 4px, var(--bg-hover) 4px, var(--bg-hover) 8px);" title="Almuerzo"></div>
+        <div class="agenda-cell empty" style="background: repeating-linear-gradient(45deg, var(--bg-app), var(--bg-app) 4px, var(--bg-hover) 4px, var(--bg-hover) 8px);" title="Almuerzo"></div>
+        <div class="agenda-cell empty" style="background: repeating-linear-gradient(45deg, var(--bg-app), var(--bg-app) 4px, var(--bg-hover) 4px, var(--bg-hover) 8px);" title="Almuerzo"></div>
+        <div class="agenda-cell empty" style="background: repeating-linear-gradient(45deg, var(--bg-app), var(--bg-app) 4px, var(--bg-hover) 4px, var(--bg-hover) 8px);" title="Almuerzo"></div>
+        <div class="agenda-cell empty" style="background: repeating-linear-gradient(45deg, var(--bg-app), var(--bg-app) 4px, var(--bg-hover) 4px, var(--bg-hover) 8px);" title="Almuerzo"></div>
+        <div class="agenda-cell empty" style="background: repeating-linear-gradient(45deg, var(--bg-app), var(--bg-app) 4px, var(--bg-hover) 4px, var(--bg-hover) 8px);" title="Almuerzo"></div>
+
+        <!-- 14:00 -->
+        <div class="agenda-time">14:00</div>
+        <div class="agenda-cell empty"></div>
+        <div class="agenda-cell">
+          <div class="slot-block noshow">
+            <div class="flex items-center justify-between"><span class="name truncate">C. Núñez</span><span class="slot-pill pill-noshow">⚠ NO-SHOW</span></div>
+            <div class="detail">Consulta · Dr. Mendoza · histórico 2 faltas</div>
+          </div>
+        </div>
+        <div class="agenda-cell empty"></div>
+        <div class="agenda-cell empty"></div>
+        <div class="agenda-cell">
+          <div class="slot-block paid">
+            <div class="flex items-center justify-between"><span class="name truncate">Sofía B. ✋</span><span class="slot-pill pill-paid">✓ PAG</span></div>
+            <div class="detail">Limpieza · Dra. Soto</div>
+          </div>
+        </div>
+        <div class="agenda-cell empty"></div>
+
+        <!-- 15:00 -->
+        <div class="agenda-time">15:00</div>
+        <div class="agenda-cell empty"></div>
+        <div class="agenda-cell empty"></div>
+        <div class="agenda-cell empty"></div>
+        <div class="agenda-cell empty"></div>
+        <div class="agenda-cell empty"></div>
+        <div class="agenda-cell empty"></div>
+
+        <!-- 16:00 -->
+        <div class="agenda-time">16:00</div>
+        <div class="agenda-cell empty"></div>
+        <div class="agenda-cell empty"></div>
+        <div class="agenda-cell empty"></div>
+        <div class="agenda-cell empty"></div>
+        <div class="agenda-cell empty"></div>
+        <div class="agenda-cell empty"></div>
+      </div>
+    </div>
+
+    <!-- ─── Footer leyenda + Adrián summary ─── -->
+    <div class="px-4 py-2.5 border-t border-app flex items-center justify-between flex-wrap gap-3 text-[11px]">
+      <div class="flex items-center gap-3 flex-wrap">
+        <span class="muted font-semibold uppercase tracking-wide text-[9px]">Leyenda</span>
+        <span class="flex items-center gap-1.5"><span class="status-dot" style="background:#10b981"></span>Pagado</span>
+        <span class="flex items-center gap-1.5"><span class="status-dot" style="background:var(--c-adrian)"></span>30% depósito</span>
+        <span class="flex items-center gap-1.5"><span class="status-dot" style="background:#f59e0b"></span>Sin pago</span>
+        <span class="flex items-center gap-1.5"><span class="status-dot" style="background:#ef4444"></span>No-show riesgo</span>
+        <span class="muted">🚶 walk-in · 📞 phone · ✉ proactiva</span>
+      </div>
+      <div class="muted italic text-right">
+        <span class="font-semibold text-adrian">Adrián</span> propuso 4 turnos hoy · 3 sin pago · <span class="font-semibold text-lucas" style="color: var(--text-primary);">Lucas</span>: 3 leads listos
+      </div>
+    </div>
+  </article>
+
+  <!-- Notes for /architect-fe -->
+  <details class="mt-6 panel rounded-lg p-4 text-xs muted">
+    <summary class="text-sm font-medium text-primary cursor-pointer">📝 Notas para /architect-fe (no parte del placeholder visual)</summary>
+    <div class="mt-3 space-y-2">
+      <p><strong>Scope F1-S10 (placeholder visual, mock-only):</strong></p>
+      <ul class="list-disc list-inside space-y-1">
+        <li>Toolbar: period nav <code>(‹ ›)</code> + Día/Semana/Mes toggle + Hoy → solo visual, NO cambia data</li>
+        <li>Filters: Doctor, Especialidad, Status, no-show, walk-in → solo visual, NO filtra slots</li>
+        <li>CTA "Crear cita" con dropdown → solo visual</li>
+        <li>Grid 6d × N horas con day-header today highlight → static layout</li>
+        <li>Slots mock con paciente · service · doctor · origin icon · pill status pago → hardcoded en agenda-mock-data.ts</li>
+        <li>Footer Adrián summary → texto hardcoded mock</li>
+      </ul>
+      <p><strong>Scope F2-S1 valeria-agenda (funcional):</strong></p>
+      <ul class="list-disc list-inside space-y-1">
+        <li>ContactSidebar selectable al click slot (collapse pattern del sales_studio inbox)</li>
+        <li>Payment subform inline (capa 1 cobranza) + Capa 2 fiscal (Nubefact PE)</li>
+        <li>Filtros funcionales con state Zustand + URL searchParam</li>
+        <li>Period nav real (week +1/-1, Hoy reset)</li>
+        <li>Historial cronológico cross-link a inbox (`/{tenantId}/adrian/inbox?lead=X`)</li>
+        <li>PHI masking +51 9** ***-4567 + RBAC `@require_phi_access` (hipaa-lite)</li>
+        <li>Service `useAgendaWeek(week_start)` React Query + tenant_id filter + clinic_id filter</li>
+      </ul>
+    </div>
+  </details>
+</div>
+
+<script>
+  // CTA dropdown toggle
+  document.querySelectorAll('[data-cta-menu]').forEach((menu) => {
+    const btn = menu.parentElement.querySelector('button');
+    btn?.addEventListener('click', () => menu.classList.toggle('hidden'));
+  });
+  // Period toggle
+  document.querySelectorAll('.period-toggle button').forEach((b) => {
+    b.addEventListener('click', () => {
+      b.parentElement.querySelectorAll('button').forEach((sib) => sib.classList.remove('active'));
+      b.classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>

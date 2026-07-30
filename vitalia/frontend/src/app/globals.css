@@ -1,0 +1,608 @@
+/*
+ * Vitalia — Design tokens CSS variables
+ * SSoT: vitalia/docs/architecture/design-system.md § 4
+ *
+ * Format: H S% L% (HSL channel values for Tailwind v4 + Shadcn pattern)
+ * Consumed via: hsl(var(--vitalia-X))
+ *
+ * Dark mode: out of scope MVP — ADR-vitalia-002 cuando se aborde.
+ */
+
+/* Tailwind v4 entry — @import replaces v3 trio @tailwind base/components/utilities.
+ * Origen 2026-05-22 F1-S0: con postcss.config.mjs + @tailwindcss/postcss el plugin
+ * procesa este @import. El @config directive abajo permite que Tailwind v4 lea
+ * tailwind.config.ts (legacy config con extended colors Shadcn + agent palette)
+ * en lugar de exigir migración full a CSS-first @theme syntax.
+ *
+ * Sin @config, Tailwind v4 NO genera utilities para bg-primary/bg-background/
+ * bg-agent-* etc. — solo core (p-*, m-*, flex). Era el bug origen 2026-05-21
+ * "Tailwind no renderiza en runtime" — clases custom de Shadcn no resolvían.
+ */
+@import "tailwindcss";
+@config "../../tailwind.config.ts";
+
+/* T-V1: Scan @luana/ui-kit shell organism so Tailwind v4 JIT includes kit classes.
+ * Without this, arbitrary Tailwind utilities used inside the kit (bg-agent-*, border-*)
+ * would be purged. The agent color tokens are defined in this file + tailwind.config.ts;
+ * the @source ensures the JIT scanner sees the kit's static class usages.
+ * See: vitalia/docs/product/stories/platform-lift-shell-chrome-ui-kit/03-arch.md § FE-3
+ */
+@source "../../../../core/@luana/ui-kit/src";
+
+/* ── C2-T3: @theme — projects @luana/design-tokens values into Tailwind v4 ──
+ * Values MUST match the TS package (arch-test test-ds-tokens-lock [T-3] asserts no-drift).
+ * @config "../../tailwind.config.ts" is preserved above (dark wiring: class + [data-theme]).
+ * RADIUS_SCALE stays in :root (avoids @theme conflict with tailwind.config.ts borderRadius).
+ * Status colors project via hsl(var(--status)) so :root dark-override propagates here.
+ */
+@theme {
+  /* Shadow scale — SHADOW from @luana/design-tokens §6.1 ─────────────────── */
+  --shadow-none: none;
+  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+
+  /* Typography tiers — TYPOGRAPHY_SCALE from @luana/design-tokens §6.2 ─────
+   * Generates text-display/heading/body/caption utilities (additive to v4 scale). */
+  --text-display: 2.25rem;
+  --text-heading: 1.5rem;
+  --text-body: 1rem;
+  --text-caption: 0.75rem;
+
+  /* Semantic status — projected via CSS vars so dark :root overrides propagate ─ */
+  --color-success: hsl(var(--success));
+  --color-success-foreground: hsl(var(--success-foreground));
+  --color-warning: hsl(var(--warning));
+  --color-warning-foreground: hsl(var(--warning-foreground));
+  --color-danger: hsl(var(--danger));
+  --color-danger-foreground: hsl(var(--danger-foreground));
+  --color-info: hsl(var(--info));
+  --color-info-foreground: hsl(var(--info-foreground));
+}
+
+/* G2-F7: explicit z-index utilities for the shared-shell tokens (@luana/design-tokens
+ * Z_INDEX_CLASSES). The kit applies them via `${Z_INDEX_CLASSES.DROPDOWN}` runtime
+ * interpolation, so the literal `z-[85]` never reaches Tailwind v4's JIT scanner →
+ * the EntityPicker popover got the `z-[85]` class but NO css rule (z:auto) and
+ * rendered BEHIND the sticky ServiceStatusBar (z-10). These authored utilities
+ * guarantee the rules regardless of scanning. Values mirror Z_INDEX_CLASSES. */
+@layer utilities {
+  .z-\[40\] { z-index: 40; }
+  .z-\[50\] { z-index: 50; }
+  .z-\[60\] { z-index: 60; }
+  .z-\[70\] { z-index: 70; }
+  .z-\[80\] { z-index: 80; }
+  .z-\[85\] { z-index: 85; }
+  .z-\[90\] { z-index: 90; }
+  .z-\[100\] { z-index: 100; }
+}
+
+/* G2-F7 (the actual fix): Radix poppers render their Content as `position: static`
+ * INSIDE a `position: fixed` wrapper — so a z-index on the Content (e.g. the
+ * popover's `z-[85]`) is INERT (z-index needs a positioned element). The popover
+ * therefore stacked BEHIND the sticky ServiceStatusBar (z-10). Put the z-index on
+ * the positioned wrapper so every popover/dropdown/select clears the shell's sticky
+ * bars (ribbon z-20 · status z-10). Plain rule (not @layer) → always emitted. */
+[data-radix-popper-content-wrapper] {
+  z-index: 85;
+}
+
+/* ─── Shadcn standard tokens + agent tokens (F1-S0) ─────────────────────────
+ * SSoT: vitalia/docs/architecture/SHELL-DESIGN-CONTRACT.md § 5.1
+ * Format: H S% L% (consumed via hsl(var(--X)))
+ * Dark mode: .dark class toggled at <html> level
+ */
+@layer base {
+  :root {
+    /* Surface — Shadcn standard */
+    --background: 0 0% 100%;
+    --foreground: 240 10% 4%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 4%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 4%;
+    --primary: 198 99% 49%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 5% 96%;
+    --secondary-foreground: 240 6% 10%;
+    --muted: 240 5% 96%;
+    --muted-foreground: 240 4% 46%;
+    --accent: 287 53% 37%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    /* Semantic success/warning — @luana/ui-kit Badge consumes bg-success/bg-warning.
+     * Values = the vitalia brand tokens (--vitalia-success #16A34A / --vitalia-warning
+     * #D97706, defined ~L187-188). Without these bare tokens the kit's success/warning
+     * variants render colorless (obs#4 mateo/nueva-cita). */
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 98%;
+    --warning: 33 91% 44%;
+    --warning-foreground: 0 0% 98%;
+    /* C2-T3: canonical status vars so --vitalia-danger/info can alias these (alias-then-migrate).
+     * Brand-specific values (vitalia overrides design-tokens defaults for clinical context). */
+    --danger: 0 73% 50%;
+    --danger-foreground: 0 0% 98%;
+    --info: 199 89% 48%;
+    --info-foreground: 0 0% 98%;
+    --border: 240 6% 90%;
+    --input: 240 6% 90%;
+    --ring: 198 99% 49%;
+    --radius: 0.625rem;
+
+    /* Agent tokens — 7 base + 6 soft variants */
+    --agent-lisa: 156 100% 41%; /* #00D084 */
+    --agent-lisa-soft: 156 80% 92%;
+    --agent-lucas: 0 0% 7%; /* #111111 */
+    --agent-lucas-soft: 0 0% 92%;
+    --agent-adrian: 198 99% 49%; /* #01b2f8 = primary */
+    --agent-adrian-soft: 197 90% 89%;
+    --agent-valeria: 287 53% 37%; /* #7b2d91 */
+    --agent-valeria-soft: 287 53% 90%;
+    --agent-camila: 244 84% 32%; /* #180d95 */
+    --agent-camila-soft: 244 53% 92%;
+    --agent-mateo: 53 99% 51%; /* #fee209 */
+    --agent-mateo-soft: 53 90% 90%;
+    --agent-config: 240 4% 46%; /* neutral gray */
+  }
+
+  /* Dark mode: activated by next-themes via [data-theme="dark"] attribute OR .dark class
+   * SSoT: vitalia/docs/architecture/SHELL-DESIGN-CONTRACT.md § 5.1
+   * next-themes uses attribute="data-theme" → sets <html data-theme="dark">
+   * Tailwind v4 config: darkMode: ['class', '[data-theme="dark"]'] activates dark: variants
+   */
+  .dark,
+  [data-theme="dark"] {
+    --background: 240 10% 4%;
+    --foreground: 0 0% 98%;
+    --card: 240 8% 8%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 8% 8%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 198 99% 49%;
+    --primary-foreground: 240 10% 4%;
+    --secondary: 240 4% 16%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 4% 16%;
+    --muted-foreground: 240 5% 65%;
+    --accent: 287 53% 50%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 0 0% 98%;
+    /* Dark: same criterion as destructive — drop lightness so the brand green/amber
+     * reads on the dark surface, foreground stays near-white. */
+    --success: 142 60% 30%;
+    --success-foreground: 0 0% 98%;
+    --warning: 33 80% 38%;
+    --warning-foreground: 0 0% 98%;
+    /* C2-T3: dark overrides for --danger/--info (matched to vitalia brand palette). */
+    --danger: 0 63% 40%;
+    --danger-foreground: 0 0% 98%;
+    --info: 199 80% 40%;
+    --info-foreground: 0 0% 98%;
+    --border: 240 4% 20%;
+    --input: 240 4% 20%;
+    --ring: 198 99% 49%;
+
+    /* Agent dark soft variants */
+    --agent-lisa-soft: 156 60% 15%;
+    --agent-lucas-soft: 0 0% 20%;
+    --agent-adrian-soft: 198 60% 20%;
+    --agent-valeria-soft: 287 40% 25%;
+    --agent-camila-soft: 244 50% 20%;
+    --agent-mateo-soft: 53 80% 18%;
+  }
+}
+
+/* ─── Agent dark mode a11y overrides (outside @layer base — proper cascade) ────
+ * Tailwind v4 @layer base deduplicates custom property redefinitions, so dark-mode
+ * overrides of :root-defined vars must live outside @layer base to cascade correctly.
+ *
+ * Problem: text-agent-camila (#160d96 = hsl(244 84% 32%)) on dark bg-agent-camila-soft
+ * (#1d1a4d = hsl(244 50% 20%)) yields contrast ratio 1.17:1 (needs 4.5:1 per WCAG 2 AA).
+ * Fix: override --agent-camila in dark mode to a lighter value that reads on dark soft bg.
+ *
+ * a11y: SC-6 axe wcag2aa 0 violations (T-9 valeria-fase1-valeria-chat-skeleton).
+ */
+.dark,
+[data-theme="dark"] {
+  /* hsl(244 80% 78%) = #8b8ef5 — light lavender. Contrast on #1d1a4d ≈ 4.8:1 ✅ */
+  --agent-camila: 244 80% 78%;
+}
+
+/* ─── Legacy vitalia brand tokens (preserved — see ADR-vitalia-002 § 3) ───── */
+/* These are NOT removed in F1-S0. Progressive deprecation in vitalia-fase2-vt-deprecation-final */
+
+:root {
+  /* ─── Brand core — ALIASED to Shadcn tokens (R-1SRC · core-ds-foundation) ──────
+   * Single token source of truth: the legacy brand-core hues now POINT at the
+   * Shadcn SSoT tokens (identical light values) instead of duplicating the channels.
+   * The ~85 `var(--vitalia-*)` / `.vt-*` consumers keep rendering unchanged; the
+   * tokens inherit the Shadcn dark scale for free (azul-marino → agent-camila gets
+   * a proper dark value). Deleting these vars (not aliasing) is Fase 3. RN-5: NAMES
+   * shared, VALUES per-brand — here vitalia binds its brand names to its own Shadcn
+   * token values. verde-lima has no Shadcn equivalent → keeps its literal channels. */
+  --vitalia-cian: var(--primary); /* #01B2F8 — hero, links, primary CTA, info, badges */
+  --vitalia-purpura: var(--accent); /* #7B2D91 — acento secundario, hover, agent gradient stop */
+  --vitalia-amarillo: var(--agent-mateo); /* #FEE209 — highlight, badge premium, warning soft, CTA promo */
+  --vitalia-azul-marino: var(--agent-camila); /* #180D95 — texto cuerpo + títulos, primary button, app shell */
+  --vitalia-verde-lima: 70 73% 51%; /* #B8DC2A — acento natural, success soft, agent Lucas avatar (no Shadcn equiv) */
+
+  /* ─── Neutrales (app shell) ───────────────────────────────────────────────── */
+  --vitalia-bg: 220 28% 98%; /* #F7F9FC — fondo principal app */
+  --vitalia-surface: 0 0% 100%; /* #FFFFFF — cards, modals, sidebar background */
+  --vitalia-surface-alt: 220 38% 98%; /* #FAFBFE — fondo sutil para diferenciar zones */
+  --vitalia-muted: 220 33% 96%; /* #F1F4FA — background chips, tool calls, empty states */
+  --vitalia-text: 226 36% 16%; /* #1A1F36 — texto cuerpo principal */
+  --vitalia-text-muted: 220 9% 46%; /* #6B7280 — texto secundario, metadata, captions */
+  --vitalia-text-faint: 220 9% 65%; /* #9CA3AF — texto disabled, hints */
+  --vitalia-border: 222 18% 93%; /* #E8EAF0 — bordes default */
+  --vitalia-border-soft: 220 25% 96%; /* #F0F2F8 — bordes muy sutiles (grid separators) */
+
+  /* ─── Semantic (status médico) — ALIASED to canonical :root vars (C2-T3) ──── */
+  /* alias-then-migrate: --vt-* consumers unchanged; tokens now derive from :root  */
+  --vitalia-success: var(--success); /* → 142 76% 36% — pago confirmado, status verde */
+  --vitalia-warning: var(--warning); /* → 33 91% 44% — pago pendiente, atención requerida */
+  --vitalia-danger: var(--danger); /* → 0 73% 50% — error, cancelado, acción destructiva */
+  --vitalia-info: var(--info); /* → 199 89% 48% — info neutra (cian con menos saturación) */
+
+  /* ─── Shape (border radius) ───────────────────────────────────────────────── */
+  /* --radius base lives ONCE in the Shadcn block above (0.625rem). R-1SRC deleted
+   * the legacy 0.5rem clash here — single token source of truth (core-ds-foundation). */
+  --radius-lg: calc(var(--radius) + 4px); /* 14px — RADIUS_SCALE.lg = --radius + 4px (C2-T3) */
+  --radius-bubble: 1.125rem; /* 18px — chat message bubbles */
+  --radius-pill: 999px; /* badges, chips */
+  /* RN-7: control-atom radius — brand-overridable via @luana/ui-kit rounded-control.
+   * Set to calc(var(--radius) - 2px) = vitalia's md value (≈ 8px at --radius 0.625rem).
+   * This matches the pre-lift rounded-md behaviour so Button/Input/Select/Textarea
+   * render at exactly the same pixel radius as before (zero visual change).
+   * Nicolify overrides this to 9999px (pill) on its own branch. */
+  --radius-control: calc(var(--radius) - 2px);
+
+  /* ─── Gradients (literal — no HSL, contain HEX refs for gradient stops) ─── */
+  /* Nota: gradients usan HEX literales en este archivo por limitación CSS.     */
+  /* Los tokens brand core que los componen están en las vars de arriba.        */
+  --vitalia-gradient-mariposa: linear-gradient(
+    135deg,
+    #01b2f8 0%,
+    #7b2d91 50%,
+    #b8dc2a 100%
+  );
+  --vitalia-gradient-agent: linear-gradient(135deg, #01b2f8 0%, #7b2d91 100%);
+  --vitalia-gradient-app-cta: linear-gradient(135deg, #01b2f8 0%, #180d95 100%);
+
+  /* ─── Wrapped color vars (TSX inline-style / SVG attr consumption) ─────── */
+  /* Use these via `var(--vitalia-X-color)` when Tailwind class cannot reach    */
+  /* (SVG fill/stopColor attrs, dynamic inline-style backgrounds, etc.).        */
+  /* hsl() lives only here in globals.css — TSX files MUST NOT contain hsl().   */
+  --vitalia-cian-color: hsl(198 99% 49%);
+  --vitalia-purpura-color: hsl(287 53% 37%);
+  --vitalia-azul-marino-color: hsl(244 84% 32%);
+  --vitalia-verde-lima-color: hsl(70 73% 51%);
+  --vitalia-text-color: hsl(226 36% 16%);
+  --vitalia-text-muted-color: hsl(220 9% 46%);
+  --vitalia-text-faint-color: hsl(220 9% 65%);
+  --vitalia-border-color: hsl(222 18% 93%);
+  --vitalia-success-color: hsl(142 76% 36%);
+  --vitalia-warning-color: hsl(33 91% 44%);
+  --vitalia-danger-color: hsl(0 73% 50%);
+  --vitalia-info-color: hsl(213 93% 40%);
+  --vitalia-muted-status-color: hsl(220 9% 65%);
+
+  /* ─── Social media brand colors (T-7 Presencia — SocialMediaLinksEditor) ── */
+  /* Third-party brand palette. Hex values defined here (globals.css exempt).  */
+  /* TSX files consume via var() — never hardcode hex in components.            */
+  --social-instagram-bg: #ee2a7b;
+  --social-instagram-gradient: linear-gradient(135deg, #f9ce34 0%, #ee2a7b 50%, #6228d7 100%);
+  --social-tiktok-bg: #000000;
+  --social-facebook-bg: #1877f2;
+  --social-google-bg: #4285f4;
+  --social-whatsapp-bg: #25d366;
+
+  /* ─── Channel badge brand colors (T-FE-1 vitalia-fase2-adrian-embudo) ──── */
+  /* Social/channel brand palette consumed by channel-meta.ts registry.        */
+  /* Hex values defined here (globals.css exempt from arch color test).         */
+  /* Components consume via var(--channel-{slug}-{modifier}) — NO hardcode.   */
+  /* lift candidate: /pm-luana → @luana/ui-kit when ≥2 brands need it.        */
+  --channel-whatsapp-bg: #25d366;        /* WhatsApp brand green */
+  --channel-whatsapp-text: #128C7E;      /* WhatsApp dark green for text */
+  --channel-whatsapp-soft: #dcfce7;      /* emerald-100 tone, Tailwind-aligned */
+  --channel-instagram-bg: #ee2a7b;       /* Instagram pink — reuses --social-instagram-bg */
+  --channel-instagram-soft: #fce7f3;     /* pink-100 tone */
+  --channel-meta-bg: #1877f2;           /* Meta blue — reuses --social-facebook-bg */
+  --channel-meta-soft: #dbeafe;         /* blue-100 tone */
+  --channel-referido-bg: #d97706;       /* amber brand — Vitalia warning token aligned */
+  --channel-referido-soft: #fef3c7;     /* amber-100 tone */
+  --channel-tiktok-bg: #000000;         /* TikTok black — reuses --social-tiktok-bg */
+  --channel-tiktok-soft: #f1f5f9;       /* slate-100 tone (neutral soft for dark channel) */
+  --channel-email-bg: #0ea5e9;          /* sky-500 — Vitalia info aligned */
+  --channel-email-soft: #e0f2fe;        /* sky-100 tone */
+  --channel-web-bg: #6b7280;            /* gray-500 — neutral channel */
+  --channel-web-soft: #f3f4f6;          /* gray-100 tone */
+  --channel-telegram-bg: #2AABEE;       /* Telegram brand blue */
+  --channel-telegram-soft: #dbeafe;     /* blue-100 tone */
+
+  /* Soft semantic tones (Storybook role-gate demos + future success/danger UIs) */
+  --vitalia-success-soft-bg: hsl(142 76% 96%);
+  --vitalia-danger-soft-bg: hsl(0 73% 97%);
+  --vitalia-danger-soft-border: hsl(0 73% 88%);
+}
+
+/* ─── Dark mode overrides for LEGACY --vitalia-* tokens ─────────────────────────
+ * BUG (2026-06-04, vitalia-bugfix-shell-valeria-responsive sibling / Chris "resuelve
+ * dark mode"): the `.vt-*` utility classes (§ below) map to legacy `--vitalia-*`
+ * tokens. Those were defined ONLY for light (in :root above) and had NO dark
+ * override → in dark mode the shell (which uses `--background`/`--card`/etc., which
+ * DO switch) went dark while ALL `.vt-*` consumers (the inbox + most feature UI)
+ * stayed light → "dark mode half-applied / se ve mal".
+ *
+ * Fix: redefine the neutral/text/border/soft `--vitalia-*` tokens under dark so the
+ * `.vt-*` classes switch app-wide. Mirrors the canonical dark scale
+ * (--background 240 10% 4% · --card 240 8% 8% · --foreground 0 0% 98% · --border 240 4% 20%).
+ * Lives OUTSIDE @layer base (like the agent a11y override) for correct cascade.
+ * Brand hues (cian/púrpura/etc.) are intentionally NOT re-toned here — they read on
+ * dark; status hue brightening tracked as follow-up in the UI audit.
+ */
+.dark,
+[data-theme="dark"] {
+  --vitalia-bg: 240 10% 6%; /* app background (just above canonical --background) */
+  --vitalia-surface: 240 8% 9%; /* cards / sidebar / panels */
+  --vitalia-surface-alt: 240 8% 11%; /* subtle zone differentiation */
+  --vitalia-muted: 240 5% 15%; /* chips, tool-calls, empty states */
+  --vitalia-text: 0 0% 96%; /* body text */
+  --vitalia-text-muted: 240 5% 65%; /* secondary / metadata */
+  --vitalia-text-faint: 240 5% 45%; /* disabled / hints */
+  --vitalia-border: 240 4% 20%; /* default borders */
+  --vitalia-border-soft: 240 4% 15%; /* subtle separators */
+
+  /* Wrapped color vars (TSX inline-style / SVG attr consumption) — keep in sync */
+  --vitalia-text-color: hsl(0 0% 96%);
+  --vitalia-text-muted-color: hsl(240 5% 65%);
+  --vitalia-text-faint-color: hsl(240 5% 45%);
+  --vitalia-border-color: hsl(240 4% 20%);
+
+  /* Soft semantic tones — darker fills so success/danger surfaces read on dark */
+  --vitalia-success-soft-bg: hsl(142 40% 13%);
+  --vitalia-danger-soft-bg: hsl(0 45% 15%);
+  --vitalia-danger-soft-border: hsl(0 45% 28%);
+
+  /* Chat-wallpaper watermark ink in dark: warm near-white logos on the dark wash. */
+  --vt-watermark-ink: hsl(40 22% 82%);
+}
+
+/* ─── Vitalia semantic CSS utility classes ─────────────────────────────────── */
+/* All hsl() calls live here (globals.css is exempt from arch color test).      */
+/* Components use these class names — NO hsl() in TSX files.                    */
+
+/* Backgrounds */
+.vt-bg-app {
+  background-color: hsl(var(--vitalia-bg));
+}
+/* Opaque bubble base (flips with --vitalia-surface in dark) — lets channel-tinted
+   outgoing bubbles stay SOLID via color-mix without a raw hsl() in the TSX. */
+:root {
+  --vt-bubble-base: hsl(var(--vitalia-surface));
+  /* Chat-wallpaper logo watermark ink (Chris UI #1): warm cream instead of the
+     per-channel brand tint, so the tiled real logos read on the light wash. */
+  --vt-watermark-ink: hsl(40 45% 90%);
+}
+.vt-bg-surface {
+  background-color: hsl(var(--vitalia-surface));
+}
+.vt-bg-surface-alt {
+  background-color: hsl(var(--vitalia-surface-alt));
+}
+.vt-bg-muted {
+  background-color: hsl(var(--vitalia-muted));
+}
+.vt-bg-cian {
+  background-color: hsl(var(--vitalia-cian));
+}
+.vt-bg-cian-10 {
+  background-color: hsl(var(--vitalia-cian) / 0.1);
+}
+.vt-bg-cian-8 {
+  background-color: hsl(var(--vitalia-cian) / 0.08);
+}
+.vt-bg-azul-marino {
+  background-color: hsl(var(--vitalia-azul-marino));
+}
+/* Adrián AI outgoing bubble (dark-aware soft cian) — inbox thread (UI-AUDIT #4). */
+.vt-bg-adrian-soft {
+  background-color: hsl(var(--agent-adrian-soft));
+}
+/* Friendly chat wallpaper wash behind the inbox thread (UI-AUDIT-2 #5). */
+.vt-bg-chat-wash {
+  background-color: hsl(var(--vitalia-muted) / 0.5);
+}
+.vt-bg-danger-12 {
+  background-color: hsl(var(--vitalia-danger) / 0.12);
+}
+.vt-bg-warning-12 {
+  background-color: hsl(var(--vitalia-warning) / 0.12);
+}
+.vt-bg-success-12 {
+  background-color: hsl(var(--vitalia-success) / 0.12);
+}
+.vt-bg-success {
+  background-color: hsl(var(--vitalia-success));
+}
+.vt-bg-success-soft {
+  background-color: var(--vitalia-success-soft-bg);
+}
+.vt-bg-danger-soft {
+  background-color: var(--vitalia-danger-soft-bg);
+}
+
+/* Text colors */
+.vt-text {
+  color: hsl(var(--vitalia-text));
+}
+.vt-text-muted {
+  color: hsl(var(--vitalia-text-muted));
+}
+.vt-text-faint {
+  color: hsl(var(--vitalia-text-faint));
+}
+.vt-text-cian {
+  color: hsl(var(--vitalia-cian));
+}
+.vt-text-azul-marino {
+  color: hsl(var(--vitalia-azul-marino));
+}
+.vt-text-danger {
+  color: hsl(var(--vitalia-danger));
+}
+.vt-text-warning {
+  color: hsl(var(--vitalia-warning));
+}
+.vt-text-success {
+  color: hsl(var(--vitalia-success));
+}
+.vt-text-white {
+  color: white;
+}
+
+/* Borders */
+.vt-border {
+  border-color: hsl(var(--vitalia-border));
+}
+.vt-border-soft {
+  border-color: hsl(var(--vitalia-border-soft));
+}
+.vt-border-cian {
+  border-color: hsl(var(--vitalia-cian));
+}
+.vt-border-cian-l {
+  border-left-color: hsl(var(--vitalia-cian));
+}
+.vt-border-verde-lima {
+  border-color: hsl(var(--vitalia-verde-lima));
+}
+.vt-border-danger-30 {
+  border-color: hsl(var(--vitalia-danger) / 0.3);
+}
+.vt-border-warning-30 {
+  border-color: hsl(var(--vitalia-warning) / 0.3);
+}
+.vt-border-success-30 {
+  border-color: hsl(var(--vitalia-success) / 0.3);
+}
+.vt-border-danger-soft {
+  border-color: var(--vitalia-danger-soft-border);
+}
+
+/* Ring (focus) */
+.vt-ring-cian {
+  --tw-ring-color: hsl(var(--vitalia-cian));
+}
+
+/* Divide */
+.vt-divide-border-soft > * + * {
+  border-color: hsl(var(--vitalia-border-soft));
+}
+
+/* Gradient backgrounds */
+.vt-bg-gradient-agent {
+  background: var(--vitalia-gradient-agent);
+}
+.vt-bg-gradient-app-cta {
+  background: var(--vitalia-gradient-app-cta);
+}
+.vt-bg-gradient-mariposa {
+  background: var(--vitalia-gradient-mariposa);
+}
+/* Marketing bowtie: cian gradient tab-active bg (left-to-right) */
+.vt-bg-tab-active {
+  background: linear-gradient(
+    to right,
+    hsl(var(--vitalia-cian) / 0.1),
+    transparent
+  );
+}
+/* Marketing stage tab bottom border (cian) */
+.vt-border-b-cian {
+  border-bottom: 3px solid hsl(var(--vitalia-cian));
+}
+/* Marketing bowtie summary footer */
+.vt-text-azul-marino-bold {
+  color: hsl(var(--vitalia-azul-marino));
+  font-weight: 600;
+}
+
+/* ─── Agent gradients (classes — allow CSS gradient definitions here) ──────── */
+/* gradient classes consume CSS vars above; HEX in :root is allowed in globals.css */
+.vitalia-agent-gradient-valeria {
+  background: var(--vitalia-gradient-agent);
+}
+
+.vitalia-agent-gradient-adrian {
+  background: linear-gradient(135deg, #7b2d91 0%, #180d95 100%);
+}
+
+.vitalia-agent-gradient-lucas {
+  background: linear-gradient(135deg, #b8dc2a 0%, #01b2f8 100%);
+}
+
+/* ─── Base reset + font stack ─────────────────────────────────────────────── */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: light;
+}
+
+/* Dark mode color-scheme for browser UI (scrollbars, form controls) */
+html[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+body {
+  background-color: hsl(var(--vitalia-bg));
+  color: hsl(var(--vitalia-text));
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ─── Pointer affordance on every interactive element (Chris UI #4) ─────────── */
+/* Native <button> defaults to the arrow cursor; make all enabled clickables show
+   the hand so operators know what's actionable (buttons, role=button/radio, links,
+   labelled controls). Disabled elements keep their own not-allowed cursor. */
+button:not(:disabled):not([aria-disabled="true"]),
+[role="button"]:not([aria-disabled="true"]),
+[role="radio"]:not([aria-disabled="true"]),
+[role="tab"]:not([aria-disabled="true"]),
+label[for],
+summary,
+a[href] {
+  cursor: pointer;
+}
+
+/* ─── Typing indicator animation (F1-S6 ValeriaChat) ──────────────────────── */
+/* spec_anchor: 01-spec.md § 4.1 — "Typing indicator burbuja con 3 dots pulsantes" */
+@keyframes typing-dot {
+  0%,
+  60%,
+  100% {
+    opacity: 0.3;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-4px);
+  }
+}
+
+.typing-dot {
+  animation: typing-dot 1.2s ease-in-out infinite;
+}
+
+.typing-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}

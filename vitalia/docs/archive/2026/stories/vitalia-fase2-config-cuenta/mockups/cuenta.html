@@ -1,0 +1,227 @@
+<!--
+  Mockup FINAL (RONDA 2) · vitalia-fase2-config-cuenta · Plataforma › Configuración › Mi cuenta
+  Ratificado visual por Chris 2026-06-11.
+  Shell wrapper VERBATIM desde _shared.css (port lisa-servicios). Ribbon v1.2:
+  Lisa · Mateo · Adrián · Lucas · Camila + Plataforma (Valeria = supervisora en sidebar, NO ribbon).
+  N3-static (SubSubTabsBar): Datos · Preferencias · Responsable (3 sub-sub-tabs, JS panes).
+  Scope ratificado: 1 clínica (sin Sedes) · fiscal+dirección editables · idioma derivado · DPO solo-referencia.
+  Q6/Q7/Q8 finales: país read-only · razón social separada · moneda editable.
+-->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Mi cuenta · Plataforma — shell (borrador)</title>
+<link rel="stylesheet" href="_shared.css" />
+<style>
+  /* Overrides locales: color slate (config) para subtab/subsubtab activos en esta caja */
+  .subtab-btn[data-active="true"][data-color="config"],
+  .subsubtab-btn[data-active="true"][data-color="config"] {
+    background: hsl(var(--agent-config)); color:#fff;
+    border-color: hsl(var(--agent-config)); box-shadow:0 1px 2px hsl(var(--agent-config) / .3);
+  }
+  .leaf-pane { display:none; } .leaf-pane.active { display:block; }
+  /* campo read-only mostrado como texto + badge "definido en onboarding" */
+  .ro { display:flex; align-items:center; gap:.5rem; font-size:.8125rem; padding:.5rem .25rem; }
+  .ro-badge { font-size:.625rem; font-weight:600; padding:.125rem .4375rem; border-radius:9999px;
+              background:hsl(var(--muted)); color:hsl(var(--muted-foreground)); }
+  .kv { display:grid; grid-template-columns:170px 1fr; gap:.5rem 1rem; font-size:.8125rem; align-items:center; }
+  .save-pill { font-size:.6875rem; color:hsl(var(--success)); display:inline-flex; align-items:center; gap:.25rem; }
+  .ref-card { display:flex; align-items:center; justify-content:space-between; gap:1rem;
+              border:1px solid hsl(var(--border)); border-radius:var(--radius); padding:.875rem 1rem; }
+  .link-out { font-size:.8125rem; color:hsl(var(--agent-config)); text-decoration:none; font-weight:500; white-space:nowrap; }
+  .link-out:hover { text-decoration:underline; }
+  .help-row { display:flex; align-items:center; gap:.375rem; }
+</style>
+</head>
+<body>
+<div class="shell-root">
+
+  <!-- TOPBAR (verbatim) -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-logo"><div class="topbar-logo-mark">V</div><span>Vitalia</span></div>
+      <span class="topbar-breadcrumb">› Plataforma · Configuración · Mi cuenta</span>
+    </div>
+    <div class="topbar-right">
+      <div class="splitter-control">
+        <button class="splitter-btn" data-state="chat-collapsed">◧</button>
+        <button class="splitter-btn" data-state="chat-narrow">◨</button>
+        <button class="splitter-btn" data-state="50-50" data-active="true">⬓</button>
+      </div>
+      <button class="topbar-icon-btn" id="theme-toggle" title="Tema">🌓</button>
+      <button class="tenant-chip"><span class="tenant-chip-avatar">AD</span><span>Aurora Dental</span><span style="color:hsl(var(--muted-foreground));font-size:.625rem;">▾</span></button>
+      <div class="avatar bg-agent-valeria" style="width:28px;height:28px;font-size:.6875rem;">CL</div>
+    </div>
+  </header>
+
+  <div class="shell-body" data-splitter-state="50-50" id="shell-body">
+
+    <!-- CHAT SIDE (Valeria supervisora · verbatim) -->
+    <aside class="chat-side">
+      <div class="chat-rail-only"><div class="rail-btn active">💬</div><div class="rail-btn">📜</div><div class="rail-btn">＋</div></div>
+      <div class="chat-content">
+        <header class="chat-header"><div class="chat-avatar-wrap"><div class="chat-avatar">V</div><span class="chat-status-dot"></span></div><div class="chat-meta"><span class="chat-name">Valeria</span><span class="chat-role">En línea · Tu secretaria virtual</span></div><span class="chat-mode-pill">🤖 Modo agente</span></header>
+        <div class="chat-history-strip">📜 Configuración del espacio · uso poco frecuente</div>
+        <div class="chat-messages"><div class="msg-row" data-role="bot"><div class="msg-bubble">Acá están los datos de tu clínica. El <strong>tipo de clínica</strong> y las <strong>especialidades</strong> se definieron en el alta y se cambian con soporte. El resto lo podés editar; se guarda solo.</div><span class="msg-time">Valeria · 09:14</span></div></div>
+        <footer class="chat-composer"><div class="composer-row"><div class="composer-adornos"><button class="composer-adorno-btn">📎</button><button class="composer-adorno-btn">🎙️</button><button class="composer-adorno-btn">⚡</button></div><textarea class="composer-textarea" rows="1" placeholder="Escribe a Valeria…"></textarea><button class="composer-send">Enviar</button></div><p class="composer-hint"><span class="kbd">Cmd</span> + <span class="kbd">K</span> enfoca el composer.</p></footer>
+      </div>
+    </aside>
+
+    <!-- PANEL SIDE -->
+    <main class="panel-side">
+
+      <!-- RIBBON v1.2: 5 especialistas + Plataforma (activa) -->
+      <nav class="ribbon" aria-label="Agentes">
+        <button class="ribbon-tab" data-color="lisa"><span class="ribbon-tab-avatar bg-agent-lisa" data-color="lisa">L</span><span>Lisa</span></button>
+        <button class="ribbon-tab" data-color="mateo"><span class="ribbon-tab-avatar" data-color="mateo" style="background:hsl(var(--agent-mateo));color:#3a2f00;">M</span><span>Mateo</span></button>
+        <button class="ribbon-tab" data-color="adrian"><span class="ribbon-tab-avatar bg-agent-adrian" data-color="adrian">A</span><span>Adrián</span></button>
+        <button class="ribbon-tab" data-color="lucas"><span class="ribbon-tab-avatar bg-agent-lucas" data-color="lucas">Lc</span><span>Lucas</span></button>
+        <button class="ribbon-tab" data-color="camila"><span class="ribbon-tab-avatar bg-agent-camila" data-color="camila">Ca</span><span>Camila</span></button>
+        <button class="ribbon-tab" data-active="true" data-color="config"><span class="ribbon-tab-avatar" data-color="config" style="background:hsl(var(--agent-config));color:#fff;">▣</span><span>Plataforma</span></button>
+      </nav>
+
+      <!-- SUBTABS: Mi cuenta (activa) · Conexiones · Avanzado -->
+      <nav class="subtabs-bar">
+        <button class="subtab-btn" data-active="true" data-color="config">🏢 Mi cuenta</button>
+        <button class="subtab-btn" data-color="config">🔌 Conexiones</button>
+        <button class="subtab-btn" data-color="config">🔬 Avanzado</button>
+      </nav>
+
+      <!-- SUBSUBTABS (N3-static): Datos · Preferencias · Responsable -->
+      <nav class="subsubtabs-bar">
+        <button class="subsubtab-btn" data-active="true" data-color="config" data-leaf="datos">🏢 Datos de la clínica</button>
+        <button class="subsubtab-btn" data-color="config" data-leaf="prefs">🌎 Preferencias</button>
+        <button class="subsubtab-btn" data-color="config" data-leaf="resp">🛡️ Responsable de datos</button>
+      </nav>
+
+      <div class="panel-content">
+        <div class="panel-inner">
+
+          <!-- ============ DATOS DE LA CLÍNICA ============ -->
+          <div class="leaf-pane active" data-pane="datos">
+            <div class="section-header">
+              <div><h1 class="section-title">Datos de la clínica</h1><p class="section-subtitle">La información legal y de contacto de tu clínica. Se guarda sola.</p></div>
+              <span class="save-pill">✓ Guardado hace 2s</span>
+            </div>
+            <div class="cards-stack">
+
+              <section class="card">
+                <h2 class="card-title">🏥 Identidad</h2>
+                <div class="field-row">
+                  <div><label class="label">Nombre comercial</label><input value="Clínica Aurora Dental"></div>
+                  <div><label class="label">Razón social</label><input value="Aurora Salud S.A."></div>
+                </div>
+                <div class="kv" style="margin-top:.75rem;">
+                  <span class="text-muted-foreground">Tipo de clínica</span>
+                  <span class="ro"><strong>Odontología</strong><span class="ro-badge">definido en el alta</span></span>
+                  <span class="text-muted-foreground">Especialidades</span>
+                  <span class="ro"><span class="chip chip-primary">Estética dental</span><span class="chip chip-primary">Ortodoncia</span><span class="ro-badge">definido en el alta</span></span>
+                </div>
+                <p class="hint">El tipo de clínica y las especialidades se definieron al crear la cuenta. Para cambiarlos, escribe a soporte (afecta agentes, catálogo y compliance).</p>
+              </section>
+
+              <section class="card">
+                <h2 class="card-title">🧾 Identificación fiscal</h2>
+                <div class="field-row">
+                  <div>
+                    <label class="label">País</label>
+                    <div class="ro"><strong>🇦🇷 Argentina</strong><span class="ro-badge">definido en el alta</span></div>
+                  </div>
+                  <div>
+                    <label class="label">CUIT</label>
+                    <input value="30-71234567-8">
+                    <p class="hint help-row">ⓘ Formato CUIT (Argentina) · se valida al guardar</p>
+                  </div>
+                </div>
+                <p class="hint">El identificador fiscal cambia de formato según el país (CUIT AR · RUC PE · RFC MX · NIT CL/CO · RUT UY). Se usa para la facturación a tus pacientes.</p>
+              </section>
+
+              <section class="card">
+                <h2 class="card-title">📍 Dirección y contacto</h2>
+                <div><label class="label">Dirección</label><input value="Av. Corrientes 1234, C1043 CABA"></div>
+                <div class="field-row" style="margin-top:.625rem;">
+                  <div><label class="label">Teléfono</label><input value="+54 11 4123-4567"></div>
+                  <div><label class="label">Email de contacto</label><input value="hola@auroradental.com.ar"></div>
+                </div>
+              </section>
+
+              <span class="chip chip-warning" style="margin-top:.25rem;">🔒 Solo el rol Administrador puede editar estos datos.</span>
+            </div>
+          </div>
+
+          <!-- ============ PREFERENCIAS REGIONALES ============ -->
+          <div class="leaf-pane" data-pane="prefs">
+            <div class="section-header">
+              <div><h1 class="section-title">Preferencias regionales</h1><p class="section-subtitle">Cómo se muestran fechas, horas y montos en toda la plataforma.</p></div>
+              <span class="save-pill">✓ Guardado</span>
+            </div>
+            <div class="cards-stack">
+              <section class="card">
+                <h2 class="card-title">🌎 Formato regional</h2>
+                <div class="field-row">
+                  <div><label class="label">Zona horaria</label>
+                    <select><option selected>America/Argentina/Buenos_Aires (GMT-3)</option><option>America/Lima (GMT-5)</option><option>America/Mexico_City (GMT-6)</option></select>
+                  </div>
+                  <div><label class="label">Moneda</label>
+                    <select><option selected>ARS — Peso argentino</option><option>USD — Dólar</option><option>PEN — Sol</option><option>MXN — Peso mexicano</option></select>
+                  </div>
+                </div>
+                <div class="kv" style="margin-top:.75rem;">
+                  <span class="text-muted-foreground">Idioma</span>
+                  <span class="ro"><strong>Español (LatAm)</strong><span class="ro-badge">se deriva del país</span></span>
+                </div>
+                <p class="hint">El idioma se deriva del país de la clínica. Si necesitas otro idioma, escribe a soporte.</p>
+              </section>
+            </div>
+          </div>
+
+          <!-- ============ RESPONSABLE DE DATOS (referencia) ============ -->
+          <div class="leaf-pane" data-pane="resp">
+            <div class="section-header">
+              <div><h1 class="section-title">Responsable de tratamiento de datos</h1><p class="section-subtitle">Quién es el responsable legal (DPO) de los datos de pacientes de tu clínica.</p></div>
+            </div>
+            <div class="cards-stack">
+              <section class="card">
+                <div class="ref-card">
+                  <div>
+                    <div style="font-weight:600;font-size:.875rem;">Dra. Carla López</div>
+                    <div class="hint" style="margin:0;">carla.lopez@auroradental.com.ar · Responsable de tratamiento (DPO)</div>
+                  </div>
+                  <a class="link-out" href="#">Gestionar en Seguridad y cumplimiento ↗</a>
+                </div>
+                <p class="hint">El responsable de datos se configura en <strong>Seguridad y cumplimiento</strong> (junto al registro de auditoría y las políticas de retención). Acá solo lo ves para referencia.</p>
+              </section>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script>
+  // N3 pane switch
+  document.querySelectorAll('.subsubtab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.subsubtab-btn').forEach(b => b.removeAttribute('data-active'));
+      btn.setAttribute('data-active','true');
+      const leaf = btn.getAttribute('data-leaf');
+      document.querySelectorAll('.leaf-pane').forEach(p => p.classList.toggle('active', p.getAttribute('data-pane')===leaf));
+    });
+  });
+  // splitter
+  document.querySelectorAll('.splitter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.splitter-btn').forEach(b => b.removeAttribute('data-active'));
+      btn.setAttribute('data-active','true');
+      document.getElementById('shell-body').setAttribute('data-splitter-state', btn.getAttribute('data-state'));
+    });
+  });
+  // theme
+  document.getElementById('theme-toggle').addEventListener('click', () => document.documentElement.classList.toggle('dark'));
+</script>
+</body>
+</html>

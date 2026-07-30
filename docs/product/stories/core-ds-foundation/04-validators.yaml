@@ -1,0 +1,82 @@
+# 04-validators.yaml — core-ds-foundation · FASE 0
+# Technical-story → verification_nature: técnica (tooling, sin feature UI de producto).
+# Bar = verificación-por-efecto (el efecto runtime/build observable), NO "GET 200".
+# El "ver" lo da Chris en Storybook (per-component visual-review gate · Batch 1→2→3).
+
+verification_nature: técnica
+demo_required: false
+demo_skip_reason: "Es tooling de plataforma (catálogo + Storybook + lint), no una hoja de producto. La revisión visual de los componentes la hace Chris navegando Storybook (gate Batch 1→2→3), no una demo de flujo."
+
+validators:
+  # ── T-1 · catálogo ──
+  - id: cat_gen_runs
+    ticket: T-1
+    type: shell
+    cmd: "make ui-catalog && test -f core/@luana/ui-kit/catalog.json && node -e \"JSON.parse(require('fs').readFileSync('core/@luana/ui-kit/catalog.json'))\""
+    effect: "catalog.json regenera + es JSON válido"
+    must_pass: true
+  - id: cat_count_matches
+    ticket: T-1
+    type: shell
+    cmd: "node scripts/_check_catalog_count.mjs"   # entries del catalog == `export * from` de index.ts (cero huérfanos)
+    effect: "el catálogo cubre TODO lo que index.ts exporta (sin drift de cobertura)"
+    must_pass: true
+  - id: tokens_scale_present
+    ticket: T-1
+    type: shell
+    cmd: "node -e \"import('@luana/design-tokens').then(m=>{if(!m.spacing||!m.radius)process.exit(1)})\""
+    effect: "tokens-scale (spacing/radius) ya existe en @luana/design-tokens 0.2.0 (verify-only · canon pieza 4)"
+    must_pass: true
+
+  # ── T-2 · Storybook (centerpiece) ──
+  - id: sb_builds
+    ticket: T-2
+    type: shell
+    cmd: "pnpm --filter @luana/ui-kit build-storybook"
+    effect: "storybook-static se construye sin error (los componentes REALES compilan en stories)"
+    must_pass: true
+    timeout_sec: 300
+  - id: sb_renders_canon
+    ticket: T-2
+    type: shell
+    cmd: "node scripts/_check_storybook_stories.mjs"   # assert existe story para cada componente del set canónico §2
+    effect: "hay story para EntityWorkspaceLayout/Picker/InfoCard/archetypes/layout-primitives/Select/Badge/Group/autosave/TogglePill"
+    must_pass: true
+  - id: sb_render_smoke    # ★ EL gate de render real (cerró el hueco "build verde ≠ rendea")
+    ticket: T-2
+    type: shell
+    # build-storybook → servir storybook-static → headless load de CADA story (pageerror/console-error real).
+    cmd: "pnpm --filter @luana/ui-kit build-storybook && (npx --yes http-server core/@luana/ui-kit/storybook-static -p 6018 -s -c-1 & SRV=$!; sleep 4; node scripts/_smoke_storybook.mjs --url http://localhost:6018; R=$?; kill $SRV; exit $R)"
+    effect: "TODAS las stories montan en chromium sin pageerror ni React render-error. Cazó el crash charAt de ListPageScaffold que el index.json-check NO veía."
+    must_pass: true
+    note: "@storybook/test-runner NO sirve en SB10 (error 'could not access the channel') → el smoke headless ES el gate. El _smoke viejo (index.json) era registration-check, no render."
+    # ★ Chris-verify (G): navega Storybook + revisa CADA componente uno por uno, itera hasta que esté bien (Batch 2 review-only).
+  - id: sb_when_to_use
+    ticket: T-2
+    type: shell
+    cmd: "node scripts/_check_storybook_when_to_use.mjs"   # cada story canónica tiene la sección 'Cuándo usarlo' en su description
+    effect: "cada componente documenta CUÁNDO usarlo (+ cuándo NO/alternativa) — la guía de ensamblaje coherente"
+    must_pass: true
+
+  # ── T-3 · drift-lint ──
+  - id: lint_catches_arbitrary
+    ticket: T-3
+    type: shell
+    cmd: "node scripts/_assert_lint_flags.mjs --fixture arbitrary"   # eslint DEBE error en el p-[13px] plantado
+    effect: "el lint caza un arbitrary-value plantado (si no lo caza → el gate no sirve)"
+    must_pass: true
+  - id: archtest_catches_reinvento
+    ticket: T-3
+    type: shell
+    cmd: "node scripts/_assert_archtest_flags.mjs --fixture reinvento"   # arch-test DEBE error en el reinvento local plantado
+    effect: "el arch-test caza un componente local que reinventa uno catalogado (consume catalog.json)"
+    must_pass: true
+
+# Gates baseline (siempre): tsc --noEmit del package + eslint del tooling nuevo + el package no rompe build de las marcas consumidoras.
+technical_gates:
+  baseline:
+    - "cd core/@luana/ui-kit && npx tsc --noEmit"
+    - "npx eslint scripts/generate_ui_catalog.mjs"
+  mutation: { enabled: false, reason: "tooling/config — sin lógica de negocio mutation-crítica" }
+
+regression_guard: "@luana/ui-kit ya consumido por vitalia+nicolify (shell shipped) — Storybook/catalog NO cambian src/, así que sus builds NO deben romperse (verify: cd vitalia/frontend && npx tsc --noEmit sigue verde)."

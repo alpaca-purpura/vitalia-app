@@ -1,0 +1,180 @@
+"""Telegram Service channel adapter."""
+
+from typing import Any
+from uuid import UUID
+
+import httpx
+import structlog
+from luana_core_connections.domain.enums import ChannelType
+from luana_core_connections.infrastructure.repositories import (
+    ChannelConnectionRepository,
+)
+from luana_core_platform.core.config import settings
+from sqlalchemy.orm import Session
+
+logger = structlog.get_logger()
+
+
+class TelegramService:
+    """Service for telegram operations."""
+
+    def __init__(self, db: Session) -> None:
+        """Initialize service with dependencies."""
+        self.db = db
+        self.repo = ChannelConnectionRepository(db)
+
+    def get_status(self, tenant_id: UUID) -> dict[str, Any]:
+        """Retrieve status."""
+        connection = self.repo.get_active(tenant_id, ChannelType.TELEGRAM)
+
+        if not connection:
+            return {"is_connected": False}
+
+        metadata = connection.config.get("metadata", {})
+        return {
+            "is_connected": True,
+            "bot_name": metadata.get("first_name"),
+            "username": metadata.get("username"),
+            "config": connection.config,
+        }
+
+    async def connect(self, tenant_id: UUID, token: str) -> dict[str, Any]:
+        """Connect."""
+        token = token.strip()
+
+        # 1. Validate Token with Telegram
+        async with httpx.AsyncClient() as client:
+            try:
+                resp = await client.get(
+                    f"https://api.telegram.org/bot{token}/getMe",
+                    timeout=10.0,
+                )
+                if resp.status_code != 200:
+                    logger.warning(
+                        "invalid_telegram_token",
+                        status_code=resp.status_code,
+                        body=resp.text,
+                    )
+                    msg = "Token de Telegram invalido. Verifique e intente nuevamente."
+                    raise ValueError(msg)
+                bot_info = resp.json().get("result", {})
+            except httpx.RequestError as e:
+                logger.exception("telegram_connection_error", error=str(e))
+                msg = f"Error conectando con Telegram: {e!s}"
+                raise RuntimeError(msg) from e
+
+        # 2. Set Webhook
+        final_domain = None
+
+        if settings.API_DOMAIN and "local" not in settings.API_DOMAIN:
+            final_domain = settings.API_DOMAIN
+        else:
+            final_domain = settings.DOMAIN_NAME
+
+        base_url = final_domain if final_domain.startswith("http") else f"https://{final_domain}"
+
+        webhook_url = f"{base_url}/api/v1/connections/telegram/webhooks/telegram/{tenant_id}"
+        logger.info("setting_telegram_webhook", webhook_url=webhook_url)
+
+        async with httpx.AsyncClient() as client:
+            try:
+                await client.get(f"https://api.telegram.org/bot{token}/deleteWebhook")
+
+                webhook_resp = await client.post(
+                    f"https://api.telegram.org/bot{token}/setWebhook",
+                    json={"url": webhook_url},
+                )
+
+                if webhook_resp.status_code != 200:
+                    logger.error(
+                        "failed_to_set_webhook",
+                        status_code=webhook_resp.status_code,
+                        response=webhook_resp.text,
+                    )
+                    error_detail = "No se pudo configurar el Webhook en Telegram."
+                    try:
+                        error_json = webhook_resp.json()
+                        if error_json.get("description"):
+                            error_detail = f"Telegram Error: {error_json.get('description')}"
+                    except (ValueError, KeyError) as e:
+                        logger.warning("failed_to_parse_telegram_error", error=str(e))
+                    raise RuntimeError(error_detail)
+
+                logger.info("webhook_set_success", response=webhook_resp.json())
+
+            except httpx.RequestError as e:
+                logger.exception("webhook_network_error", error=str(e))
+                msg = f"Error configurando Webhook: {e!s}"
+                raise RuntimeError(msg) from e
+
+        # 3. Save to DB
+        metadata = {
+            "id": bot_info.get("id"),
+            "first_name": bot_info.get("first_name"),
+            "username": bot_info.get("username"),
+        }
+
+        self.repo.upsert(
+            tenant_id=tenant_id,
+            channel_type=ChannelType.TELEGRAM,
+            credentials={"token": token},
+            config={"metadata": metadata},
+        )
+
+        return {"status": "connected", "bot": metadata}
+
+    async def test_connection(self, tenant_id: UUID) -> dict[str, Any]:
+        """Test connection."""
+        connection = self.repo.get_active(tenant_id, ChannelType.TELEGRAM)
+
+        if not connection:
+            msg = "No hay conexion de Telegram activa."
+            raise ValueError(msg)
+
+        token = connection.credentials.get("token")
+        if not token:
+            msg = "Credenciales corruptas."
+            raise RuntimeError(msg)
+
+        async with httpx.AsyncClient() as client:
+            try:
+                resp = await client.get(
+                    f"https://api.telegram.org/bot{token}/getMe",
+                    timeout=5.0,
+                )
+                if resp.status_code == 200:
+                    return {
+                        "status": "ok",
+                        "message": "Conexion exitosa",
+                        "data": resp.json(),
+                    }
+            except httpx.HTTPError as e:
+                return {"status": "error", "message": f"Error de red: {e!s}"}
+
+            else:
+                return {
+                    "status": "error",
+                    "message": "El token parece invalido o expirado.",
+                }
+
+    async def disconnect(self, tenant_id: UUID) -> dict[str, Any]:
+        """Disconnect."""
+        connection = self.repo.get_active(tenant_id, ChannelType.TELEGRAM)
+
+        if not connection:
+            msg = "No hay conexion activa para desconectar."
+            raise ValueError(msg)
+
+        token = connection.credentials.get("token")
+        if token:
+            async with httpx.AsyncClient() as client:
+                try:
+                    await client.get(
+                        f"https://api.telegram.org/bot{token}/deleteWebhook",
+                    )
+                except httpx.HTTPError as e:
+                    logger.warning("Failed to delete webhook during disconnect", error=str(e))
+
+        self.repo.deactivate(connection)
+
+        return {"status": "disconnected"}

@@ -1,0 +1,1985 @@
+<!DOCTYPE html>
+<html lang="es-LA" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=1320" />
+  <title>Vitalia · Demo cross-border Tacna ↔ Arica</title>
+  <meta name="description" content="Demo interactivo Vitalia para clínicas en Tacna que atienden pacientes chilenos de Arica. 4 escenarios scripteados pixel-perfect del shell-organism." />
+  <style>
+    /* =========================================================
+       TOKENS — paridad con vitalia/frontend/src/app/globals.css
+       ========================================================= */
+    :root {
+      --bg-app: #f8fafc;
+      --bg-panel: #ffffff;
+      --bg-elevated: #ffffff;
+      --bg-hover: #f1f5f9;
+      --bg-rail: #f8fafc;
+      --bg-topbar: #ffffff;
+      --bg-phone: #efeae2;
+      --bg-bubble-user: #d9fdd3;
+      --bg-bubble-bot: #ffffff;
+      --text-bubble-bot: #0f172a;
+      --text-bubble-time: rgba(15, 23, 42, 0.5);
+
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --text-muted: #94a3b8;
+      --text-inverse: #ffffff;
+
+      --border: #e2e8f0;
+      --border-strong: #cbd5e1;
+
+      --c-lisa: #00D084;
+      --c-lucas: #111111;
+      --c-adrian: #01b2f8;
+      --c-valeria: #7b2d91;
+      --c-camila: #180d95;
+      --c-mateo: #fee209;
+      --c-config: #64748b;
+      --c-success: #16a34a;
+      --c-warning: #f59e0b;
+      --c-danger: #dc2626;
+
+      --c-lisa-soft: #d1fae8;
+      --c-lucas-soft: #e5e7eb;
+      --c-adrian-soft: #cef0fb;
+      --c-valeria-soft: #ebd6f4;
+      --c-camila-soft: #d4d0f5;
+      --c-mateo-soft: #fff4a3;
+
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+      --shadow-lg: 0 16px 40px rgba(0,0,0,0.12);
+
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+      --radius-xl: 18px;
+    }
+
+    [data-theme="dark"] {
+      --bg-app: #0a0e1a;
+      --bg-panel: #131927;
+      --bg-elevated: #1c2333;
+      --bg-hover: #1f2937;
+      --bg-rail: #0f1420;
+      --bg-topbar: #131927;
+      --bg-phone: #0b141a;
+      --bg-bubble-user: #005c4b;
+      --bg-bubble-bot: #1f2c33;
+      --text-bubble-bot: #e9edef;
+      --text-bubble-time: rgba(233, 237, 239, 0.6);
+
+      --text-primary: #f1f5f9;
+      --text-secondary: #cbd5e1;
+      --text-muted: #64748b;
+
+      --border: #2a3344;
+      --border-strong: #3b4659;
+
+      --c-lisa-soft: #064e3b;
+      --c-lucas-soft: #374151;
+      --c-adrian-soft: #075985;
+      --c-valeria-soft: #581c87;
+      --c-camila-soft: #312e81;
+      --c-mateo-soft: #78350f;
+
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.5);
+      --shadow-lg: 0 16px 40px rgba(0,0,0,0.6);
+    }
+
+    /* =========================================================
+       RESET
+       ========================================================= */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--text-primary);
+      background: var(--bg-app);
+      min-height: 100vh;
+      transition: background 0.2s, color 0.2s;
+    }
+    button {
+      font-family: inherit;
+      font-size: inherit;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      color: inherit;
+    }
+    img { display: block; max-width: 100%; }
+
+    /* =========================================================
+       HEADER + TABS + CONTROLS
+       ========================================================= */
+    .demo-header {
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+    .brand {
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 700; font-size: 17px;
+    }
+    .logo-mark {
+      width: 32px; height: 32px;
+      border-radius: 9px;
+      background: linear-gradient(135deg, var(--c-valeria), var(--c-adrian));
+      color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 14px;
+    }
+    /* Brand logo swap (light/dark) — uses real PNG from vitalia/frontend/public/brand/ */
+    .brand-logo {
+      height: 32px; width: auto; display: block;
+    }
+    .brand-logo.dark { display: none; }
+    [data-theme="dark"] .brand-logo.light { display: none; }
+    [data-theme="dark"] .brand-logo.dark { display: block; }
+    .brand-logo-sm {
+      height: 22px; width: auto; display: block;
+    }
+    .brand-logo-sm.dark { display: none; }
+    [data-theme="dark"] .brand-logo-sm.light { display: none; }
+    [data-theme="dark"] .brand-logo-sm.dark { display: block; }
+    .demo-title-block {
+      flex: 1; min-width: 280px;
+    }
+    .demo-title {
+      font-size: 15px; font-weight: 600; color: var(--text-primary);
+    }
+    .demo-subtitle {
+      font-size: 12px; color: var(--text-muted); margin-top: 2px;
+    }
+    .header-actions {
+      display: flex; align-items: center; gap: 6px;
+    }
+    .icon-btn {
+      width: 36px; height: 36px; border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text-secondary);
+      transition: background 0.15s, color 0.15s;
+    }
+    .icon-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+    .tabs {
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      display: flex; gap: 4px; overflow-x: auto;
+    }
+    .tab {
+      padding: 12px 18px;
+      font-size: 13px; font-weight: 500;
+      color: var(--text-secondary);
+      border-bottom: 2px solid transparent;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .tab:hover { color: var(--text-primary); }
+    .tab.active {
+      color: var(--c-valeria); font-weight: 600;
+      border-bottom-color: var(--c-valeria);
+    }
+    .tab-dot {
+      display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+      margin-right: 6px; vertical-align: middle;
+    }
+
+    .controls {
+      background: var(--bg-elevated);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 24px;
+      display: flex; align-items: center; gap: 10px;
+      flex-wrap: wrap;
+    }
+    .controls.hidden { display: none; }
+    .ctrl-btn {
+      padding: 7px 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 13px; font-weight: 500;
+      background: var(--bg-panel);
+      color: var(--text-primary);
+      display: flex; align-items: center; gap: 6px;
+      transition: all 0.15s;
+    }
+    .ctrl-btn:hover { border-color: var(--border-strong); }
+    .ctrl-btn.primary {
+      background: var(--c-valeria); color: #fff; border-color: var(--c-valeria);
+    }
+    .ctrl-btn.primary:hover { opacity: 0.92; }
+    .ctrl-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .ctrl-divider {
+      width: 1px; height: 24px; background: var(--border);
+    }
+    .ctrl-label {
+      font-size: 12px; color: var(--text-muted); margin-right: 4px;
+    }
+    .speed-group { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+    .speed {
+      padding: 7px 12px; font-size: 12px; background: var(--bg-panel); color: var(--text-secondary);
+    }
+    .speed.active { background: var(--c-valeria); color: #fff; }
+    .ctrl-status {
+      margin-left: auto;
+      font-size: 12px; color: var(--text-muted);
+      display: flex; align-items: center; gap: 6px;
+    }
+    .status-pulse {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--text-muted);
+    }
+    .status-pulse.playing { background: var(--c-success); animation: pulse 1.5s infinite; }
+    .status-pulse.done { background: var(--c-valeria); }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    /* =========================================================
+       STAGE
+       ========================================================= */
+    .stage {
+      padding: 20px 24px 130px;
+      max-width: 1380px;
+      margin: 0 auto;
+    }
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    /* INTRO PANEL */
+    .intro-panel { max-width: 1100px; margin: 0 auto; }
+    .intro-hero {
+      background: linear-gradient(135deg, var(--c-valeria) 0%, var(--c-camila) 100%);
+      color: #fff;
+      padding: 36px 40px;
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-lg);
+      margin-bottom: 24px;
+    }
+    .intro-hero h1 {
+      font-size: 30px; font-weight: 700; line-height: 1.2;
+      margin-bottom: 12px;
+    }
+    .intro-hero p {
+      font-size: 15px; opacity: 0.95; max-width: 700px;
+    }
+    .intro-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-top: 24px;
+    }
+    .intro-stat {
+      background: rgba(255,255,255,0.15);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      backdrop-filter: blur(4px);
+    }
+    .intro-stat-num {
+      font-size: 22px; font-weight: 700;
+    }
+    .intro-stat-label {
+      font-size: 11px; opacity: 0.85; margin-top: 4px;
+    }
+    .intro-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+    }
+    .intro-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+    }
+    .intro-card h3 {
+      font-size: 15px; font-weight: 600; margin-bottom: 8px;
+      color: var(--text-primary);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .intro-card p {
+      font-size: 13px; color: var(--text-secondary); line-height: 1.5;
+    }
+    .intro-card .num-badge {
+      width: 28px; height: 28px; border-radius: 8px;
+      background: var(--c-valeria-soft); color: var(--c-valeria);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 13px;
+    }
+    .intro-cta {
+      background: var(--bg-panel);
+      border: 2px dashed var(--c-valeria);
+      border-radius: var(--radius-lg);
+      padding: 18px 24px;
+      margin-top: 20px;
+      text-align: center;
+      color: var(--text-primary);
+      font-size: 14px;
+    }
+    .intro-cta strong { color: var(--c-valeria); }
+
+    /* PLAYBACK PANEL — split (phone narrower → browser wider per feedback 2026-05-25) */
+    .playback {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 20px;
+      align-items: flex-start;
+    }
+
+    /* ===== Mobile phone frame ===== */
+    .phone-frame {
+      background: #0f172a;
+      border-radius: 36px;
+      padding: 12px;
+      box-shadow: var(--shadow-lg);
+      position: sticky; top: 20px;
+    }
+    .phone-screen {
+      background: var(--bg-phone);
+      border-radius: 26px;
+      overflow: hidden;
+      display: flex; flex-direction: column;
+      height: 660px;
+    }
+    .phone-statusbar {
+      background: rgba(0,0,0,0.05);
+      padding: 6px 18px 4px;
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 11px; font-weight: 600;
+      color: var(--text-primary);
+    }
+    .phone-statusbar-right { display: flex; gap: 4px; align-items: center; }
+    .phone-header {
+      background: #075E54;
+      color: #fff;
+      padding: 10px 14px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .phone-header-avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--c-valeria), var(--c-adrian));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 700;
+      flex-shrink: 0;
+    }
+    .phone-header-info { flex: 1; min-width: 0; }
+    .phone-header-name {
+      font-size: 14px; font-weight: 600;
+    }
+    .phone-header-sub {
+      font-size: 11px; opacity: 0.85;
+    }
+    .phone-header-icons { display: flex; gap: 14px; font-size: 18px; opacity: 0.9; }
+    .phone-chat {
+      flex: 1;
+      padding: 12px 10px;
+      overflow-y: auto;
+      display: flex; flex-direction: column; gap: 6px;
+      background:
+        linear-gradient(135deg, rgba(206,196,184,0.15) 25%, transparent 25%),
+        linear-gradient(225deg, rgba(206,196,184,0.15) 25%, transparent 25%),
+        var(--bg-phone);
+      background-size: 16px 16px;
+    }
+    .phone-msg {
+      max-width: 78%;
+      padding: 7px 10px 5px;
+      border-radius: 8px;
+      font-size: 13px; line-height: 1.36;
+      position: relative;
+      animation: msgIn 0.28s ease-out;
+      box-shadow: 0 1px 0.5px rgba(0,0,0,0.13);
+    }
+    @keyframes msgIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .phone-msg.bot {
+      align-self: flex-start;
+      background: var(--bg-bubble-bot);
+      color: var(--text-bubble-bot);
+      border-top-left-radius: 2px;
+    }
+    .phone-msg.user {
+      align-self: flex-end;
+      background: var(--bg-bubble-user);
+      color: var(--text-bubble-bot);
+      border-top-right-radius: 2px;
+    }
+    .phone-msg-bot-name {
+      font-size: 11px; font-weight: 700;
+      margin-bottom: 2px;
+    }
+    .phone-msg-content {
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+    .phone-msg-time {
+      font-size: 9.5px; color: var(--text-bubble-time);
+      text-align: right;
+      margin-top: 2px;
+    }
+    .phone-typing {
+      align-self: flex-start;
+      background: var(--bg-bubble-bot);
+      color: var(--text-bubble-bot);
+      padding: 8px 12px;
+      border-radius: 8px;
+      border-top-left-radius: 2px;
+      display: inline-flex; align-items: center; gap: 4px;
+      box-shadow: 0 1px 0.5px rgba(0,0,0,0.13);
+      animation: msgIn 0.2s ease-out;
+    }
+    .typing-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--text-bubble-time);
+      animation: typingBounce 1.2s infinite;
+    }
+    .typing-dot:nth-child(2) { animation-delay: 0.15s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.3s; }
+    @keyframes typingBounce {
+      0%, 60%, 100% { transform: translateY(0); opacity: 0.45; }
+      30% { transform: translateY(-4px); opacity: 1; }
+    }
+    .phone-composer {
+      background: var(--bg-panel);
+      padding: 8px 10px;
+      display: flex; gap: 8px; align-items: center;
+      border-top: 1px solid var(--border);
+    }
+    .phone-composer-input {
+      flex: 1;
+      padding: 8px 12px;
+      background: var(--bg-elevated);
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    .phone-composer-btn {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: #075E54;
+      color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px;
+    }
+
+    /* Scenario meta below phone */
+    .scenario-meta {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      margin-top: 12px;
+      font-size: 12px;
+    }
+    .meta-title {
+      font-weight: 600; font-size: 13px;
+      margin-bottom: 8px;
+      color: var(--text-primary);
+    }
+    .meta-row {
+      display: flex; justify-content: space-between;
+      padding: 4px 0;
+      color: var(--text-secondary);
+    }
+    .meta-row strong { color: var(--text-primary); font-weight: 500; }
+    .meta-row .chip {
+      padding: 1px 7px; border-radius: 4px;
+      background: var(--c-adrian-soft); color: var(--c-adrian);
+      font-size: 11px; font-weight: 600;
+    }
+
+    /* ===== Clinic side: browser frame + shell-organism ===== */
+    .browser-frame {
+      background: var(--bg-panel);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    .browser-bar {
+      background: var(--bg-hover);
+      padding: 10px 14px;
+      display: flex; align-items: center; gap: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+    .browser-dots { display: flex; gap: 6px; }
+    .browser-dot {
+      width: 11px; height: 11px; border-radius: 50%;
+    }
+    .browser-dot.red { background: #ff5f56; }
+    .browser-dot.yellow { background: #ffbd2e; }
+    .browser-dot.green { background: #27c93f; }
+    .browser-url {
+      flex: 1;
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 4px 12px;
+      font-size: 12px; color: var(--text-secondary);
+      display: flex; align-items: center; gap: 6px;
+      font-family: ui-monospace, SFMono-Regular, monospace;
+    }
+    .browser-time {
+      font-size: 11px; color: var(--text-muted);
+      padding: 4px 10px; background: var(--bg-panel);
+      border-radius: 6px; border: 1px solid var(--border);
+    }
+
+    /* Shell-organism inside browser */
+    .shell-organism {
+      display: flex; flex-direction: column;
+      height: 680px;
+      background: var(--bg-app);
+    }
+    .shell-topbar {
+      height: 44px;
+      background: var(--bg-topbar);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 16px;
+      font-size: 13px;
+    }
+    .shell-topbar-left {
+      display: flex; align-items: center; gap: 8px;
+      font-weight: 700;
+    }
+    .shell-topbar-logo {
+      width: 24px; height: 24px;
+      border-radius: 7px;
+      background: linear-gradient(135deg, var(--c-valeria), var(--c-adrian));
+      color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700;
+    }
+    .shell-tenant {
+      padding: 5px 12px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 12px; font-weight: 500;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .shell-body {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 430px 1fr;
+      overflow: hidden;
+    }
+
+    /* Valeria panel (left of main panel inside shell) — history + chat with composer */
+    .valeria-panel {
+      background: var(--bg-panel);
+      border-right: 1px solid var(--border);
+      display: grid;
+      grid-template-columns: 180px 1fr;
+      overflow: hidden;
+    }
+    /* History sub-panel (replaces old agent rail) — drives ValeriaHistory pattern */
+    .valeria-history-panel {
+      background: var(--bg-rail);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      overflow: hidden;
+    }
+    .vhist-header {
+      padding: 10px 10px 6px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .vhist-title {
+      font-size: 12px; font-weight: 600;
+      color: var(--text-primary);
+    }
+    .vhist-actions { display: flex; gap: 2px; }
+    .vhist-btn {
+      width: 22px; height: 22px;
+      border-radius: 5px;
+      color: var(--text-secondary);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px;
+      transition: background 0.15s;
+    }
+    .vhist-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+    .vhist-search {
+      padding: 0 10px 8px;
+    }
+    .vhist-search input {
+      width: 100%;
+      padding: 5px 8px 5px 24px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--bg-panel);
+      font-size: 11px;
+      color: var(--text-primary);
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'><circle cx='11' cy='11' r='7'/><path d='m21 21-4.3-4.3'/></svg>");
+      background-repeat: no-repeat;
+      background-position: 6px center;
+      background-size: 12px 12px;
+    }
+    .vhist-search input::placeholder { color: var(--text-muted); }
+    .vhist-list {
+      flex: 1; overflow-y: auto;
+      padding: 0 6px 8px;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .vhist-group { display: flex; flex-direction: column; gap: 2px; }
+    .vhist-group-label {
+      font-size: 9.5px; font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      padding: 4px 6px 2px;
+    }
+    .vhist-item {
+      padding: 6px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      display: flex; flex-direction: column; gap: 1px;
+      line-height: 1.3;
+      transition: background 0.15s;
+    }
+    .vhist-item:hover { background: var(--bg-hover); color: var(--text-primary); }
+    .vhist-item.active {
+      background: var(--c-valeria-soft); color: var(--text-primary);
+    }
+    .vhist-item-title {
+      font-weight: 500;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .vhist-item-meta {
+      font-size: 9.5px; color: var(--text-muted);
+    }
+    /* Chat area: header + feed (scroll) + composer */
+    .valeria-chat-area {
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      background: var(--bg-rail);
+      overflow: hidden;
+    }
+    .valeria-chat-header {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 8px;
+      background: var(--bg-panel);
+    }
+    .valeria-chat-header img {
+      width: 32px; height: 32px; border-radius: 8px;
+    }
+    .valeria-chat-header-meta { flex: 1; }
+    .valeria-chat-header-name {
+      font-size: 13px; font-weight: 600;
+    }
+    .valeria-chat-header-sub {
+      font-size: 11px; color: var(--text-muted);
+    }
+    .valeria-feed {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .feed-event {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 10px 12px;
+      font-size: 12px;
+      animation: msgIn 0.32s ease-out;
+      line-height: 1.4;
+    }
+    .feed-event-header {
+      display: flex; align-items: center; gap: 6px;
+      margin-bottom: 4px;
+    }
+    .feed-event-icon { font-size: 14px; }
+    .feed-event-time {
+      margin-left: auto;
+      font-size: 10px; color: var(--text-muted);
+    }
+    .feed-event-title {
+      font-size: 12px; font-weight: 600;
+    }
+    .feed-event-body { color: var(--text-secondary); }
+    .feed-event[data-kind="alert"] {
+      border-color: var(--c-danger);
+      background: linear-gradient(to right, rgba(220,38,38,0.05), var(--bg-panel) 30%);
+    }
+    .feed-event[data-kind="alert"] .feed-event-title { color: var(--c-danger); }
+    .feed-event[data-kind="success"] {
+      border-color: var(--c-success);
+      background: linear-gradient(to right, rgba(22,163,74,0.05), var(--bg-panel) 30%);
+    }
+    .feed-event[data-kind="success"] .feed-event-title { color: var(--c-success); }
+    .feed-event[data-kind="delegate"] {
+      border-color: var(--c-valeria);
+      background: linear-gradient(to right, rgba(123,45,145,0.05), var(--bg-panel) 30%);
+    }
+    .feed-event[data-kind="delegate"] .feed-event-title { color: var(--c-valeria); }
+    .feed-event[data-kind="payment"] {
+      border-color: var(--c-success);
+    }
+    .feed-event[data-kind="payment"] .feed-event-title { color: var(--c-success); }
+
+    /* Valeria composer (below feed) — invites Marisol to talk to Valeria */
+    .valeria-composer {
+      border-top: 1px solid var(--border);
+      background: var(--bg-panel);
+      padding: 8px 10px 6px;
+      display: flex; flex-direction: column;
+      gap: 4px;
+    }
+    .vcomposer-row {
+      display: flex; align-items: flex-end; gap: 6px;
+    }
+    .vcomposer-icons {
+      display: flex; gap: 1px;
+    }
+    .vcomposer-icon {
+      width: 24px; height: 24px;
+      border-radius: 5px;
+      color: var(--text-muted);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px;
+      transition: background 0.15s, color 0.15s;
+    }
+    .vcomposer-icon:hover { background: var(--bg-hover); color: var(--text-primary); }
+    .vcomposer-input {
+      flex: 1;
+      padding: 7px 10px;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      background: var(--bg-elevated);
+      font-size: 11.5px;
+      color: var(--text-muted);
+      font-family: inherit;
+      cursor: text;
+      line-height: 1.4;
+      min-height: 28px;
+      display: flex; align-items: center;
+    }
+    .vcomposer-send {
+      padding: 5px 10px;
+      background: var(--c-valeria);
+      color: #fff;
+      border-radius: 6px;
+      font-size: 11px; font-weight: 600;
+      transition: opacity 0.15s;
+    }
+    .vcomposer-send:hover { opacity: 0.9; }
+    .vcomposer-hint {
+      font-size: 9.5px;
+      color: var(--text-muted);
+      padding: 0 2px;
+    }
+    .vcomposer-kbd {
+      display: inline-block;
+      padding: 0 4px;
+      background: var(--bg-hover);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      font-size: 9px;
+      color: var(--text-secondary);
+      font-family: ui-monospace, SFMono-Regular, monospace;
+    }
+
+    /* Main panel (right of shell) */
+    .main-panel {
+      background: var(--bg-app);
+      display: flex; flex-direction: column;
+      overflow: hidden;
+    }
+    .ribbon {
+      height: 56px;
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: stretch;
+      padding: 0 12px;
+      gap: 4px;
+    }
+    .ribbon-tab {
+      padding: 0 14px;
+      display: flex; align-items: center; gap: 8px;
+      font-size: 12px; font-weight: 500;
+      color: var(--text-secondary);
+      border-bottom: 2px solid transparent;
+      transition: color 0.15s;
+    }
+    .ribbon-tab:hover { color: var(--text-primary); }
+    .ribbon-tab.active { color: var(--text-primary); font-weight: 600; }
+    .ribbon-tab img {
+      width: 24px; height: 24px; border-radius: 6px;
+      border: 2px solid transparent;
+      transition: border-color 0.15s;
+    }
+    .ribbon-tab.active[data-color="lisa"] { border-bottom-color: var(--c-lisa); }
+    .ribbon-tab.active[data-color="lucas"] { border-bottom-color: var(--c-lucas); }
+    .ribbon-tab.active[data-color="adrian"] { border-bottom-color: var(--c-adrian); }
+    .ribbon-tab.active[data-color="valeria"] { border-bottom-color: var(--c-valeria); }
+    .ribbon-tab.active[data-color="camila"] { border-bottom-color: var(--c-camila); }
+    .ribbon-tab.active[data-color="config"] { border-bottom-color: var(--c-config); }
+    .ribbon-tab.active[data-color="lisa"] img { border-color: var(--c-lisa); }
+    .ribbon-tab.active[data-color="lucas"] img { border-color: var(--c-lucas); }
+    .ribbon-tab.active[data-color="adrian"] img { border-color: var(--c-adrian); }
+    .ribbon-tab.active[data-color="valeria"] img { border-color: var(--c-valeria); }
+    .ribbon-tab.active[data-color="camila"] img { border-color: var(--c-camila); }
+    .ribbon-config {
+      margin-left: auto;
+      width: 28px; height: 28px;
+      border-radius: 7px;
+      background: var(--bg-hover);
+      color: var(--text-secondary);
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 14px;
+      align-self: center;
+    }
+
+    .main-content {
+      flex: 1;
+      padding: 18px;
+      overflow-y: auto;
+      background: var(--bg-app);
+    }
+    .main-section-title {
+      font-size: 16px; font-weight: 700;
+      margin-bottom: 14px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .main-section-title .agent-tag {
+      padding: 2px 8px; border-radius: 6px; font-size: 11px;
+    }
+    .agent-tag[data-color="lucas"] { background: var(--c-lucas-soft); color: var(--c-lucas); }
+    .agent-tag[data-color="valeria"] { background: var(--c-valeria-soft); color: var(--c-valeria); }
+    .agent-tag[data-color="camila"] { background: var(--c-camila-soft); color: var(--c-camila); }
+    .agent-tag[data-color="adrian"] { background: var(--c-adrian-soft); color: var(--c-adrian); }
+
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 12px;
+    }
+    .data-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .data-card.highlight {
+      border-color: var(--c-valeria);
+      box-shadow: 0 0 0 3px var(--c-valeria-soft);
+    }
+    .data-card.alert {
+      border-color: var(--c-danger);
+      box-shadow: 0 0 0 3px rgba(220,38,38,0.15);
+    }
+    .data-card-header {
+      display: flex; align-items: center; gap: 8px;
+      margin-bottom: 6px;
+    }
+    .data-card-avatar {
+      width: 28px; height: 28px; border-radius: 7px;
+      background: var(--c-valeria-soft);
+      color: var(--c-valeria);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 12px;
+    }
+    .data-card-title {
+      flex: 1;
+      font-size: 13px; font-weight: 600;
+    }
+    .data-card-badge {
+      padding: 2px 7px; border-radius: 4px;
+      font-size: 10px; font-weight: 600;
+    }
+    .badge-new { background: var(--c-adrian-soft); color: var(--c-adrian); }
+    .badge-paid { background: rgba(22,163,74,0.15); color: var(--c-success); }
+    .badge-alert { background: rgba(220,38,38,0.15); color: var(--c-danger); }
+    .badge-inactive { background: var(--bg-hover); color: var(--text-secondary); }
+    .badge-warm { background: rgba(245,158,11,0.15); color: var(--c-warning); }
+    .data-card-body {
+      font-size: 12px; color: var(--text-secondary);
+      line-height: 1.5;
+    }
+    .data-card-row {
+      display: flex; justify-content: space-between;
+      padding: 2px 0;
+    }
+    .data-card-row .lbl { color: var(--text-muted); }
+    .data-card-row .val { color: var(--text-primary); font-weight: 500; }
+
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .kpi {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 10px 12px;
+    }
+    .kpi-num {
+      font-size: 19px; font-weight: 700;
+      color: var(--text-primary);
+    }
+    .kpi-label {
+      font-size: 11px; color: var(--text-muted);
+      margin-top: 2px;
+    }
+    .kpi-delta {
+      font-size: 11px;
+      margin-top: 4px;
+      font-weight: 600;
+    }
+    .kpi-delta.up { color: var(--c-success); }
+    .kpi-delta.down { color: var(--c-danger); }
+
+    /* ROI FOOTER */
+    .roi-footer {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: var(--bg-panel);
+      border-top: 2px solid var(--c-valeria);
+      box-shadow: 0 -6px 20px rgba(0,0,0,0.06);
+      padding: 12px 24px;
+      z-index: 50;
+    }
+    .roi-inner {
+      max-width: 1380px; margin: 0 auto;
+      display: flex; align-items: center; gap: 16px;
+    }
+    .roi-title {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.5px;
+      color: var(--c-valeria);
+      text-transform: uppercase;
+      flex-shrink: 0;
+    }
+    .roi-metrics {
+      display: flex; gap: 22px; flex-wrap: wrap; flex: 1;
+    }
+    .roi-metric {
+      display: flex; flex-direction: column;
+      animation: msgIn 0.3s ease-out;
+    }
+    .roi-metric-value {
+      font-size: 14px; font-weight: 700; color: var(--text-primary);
+    }
+    .roi-metric-label {
+      font-size: 10.5px; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.4px;
+      margin-top: 2px;
+    }
+    .roi-metric-value.success { color: var(--c-success); }
+    .roi-metric-value.warning { color: var(--c-warning); }
+    .roi-metric-value.brand { color: var(--c-valeria); }
+
+    /* SCROLLBAR */
+    .phone-chat::-webkit-scrollbar,
+    .valeria-feed::-webkit-scrollbar,
+    .main-content::-webkit-scrollbar {
+      width: 6px;
+    }
+    .phone-chat::-webkit-scrollbar-thumb,
+    .valeria-feed::-webkit-scrollbar-thumb,
+    .main-content::-webkit-scrollbar-thumb {
+      background: var(--border-strong); border-radius: 3px;
+    }
+
+    /* Tip box (inside main panel) */
+    .tip-box {
+      background: var(--c-valeria-soft);
+      border-left: 3px solid var(--c-valeria);
+      padding: 10px 12px;
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      font-size: 12px;
+      color: var(--text-primary);
+      margin-bottom: 14px;
+    }
+    .tip-box strong { color: var(--c-valeria); }
+
+    /* Responsive degradation (laptop screens <1280px) */
+    @media (max-width: 1200px) {
+      .playback {
+        grid-template-columns: 1fr;
+      }
+      .phone-frame {
+        max-width: 380px;
+        margin: 0 auto;
+        position: static;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ============================================ HEADER ============================================ -->
+  <header class="demo-header">
+    <div class="brand">
+      <img class="brand-logo light" src="assets/brand/vitalia-logo.png" alt="Vitalia" />
+      <img class="brand-logo dark" src="assets/brand/vitalia-logo-dark.png" alt="Vitalia" />
+    </div>
+    <div class="demo-title-block">
+      <div class="demo-title">Demo cross-border · Clínica en Tacna · Pacientes en Arica</div>
+      <div class="demo-subtitle">Postulación · mayo 2026 · 4 escenarios scripteados · pixel-perfect del shell-organism</div>
+    </div>
+    <div class="header-actions">
+      <button class="icon-btn" id="btn-theme" title="Cambiar tema (light/dark)">🌓</button>
+    </div>
+  </header>
+
+  <!-- ============================================ TABS ============================================ -->
+  <nav class="tabs" id="tabs">
+    <button class="tab active" data-tab="intro">Inicio</button>
+    <button class="tab" data-tab="consulta"><span class="tab-dot" style="background:var(--c-lucas)"></span>1 · Consulta orientativa</button>
+    <button class="tab" data-tab="agendamiento"><span class="tab-dot" style="background:var(--c-valeria)"></span>2 · Agendamiento prepagado</button>
+    <button class="tab" data-tab="seguimiento"><span class="tab-dot" style="background:var(--c-camila)"></span>3 · Seguimiento post-tratamiento</button>
+    <button class="tab" data-tab="reactivacion"><span class="tab-dot" style="background:var(--c-adrian)"></span>4 · Reactivación</button>
+  </nav>
+
+  <!-- ============================================ CONTROLS ============================================ -->
+  <div class="controls hidden" id="controls">
+    <button class="ctrl-btn primary" id="btn-play">▶ Play</button>
+    <button class="ctrl-btn" id="btn-pause" disabled>⏸ Pausar</button>
+    <button class="ctrl-btn" id="btn-step" title="Avanzar 1 mensaje">⏭ Paso</button>
+    <button class="ctrl-btn" id="btn-skip">⏩ Saltar al final</button>
+    <button class="ctrl-btn" id="btn-reset">↺ Reiniciar</button>
+    <div class="ctrl-divider"></div>
+    <span class="ctrl-label">Velocidad:</span>
+    <div class="speed-group" id="speed-group">
+      <button class="speed active" data-speed="1">1×</button>
+      <button class="speed" data-speed="2">2×</button>
+      <button class="speed" data-speed="3">3×</button>
+    </div>
+    <div class="ctrl-status">
+      <span class="status-pulse" id="status-pulse"></span>
+      <span id="status-text">Listo</span>
+    </div>
+  </div>
+
+  <!-- ============================================ STAGE ============================================ -->
+  <main class="stage">
+
+    <!-- INTRO PANEL -->
+    <section class="panel active" id="panel-intro">
+      <div class="intro-panel">
+        <div class="intro-hero">
+          <h1>Vitalia para clínicas que atienden pacientes chilenos en Tacna</h1>
+          <p>850.000 chilenos cruzan a Tacna cada año. ~50.000 lo hacen para tratamientos dentales. Vitalia automatiza la atención cross-border: detecta el origen del paciente, coordina en hora chilena, cobra en pesos chilenos, y te recupera horas de staff por día.</p>
+          <div class="intro-stats">
+            <div class="intro-stat">
+              <div class="intro-stat-num">850K+</div>
+              <div class="intro-stat-label">Cruces de chilenos / año a Tacna</div>
+            </div>
+            <div class="intro-stat">
+              <div class="intro-stat-num">~50K</div>
+              <div class="intro-stat-label">Específicamente para dental</div>
+            </div>
+            <div class="intro-stat">
+              <div class="intro-stat-num">-70%</div>
+              <div class="intro-stat-label">Ahorro vs precios en Chile</div>
+            </div>
+            <div class="intro-stat">
+              <div class="intro-stat-num">+1h</div>
+              <div class="intro-stat-label">Arica adelanta a Tacna (hora dual auto)</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="intro-grid">
+          <div class="intro-card">
+            <h3><span class="num-badge">1</span>Consulta orientativa</h3>
+            <p><strong>Sofía</strong> escribe un domingo a las 23:14 desde Arica por una mancha facial. Valeria detecta origen chileno, orienta sin diagnosticar, propone dermatología y delega a Adrián para cerrar el turno. Cero llamadas al staff.</p>
+          </div>
+          <div class="intro-card">
+            <h3><span class="num-badge">2</span>Agendamiento prepagado</h3>
+            <p><strong>Diego</strong>, paciente recurrente, agenda limpieza con seña 40% por MercadoPago. Valeria muestra hora dual (Arica/Tacna), envía link de pago y programa recordatorios con tip de frontera Chacalluta.</p>
+          </div>
+          <div class="intro-card">
+            <h3><span class="num-badge">3</span>Seguimiento post-tratamiento</h3>
+            <p><strong>Mariana</strong> recibe D+3 un check-in proactivo de Camila. Detecta hinchazón leve, escala alerta al doctor tratante y agenda control sin cargo con audit log HIPAA-lite.</p>
+          </div>
+          <div class="intro-card">
+            <h3><span class="num-badge">4</span>Reactivación</h3>
+            <p><strong>Lucía</strong> lleva 8 meses sin volver. Adrián inicia campaña automática con 20% off, califica intención, delega a Valeria para agendar y cobrar seña. Paciente reactivada en 4 min.</p>
+          </div>
+        </div>
+
+        <div class="intro-cta">
+          Elegí un escenario en las pestañas de arriba ↑ · Cada uno corre en <strong>~3 minutos</strong> con auto-play · Vista paciente (móvil) + vista clínica (shell-organism real).
+        </div>
+      </div>
+    </section>
+
+    <!-- PLAYBACK PANEL (shared markup, content driven by JS) -->
+    <section class="panel" id="panel-playback">
+      <div class="playback">
+        <!-- LEFT: phone -->
+        <div>
+          <div class="phone-frame">
+            <div class="phone-screen">
+              <div class="phone-statusbar">
+                <span id="phone-time">23:14</span>
+                <div class="phone-statusbar-right">
+                  <span>📶</span><span>📡</span><span>🔋</span>
+                </div>
+              </div>
+              <div class="phone-header">
+                <div class="phone-header-avatar" id="phone-avatar">V</div>
+                <div class="phone-header-info">
+                  <div class="phone-header-name" id="phone-clinic">Clínica Dental Tacna</div>
+                  <div class="phone-header-sub" id="phone-agent-sub">Valeria · responde rápido</div>
+                </div>
+                <div class="phone-header-icons">
+                  <span>📞</span><span>⋮</span>
+                </div>
+              </div>
+              <div class="phone-chat" id="phone-chat"></div>
+              <div class="phone-composer">
+                <div class="phone-composer-input">Escribir mensaje…</div>
+                <div class="phone-composer-btn">🎤</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="scenario-meta">
+            <div class="meta-title" id="meta-title">Sofía Mendoza</div>
+            <div class="meta-row"><span>Teléfono</span><strong id="meta-phone">+56 9 5847 2310</strong></div>
+            <div class="meta-row"><span>Ciudad origen</span><strong id="meta-city">Arica, Chile <span class="chip">🇨🇱 CL detectado</span></strong></div>
+            <div class="meta-row"><span>Canal</span><strong id="meta-channel">WhatsApp Business</strong></div>
+            <div class="meta-row"><span>Hora origen</span><strong id="meta-time">domingo 23:14 Arica</strong></div>
+            <div class="meta-row"><span>Equivalencia Tacna</span><strong id="meta-time-tacna">22:14</strong></div>
+          </div>
+        </div>
+
+        <!-- RIGHT: clinic / shell-organism -->
+        <div>
+          <div class="browser-frame">
+            <div class="browser-bar">
+              <div class="browser-dots">
+                <span class="browser-dot red"></span>
+                <span class="browser-dot yellow"></span>
+                <span class="browser-dot green"></span>
+              </div>
+              <div class="browser-url">🔒 app.vitalia.lat/clinica-dental-tacna</div>
+              <div class="browser-time" id="clinic-time">🕐 22:14 Tacna · 23:14 Arica</div>
+            </div>
+            <div class="shell-organism">
+              <div class="shell-topbar">
+                <div class="shell-topbar-left">
+                  <img class="brand-logo-sm light" src="assets/brand/vitalia-logo.png" alt="Vitalia" />
+                  <img class="brand-logo-sm dark" src="assets/brand/vitalia-logo-dark.png" alt="Vitalia" />
+                </div>
+                <div class="shell-tenant">
+                  🏥 <strong>Clínica Dental Tacna</strong> · Marisol Quispe ▾
+                </div>
+              </div>
+              <div class="shell-body">
+                <!-- Valeria panel left: history sub-panel + chat (header + feed + composer) -->
+                <div class="valeria-panel">
+                  <!-- History panel (replaces old agent rail — agents now only in ribbon above) -->
+                  <div class="valeria-history-panel">
+                    <div class="vhist-header">
+                      <div class="vhist-title">Conversaciones</div>
+                      <div class="vhist-actions">
+                        <button class="vhist-btn" title="Nueva conversación · n">+</button>
+                        <button class="vhist-btn" title="Colapsar a barra">‹</button>
+                      </div>
+                    </div>
+                    <div class="vhist-search">
+                      <input type="search" placeholder="Buscar…" aria-label="Buscar conversación" />
+                    </div>
+                    <div class="vhist-list" id="vhist-list"></div>
+                  </div>
+                  <!-- Chat area: header + feed + composer -->
+                  <div class="valeria-chat-area">
+                    <div class="valeria-chat-header">
+                      <img src="assets/agents/valeria.png" alt="" />
+                      <div class="valeria-chat-header-meta">
+                        <div class="valeria-chat-header-name">Valeria — Feed coordinación</div>
+                        <div class="valeria-chat-header-sub">Vista que ve Marisol (dueña)</div>
+                      </div>
+                    </div>
+                    <div class="valeria-feed" id="valeria-feed"></div>
+                    <!-- Composer: invita a Marisol a hablar con Valeria -->
+                    <div class="valeria-composer">
+                      <div class="vcomposer-row">
+                        <div class="vcomposer-icons">
+                          <button class="vcomposer-icon" title="Adjuntar">📎</button>
+                          <button class="vcomposer-icon" title="Voz">🎙️</button>
+                          <button class="vcomposer-icon" title="Comandos">⚡</button>
+                        </div>
+                        <div class="vcomposer-input">Escribe a Valeria…</div>
+                        <button class="vcomposer-send">Enviar</button>
+                      </div>
+                      <div class="vcomposer-hint">
+                        <span class="vcomposer-kbd">⌘</span> + <span class="vcomposer-kbd">K</span> para enfocar desde cualquier parte
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <!-- Main panel right -->
+                <div class="main-panel">
+                  <div class="ribbon" id="ribbon"></div>
+                  <div class="main-content" id="main-content"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ============================================ ROI FOOTER ============================================ -->
+  <footer class="roi-footer" id="roi-footer" style="display:none;">
+    <div class="roi-inner">
+      <div class="roi-title">ROI escenario</div>
+      <div class="roi-metrics" id="roi-metrics"></div>
+    </div>
+  </footer>
+
+  <!-- ============================================ SCRIPT ============================================ -->
+  <script>
+  (function () {
+    'use strict';
+
+    // ========================================================
+    // AGENTS catalog
+    // ========================================================
+    // Ribbon tabs use the menu label (NOT the agent name) — per vitalia/docs/architecture/SHELL-DESIGN-CONTRACT.md § 7.2
+    const AGENTS = {
+      lisa:    { name: 'Lisa',    tabLabel: 'Mi Clínica', role: 'Estratega marca y oferta',     color: '#00D084', soft: 'var(--c-lisa-soft)',    img: 'assets/agents/lisa.png',    initial: 'L' },
+      valeria: { name: 'Valeria', tabLabel: 'Operar',     role: 'Secretaria coordinadora',      color: '#7b2d91', soft: 'var(--c-valeria-soft)', img: 'assets/agents/valeria.png', initial: 'V' },
+      adrian:  { name: 'Adrián',  tabLabel: 'Vender',     role: 'Closer · reactiva oportunidades', color: '#01b2f8', soft: 'var(--c-adrian-soft)',  img: 'assets/agents/adrian.png',  initial: 'A' },
+      lucas:   { name: 'Lucas',   tabLabel: 'Atraer',     role: 'Growth · capta leads',         color: '#111111', soft: 'var(--c-lucas-soft)',   img: 'assets/agents/lucas.png',   initial: 'L' },
+      camila:  { name: 'Camila',  tabLabel: 'Mantener',   role: 'Fidelización · CLTV',          color: '#180d95', soft: 'var(--c-camila-soft)',  img: 'assets/agents/camila.png',  initial: 'C' },
+      mateo:   { name: 'Mateo',   tabLabel: 'Mateo',      role: 'Developer IA',                 color: '#fee209', soft: 'var(--c-mateo-soft)',   img: 'assets/agents/mateo.png',   initial: 'M' },
+    };
+    const AGENT_ORDER = ['lisa','lucas','adrian','valeria','camila'];
+
+    // ========================================================
+    // MOCK CONVERSATIONS (Valeria history panel)
+    // Datos pulled del shell real (_mock-conversations.ts) + contextualizados
+    // al caso real Clínica Dental Tacna ↔ pacientes Arica.
+    // ========================================================
+    const MOCK_CONVERSATIONS = [
+      { id: '1', title: 'Resumen reseñas Google semana',     meta: '14:32 · 8 msgs',   group: 'today',     active: true  },
+      { id: '2', title: 'Ideas campaña Día del Padre · Tacna', meta: '11:18 · 12 msgs', group: 'today',     active: false },
+      { id: '3', title: 'Reporte ocupación martes',           meta: '09:45 · 5 msgs',   group: 'today',     active: false },
+      { id: '4', title: 'Confirmar pacientes Arica jueves',   meta: '08:12 · 4 msgs',   group: 'today',     active: false },
+      { id: '5', title: 'Respuesta reseña 3★ L. Pérez',       meta: 'Ayer 19:02',        group: 'yesterday', active: false },
+      { id: '6', title: 'Tip frontera Chacalluta para SMS',   meta: 'Ayer 15:30',        group: 'yesterday', active: false },
+      { id: '7', title: 'Plan promociones mayo · Arica',      meta: 'Lun · 11 msgs',     group: 'this_week', active: false },
+      { id: '8', title: 'Métricas captación landing dental',  meta: 'Dom · 6 msgs',      group: 'this_week', active: false },
+    ];
+    const GROUP_LABELS = { today: 'Hoy', yesterday: 'Ayer', this_week: 'Esta semana' };
+
+    // ========================================================
+    // SCENARIOS data (4)
+    // ========================================================
+    const SCENARIOS = {
+      consulta: {
+        title: 'Consulta orientativa fuera de horario',
+        ribbonActive: 'lucas',
+        patient: { name: 'Sofía Mendoza', phone: '+56 9 5847 2310', city: 'Arica, Chile' },
+        time: { aricaLabel: 'domingo 23:14 Arica', tacna: '22:14', clinicTime: '22:14 Tacna · 23:14 Arica' },
+        phoneTime: '23:14',
+        agentSub: 'Valeria · responde rápido',
+        mainPanel: 'lucasLeads',
+        steps: [
+          { t: 600,  type: 'patient-msg', side: 'user', content: 'Hola, hace 2 semanas tengo unas manchas rojas en la cara que no se van con ninguna crema. ¿Atienden esto?', time: '23:14' },
+          { t: 700,  type: 'feed-event', kind: 'default', icon: '📥', title: 'Nuevo mensaje · WhatsApp', body: '+56 9 5847 2310 · Sofía M. · primer contacto · hora origen Arica' },
+          { t: 500,  type: 'feed-event', kind: 'default', icon: '🌎', title: 'Origen detectado: Chile (Arica)', body: 'Activando hora dual + moneda CLP primaria' },
+          { t: 400,  type: 'main-card-add', card: { id: 'lead-sofia', avatar: 'S', title: 'Sofía Mendoza', badge: 'NUEVO', badgeClass: 'badge-new', rows: [ ['Origen','Arica, Chile'], ['Canal','WhatsApp'], ['Asunto','Dermatología'], ['Hora','dom 23:14'] ], highlight: true } },
+          { t: 1400, type: 'patient-typing', agent: 'valeria', text: 'Valeria está analizando consulta…' },
+          { t: 1800, type: 'patient-msg', side: 'bot', agent: 'valeria', content: '¡Hola! Soy Valeria, asistente de Clínica Dental Tacna. Veo que escribes desde Arica, así que coordinamos todo en hora chilena. Para orientarte mejor: las manchas, ¿pican o duelen? ¿Aparecieron de repente o gradualmente?', time: '23:15' },
+          { t: 4500, type: 'patient-msg', side: 'user', content: 'Salieron gradual, no me pican mucho pero noto más cuando hace frío', time: '23:16' },
+          { t: 1500, type: 'patient-typing', agent: 'valeria', text: 'Valeria está revisando agenda de especialistas…' },
+          { t: 2200, type: 'patient-msg', side: 'bot', agent: 'valeria', content: 'Gracias por el detalle. No puedo darte un diagnóstico por chat, pero por la descripción te conviene una consulta dermatológica para descartar dermatitis. Esta semana tenemos turnos con la Dra. Catalina Rojas. ¿Te paso 3 horarios?', time: '23:16' },
+          { t: 3800, type: 'patient-msg', side: 'user', content: 'Dale, mándame los horarios', time: '23:17' },
+          { t: 700,  type: 'feed-event', kind: 'delegate', icon: '🔀', title: 'Delegando lead a Adrián', body: 'Closer (cierre lead nuevo) · modo Mantener' },
+          { t: 600,  type: 'ribbon-switch', to: 'adrian' },
+          { t: 800,  type: 'main-card-update', cardId: 'lead-sofia', changes: { badge: 'EN CIERRE', badgeClass: 'badge-warm' } },
+          { t: 1400, type: 'patient-typing', agent: 'adrian', text: 'Adrián está armando opciones de horario…' },
+          { t: 2200, type: 'patient-msg', side: 'bot', agent: 'adrian', content: 'Hola Sofía, soy Adrián. Te paso 3 turnos esta semana (siempre con tu hora de Arica primero):\n\n• Mar 27/05 · 11:00 Arica (10:00 Tacna)\n• Mié 28/05 · 16:30 Arica (15:30 Tacna)\n• Jue 29/05 · 18:00 Arica (17:00 Tacna)\n\nValor consulta: $35.000 CLP (≈ S/ 135). Para confirmar pedimos seña 40% ($14.000 CLP) por MercadoPago. ¿Cuál te queda mejor?', time: '23:17' },
+          { t: 5500, type: 'patient-msg', side: 'user', content: 'Martes 11:00', time: '23:18' },
+          { t: 600,  type: 'feed-event', kind: 'default', icon: '📅', title: 'Turno provisional creado #4521', body: 'Sofía M. · Mar 27/05 11:00 Arica (10:00 Tacna) · Dra. Catalina Rojas' },
+          { t: 500,  type: 'feed-event', kind: 'default', icon: '💳', title: 'Link MercadoPago generado', body: 'Seña $14.000 CLP · expira en 1h · referencia #PB-99847' },
+          { t: 600,  type: 'main-card-update', cardId: 'lead-sofia', changes: { rows: [ ['Origen','Arica, Chile'], ['Turno','Mar 27/05 11:00 Arica'], ['Seña','$14.000 CLP'], ['Estado','MP pending'] ] } },
+          { t: 1500, type: 'patient-typing', agent: 'adrian', text: 'Adrián está generando link de pago…' },
+          { t: 2000, type: 'patient-msg', side: 'bot', agent: 'adrian', content: 'Listo, te envío el link de seña: https://mp.li/dXyZ-4521\n\nApenas confirmes el pago te llegan los recordatorios. La consulta es en Av. Bolognesi 1834, Tacna. 💡 Si venís en colectivo de Arica, considerá 30-45 min para cruzar Chacalluta/Santa Rosa.', time: '23:18' },
+          { t: 4000, type: 'patient-msg', side: 'user', content: 'Gracias!', time: '23:19' },
+          { t: 600,  type: 'feed-event', kind: 'success', icon: '✅', title: 'Lead convertido (pago pending)', body: 'Followup MP automático · si paga 1h → confirmación · si no paga → reintento -24h' },
+          { t: 500,  type: 'main-card-update', cardId: 'lead-sofia', changes: { badge: 'CIERRE OK', badgeClass: 'badge-paid' } },
+        ],
+        roi: [
+          { label: 'Lead capturado', value: 'Dom 23:14', cls: 'success' },
+          { label: 'Llamadas al staff', value: '0', cls: 'success' },
+          { label: 'Tiempo total', value: '5 min · 100% bot', cls: '' },
+          { label: 'Reserva pendiente', value: '$14.000 CLP', cls: 'brand' },
+          { label: 'Conversión lead→reserva', value: '1 / 1 · 100%', cls: 'success' },
+        ],
+      },
+
+      agendamiento: {
+        title: 'Agendamiento prepagado · paciente recurrente',
+        ribbonActive: 'valeria',
+        patient: { name: 'Diego Salinas', phone: '+56 9 7321 8845', city: 'Arica, Chile · recurrente' },
+        time: { aricaLabel: 'lunes 14:32 Arica', tacna: '13:32', clinicTime: '13:32 Tacna · 14:32 Arica' },
+        phoneTime: '14:32',
+        agentSub: 'Valeria · responde rápido',
+        mainPanel: 'valeriaAgenda',
+        steps: [
+          { t: 500,  type: 'patient-msg', side: 'user', content: 'Hola Valeria, quiero agendar limpieza facial profunda con la Dra. Romero, como las que me hago hace 6 meses', time: '14:32' },
+          { t: 700,  type: 'feed-event', kind: 'default', icon: '👤', title: 'Paciente recurrente · Diego Salinas', body: '3 reservas previas · CLTV $315.000 CLP · siempre Dra. Romero · puntualidad 100%' },
+          { t: 600,  type: 'main-card-add', card: { id: 'cita-diego', avatar: 'D', title: 'Diego Salinas', badge: 'RECURRENTE', badgeClass: 'badge-paid', rows: [ ['Origen','Arica, Chile'], ['Servicio','Limpieza facial profunda'], ['Profesional','Dra. Romero'], ['Estado','Eligiendo horario'] ], highlight: true } },
+          { t: 1400, type: 'patient-typing', agent: 'valeria', text: 'Valeria está consultando agenda Dra. Romero…' },
+          { t: 2000, type: 'patient-msg', side: 'bot', agent: 'valeria', content: '¡Hola Diego! Por supuesto. Dame un segundo, mantengo todo en hora de Arica como las veces anteriores.', time: '14:32' },
+          { t: 1800, type: 'patient-typing', agent: 'valeria', text: 'Valeria está cruzando disponibilidad…' },
+          { t: 2400, type: 'patient-msg', side: 'bot', agent: 'valeria', content: 'Tengo estos horarios para limpieza facial profunda con la Dra. Romero esta semana:\n\n• Jue 30/05 · 16:00 Arica (15:00 Tacna)\n• Jue 30/05 · 18:30 Arica (17:30 Tacna)\n• Vie 31/05 · 11:00 Arica (10:00 Tacna)\n\n¿Cuál te acomoda?', time: '14:33' },
+          { t: 4500, type: 'patient-msg', side: 'user', content: '18:30 está perfecto', time: '14:34' },
+          { t: 700,  type: 'feed-event', kind: 'default', icon: '📅', title: 'Turno provisional creado #4521', body: 'Diego S. · Jue 30/05 18:30 Arica (17:30 Tacna) · Dra. Romero · Limpieza facial profunda' },
+          { t: 500,  type: 'main-card-update', cardId: 'cita-diego', changes: { rows: [ ['Servicio','Limpieza facial profunda'], ['Fecha','Jue 30/05 18:30 Arica'], ['Total','$105.000 CLP'], ['Estado','Seña pendiente'] ] } },
+          { t: 1500, type: 'patient-typing', agent: 'valeria', text: 'Valeria está armando el detalle…' },
+          { t: 2200, type: 'patient-msg', side: 'bot', agent: 'valeria', content: 'Anotado. Manejamos seña 40% para confirmar:\n\n📋 Limpieza facial profunda — Dra. Romero\n💰 Total: $105.000 CLP (≈ S/ 405)\n💳 Seña: $42.000 CLP (≈ S/ 162)\n📅 Jue 30/05 · 18:30 Arica (17:30 Tacna)\n📍 Av. Bolognesi 1834, Tacna\n\nLink de pago MercadoPago 👇', time: '14:34' },
+          { t: 900,  type: 'patient-msg', side: 'bot', agent: 'valeria', content: 'https://mp.li/3kT-4521', time: '14:34' },
+          { t: 600,  type: 'feed-event', kind: 'default', icon: '💳', title: 'MP link enviado · $42.000 CLP', body: 'Expira en 1h · webhook escuchando pago' },
+          { t: 3500, type: 'feed-event', kind: 'payment', icon: '💰', title: 'Pago confirmado · $42.000 CLP', body: 'MercadoPago REF #PB-99847 · 14:36 Arica · auto-confirmación' },
+          { t: 500,  type: 'main-card-update', cardId: 'cita-diego', changes: { badge: 'PAGADO', badgeClass: 'badge-paid', rows: [ ['Servicio','Limpieza facial profunda'], ['Fecha','Jue 30/05 18:30 Arica'], ['Total','$105.000 CLP'], ['Seña','✅ $42.000 CLP pagado'] ] } },
+          { t: 1000, type: 'patient-typing', agent: 'valeria', text: 'Valeria está confirmando…' },
+          { t: 1800, type: 'patient-msg', side: 'bot', agent: 'valeria', content: '¡Confirmado Diego! Tu turno quedó reservado. Programo 3 recordatorios:\n\n• 24h antes — confirmación\n• 3h antes — tip de cruce de frontera (Chacalluta/Santa Rosa, considerá 30-60 min)\n• 1h antes — dirección clickeable + cómo llegar\n\nSi necesitas reagendar avisame con 24h. ¡Nos vemos el jueves! 💜', time: '14:37' },
+          { t: 600,  type: 'feed-event', kind: 'success', icon: '📨', title: 'Recordatorios programados', body: '3 envíos SMS + WhatsApp · CRM actualizado · riesgo no-show -85% (seña pagada)' },
+          { t: 3500, type: 'patient-msg', side: 'user', content: '¡Genial, gracias!', time: '14:37' },
+        ],
+        roi: [
+          { label: 'Reserva paga', value: '$42.000 CLP', cls: 'success' },
+          { label: 'Total tratamiento', value: '$105.000 CLP', cls: 'brand' },
+          { label: 'Riesgo no-show', value: '-85% vs sin seña', cls: 'success' },
+          { label: 'Recordatorios auto', value: '3 (SMS + WA)', cls: '' },
+          { label: 'Tiempo de staff', value: '0 minutos', cls: 'success' },
+        ],
+      },
+
+      seguimiento: {
+        title: 'Seguimiento post-tratamiento con detección de alerta',
+        ribbonActive: 'camila',
+        patient: { name: 'Mariana Vega', phone: '+56 9 4218 5963', city: 'Arica, Chile · D+3 limpieza profunda' },
+        time: { aricaLabel: 'miércoles 10:00 Arica', tacna: '09:00', clinicTime: '09:00 Tacna · 10:00 Arica' },
+        phoneTime: '10:00',
+        agentSub: 'Camila · seguimiento',
+        mainPanel: 'camilaPacientes',
+        steps: [
+          { t: 600,  type: 'feed-event', kind: 'default', icon: '⏰', title: 'Trigger D+3 post-tratamiento', body: 'Mariana V. · limpieza profunda lun 22/05 con Dr. Castillo · protocolo de seguimiento activado' },
+          { t: 500,  type: 'feed-event', kind: 'default', icon: '🎯', title: 'Camila inicia conversación proactiva', body: 'Fidelización · brand health check · cuidado continuo' },
+          { t: 600,  type: 'main-card-add', card: { id: 'follow-mariana', avatar: 'M', title: 'Mariana Vega', badge: 'EN SEGUIMIENTO', badgeClass: 'badge-warm', rows: [ ['Tratamiento','Limpieza profunda'], ['Doctor','Dr. Castillo'], ['Día','+3 días'], ['Estado','Chequeo iniciado'] ], highlight: true } },
+          { t: 1200, type: 'patient-typing', agent: 'camila', text: 'Camila está iniciando seguimiento…' },
+          { t: 1800, type: 'patient-msg', side: 'bot', agent: 'camila', content: 'Hola Mariana 🌿 Soy Camila, te escribo de Clínica Dental Tacna. Han pasado 3 días desde tu limpieza profunda con el Dr. Castillo. ¿Cómo te has sentido?', time: '10:00' },
+          { t: 4500, type: 'patient-msg', side: 'user', content: 'Hola! En general bien, pero tengo una molestia en la muela donde trabajaron, como una presión', time: '10:02' },
+          { t: 700,  type: 'feed-event', kind: 'default', icon: '🔍', title: 'Keyword detectada: "molestia" + zona tratada', body: 'Regla escalation NLP · prioridad media · iniciando triage' },
+          { t: 500,  type: 'main-card-update', cardId: 'follow-mariana', changes: { badge: 'TRIAGE', badgeClass: 'badge-warm' } },
+          { t: 1300, type: 'patient-typing', agent: 'camila', text: 'Camila está analizando síntomas…' },
+          { t: 2200, type: 'patient-msg', side: 'bot', agent: 'camila', content: 'Gracias por contarme, es importante revisar. Para descartar algo: ¿hay sangrado al cepillarte, hinchazón visible o dolor al masticar?', time: '10:02' },
+          { t: 5500, type: 'patient-msg', side: 'user', content: 'Está un poco hinchada sí, pero no sangra. Al masticar duele un poco', time: '10:04' },
+          { t: 600,  type: 'feed-event', kind: 'alert', icon: '🚨', title: 'ALERTA · Posible inflamación post-tratamiento', body: 'Hinchazón + dolor masticar D+3 · prioridad media · Mariana V. · paciente notificada' },
+          { t: 700,  type: 'feed-event', kind: 'alert', icon: '📢', title: 'Notificación enviada a Dr. Castillo', body: 'SMS + push · médico tratante · canal seguro · audit log row #1832' },
+          { t: 600,  type: 'main-card-update', cardId: 'follow-mariana', changes: { badge: '🚨 ALERTA', badgeClass: 'badge-alert', alert: true, rows: [ ['Tratamiento','Limpieza profunda'], ['Doctor','Dr. Castillo (notificado)'], ['Síntomas','Hinchazón + dolor masticar'], ['Control','Hoy 17:00 sin cargo'] ] } },
+          { t: 1300, type: 'patient-typing', agent: 'camila', text: 'Camila está agendando control sin cargo…' },
+          { t: 2400, type: 'patient-msg', side: 'bot', agent: 'camila', content: 'Entiendo. Una leve hinchazón hasta 5 días post-limpieza profunda puede ser normal, pero quiero que el Dr. Castillo te revise sin cargo para asegurarnos. Tengo disponible:\n\n• Hoy 17:00 Arica (16:00 Tacna)\n• Mañana 11:00 Arica (10:00 Tacna)\n\n¿Cuál podes?', time: '10:05' },
+          { t: 4500, type: 'patient-msg', side: 'user', content: 'Hoy 17:00 puedo', time: '10:06' },
+          { t: 600,  type: 'feed-event', kind: 'default', icon: '📅', title: 'Control sin cargo creado #4587', body: 'Mariana V. · hoy 17:00 Arica (16:00 Tacna) · Dr. Castillo · costo $0 (retención)' },
+          { t: 500,  type: 'feed-event', kind: 'default', icon: '📝', title: 'Audit log compliance · HIPAA-lite', body: 'access_post_treatment_followup · tenant + clinic dual filter · PII sanitized · row #1833' },
+          { t: 1100, type: 'patient-typing', agent: 'camila', text: 'Camila está armando indicaciones…' },
+          { t: 1800, type: 'patient-msg', side: 'bot', agent: 'camila', content: 'Listo Mariana, control reservado para hoy 17:00 Arica sin cargo. Te envío recordatorio 2h antes.\n\nMientras tanto: 💧 enjuagá con agua tibia + sal cada 3-4h, ❌ evita comidas muy duras o muy calientes. Si la hinchazón crece, sangra o aparece fiebre, escribime YA. 🙏', time: '10:07' },
+          { t: 3200, type: 'patient-msg', side: 'user', content: '¡Gracias Camila, te aviso!', time: '10:07' },
+          { t: 500,  type: 'feed-event', kind: 'success', icon: '✅', title: 'Cuidado continuo registrado', body: 'CRM updated · próximo touchpoint D+7 · NPS survey programada D+30' },
+        ],
+        roi: [
+          { label: 'Alerta detectada', value: 'D+3 · proactivo', cls: 'success' },
+          { label: 'Médico notificado', value: '<30 segundos', cls: 'success' },
+          { label: 'Control sin cargo', value: 'Retención brand', cls: 'brand' },
+          { label: 'Audit log', value: '✅ HIPAA-lite compliance', cls: 'success' },
+          { label: 'Posible complicación evitada', value: 'Alta · paciente segura', cls: 'success' },
+        ],
+      },
+
+      reactivacion: {
+        title: 'Reactivación de paciente inactivo · campaña automática',
+        ribbonActive: 'adrian',
+        patient: { name: 'Lucía Ramírez', phone: '+56 9 8654 2197', city: 'Arica, Chile · inactiva 8 meses' },
+        time: { aricaLabel: 'viernes 09:00 Arica', tacna: '08:00', clinicTime: '08:00 Tacna · 09:00 Arica' },
+        phoneTime: '09:00',
+        agentSub: 'Adrián · reactivación',
+        mainPanel: 'adrianPipeline',
+        steps: [
+          { t: 500,  type: 'feed-event', kind: 'default', icon: '🎯', title: 'Trigger reactivación · paciente inactivo 8 meses', body: 'Campaña mayo · descuento 20% · 47 pacientes en cohorte · Lucía R. seleccionada' },
+          { t: 500,  type: 'feed-event', kind: 'default', icon: '👤', title: 'Lucía Ramírez · last visit oct/2025', body: 'Última: limpieza completa $52.000 CLP · NPS 9 · ICP fit alto' },
+          { t: 600,  type: 'main-card-add', card: { id: 'reac-lucia', avatar: 'L', title: 'Lucía Ramírez', badge: 'INACTIVA 8M', badgeClass: 'badge-inactive', rows: [ ['Origen','Arica, Chile'], ['Last visit','Oct 2025'], ['NPS previo','9/10'], ['Estado','Campaña mayo'] ], highlight: true } },
+          { t: 1400, type: 'patient-typing', agent: 'adrian', text: 'Adrián está abriendo conversación…' },
+          { t: 2000, type: 'patient-msg', side: 'bot', agent: 'adrian', content: '¡Hola Lucía! 👋 Soy Adrián de Clínica Dental Tacna. Hace 8 meses que no nos vemos. Como cuidamos a nuestros pacientes recurrentes, queríamos invitarte a un check-up con 20% off este mes. ¿Cómo has estado?', time: '09:00' },
+          { t: 4500, type: 'patient-msg', side: 'user', content: '¡Hola! Bien gracias, sí ya tenía pendiente volver', time: '09:01' },
+          { t: 600,  type: 'feed-event', kind: 'default', icon: '🔥', title: 'Intención positiva · calificando warm lead', body: 'Adrián escala a oferta concreta · descuento aplicado · CLP primario' },
+          { t: 500,  type: 'main-card-update', cardId: 'reac-lucia', changes: { badge: 'WARM LEAD', badgeClass: 'badge-warm' } },
+          { t: 1400, type: 'patient-typing', agent: 'adrian', text: 'Adrián está preparando oferta…' },
+          { t: 2200, type: 'patient-msg', side: 'bot', agent: 'adrian', content: '¡Qué bueno saber de vos! Te paso el detalle del check-up con descuento mayo:\n\n📋 Check-up integral 30 min\n  • Examen oral completo\n  • Limpieza preventiva\n  • Plan de cuidado personalizado\n\n💰 Precio normal: $45.000 CLP\n🎉 Con descuento mayo: $36.000 CLP (≈ S/ 140)\n💳 Seña 40%: $14.400 CLP\n\n¿Te interesa? Te paso horarios.', time: '09:02' },
+          { t: 4500, type: 'patient-msg', side: 'user', content: 'Me interesa sí, ¿cuándo hay turnos?', time: '09:03' },
+          { t: 700,  type: 'feed-event', kind: 'delegate', icon: '🔀', title: 'Delegando agenda a Valeria', body: 'Adrián cierra venta · Valeria coordina horario (modo Mantener)' },
+          { t: 600,  type: 'ribbon-switch', to: 'valeria' },
+          { t: 1300, type: 'patient-typing', agent: 'valeria', text: 'Valeria está consultando agenda check-up…' },
+          { t: 2200, type: 'patient-msg', side: 'bot', agent: 'valeria', content: 'Lucía, soy Valeria, tomo desde acá. Tengo estos horarios:\n\n• Mar 27/05 · 10:00 Arica (09:00 Tacna)\n• Mié 28/05 · 17:00 Arica (16:00 Tacna)\n• Vie 30/05 · 11:30 Arica (10:30 Tacna)\n\n¿Cuál podes?', time: '09:03' },
+          { t: 4200, type: 'patient-msg', side: 'user', content: 'Viernes 11:30', time: '09:04' },
+          { t: 600,  type: 'feed-event', kind: 'default', icon: '📅', title: 'Turno provisional · DESCUENTO MAYO aplicado', body: 'Lucía R. · Vie 30/05 11:30 Arica · check-up con 20% off · costo $36.000 CLP' },
+          { t: 500,  type: 'feed-event', kind: 'default', icon: '💳', title: 'MP link · seña $14.400 CLP', body: 'Link enviado · expira en 1h · campaña-attribution: reactivación-mayo' },
+          { t: 600,  type: 'main-card-update', cardId: 'reac-lucia', changes: { rows: [ ['Origen','Arica, Chile'], ['Turno','Vie 30/05 11:30 Arica'], ['Servicio','Check-up integral'], ['Descuento','20% mayo aplicado'] ] } },
+          { t: 1100, type: 'patient-typing', agent: 'valeria', text: 'Valeria está enviando link…' },
+          { t: 2000, type: 'patient-msg', side: 'bot', agent: 'valeria', content: 'Reservado provisional. Te envío link de seña: https://mp.li/Re-4612 (40% del precio con descuento). Al confirmar, te llegan los recordatorios. 🌿', time: '09:04' },
+          { t: 3200, type: 'feed-event', kind: 'payment', icon: '💰', title: 'Pago aprobado · $14.400 CLP', body: 'MercadoPago REF #PB-99923 · 09:06 Arica · campaña reactivación atribuida' },
+          { t: 500,  type: 'main-card-update', cardId: 'reac-lucia', changes: { badge: 'REACTIVADA ✅', badgeClass: 'badge-paid' } },
+          { t: 1200, type: 'patient-typing', agent: 'valeria', text: 'Valeria está confirmando…' },
+          { t: 1800, type: 'patient-msg', side: 'bot', agent: 'valeria', content: '¡Listo Lucía! Turno confirmado vie 30/05 11:30 hora Arica (10:30 Tacna). Recordatorios programados con tip de frontera. Bienvenida de vuelta a la clínica 💜', time: '09:07' },
+          { t: 3000, type: 'patient-msg', side: 'user', content: 'Gracias, ahí estaré ✨', time: '09:07' },
+          { t: 500,  type: 'feed-event', kind: 'success', icon: '✅', title: 'Paciente reactivada', body: '8 meses inactiva → reserva paga · campaña mayo +1 conversión · esfuerzo staff: 0' },
+        ],
+        roi: [
+          { label: 'Paciente reactivada', value: '8 meses inactiva', cls: 'brand' },
+          { label: 'Descuento campaña', value: '20% auto · CLP', cls: '' },
+          { label: 'Reserva paga', value: '$14.400 CLP', cls: 'success' },
+          { label: 'Tiempo conversación', value: '7 min · 100% bot', cls: 'success' },
+          { label: 'Esfuerzo manual', value: '0 minutos', cls: 'success' },
+        ],
+      },
+    };
+
+    // ========================================================
+    // MAIN PANEL templates (clinic dashboard per scenario)
+    // ========================================================
+    const MAIN_PANEL_TEMPLATES = {
+      lucasLeads: {
+        title: 'Lucas · Captación y leads entrantes',
+        tagColor: 'lucas',
+        kpis: [
+          { num: '47', label: 'Leads esta semana', delta: '+18% vs prev', cls: 'up' },
+          { num: '12', label: 'Pendientes contacto', delta: 'auto-asignados', cls: '' },
+          { num: '$1.4M', label: 'Pipeline CLP', delta: '+$320k', cls: 'up' },
+          { num: '8.4', label: 'Reseñas Google ★', delta: '+3 esta semana', cls: 'up' },
+        ],
+        tip: '💡 Lucas captó este lead de Sofía desde un anuncio de Instagram con segmentación a Arica/Tacna. Costo CAC: $4.200 CLP.',
+        cardsTitle: 'Leads entrantes (vivo)',
+      },
+      valeriaAgenda: {
+        title: 'Valeria · Agenda y coordinación',
+        tagColor: 'valeria',
+        kpis: [
+          { num: '23', label: 'Turnos esta semana', delta: '+4 vs prev', cls: 'up' },
+          { num: '94%', label: 'Tasa confirmación', delta: '+seña obligatoria', cls: 'up' },
+          { num: '6%', label: 'No-show real', delta: '-85% vs sin seña', cls: 'up' },
+          { num: '$2.1M', label: 'Revenue agendado CLP', delta: '+$420k', cls: 'up' },
+        ],
+        tip: '💡 Valeria coordina pacientes chilenos en hora dual (Arica/Tacna). Cero confusión, cero llamadas de confirmación.',
+        cardsTitle: 'Reservas en curso',
+      },
+      camilaPacientes: {
+        title: 'Camila · Fidelización y seguimiento',
+        tagColor: 'camila',
+        kpis: [
+          { num: '34', label: 'Pacientes en seguimiento', delta: 'D+3 a D+30', cls: '' },
+          { num: '3', label: 'Alertas activas', delta: '1 nueva (Mariana)', cls: 'down' },
+          { num: '+22%', label: 'CLTV vs sin seguimiento', delta: 'vs cohorte base', cls: 'up' },
+          { num: '8.9', label: 'NPS promedio', delta: '+0.4 trimestre', cls: 'up' },
+        ],
+        tip: '💡 Camila inicia seguimientos proactivos D+3 / D+7 / D+30 para detectar complicaciones temprano. HIPAA-lite audit log en cada interacción.',
+        cardsTitle: 'Pacientes en seguimiento activo',
+      },
+      adrianPipeline: {
+        title: 'Adrián · Closer y reactivación',
+        tagColor: 'adrian',
+        kpis: [
+          { num: '47', label: 'Pacientes a reactivar', delta: 'cohorte mayo', cls: '' },
+          { num: '34%', label: 'Tasa respuesta', delta: '+12% vs control', cls: 'up' },
+          { num: '12', label: 'Reactivadas este mes', delta: '+5 esta semana', cls: 'up' },
+          { num: '$840k', label: 'Revenue reactivado CLP', delta: 'mes en curso', cls: 'up' },
+        ],
+        tip: '💡 Adrián ejecuta campañas mensuales de reactivación con descuento auto-aplicado. Cero esfuerzo del staff.',
+        cardsTitle: 'Pipeline reactivación · cohorte mayo',
+      },
+    };
+
+    // ========================================================
+    // STATE + DOM refs
+    // ========================================================
+    const state = {
+      activeTab: 'intro',
+      stepIndex: 0,
+      playing: false,
+      speed: 1,
+      currentScenarioId: null,
+      timers: [],
+      cards: {}, // cardId → DOM node
+    };
+
+    const dom = {
+      panelIntro:    document.getElementById('panel-intro'),
+      panelPlayback: document.getElementById('panel-playback'),
+      controls:      document.getElementById('controls'),
+      tabs:          document.getElementById('tabs'),
+      phoneChat:     document.getElementById('phone-chat'),
+      phoneTime:     document.getElementById('phone-time'),
+      phoneAvatar:   document.getElementById('phone-avatar'),
+      phoneAgentSub: document.getElementById('phone-agent-sub'),
+      valeriaFeed:   document.getElementById('valeria-feed'),
+      vhistList:     document.getElementById('vhist-list'),
+      ribbon:        document.getElementById('ribbon'),
+      mainContent:   document.getElementById('main-content'),
+      clinicTime:    document.getElementById('clinic-time'),
+      metaTitle:     document.getElementById('meta-title'),
+      metaPhone:     document.getElementById('meta-phone'),
+      metaCity:      document.getElementById('meta-city'),
+      metaChannel:   document.getElementById('meta-channel'),
+      metaTime:      document.getElementById('meta-time'),
+      metaTimeTacna: document.getElementById('meta-time-tacna'),
+      roiFooter:     document.getElementById('roi-footer'),
+      roiMetrics:    document.getElementById('roi-metrics'),
+      statusText:    document.getElementById('status-text'),
+      statusPulse:   document.getElementById('status-pulse'),
+      btnPlay:       document.getElementById('btn-play'),
+      btnPause:      document.getElementById('btn-pause'),
+      btnStep:       document.getElementById('btn-step'),
+      btnSkip:       document.getElementById('btn-skip'),
+      btnReset:      document.getElementById('btn-reset'),
+      btnTheme:      document.getElementById('btn-theme'),
+      speedGroup:    document.getElementById('speed-group'),
+    };
+
+    // ========================================================
+    // Renderers
+    // ========================================================
+    function clearTimers() {
+      state.timers.forEach(t => clearTimeout(t));
+      state.timers = [];
+    }
+
+    function setStatus(text, pulseClass) {
+      dom.statusText.textContent = text;
+      dom.statusPulse.className = 'status-pulse ' + (pulseClass || '');
+    }
+
+    function renderValeriaHistory() {
+      dom.vhistList.innerHTML = '';
+      const groups = ['today', 'yesterday', 'this_week'];
+      groups.forEach(g => {
+        const items = MOCK_CONVERSATIONS.filter(c => c.group === g);
+        if (items.length === 0) return;
+        const groupDiv = document.createElement('div');
+        groupDiv.className = 'vhist-group';
+        const label = document.createElement('div');
+        label.className = 'vhist-group-label';
+        label.textContent = GROUP_LABELS[g];
+        groupDiv.appendChild(label);
+        items.forEach(item => {
+          const div = document.createElement('div');
+          div.className = 'vhist-item' + (item.active ? ' active' : '');
+          div.innerHTML =
+            '<div class="vhist-item-title">' + item.title + '</div>' +
+            '<div class="vhist-item-meta">' + item.meta + '</div>';
+          groupDiv.appendChild(div);
+        });
+        dom.vhistList.appendChild(groupDiv);
+      });
+    }
+
+    function renderRibbon(activeAgent) {
+      dom.ribbon.innerHTML = '';
+      AGENT_ORDER.forEach(slug => {
+        const tab = document.createElement('button');
+        tab.className = 'ribbon-tab' + (slug === activeAgent ? ' active' : '');
+        tab.dataset.color = slug;
+        // Tab shows the MENU label (Mi Clínica, Atraer, Vender, Operar, Mantener) — NOT the agent name.
+        // Agent name lives in the chat header below, not in the ribbon.
+        tab.title = AGENTS[slug].name + ' — ' + AGENTS[slug].role;
+        tab.innerHTML = '<img src="' + AGENTS[slug].img + '" alt="" /> <span>' + AGENTS[slug].tabLabel + '</span>';
+        dom.ribbon.appendChild(tab);
+      });
+      const config = document.createElement('span');
+      config.className = 'ribbon-config';
+      config.title = 'Configurar';
+      config.textContent = '⚙';
+      dom.ribbon.appendChild(config);
+    }
+
+    function renderMainPanel(templateId, scenarioPatient) {
+      const tpl = MAIN_PANEL_TEMPLATES[templateId];
+      const c = dom.mainContent;
+      c.innerHTML = '';
+      // section title
+      const h = document.createElement('div');
+      h.className = 'main-section-title';
+      h.innerHTML = tpl.title + ' <span class="agent-tag" data-color="' + tpl.tagColor + '">en vivo</span>';
+      c.appendChild(h);
+      // tip box
+      if (tpl.tip) {
+        const tip = document.createElement('div');
+        tip.className = 'tip-box';
+        tip.innerHTML = tpl.tip;
+        c.appendChild(tip);
+      }
+      // KPIs
+      const kpiRow = document.createElement('div');
+      kpiRow.className = 'kpi-row';
+      tpl.kpis.forEach(k => {
+        const kpi = document.createElement('div');
+        kpi.className = 'kpi';
+        kpi.innerHTML =
+          '<div class="kpi-num">' + k.num + '</div>' +
+          '<div class="kpi-label">' + k.label + '</div>' +
+          (k.delta ? '<div class="kpi-delta ' + (k.cls || '') + '">' + k.delta + '</div>' : '');
+        kpiRow.appendChild(kpi);
+      });
+      c.appendChild(kpiRow);
+      // cards subtitle
+      const cardsTitle = document.createElement('div');
+      cardsTitle.className = 'main-section-title';
+      cardsTitle.style.fontSize = '13px';
+      cardsTitle.style.marginTop = '6px';
+      cardsTitle.innerHTML = tpl.cardsTitle;
+      c.appendChild(cardsTitle);
+      // cards container
+      const grid = document.createElement('div');
+      grid.className = 'card-grid';
+      grid.id = 'main-card-grid';
+      c.appendChild(grid);
+      // pre-populate some mock cards (besides the live one)
+      renderStaticMockCards(grid, templateId, scenarioPatient);
+    }
+
+    function renderStaticMockCards(grid, templateId, scenarioPatient) {
+      const mockData = {
+        lucasLeads: [
+          { avatar: 'JR', title: 'Javiera R.', badge: 'NUEVO', badgeClass: 'badge-new', rows: [ ['Origen','Arica, Chile'], ['Canal','Instagram'], ['Asunto','Estética'], ['Hora','11:23'] ] },
+          { avatar: 'PG', title: 'Patricio G.', badge: 'NUEVO', badgeClass: 'badge-new', rows: [ ['Origen','Tacna'], ['Canal','WhatsApp'], ['Asunto','Limpieza'], ['Hora','12:01'] ] },
+          { avatar: 'CM', title: 'Carolina M.', badge: 'WARM', badgeClass: 'badge-warm', rows: [ ['Origen','Iquique'], ['Canal','Google Ads'], ['Asunto','Implante'], ['Hora','13:45'] ] },
+        ],
+        valeriaAgenda: [
+          { avatar: 'MA', title: 'Marina A.', badge: 'CONFIRMADO', badgeClass: 'badge-paid', rows: [ ['Servicio','Endodoncia'], ['Día','Hoy 16:00'], ['Profesional','Dr. Castro'], ['Total','$185k CLP'] ] },
+          { avatar: 'JT', title: 'Joaquín T.', badge: 'CONFIRMADO', badgeClass: 'badge-paid', rows: [ ['Servicio','Limpieza'], ['Día','Mañana 11:00'], ['Profesional','Dra. Romero'], ['Total','$42k CLP'] ] },
+          { avatar: 'NS', title: 'Natalia S.', badge: 'PENDIENTE', badgeClass: 'badge-warm', rows: [ ['Servicio','Ortodoncia'], ['Día','Vie 31/05'], ['Profesional','Dr. Aldana'], ['Estado','Seña por pagar'] ] },
+        ],
+        camilaPacientes: [
+          { avatar: 'RS', title: 'Rosa S.', badge: 'D+7', badgeClass: 'badge-paid', rows: [ ['Tratamiento','Implante'], ['Doctor','Dr. Aldana'], ['Estado','Recuperación normal'], ['NPS','9/10'] ] },
+          { avatar: 'EC', title: 'Eduardo C.', badge: 'D+14', badgeClass: 'badge-paid', rows: [ ['Tratamiento','Endodoncia'], ['Doctor','Dr. Castro'], ['Estado','Cerrado OK'], ['NPS','10/10'] ] },
+          { avatar: 'IF', title: 'Isabel F.', badge: 'D+21', badgeClass: 'badge-warm', rows: [ ['Tratamiento','Ortodoncia'], ['Doctor','Dra. Romero'], ['Próx control','Vie 30/05'], ['Estado','Ajuste programado'] ] },
+        ],
+        adrianPipeline: [
+          { avatar: 'MS', title: 'Mauricio S.', badge: '6M INACTIVO', badgeClass: 'badge-inactive', rows: [ ['Last visit','Nov/2025'], ['Last tx','Limpieza $42k'], ['NPS previo','8/10'], ['Estado','Sin contactar'] ] },
+          { avatar: 'CV', title: 'Catalina V.', badge: 'WARM', badgeClass: 'badge-warm', rows: [ ['Last visit','Sep/2025'], ['Last tx','Implante $485k'], ['Respondió','Sí — pidiendo precio'], ['Estado','Negociando'] ] },
+          { avatar: 'RE', title: 'Roberto E.', badge: '12M INACTIVO', badgeClass: 'badge-inactive', rows: [ ['Last visit','May/2025'], ['Last tx','Endodoncia $185k'], ['NPS previo','9/10'], ['Estado','Sin contactar'] ] },
+        ],
+      };
+      (mockData[templateId] || []).forEach(c => addCard(grid, c));
+    }
+
+    function addCard(grid, card) {
+      const div = document.createElement('div');
+      div.className = 'data-card' + (card.highlight ? ' highlight' : '') + (card.alert ? ' alert' : '');
+      div.dataset.cardId = card.id || '';
+      div.innerHTML = cardInner(card);
+      grid.appendChild(div);
+      if (card.id) state.cards[card.id] = div;
+      return div;
+    }
+    function cardInner(card) {
+      let html = '<div class="data-card-header">';
+      html += '<div class="data-card-avatar">' + (card.avatar || '?') + '</div>';
+      html += '<div class="data-card-title">' + card.title + '</div>';
+      if (card.badge) html += '<span class="data-card-badge ' + (card.badgeClass || 'badge-new') + '">' + card.badge + '</span>';
+      html += '</div>';
+      html += '<div class="data-card-body">';
+      (card.rows || []).forEach(r => {
+        html += '<div class="data-card-row"><span class="lbl">' + r[0] + '</span><span class="val">' + r[1] + '</span></div>';
+      });
+      html += '</div>';
+      return html;
+    }
+
+    function appendPatientMessage(step) {
+      // remove typing indicator if exists
+      const typing = dom.phoneChat.querySelector('.phone-typing');
+      if (typing) typing.remove();
+      const msg = document.createElement('div');
+      msg.className = 'phone-msg ' + step.side;
+      let inner = '';
+      if (step.side === 'bot') {
+        const a = AGENTS[step.agent] || AGENTS.valeria;
+        inner += '<div class="phone-msg-bot-name" style="color:' + a.color + '">' + a.name + '</div>';
+      }
+      inner += '<div class="phone-msg-content">' + escapeHtml(step.content) + '</div>';
+      if (step.time) inner += '<div class="phone-msg-time">' + step.time + ' ✓✓</div>';
+      msg.innerHTML = inner;
+      dom.phoneChat.appendChild(msg);
+      dom.phoneChat.scrollTop = dom.phoneChat.scrollHeight;
+    }
+    function appendPatientTyping(step) {
+      const existing = dom.phoneChat.querySelector('.phone-typing');
+      if (existing) existing.remove();
+      const a = AGENTS[step.agent] || AGENTS.valeria;
+      const div = document.createElement('div');
+      div.className = 'phone-typing';
+      div.innerHTML =
+        '<span style="font-size:11px;color:' + a.color + ';font-weight:600;margin-right:6px">' + a.name + '</span>' +
+        '<span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>';
+      dom.phoneChat.appendChild(div);
+      dom.phoneChat.scrollTop = dom.phoneChat.scrollHeight;
+    }
+    function appendFeedEvent(step) {
+      const div = document.createElement('div');
+      div.className = 'feed-event';
+      div.dataset.kind = step.kind || 'default';
+      const now = new Date();
+      const t = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+      div.innerHTML =
+        '<div class="feed-event-header">' +
+          '<span class="feed-event-icon">' + step.icon + '</span>' +
+          '<span class="feed-event-title">' + step.title + '</span>' +
+          '<span class="feed-event-time">' + t + '</span>' +
+        '</div>' +
+        '<div class="feed-event-body">' + step.body + '</div>';
+      dom.valeriaFeed.appendChild(div);
+      dom.valeriaFeed.scrollTop = dom.valeriaFeed.scrollHeight;
+    }
+    function updateCard(cardId, changes) {
+      const node = state.cards[cardId];
+      if (!node) return;
+      // Re-read existing card data approximation — instead rebuild via changes spread
+      const oldHeader = node.querySelector('.data-card-header');
+      const title = node.querySelector('.data-card-title').textContent;
+      const avatar = node.querySelector('.data-card-avatar').textContent;
+      const card = {
+        avatar,
+        title,
+        badge: changes.badge || (oldHeader.querySelector('.data-card-badge') && oldHeader.querySelector('.data-card-badge').textContent),
+        badgeClass: changes.badgeClass || (oldHeader.querySelector('.data-card-badge') && oldHeader.querySelector('.data-card-badge').className.replace('data-card-badge','').trim()),
+        rows: changes.rows || Array.from(node.querySelectorAll('.data-card-row')).map(r => [r.querySelector('.lbl').textContent, r.querySelector('.val').textContent]),
+      };
+      node.innerHTML = cardInner(card);
+      if (changes.alert) node.classList.add('alert');
+      node.classList.add('highlight');
+      // brief flash
+      node.style.transform = 'scale(1.02)';
+      setTimeout(() => { node.style.transform = ''; }, 250);
+    }
+    function ribbonSwitch(toAgent) {
+      // Switch only ribbon tabs (agent rail removed — agents live in ribbon only per Chris's feedback 2026-05-24)
+      Array.from(dom.ribbon.querySelectorAll('.ribbon-tab')).forEach(t => {
+        t.classList.toggle('active', t.dataset.color === toAgent);
+      });
+    }
+
+    function escapeHtml(s) {
+      return String(s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    // ========================================================
+    // Player
+    // ========================================================
+    function loadScenario(id) {
+      const s = SCENARIOS[id];
+      if (!s) return;
+      state.currentScenarioId = id;
+      state.stepIndex = 0;
+      state.cards = {};
+      clearTimers();
+      dom.phoneChat.innerHTML = '';
+      dom.valeriaFeed.innerHTML = '';
+      // header info
+      dom.metaTitle.textContent = s.patient.name;
+      dom.metaPhone.textContent = s.patient.phone;
+      dom.metaCity.innerHTML = s.patient.city + ' <span class="chip">🇨🇱 CL detectado</span>';
+      dom.metaTime.textContent = s.time.aricaLabel;
+      dom.metaTimeTacna.textContent = s.time.tacna;
+      dom.metaChannel.textContent = 'WhatsApp Business';
+      dom.clinicTime.textContent = '🕐 ' + s.time.clinicTime;
+      dom.phoneTime.textContent = s.phoneTime;
+      dom.phoneAgentSub.textContent = s.agentSub;
+      // shell decor
+      renderValeriaHistory();
+      renderRibbon(s.ribbonActive);
+      renderMainPanel(s.mainPanel, s.patient);
+      // ROI initial (hidden until done)
+      renderRoi(s.roi, false);
+      setStatus('Listo · ' + s.steps.length + ' pasos', '');
+    }
+
+    function executeStep(step) {
+      switch (step.type) {
+        case 'patient-msg':       appendPatientMessage(step); break;
+        case 'patient-typing':    appendPatientTyping(step); break;
+        case 'feed-event':        appendFeedEvent(step); break;
+        case 'main-card-add':     addCard(document.getElementById('main-card-grid'), step.card); break;
+        case 'main-card-update':  updateCard(step.cardId, step.changes); break;
+        case 'ribbon-switch':     ribbonSwitch(step.to); break;
+      }
+    }
+
+    function play() {
+      const s = SCENARIOS[state.currentScenarioId];
+      if (!s) return;
+      if (state.stepIndex >= s.steps.length) {
+        reset();
+        return;
+      }
+      state.playing = true;
+      dom.btnPlay.disabled = true;
+      dom.btnPause.disabled = false;
+      setStatus('Reproduciendo…', 'playing');
+      scheduleNext();
+    }
+    function scheduleNext() {
+      const s = SCENARIOS[state.currentScenarioId];
+      if (!s || !state.playing) return;
+      if (state.stepIndex >= s.steps.length) {
+        state.playing = false;
+        dom.btnPlay.disabled = false;
+        dom.btnPause.disabled = true;
+        setStatus('Completado ✓', 'done');
+        renderRoi(s.roi, true);
+        return;
+      }
+      const step = s.steps[state.stepIndex];
+      const delay = (step.t || 800) / state.speed;
+      const timer = setTimeout(() => {
+        executeStep(step);
+        state.stepIndex++;
+        scheduleNext();
+      }, delay);
+      state.timers.push(timer);
+    }
+    function pause() {
+      state.playing = false;
+      clearTimers();
+      dom.btnPlay.disabled = false;
+      dom.btnPause.disabled = true;
+      setStatus('Pausado', '');
+    }
+    function reset() {
+      pause();
+      loadScenario(state.currentScenarioId);
+    }
+    function skip() {
+      const s = SCENARIOS[state.currentScenarioId];
+      if (!s) return;
+      pause();
+      while (state.stepIndex < s.steps.length) {
+        executeStep(s.steps[state.stepIndex]);
+        state.stepIndex++;
+      }
+      setStatus('Completado ✓', 'done');
+      renderRoi(s.roi, true);
+    }
+    function stepOnce() {
+      const s = SCENARIOS[state.currentScenarioId];
+      if (!s || state.stepIndex >= s.steps.length) return;
+      pause();
+      executeStep(s.steps[state.stepIndex]);
+      state.stepIndex++;
+      if (state.stepIndex >= s.steps.length) {
+        setStatus('Completado ✓', 'done');
+        renderRoi(s.roi, true);
+      } else {
+        setStatus('Paso ' + state.stepIndex + ' / ' + s.steps.length, '');
+      }
+    }
+
+    function renderRoi(roi, visible) {
+      dom.roiMetrics.innerHTML = '';
+      roi.forEach(m => {
+        const div = document.createElement('div');
+        div.className = 'roi-metric';
+        div.innerHTML =
+          '<div class="roi-metric-value ' + (m.cls || '') + '">' + m.value + '</div>' +
+          '<div class="roi-metric-label">' + m.label + '</div>';
+        dom.roiMetrics.appendChild(div);
+      });
+      dom.roiFooter.style.display = visible ? 'block' : 'none';
+    }
+
+    // ========================================================
+    // Tab nav
+    // ========================================================
+    function switchTab(id) {
+      state.activeTab = id;
+      Array.from(dom.tabs.querySelectorAll('.tab')).forEach(t => {
+        t.classList.toggle('active', t.dataset.tab === id);
+      });
+      if (id === 'intro') {
+        dom.panelIntro.classList.add('active');
+        dom.panelPlayback.classList.remove('active');
+        dom.controls.classList.add('hidden');
+        dom.roiFooter.style.display = 'none';
+        clearTimers();
+        state.playing = false;
+      } else {
+        dom.panelIntro.classList.remove('active');
+        dom.panelPlayback.classList.add('active');
+        dom.controls.classList.remove('hidden');
+        loadScenario(id);
+      }
+    }
+
+    // ========================================================
+    // Init
+    // ========================================================
+    function init() {
+      // Tabs
+      Array.from(dom.tabs.querySelectorAll('.tab')).forEach(t => {
+        t.addEventListener('click', () => switchTab(t.dataset.tab));
+      });
+      // Controls
+      dom.btnPlay.addEventListener('click', play);
+      dom.btnPause.addEventListener('click', pause);
+      dom.btnStep.addEventListener('click', stepOnce);
+      dom.btnSkip.addEventListener('click', skip);
+      dom.btnReset.addEventListener('click', reset);
+      // Speed
+      Array.from(dom.speedGroup.querySelectorAll('.speed')).forEach(b => {
+        b.addEventListener('click', () => {
+          Array.from(dom.speedGroup.querySelectorAll('.speed')).forEach(x => x.classList.remove('active'));
+          b.classList.add('active');
+          state.speed = parseFloat(b.dataset.speed);
+        });
+      });
+      // Theme
+      dom.btnTheme.addEventListener('click', () => {
+        const cur = document.documentElement.getAttribute('data-theme');
+        document.documentElement.setAttribute('data-theme', cur === 'dark' ? 'light' : 'dark');
+      });
+      // Initial
+      switchTab('intro');
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+  })();
+  </script>
+</body>
+</html>

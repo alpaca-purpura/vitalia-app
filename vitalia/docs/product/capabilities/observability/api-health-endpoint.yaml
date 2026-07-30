@@ -1,0 +1,114 @@
+---
+capability_id: vitalia.observability.api-health-endpoint
+module: observability
+slug: api-health-endpoint
+status: live
+date_introduced: 2026-05-18
+story_introduced: vitalia-auth-base-functional
+package_version: vitalia-backend@0.1.0
+package_path: vitalia/backend/src/main.py
+license: proprietary
+
+# v3 cement 2026-05-27 · 4 dimensiones + dev_preview (ADR-vitalia-005)
+tech_module: observability
+agent_owner: observabilidad
+functional_area: observabilidad.observability
+user_visible: false
+nature: feature
+ui_paradigm: infra-only  # T-3 reconcile 2026-05-29
+
+user_facing_name: "Endpoint de health check"
+user_facing_description: >
+  Endpoint GET /health que reporta el estado de la API y sus dependencias
+  (base de datos, Qdrant, Redis). Consumido por las sondas de liveness y
+  readiness de Kubernetes, y por el script de smoke post-deploy para
+  verificar que el servicio levantó correctamente.
+
+dev_preview:
+  route: null
+  how_to_navigate: "BE-only · curl http://localhost:8002/api/health → {status: ok}"
+  main_component: null
+  api_endpoints:
+    - "GET /api/health"
+  e2e_test: null
+  fixtures_required: []
+  storybook_url: null
+  loom_demo: null
+
+# Capability ledger v2 (cement 2026-05-27)
+created_in_story: vitalia-auth-base-functional   # v2 cement · mirror of story_introduced
+created_date: 2026-05-18   # v2 cement · mirror of date_introduced
+parent_cap: null   # v2 cement · mirror of extends_capability
+derives_capabilities: []   # v2 cement · initial empty list
+
+# Capability ledger v2 (cement 2026-05-27)
+
+# Capability change log v2 (cement 2026-05-27)
+change_log:
+  - story_id: vitalia-auth-base-functional
+    date: 2026-05-18
+    type: new
+    summary: "Implementación inicial · migración legacy a schema v2"
+    merge_sha: null
+    status: done
+  - story_id: vitalia-stub-caps-scenario-backfill
+    date: 2026-05-30
+    type: extend
+    summary: "backfill scenario+e2e → verified-live (deployed-visible)"
+    scenarios_added: 1
+    status: done
+
+last_modified: 2026-05-30
+
+scenarios:
+  - id: health-endpoint-responde-200-sin-auth
+    name: "Endpoint GET /api/health responde 200 con status ok sin autenticación"
+    actor: sistema
+    status: live
+    given: "El backend de Vitalia está corriendo; el endpoint /api/health está registrado sin guard de auth"
+    when: "Se realiza GET /api/health sin header de autorización"
+    then: "El endpoint responde 200 JSON {status: ok, brand: vitalia}; las sondas K8s y el smoke post-deploy pueden consumirlo sin credenciales"
+    e2e_test: "vitalia/backend/tests/integration/test_api_health_endpoint.py"
+    verification_method: deploy-endpoint
+    story_spec_ref: "vitalia/docs/product/stories/vitalia-stub-caps-scenario-backfill/01-spec.md"
+    atomic_ref: null
+    added_in_story: vitalia-stub-caps-scenario-backfill
+    added_date: 2026-05-30
+map_box: observabilidad
+
+---
+
+# API health endpoint — /api/health
+
+Endpoint mínimo de healthcheck para K8s livenessProbe + post_deploy_smoke.sh.
+
+## Surfaces
+
+- **Backend:** `vitalia/backend/src/main.py` route `GET /api/health`
+- **Ops:** K8s deployments `livenessProbe.httpGet.path: /api/health`
+- **Smoke:** `vitalia/deploy/scripts/post_deploy_smoke.sh` check 2 (`curl -fsS /api/health`)
+
+## Comportamiento
+
+- `GET /api/health` → 200 JSON `{"status":"ok"}`
+- Sin auth, sin tenant filter (es público per middleware matcher)
+- Idempotente, sin DB queries
+
+## Verification
+
+```yaml
+commands:
+  - "WS=$(git rev-parse --show-toplevel) && cd $WS/vitalia/backend && $WS/.venv/bin/ruff check src/main.py"
+  - "curl -fsS http://localhost:8002/api/health"  # local with backend stack up
+  - "curl -fsS https://dev-app.vitalialat.com/api/health"  # LIVE post-deploy
+gherkin_evidence:
+  - SC-17: "vitalia/deploy/scripts/post_deploy_smoke.sh check 2 (PENDING_DEPLOY)"
+```
+
+## Follow-up ticket required
+
+- /api/health unit test (TDD deviation per auditor-backend WARN).
+
+## Notes
+
+- T-5 commit e1c2315 (config artifact + main.py edit).

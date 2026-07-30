@@ -1,0 +1,77 @@
+{
+  "schema_version": "1.0",
+  "story_id": "vitalia-fase1-sub-tabs-line2",
+  "brand": "vitalia",
+  "pr_folder": "vitalia/docs/product/stories/vitalia-fase1-sub-tabs-line2",
+  "iter": 2,
+  "command": "test-frontend (vitalia FE suite)",
+  "command_alias": "test-fe-vitalia",
+  "started_at": "2026-05-25T10:20:00Z",
+  "finished_at": "2026-05-25T10:20:30Z",
+  "duration_ms": 18000,
+  "exit_code": 0,
+  "ran_by": "auditor orchestrator (direct gates post self-fix iter 1)",
+  "worktree": "/home/chalreme/Proyectos/luana-vitalia",
+  "branch": "wip/vitalia",
+  "post_self_fix_iter": 1,
+  "self_fix_iter_1_summary": "prettier auto-fix on AppPanelSlot.test.tsx (whitelist #2 — format only, 1 file, ~3 lines, commit 7bcef820)",
+  "gates": [
+    {
+      "name": "tsc",
+      "category": "non_functional",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": []
+    },
+    {
+      "name": "eslint",
+      "category": "non_functional",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": []
+    },
+    {
+      "name": "prettier",
+      "category": "non_functional",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": [],
+      "details": "10 F1-S8 files checked, all use Prettier code style"
+    },
+    {
+      "name": "vitest_unit_f1s8",
+      "category": "functional",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": [],
+      "details": "5 test files, 179 tests passed (agent-catalog 83 + _agent-tw-classes 13 + SubTab 34 + SubTabsBar 36 + AppPanelSlot 13)"
+    },
+    {
+      "name": "vitest_arch_fitness",
+      "category": "architectural_validation",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": [],
+      "details": "18 test files, 118 tests passed (incluye F1-S8 arch tests T-5: cross-brand mirror 5 names + server-first 2 components + voseo glossary 22 labels + 6 aria-labels)"
+    }
+  ],
+  "overall": {
+    "any_fail": false,
+    "fail_gate_names": [],
+    "passed_count": 5,
+    "failed_count": 0,
+    "total": 5,
+    "summary": "All 5 gates GREEN post self-fix iter 1. tsc + ESLint + Prettier clean. Vitest unit 179/179 + arch fitness 118/118."
+  },
+  "deferred_gates": [
+    {
+      "id": "fe_playwright_behavior",
+      "reason": "Requires live app at localhost:3002. Not part of standard FE gate suite. Tests exist in vitalia/frontend/e2e/regression/vitalia-fase1-sub-tabs-line2/ (10 specs covering SC-1..SC-9 + visual goldens). Auditor-frontend verifies separately if app available."
+    },
+    {
+      "id": "fe_visual_goldens",
+      "reason": "Visual goldens iter-1 deferred — require --update-snapshots run against live app + Chris re-ratify post-implementation. PNG baselines NOT committed (per architect design)."
+    }
+  ],
+  "notes": "Iter 2 gates post auditor self-fix iter 1 (commit 7bcef820 prettier auto-fix). All gates GREEN. Story ready for sub-auditor verdict + Phase D gherkin matrix + CHECKPOINTS.md story-level."
+}

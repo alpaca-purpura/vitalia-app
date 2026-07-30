@@ -1,0 +1,34 @@
+---
+# Release schema (v2 cement 2026-05-27)
+# Doc: docs/process/release-protocol.md
+# Path canónico: vitalia/docs/product/releases/F7.yaml
+
+release_id: F7
+brand: vitalia
+name: "Camila cohortes core · voz + multiplicar + reactivar"
+description: "Camila core conversacional · voz + multiplicar (cohortes promotores) + reactivar (cohortes sin actividad)."
+status: planning
+target_date: null
+shipped_date: null
+order: 7
+created_at: 2026-05-27T18:25:23-05:00
+created_by: scripts/migrate_to_release_schema.py
+
+stories:
+  - vitalia-fase2-camila-multiplicar
+  - vitalia-fase2-camila-reactivar
+  - vitalia-fase2-camila-reputacion
+  - vitalia-fase2-camila-voz
+---
+
+# F7 · Camila cohortes core · voz + multiplicar + reactivar
+
+> Camila core conversacional · voz + multiplicar (cohortes promotores) + reactivar (cohortes sin actividad).
+
+## Stories incluidas
+
+<!-- Auto-poblado durante migración Phase 3 desde checkpoints reales -->
+
+## Notas del release
+
+(libre · Chris escribe aquí contexto adicional · decisiones · gotchas)

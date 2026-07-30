@@ -1,0 +1,1 @@
+../../../core-harness/hooks/checks/17-checkpoint-dupkeys.sh

@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>F2-S1 · Mobile UX — Vitalia</title>
+<link rel="stylesheet" href="_shared.css">
+<style>
+  body { background: var(--bg-elevated); padding: 24px 0; }
+  .mobile-stage {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+  .mobile-frame {
+    background: #1a1a1a;
+    border-radius: 32px;
+    padding: 12px;
+    width: 400px;
+    height: 800px;
+    margin: 0 auto;
+    box-shadow: var(--shadow-lg);
+    position: relative;
+  }
+  .mobile-screen {
+    background: var(--bg-app);
+    border-radius: 24px;
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    position: relative;
+  }
+  .mobile-notch {
+    position: absolute;
+    top: 4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 120px;
+    height: 24px;
+    background: #1a1a1a;
+    border-radius: 0 0 16px 16px;
+    z-index: 10;
+  }
+  .mobile-label {
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 16px;
+    margin-top: 16px;
+  }
+  .mobile-sublabel {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+
+  /* Mobile-specific styles */
+  .m-topbar {
+    background: var(--bg-panel);
+    border-bottom: 1px solid var(--border);
+    padding: 32px 16px 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 13px;
+  }
+  .m-subtabs {
+    background: var(--bg-elevated);
+    border-bottom: 1px solid var(--border);
+    padding: 8px 16px;
+    overflow-x: auto;
+    white-space: nowrap;
+    display: flex;
+    gap: 16px;
+    font-size: 12px;
+  }
+  .m-subtab {
+    padding: 4px 8px;
+    color: var(--text-secondary);
+    text-decoration: none;
+  }
+  .m-subtab.active {
+    color: var(--c-valeria);
+    font-weight: 600;
+    border-bottom: 2px solid var(--c-valeria);
+  }
+  .m-agenda-header {
+    padding: 12px 16px;
+    background: var(--bg-panel);
+    border-bottom: 1px solid var(--border);
+  }
+  .m-agenda-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .m-page-title { font-size: 18px; font-weight: 700; }
+  .m-view-toggle {
+    padding: 4px 12px;
+    background: var(--c-adrian-soft);
+    color: var(--c-adrian);
+    border-radius: 9999px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .m-date-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 13px;
+  }
+  .m-chip-carousel {
+    padding: 10px 16px;
+    overflow-x: auto;
+    white-space: nowrap;
+    display: flex;
+    gap: 6px;
+    background: var(--bg-panel);
+    border-bottom: 1px solid var(--border);
+  }
+  .m-chip-carousel::-webkit-scrollbar { display: none; }
+  .m-chip-carousel .chip {
+    flex-shrink: 0;
+    font-size: 11px;
+    padding: 5px 10px;
+  }
+  .m-day-grid {
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .m-day-row {
+    display: flex;
+    gap: 8px;
+    align-items: stretch;
+  }
+  .m-day-time {
+    width: 40px;
+    font-size: 10px;
+    color: var(--text-muted);
+    padding-top: 4px;
+    text-align: right;
+  }
+  .m-day-slot {
+    flex: 1;
+    min-height: 32px;
+  }
+  .m-fab {
+    position: absolute;
+    bottom: 24px;
+    right: 24px;
+    width: 56px;
+    height: 56px;
+    background: var(--c-adrian);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    box-shadow: var(--shadow-lg);
+    z-index: 20;
+    cursor: pointer;
+    border: none;
+  }
+  .m-fab:hover {
+    transform: scale(1.05);
+  }
+  .m-bottom-sheet-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 30;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .m-bottom-sheet {
+    background: var(--bg-panel);
+    width: 100%;
+    height: 95%;
+    border-radius: 20px 20px 0 0;
+    overflow-y: auto;
+    position: relative;
+  }
+  .m-bottom-sheet-handle {
+    width: 40px;
+    height: 4px;
+    background: var(--border-strong);
+    border-radius: 2px;
+    margin: 8px auto 12px;
+  }
+  .m-bottom-sheet-header {
+    padding: 0 16px 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .m-bottom-sheet-body {
+    padding: 12px 16px;
+  }
+  .mobile-pano-label {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 16px;
+    background: var(--c-valeria-soft);
+    border-radius: var(--r-md);
+    margin-bottom: 16px;
+    font-size: 13px;
+  }
+  [data-theme="dark"] .mobile-pano-label { color: var(--text-primary); }
+</style>
+</head>
+<body>
+
+<button class="theme-btn" onclick="toggleTheme()" style="position:fixed;top:16px;right:16px;z-index:200">🌓 Tema</button>
+
+<div class="mobile-stage">
+
+  <div class="mobile-pano-label">
+    <strong>Mobile UX &lt;768px</strong> · DayCalendar only · Drawer bottom-sheet 95vh · Chip carousel horizontal · CrearCita FAB
+  </div>
+
+  <!-- Mobile #1: Day view + FAB -->
+  <div>
+    <div class="mobile-label">1) Vista Día (default mobile)</div>
+    <div class="mobile-sublabel">FAB Crear cita bottom-right · chips carousel scrollable</div>
+    <div class="mobile-frame">
+      <div class="mobile-notch"></div>
+      <div class="mobile-screen">
+
+        <!-- Topbar -->
+        <div class="m-topbar">
+          <strong>🏥 Vitalia</strong>
+          <span class="muted text-xs">Sonrisa PE</span>
+        </div>
+
+        <!-- Subtabs scroll -->
+        <div class="m-subtabs">
+          <a href="#" class="m-subtab active">Agenda</a>
+          <a href="#" class="m-subtab">Pacientes</a>
+          <a href="#" class="m-subtab">Mensajes</a>
+          <a href="#" class="m-subtab">Reportes</a>
+        </div>
+
+        <!-- Agenda header -->
+        <div class="m-agenda-header">
+          <div class="m-agenda-title-row">
+            <div>
+              <div class="m-page-title">Agenda</div>
+              <div class="freshness" style="margin-top:2px"><span class="freshness-dot"></span>Actualizado 4s</div>
+            </div>
+            <div class="m-view-toggle">📅 Día</div>
+          </div>
+          <div class="m-date-nav">
+            <button class="btn btn-ghost btn-sm">‹</button>
+            <strong>Mié 26 May 2026</strong>
+            <button class="btn btn-ghost btn-sm">›</button>
+          </div>
+        </div>
+
+        <!-- Chip carousel -->
+        <div class="m-chip-carousel">
+          <button class="chip active">📅 Hoy</button>
+          <button class="chip">⏰ Por confirmar</button>
+          <button class="chip">↩️ Re-agendar</button>
+          <button class="chip">🚫 No-shows</button>
+          <button class="chip">💰 Saldos</button>
+        </div>
+
+        <!-- Day grid stacked -->
+        <div class="m-day-grid">
+          <div class="m-day-row">
+            <div class="m-day-time">08:30</div>
+            <div class="m-day-slot">
+              <div class="agenda-slot paid"><span class="slot-origin">👤</span><div class="slot-title">M. Quispe</div><div class="slot-meta">Limpieza · Dr. García</div></div>
+            </div>
+          </div>
+          <div class="m-day-row">
+            <div class="m-day-time">09:00</div>
+            <div class="m-day-slot">
+              <div class="agenda-slot deposit"><span class="slot-origin">📞</span><div class="slot-title">P. Hernández</div><div class="slot-meta">Limpieza · Dr. García</div></div>
+            </div>
+          </div>
+          <div class="m-day-row">
+            <div class="m-day-time">10:00</div>
+            <div class="m-day-slot">
+              <div class="agenda-slot paid"><span class="slot-origin">🤖</span><div class="slot-title">L. Mendoza</div><div class="slot-meta">Brackets · Dra. Vega</div></div>
+            </div>
+          </div>
+          <div class="m-day-row">
+            <div class="m-day-time">11:00</div>
+            <div class="m-day-slot">
+              <div class="agenda-slot unpaid"><span class="slot-origin">🤖</span><div class="slot-title">B. Suárez</div><div class="slot-meta">Limpieza · Dr. García</div></div>
+            </div>
+          </div>
+          <div class="m-day-row">
+            <div class="m-day-time">12:00</div>
+            <div class="m-day-slot">
+              <div class="agenda-slot paid"><span class="slot-origin">👤</span><div class="slot-title">G. Ramírez</div><div class="slot-meta">Control · Dr. García</div></div>
+            </div>
+          </div>
+          <div class="m-day-row">
+            <div class="m-day-time">14:00</div>
+            <div class="m-day-slot">
+              <div class="agenda-slot noshow"><span class="slot-origin">👤</span><div class="slot-title">R. Silva</div><div class="slot-meta">No-show · Dr. Ríos</div></div>
+            </div>
+          </div>
+          <div class="m-day-row">
+            <div class="m-day-time">15:00</div>
+            <div class="m-day-slot">
+              <div class="agenda-slot deposit"><span class="slot-origin">📞</span><div class="slot-title">V. Cabrera</div><div class="slot-meta">Endodoncia · Dr. Ríos</div></div>
+            </div>
+          </div>
+          <div class="m-day-row">
+            <div class="m-day-time">17:00</div>
+            <div class="m-day-slot">
+              <div class="agenda-slot paid"><span class="slot-origin">👤</span><div class="slot-title">H. Pérez</div><div class="slot-meta">Brackets · Dra. Vega</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- FAB Crear cita -->
+        <button class="m-fab" aria-label="Crear cita">+</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mobile #2: Bottom sheet open -->
+  <div>
+    <div class="mobile-label">2) AppointmentDrawer · bottom-sheet 95vh</div>
+    <div class="mobile-sublabel">Click slot abre bottom-sheet con drag handle + acordeones</div>
+    <div class="mobile-frame">
+      <div class="mobile-notch"></div>
+      <div class="mobile-screen">
+
+        <!-- Bottom sheet overlay -->
+        <div class="m-bottom-sheet-overlay">
+          <div class="m-bottom-sheet">
+            <div class="m-bottom-sheet-handle"></div>
+
+            <!-- Header drawer -->
+            <div class="m-bottom-sheet-header">
+              <div class="avatar">PH</div>
+              <div style="flex:1">
+                <div style="font-weight:700;font-size:16px">P. Hernández</div>
+                <div class="muted text-xs" style="font-family:monospace">DNI: 12.***.***</div>
+              </div>
+              <button class="btn-icon btn-ghost" aria-label="Cerrar">✕</button>
+            </div>
+
+            <div class="m-bottom-sheet-body">
+              <!-- Ficha button -->
+              <div class="tooltip-wrapper" style="display:block;margin-bottom:16px">
+                <button class="btn btn-outline btn-sm" disabled style="width:100%;justify-content:center">
+                  Ver ficha del paciente →
+                </button>
+                <span class="tooltip">Próximamente disponible en Fase 2</span>
+              </div>
+
+              <!-- Turno -->
+              <div class="section-label">Turno</div>
+              <div style="background:var(--bg-elevated);padding:12px;border-radius:var(--r-sm);margin-bottom:14px;font-size:12px">
+                <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+                  <span class="muted">Fecha</span><strong>Lun 26 May 09:00</strong>
+                </div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+                  <span class="muted">Doctor</span><strong>Dr. García</strong>
+                </div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+                  <span class="muted">Servicio</span><strong>Limpieza dental · 30min</strong>
+                </div>
+                <div style="display:flex;justify-content:space-between">
+                  <span class="muted">Origen</span><span class="status-pill info">👤 Walk-in</span>
+                </div>
+              </div>
+
+              <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">
+                <button class="btn btn-outline btn-sm">↩ Re-agendar</button>
+                <button class="btn btn-outline btn-sm">✕ Cancelar</button>
+                <button class="btn btn-outline btn-sm">✓ Completado</button>
+              </div>
+
+              <!-- Pago -->
+              <div class="section-label">Pago / saldo</div>
+              <div style="background:var(--c-warning-soft);padding:12px;border-radius:var(--r-sm);margin-bottom:12px;display:flex;align-items:center;gap:10px">
+                <span style="font-size:22px">🟡</span>
+                <div style="flex:1">
+                  <div style="font-weight:600;font-size:13px">Depósito parcial</div>
+                  <div style="font-size:11px;opacity:0.8">PEN 40 de PEN 120</div>
+                </div>
+                <strong style="font-size:18px">PEN 80</strong>
+              </div>
+              <button class="btn btn-primary" style="width:100%;margin-bottom:16px">💰 Cobrar saldo</button>
+
+              <!-- Acordeones collapsed -->
+              <div style="border-top:1px solid var(--border);padding-top:12px">
+                <div style="padding:8px 0;display:flex;justify-content:space-between;font-weight:600;font-size:13px">
+                  <span>▸ Histórico de pagos</span>
+                  <span class="muted">1 registro</span>
+                </div>
+                <div style="padding:8px 0;display:flex;justify-content:space-between;font-weight:600;font-size:13px">
+                  <span>▸ Notas internas</span>
+                </div>
+                <div style="padding:8px 0;display:flex;justify-content:space-between;font-weight:600;font-size:13px">
+                  <span>▸ Acciones avanzadas</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Notas mobile UX -->
+<div class="mobile-stage" style="margin-top:32px;display:block">
+  <div style="background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--r-md);padding:20px;font-size:13px">
+    <h3 style="font-size:14px;font-weight:700;margin-bottom:12px">Constraints mobile (&lt;768px)</h3>
+    <ul style="list-style:none;display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <li>✅ <strong>Vista Día only</strong> — Semana/Mes disabled con tooltip "Disponible en pantalla mayor"</li>
+      <li>✅ <strong>Drawer bottom-sheet 95vh</strong> con drag handle top</li>
+      <li>✅ <strong>Chip carousel</strong> horizontal scroll · 5 chips visible scroll</li>
+      <li>✅ <strong>FAB Crear cita</strong> bottom-right floating · dropdown UP-direction</li>
+      <li>✅ <strong>Slot timeline vertical</strong> con time-label izq + slot derecha (stack)</li>
+      <li>✅ <strong>Acordeones collapsed</strong> default mobile (Histórico/Notas/Avanzadas)</li>
+      <li>✅ <strong>Touch targets ≥44×44px</strong> en buttons + chips · WCAG AAA</li>
+      <li>✅ <strong>No tooltips hover-only</strong> · usar long-press para tooltip nativo</li>
+    </ul>
+  </div>
+</div>
+
+<div style="text-align:center;padding:24px">
+  <a href="agenda-cockpit-grid.html" class="muted text-sm">← Volver al cockpit índice</a>
+</div>
+
+<script>
+function toggleTheme() {
+  const html = document.documentElement;
+  const current = html.getAttribute('data-theme');
+  html.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark');
+}
+</script>
+
+</body>
+</html>

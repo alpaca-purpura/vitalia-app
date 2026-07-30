@@ -1,0 +1,231 @@
+#!/usr/bin/env bash
+# Pre-push hook — block ``git push origin main`` unless ``make ci-parity``
+# has succeeded against HEAD.
+#
+# tier: hybrid · core = push-to-main gate machinery (ci-parity marker ·
+#       bidirectional/cap-gate sourcing) · project = brand enums +
+#       CAP_GATES_HARD_BRANDS + PHI + .venv → seam brands[]/toolchain (W5)
+#
+# Why
+# ===
+# /pase-produccion enforces ci-parity in Phase 3b but is run by Claude
+# Code, not by humans pushing directly. Without this hook, a manual
+# ``git push origin main`` skips the gate and reproduces the 5-deploy
+# failure cycle of 2026-04-27.
+#
+# Behavior
+# ========
+# - Push to any branch other than ``main``: pass through, no checks.
+# - Push to ``main``: require a marker file
+#   ``.ci-parity-passed-<sha>`` matching HEAD. The marker is dropped
+#   by ``scripts/ci-parity.sh`` on success and is gitignored.
+# - To bypass for emergencies, set ``CI_PARITY_OVERRIDE=1``. The hook
+#   will print a loud warning and continue. Document why in the push
+#   commit message — the override is auditable in shell history.
+#
+# Install
+# =======
+#   make install-hooks    # once per clone
+
+set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+HEAD_SHA="$(git rev-parse HEAD)"
+MARKER="${REPO_ROOT}/.git/ci-parity-passed-${HEAD_SHA}"
+
+# Read remote + ref pairs from stdin (git pre-push protocol).
+while read -r local_ref _local_sha remote_ref _remote_sha; do
+  if [ -z "${local_ref}" ]; then
+    continue
+  fi
+  if [ "${remote_ref}" = "refs/heads/main" ]; then
+    PUSHING_TO_MAIN=1
+  fi
+done
+
+if [ "${PUSHING_TO_MAIN:-0}" -ne 1 ]; then
+  exit 0
+fi
+
+if [ -n "${CI_PARITY_OVERRIDE:-}" ]; then
+  printf "\033[33m"
+  echo "─────────────────────────────────────────────────────────────"
+  echo "WARNING: CI_PARITY_OVERRIDE=1 — bypassing make ci-parity gate."
+  echo "  HEAD: ${HEAD_SHA}"
+  echo "  Reproducing the gap that broke deploys 25025200358..25027765663."
+  echo "─────────────────────────────────────────────────────────────"
+  printf "\033[0m"
+  exit 0
+fi
+
+if [ ! -f "${MARKER}" ]; then
+  # ── Deferred phase (dev-only · sin CI/testing/prod) ──────────────
+  # github-actions-deferred.md: mientras no haya ambiente de testing/staging/prod
+  # provisionado, el Docker ci-parity mirror es ADVISORY (avisa, no bloquea).
+  # El gate real de calidad es el suite NATIVO (/test-all) que el dev corre.
+  # El check de bidirectional cross_check_3 (abajo) sí sigue HARD (barato + real).
+  # Cuando se provisione testing/prod → borrar el sentinel `.ci-parity-deferred`
+  # (+ reinstalar hooks) → el gate Docker vuelve a HARD. Triggers de reactivación
+  # listados en docs/rules-detail/github-actions-deferred.md.
+  if [ -f "${REPO_ROOT}/.ci-parity-deferred" ]; then
+    printf "\033[33m"
+    echo "─────────────────────────────────────────────────────────────"
+    echo "ADVISORY (fase dev-only · .ci-parity-deferred presente):"
+    echo "  ci-parity Docker mirror NO corrido — gate diferido (sin CI/prod)."
+    echo "  El gate real es el suite nativo: corré '/test-all' o 'make test-<brand>'."
+    echo "  Bidirectional cross_check_3 sigue HARD (se valida abajo)."
+    echo "  Al provisionar testing/prod: borrá .ci-parity-deferred + make install-hooks."
+    echo "─────────────────────────────────────────────────────────────"
+    printf "\033[0m"
+    # fall-through al check de bidirectional (NO exit 1)
+  else
+    printf "\033[31m"
+    cat <<EOF
+─────────────────────────────────────────────────────────────
+PRE-PUSH BLOCKED: pushing to main without ci-parity green.
+
+  HEAD: ${HEAD_SHA}
+  Expected marker: ${MARKER}
+
+Run:
+  make ci-parity
+
+If it passes, the script writes the marker and this hook lets
+you push. If it fails, fix the failure — do NOT push to main
+and let GitHub Actions tell you what broke.
+
+Emergency bypass (audited):
+  CI_PARITY_OVERRIDE=1 git push origin main
+─────────────────────────────────────────────────────────────
+EOF
+    printf "\033[0m"
+    exit 1
+  fi
+fi
+
+# ─────────────────────────────────────────────────────────────────
+# 4d. Bidirectional validator HARD (cement 2026-05-28 · Fase B)
+# ─────────────────────────────────────────────────────────────────
+# Pre-push hook block en main/release/* si cross_check_3 (scenarios e2e_test
+# paths) tiene drift > 0. (atomics killed 2026-05-28 · ver lifecycle.md)
+#
+# cross_check_4 (access roles ↔ @require_phi_access) corre como ADVISORY/WARN
+# por ahora — Fase 5 lo flipea a HARD para vitalia DESPUÉS de resolver el drift
+# de acceso existente (6 al 2026-05-28). No se prende gate HARD con fallas
+# conocidas. Ver docs/process/lifecycle.md § roadmap Fase 5.
+#
+# Por qué cross_check_3 HARD: detecta cap declarando e2e_test path que no existe
+# (broken trazabilidad scenario→test).
+#
+# Override (audit):
+#   * env: BIDIRECTIONAL_PUSH_OVERRIDE=1 git push ...
+# ─────────────────────────────────────────────────────────────────
+
+if [ "${BIDIRECTIONAL_PUSH_OVERRIDE:-0}" != "1" ]; then
+  BIDIR_SCRIPT="${REPO_ROOT}/scripts/validate_code_cap_bidirectional.py"
+  if [ -x "${REPO_ROOT}/.venv/bin/python" ] && [ -f "${BIDIR_SCRIPT}" ]; then
+    VENV_BIDIR="${REPO_ROOT}/.venv/bin/python"
+    # Active brands (with real capabilities) from the seam (project.config.yaml · brands.active)
+    # — no hardcoded list (charter §3 DIP · W5b). The 6 pending-bootstrap brands live under
+    # brands.pending_bootstrap (empty capabilities/ — the per-B `-d` guard below skips any
+    # without a capabilities dir anyway). venv is guaranteed here (the enclosing `if`).
+    BRANDS_ALL="$("${VENV_BIDIR}" "${REPO_ROOT}/scripts/harness_config.py" brands.active slug 2>/dev/null | tr '\n' ' ')"
+    HARD_DRIFT_TOTAL=0
+    HARD_DRIFT_BRANDS=""
+
+    for B_PUSH in ${BRANDS_ALL}; do
+      if [ ! -d "${REPO_ROOT}/${B_PUSH}/docs/product/capabilities" ]; then
+        continue
+      fi
+      PUSH_OUT=$("${VENV_BIDIR}" "${BIDIR_SCRIPT}" --brand "${B_PUSH}" 2>&1 || true)
+      HARD_COUNT=$(echo "${PUSH_OUT}" | grep -oE 'in HARD checks .*: [0-9]+' | head -1 | grep -oE '[0-9]+$' || true)
+      if [ -n "${HARD_COUNT}" ] && [ "${HARD_COUNT}" -gt 0 ]; then
+        HARD_DRIFT_TOTAL=$((HARD_DRIFT_TOTAL + HARD_COUNT))
+        HARD_DRIFT_BRANDS="${HARD_DRIFT_BRANDS} ${B_PUSH}(${HARD_COUNT})"
+      fi
+    done
+
+    if [ "${HARD_DRIFT_TOTAL}" -gt 0 ]; then
+      printf "\033[31m"
+      cat <<EOF
+─────────────────────────────────────────────────────────────
+PRE-PUSH BLOCKED: bidirectional validator HARD drift detected
+(Section 4d · cement 2026-05-28)
+
+Brands con drift: ${HARD_DRIFT_BRANDS}
+Total HARD drift: ${HARD_DRIFT_TOTAL}
+
+Cross-checks afectados (HARD set: 3 siempre · 4 para vitalia):
+  cross_check_3: cap.scenarios[*].e2e_test path no existe O no contiene
+                 test pattern Playwright
+  cross_check_4: (vitalia) roles declarados en access.entry_points no
+                 coinciden con @require_phi_access del código
+
+Para arreglar:
+  python3 scripts/validate_code_cap_bidirectional.py --brand <brand> --verbose
+  # luego corregir caps o aplicar headers correctos
+
+Override emergencia (audit):
+  BIDIRECTIONAL_PUSH_OVERRIDE=1 git push ...
+
+SSoT: docs/process/capability-protocol.md § Sección 13
+─────────────────────────────────────────────────────────────
+EOF
+      printf "\033[0m"
+      exit 1
+    fi
+  fi
+fi
+
+# ─────────────────────────────────────────────────────────────────
+# 4e. cap-format gates G1-G6 HARD (HB-51 · enforcement determinístico)
+# ─────────────────────────────────────────────────────────────────
+# Bloquea push a main/release/* si un brand MADURO tiene deriva en G1-G6.
+# nicolify/lupulo ADVISORY (mid-rebuild / placeholder). Override: CAP_GATES_PUSH_OVERRIDE=1.
+# SSoT: docs/process/cap-deterministic-enforcement.md (Capa 4 + 7)
+# ─────────────────────────────────────────────────────────────────
+# HARD-cap-gate brands from the seam (project.config.yaml · brands.active where cap_gate=hard)
+# — no hardcoded enum (charter §3 DIP · W5b). Empty (unreadable) → the per-brand `-d` guard
+# below skips all; loud-warn keeps it non-silent.
+CAP_GATES_HARD_BRANDS="$("${REPO_ROOT}/.venv/bin/python" "${REPO_ROOT}/scripts/harness_config.py" brands.active slug --where cap_gate=hard 2>/dev/null | tr '\n' ' ')"
+[ -z "${CAP_GATES_HARD_BRANDS}" ] && echo "::warning::project.config.yaml HARD cap-gate brands unreadable — cap-gate push enforcement skipped" >&2
+
+if [ "${CAP_GATES_PUSH_OVERRIDE:-0}" != "1" ]; then
+  CAPG_SCRIPT="${REPO_ROOT}/scripts/validate_code_cap_bidirectional.py"
+  if [ -x "${REPO_ROOT}/.venv/bin/python" ] && [ -f "${CAPG_SCRIPT}" ]; then
+    VENV_CAPG="${REPO_ROOT}/.venv/bin/python"
+    CAPG_FAILED=""
+    for B_CAPG in ${CAP_GATES_HARD_BRANDS}; do
+      [ -d "${REPO_ROOT}/${B_CAPG}/docs/product/capabilities" ] || continue
+      if ! "${VENV_CAPG}" "${CAPG_SCRIPT}" --brand "${B_CAPG}" --cap-gates-hard --strict >/dev/null 2>&1; then
+        CAPG_FAILED="${CAPG_FAILED} ${B_CAPG}"
+      fi
+    done
+    if [ -n "${CAPG_FAILED}" ]; then
+      printf "\033[31m"
+      cat <<EOF
+─────────────────────────────────────────────────────────────
+PRE-PUSH BLOCKED: cap-format gates G1-G6 HARD drift (HB-51 · Section 4e)
+
+Brands con deriva:${CAPG_FAILED}
+
+Diagnóstico de un vistazo:
+  make cap-doctor BRAND=<brand>
+
+Causas: header → cap inexistente (G1) · caja live vacía (G2) · cap sin
+hogar (G3) · path inexistente (G4) · supersesión rota (G5) · cap live
+invisible en el mapa (G6). Cap nueva → 'make new-cap' (NO hand-author).
+
+Override emergencia (audit):
+  CAP_GATES_PUSH_OVERRIDE=1 git push ...
+
+SSoT: docs/process/cap-deterministic-enforcement.md
+─────────────────────────────────────────────────────────────
+EOF
+      printf "\033[0m"
+      exit 1
+    fi
+  fi
+fi
+
+exit 0

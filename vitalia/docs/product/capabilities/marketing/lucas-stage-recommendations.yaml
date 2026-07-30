@@ -1,0 +1,134 @@
+---
+capability_id: vitalia-marketing-lucas-stage-recommendations
+module: marketing
+slug: lucas-stage-recommendations
+status: deprecated
+date_introduced: 2026-05-21
+story_introduced: vitalia-slice-1-marketing
+package_version: 0.1.0
+package_path: vitalia/backend/src/modules/vitalia/marketing
+license: proprietary
+
+# v3 cement 2026-05-27 · 4 dimensiones + dev_preview (ADR-vitalia-005)
+tech_module: marketing
+agent_owner: lucas
+functional_area: lucas.recomendaciones
+user_visible: true
+nature: feature
+ui_paradigm: slice-1-superseded  # T-3 reconcile 2026-05-29
+replaced_by_story: vitalia-fase2-lucas-lanzar  # T-3: story F2 que reconstruye esta cap
+
+user_facing_name: "Lucas · recomendaciones por etapa del embudo"
+user_facing_description: >
+  Lucas genera cada día las 3 recomendaciones más accionables para cada
+  etapa del embudo de la clínica. El equipo puede aprobar, rechazar o
+  posponer cada sugerencia con registro de auditoría y ventana de 5
+  minutos para deshacer. Al aprobar, Lucas ejecuta la acción sugerida
+  en el canal correspondiente respetando los límites de RBAC.
+
+dev_preview:
+  route: "/lucas/marketing"
+  how_to_navigate: "Login → ribbon clic en avatar Lucas → sub-tab Marketing → cards de recomendaciones inline por etapa."
+  main_component: "vitalia/frontend/src/features/marketing/components/LucasStageRecommendationsCard.tsx"
+  api_endpoints:
+    - "GET /api/v1/vitalia/marketing/recommendations"
+    - "POST /api/v1/vitalia/marketing/recommendations/{rec_id}/approve"
+    - "POST /api/v1/vitalia/marketing/recommendations/{rec_id}/reject"
+    - "POST /api/v1/vitalia/marketing/recommendations/{rec_id}/undo"
+  e2e_test: null
+  fixtures_required: ["3-clinic-fixture-latam"]
+  storybook_url: null
+  loom_demo: null
+
+# Capability ledger v2 (cement 2026-05-27)
+created_in_story: vitalia-slice-1-marketing   # v2 cement · mirror of story_introduced
+created_date: 2026-05-21   # v2 cement · mirror of date_introduced
+last_modified: 2026-05-29   # T-3 reconcile 2026-05-29
+parent_cap: null   # v2 cement · mirror of extends_capability
+derives_capabilities: []   # v2 cement · initial empty list
+
+# Capability ledger v2 (cement 2026-05-27)
+
+# Capability change log v2 (cement 2026-05-27)
+change_log:
+  - story_id: vitalia-slice-1-marketing
+    date: 2026-05-21
+    type: new
+    summary: "Implementación inicial · migración legacy a schema v2"
+    merge_sha: null
+    status: done
+map_box: lucas
+
+---
+
+# vitalia-marketing-lucas-stage-recommendations
+
+Lucas (agentic copilot) genera top-3 actionable recomendaciones per Bowtie stage daily. Owner aprueba/rechaza con RBAC + Idempotency-Key + audit_log SYNC write + 5min undo window. Core MUST visible MVP per spec § Diferenciadores.
+
+## Surface
+
+### Domain
+- `LucasRecommendation` entity (status state machine: pending → approved/rejected/expired; undo_until 5min)
+- `RecommendationStatus` enum
+- `RejectReason` enum (5 values per spec)
+- 5 domain events: `LucasRecommendationGenerated`, `Approved`, `Rejected`, `Undone`, `Expired`
+
+### Persistence (migration 028)
+- `vitalia_lucas_recommendations` table — partition por month + dual filter `(tenant_id, clinic_id)` enforced via `CompoundScopeRepositoryBase`
+
+### Application
+- `LucasRecommendationsService` (marketing CRUD wrapper)
+  - `list(stage, status_filter)` — paginated read by stage
+  - `approve(rec_id, action_payload, idempotency_key)` — state→approved + 5min undo + audit_log SYNC + outbox event
+  - `reject(rec_id, reason, idempotency_key)` — state→rejected + audit_log + event
+  - `undo(rec_id)` — state→pending if within 5min window
+- Action payload range validation (SC-MK-04: out-of-range rejected with Spanish neutro error)
+
+### Cron (daily 06:00 UTC)
+- `lucas_daily_analysis_sweep` worker calls agentic `LucasOrchestratorService.run_daily_analysis(tenant_id, clinic_id, locale)` then filters via `cooldown_kinds` post-call. Emits `LucasRecommendationGenerated` events with `stage: BowtieStage` (enum).
+- Wired via `make_orchestrator()` factory in `vitalia/backend/src/modules/vitalia/agentic/lucas/application/services/__init__.py`
+
+### API
+- `GET /api/v1/vitalia/marketing/recommendations` — list w/ filters
+- `POST /api/v1/vitalia/marketing/recommendations/{rec_id}/approve` — Idempotency-Key required
+- `POST /api/v1/vitalia/marketing/recommendations/{rec_id}/reject` — Idempotency-Key required
+- `POST /api/v1/vitalia/marketing/recommendations/{rec_id}/undo` — Idempotency-Key required
+
+### FE Components
+- `vitalia/frontend/src/features/marketing/components/LucasStageRecommendationsCard.tsx` — top 3 cards sticky inline + "Ver todas" expand
+- `LucasRecommendationDetailModal.tsx` — analysis + projection + audit trail + Aprobar/Rechazar/Posponer 7d
+- `LucasApprovalModal.tsx` — warning reversible + Idempotency-Key (`crypto.randomUUID`) + action receipt 5min countdown
+- `LucasUndoChip.tsx` — 5min countdown reads marketing-store
+- `LucasRejectModal.tsx` — RHF + Zod reason enum
+
+### Hooks
+- `useLucasRecommendations` · `useApproveRecommendation` · `useRejectRecommendation` · `useUndoRecommendation`
+
+## Verification
+
+```bash
+WS=$(git rev-parse --show-toplevel)
+cd ${WS}/vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/marketing/domain/test_lucas_recommendation_entity.py tests/modules/vitalia/marketing/application/services/test_lucas_recommendations_service.py tests/workers/test_marketing_crons.py::test_lucas_daily_analysis_sweep_skips_rejected_30d_cooldown -v
+cd ${WS}/vitalia/frontend && npx vitest run src/features/marketing/__tests__/LucasStageRecommendationsCard.test.tsx src/features/marketing/__tests__/LucasApprovalModal.test.tsx src/features/marketing/__tests__/LucasUndoChip.test.tsx
+```
+
+Verification gherkin evidence: SC-MK-01 (Lucas approve happy) + SC-MK-04 (RBAC + range validation) — see `06-audit/gherkin-matrix-{backend,frontend}.md`.
+
+## Dependencies
+
+- ENGINE: `core/luana-core-platform.workers.cron_envelope` (v0.4.0 — wraps cron in OTel + audit + sentry)
+- ENGINE: `core/luana-core-platform.repositories.compound_scope_repository.CompoundScopeRepositoryBase` (dual filter)
+- ENGINE: `core/luana-core-events.outbox` (event publish)
+- BRAND: `vitalia-copilot-tools-impl` story (shipped 2026-05-18) — `LucasOrchestratorService` consumed by cron
+- BRAND: `vitalia-marketing-bowtie-funnel-5-stages` (stage filter)
+
+## Compliance
+
+- **HIPAA-lite:** action_payload NO contiene PHI (solo metric value + channel slug). `audit_log` SYNC write antes response (NOT async fire-forget). Dual filter `tenant_id + clinic_id`.
+- **RBAC:** role `doctor` + `admin_clinic` aprueban; `recepcion` ve cards pero approve button disabled con tooltip; `marketing` role NO ve PHI references.
+- **Idempotency:** Idempotency-Key (UUID v4) generated client-side + dedup via engine `luana_core_idempotency`.
+
+## KPIs
+
+- Time to approval ≤ 2 clicks (card → modal → approve button)
+- 5min undo window respected (countdown UI + service-side timestamp check)

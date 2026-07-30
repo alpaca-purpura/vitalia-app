@@ -1,0 +1,219 @@
+# voseo-allowed: tickets internos de migración, no user-facing
+# 06-tickets — vitalia-paradigm-map-zones (6 tickets vitalia-scope · ≤10 OK · sin split)
+# DAG: T-1 → T-2 ; T-2 → T-5 (shell depende de taxonomía) ; T-4(F0) y T-3(F5) paralelos.
+# TOOL-SCOPE (F3 cockpit · F4-consumer · capability-protocol §7) → dispatch-plan.md (NO aquí).
+
+story_id: vitalia-paradigm-map-zones
+brand: vitalia
+release: F2
+autonomous_mode: false
+architecture_pattern: ADR-vitalia-005 (v2) + ADR-vitalia-004 (addendum)
+total_tickets: 6
+gherkin_coverage:
+  SC-1: T-1, T-2
+  SC-2: T-2
+  SC-3: T-1
+  SC-4: T-1
+  SC-5: T-1, T-2
+  SC-6: T-4
+  SC-7: T-1
+  fe_shell: T-5, T-6
+
+tickets:
+  # ──────────────────────────────────────────────────────────────────────────
+  - id: T-1
+    title: "F1+F4 — Script migración caps (re-tag map_box) + actions-index generator + cap nuevo"
+    surface: BE
+    frente: [F1, F4]
+    production_code: true
+    depends_on: []
+    owner_eligibility: [opencode, sonnet, opus]
+    deliverables:
+      - "scripts/map_zones_migration.py (NEW · idempotente · halt-no-silent · lee zones.target_boxes.absorbs)"
+      - "scripts/generate_actions_index.py (NEW thin · compone _code-index.json + dev_preview)"
+      - "scripts/tests/test_map_zones_migration.py (RED first: halt/idempotencia/box-invalid/full-retag)"
+      - "Re-tag 48 caps (config 22 + infra 22 + valeria 4) con map_box + user_visible alineado (verbatim 02-impact §1-3)"
+      - "vitalia/docs/product/capabilities/platform/product-map-zonas.yaml (cap nuevo · new · map_box:plataforma-tecnica · user_visible:false)"
+      - "vitalia/docs/product/capabilities/_actions-index.json (generado · gitignored R3)"
+    covers_scenarios: [SC-1, SC-3, SC-4, SC-5, SC-7]
+    assignment:
+      primary_agent: builder-backend
+      model_preference: sonnet
+      must_load_skills:
+        - backend-expert
+        - .claude/rules/paradigm-arquitectura.md
+        - .claude/rules/anti-orphan-integration.md
+        - .claude/rules/anti-duplication.md
+        - docs/process/capability-protocol.md
+        - .claude/rules/tdd-mandatory.md
+      must_load_artifacts:
+        - "vitalia/docs/product/stories/vitalia-paradigm-map-zones/02-impact.md (§1-3 mapeo verbatim)"
+        - "vitalia/docs/product/stories/vitalia-paradigm-map-zones/03-arch.md (§1, §2.1, §2.4, §7)"
+        - "vitalia/docs/architecture/SYSTEM-MAP.yaml (zones.target_boxes.absorbs)"
+      forbidden_to_touch:
+        - "core/luana-core-*/"
+        - "comunify/ nicolify/ lupulo/"
+        - "tools/luana-cockpit/"
+        - "vitalia/backend/src/modules/"
+      rationale: "Manipulación YAML idempotente + scripts Python; sin DDD nuevo; Sonnet sweet spot. actions-index EXTEND (no NEW layer)."
+
+  # ──────────────────────────────────────────────────────────────────────────
+  - id: T-2
+    title: "F2 — SYSTEM-MAP promover boxes + Valeria/Mateo + validate_system_map map_box-aware"
+    surface: BE
+    frente: [F2]
+    production_code: true
+    depends_on: [T-1]
+    owner_eligibility: [opencode, sonnet, opus]
+    deliverables:
+      - "SYSTEM-MAP.yaml: zones.target_boxes → 12 boxes de 1er nivel (functional_areas heredadas de absorbs)"
+      - "config/infra en agents[] → status:deprecated · Mateo→caja Operar en agents[] · Valeria→nota supervisor en motor-agentico.runtime"
+      - "scripts/validate_system_map.py (MODIFY · valid_boxes desde zones + check map_box ∈ boxes + user_visible↔zona · back-compat)"
+      - "verificar scripts/reconcile_capabilities.py exit 0 (ajustar enum agent_owner si rechaza)"
+    covers_scenarios: [SC-1, SC-2, SC-5]
+    assignment:
+      primary_agent: builder-backend
+      model_preference: sonnet
+      must_load_skills:
+        - backend-expert
+        - .claude/rules/paradigm-arquitectura.md
+        - docs/process/capability-protocol.md
+        - .claude/rules/tdd-mandatory.md
+      must_load_artifacts:
+        - "vitalia/docs/product/stories/vitalia-paradigm-map-zones/03-arch.md (§1.3, §2.2, §2.3)"
+        - "vitalia/docs/product/stories/vitalia-paradigm-map-zones/02-impact.md (§7 docs row SYSTEM-MAP)"
+      forbidden_to_touch:
+        - "core/luana-core-*/"
+        - "comunify/ nicolify/ lupulo/"
+        - "tools/luana-cockpit/"
+        - "vitalia/backend/src/modules/"
+      rationale: "Promoción de YAML + validador map_box-aware. Depende de T-1 (caps ya tienen map_box para validar)."
+
+  # ──────────────────────────────────────────────────────────────────────────
+  - id: T-3
+    title: "F5 — ADRs (005 v2 · 004 addendum · 003 ref) + docs/rules/skill"
+    surface: BE
+    frente: [F5]
+    production_code: false
+    depends_on: []
+    owner_eligibility: [opencode, sonnet, opus]
+    deliverables:
+      - "ADR-vitalia-005 → v2.0 (5ª dim map_box · enum 12 cajas · config/infra deprecados · Valeria supervisor/Mateo Operar · §2.6 MapView por zona + 2 lentes)"
+      - "ADR-vitalia-004 addendum v1.2 (N1 Ribbon → 5 especialistas + Plataforma · Valeria sidebar)"
+      - "ADR-vitalia-003 ref menor (lista agentes shell)"
+      - "SHELL-DESIGN-CONTRACT.md (6 agentes → 5 + ConfigTab→Plataforma)"
+      - "vitalia/CLAUDE.md overlay · .claude/skills/vitalia-design-system/SKILL.md · vitalia/.claude/rules/shell-*.md"
+    covers_scenarios: []
+    assignment:
+      primary_agent: builder-backend
+      model_preference: sonnet
+      must_load_skills:
+        - backend-expert
+        - .claude/rules/paradigm-arquitectura.md
+        - .claude/rules/brand-docs-schema.md
+      must_load_artifacts:
+        - "vitalia/docs/product/stories/vitalia-paradigm-map-zones/03-arch.md (§4)"
+        - "vitalia/docs/product/stories/vitalia-paradigm-map-zones/02-impact.md (§7)"
+      forbidden_to_touch:
+        - "core/luana-core-*/"
+        - "comunify/ nicolify/ lupulo/"
+        - "tools/luana-cockpit/"
+        - "docs/process/capability-protocol.md"   # protocol-scope cross-brand
+      rationale: "Docs/ADRs (no production code → Sonnet OK). Paralelo a T-1/T-2/T-4."
+
+  # ──────────────────────────────────────────────────────────────────────────
+  - id: T-4
+    title: "F0 — Rename backlog Fase 2 + map_box en checkpoints"
+    surface: BE
+    frente: [F0]
+    production_code: false
+    depends_on: [T-2]   # necesita las cajas válidas para escribir map_box en checkpoints
+    owner_eligibility: [opencode, sonnet, opus]
+    deliverables:
+      - "git mv 5 stories (config-cuenta/conexiones/avanzado → configuracion-* · config-onboarding-clinica → onboarding-clinica · valeria-pacientes → mateo-pacientes)"
+      - "map_box + map_zone en checkpoint.md de TODAS las stories vitalia-fase2-* (idea)"
+    covers_scenarios: [SC-6]
+    assignment:
+      primary_agent: builder-backend
+      model_preference: sonnet
+      must_load_skills:
+        - backend-expert
+        - .claude/rules/brand-docs-schema.md
+        - .claude/rules/paradigm-arquitectura.md
+      must_load_artifacts:
+        - "vitalia/docs/product/stories/vitalia-paradigm-map-zones/03-arch.md (§5)"
+        - "vitalia/docs/product/stories/vitalia-paradigm-map-zones/02-impact.md (§8)"
+      forbidden_to_touch:
+        - "core/luana-core-*/"
+        - "comunify/ nicolify/ lupulo/"
+        - "tools/luana-cockpit/"
+      rationale: "git mv + checkpoint edits. Depende de T-2 (cajas válidas para map_box)."
+
+  # ──────────────────────────────────────────────────────────────────────────
+  - id: T-5
+    title: "F6 — Shell UI realineado (agent-catalog + Ribbon + routing valeria→mateo + features)"
+    surface: FE
+    frente: [F6]
+    production_code: true
+    depends_on: [T-2]   # shell depende de la taxonomía (SYSTEM-MAP/cajas) cementada
+    owner_eligibility: [opencode, sonnet, opus]
+    deliverables:
+      - "src/lib/agent-catalog.ts (AGENT_RIBBON_ORDER [lisa,mateo,adrian,lucas,camila] · Mateo=Operar/agenda · Valeria fuera ribbon · RIBBON_SUBTABS.mateo · SHIPPED_STATIC_SUBTABS mateo.agenda · isValidAgent)"
+      - "git mv app/[tenantId]/(shell-organism)/valeria/agenda → mateo/agenda · eliminar valeria/ dir"
+      - "git mv features/valeria → features/mateo (agenda real + // cap: headers mateo.agenda)"
+      - "Ribbon.tsx ConfigTab label Configurar→Plataforma"
+      - "src/__tests__/architecture/agent-catalog-ribbon-taxonomy.test.ts (RED first)"
+    covers_scenarios: [fe_shell]
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: sonnet
+      must_load_skills:
+        - frontend-expert
+        - vitalia-design-system
+        - .claude/rules/frontend-fsd.md
+        - .claude/rules/frontend-visual-fidelity.md
+        - .claude/rules/spanish-text.md
+        - .claude/rules/paradigm-arquitectura.md
+        - .claude/rules/tdd-mandatory.md
+      must_load_artifacts:
+        - "vitalia/docs/product/stories/vitalia-paradigm-map-zones/03-arch-fe.md (full)"
+        - "vitalia/docs/product/stories/vitalia-paradigm-map-zones/02-impact.md (§5, §9 regresiones)"
+        - "vitalia/frontend/src/lib/agent-catalog.ts (SSoT actual)"
+      forbidden_to_touch:
+        - "vitalia/frontend/src/components/ui/"
+        - "vitalia/frontend/src/app/[tenantId]/layout.tsx"
+        - "core/@luana/* core/luana-core-*/"
+        - "comunify/ nicolify/ lupulo/"
+        - "tools/luana-cockpit/"
+      rationale: "Shell standard realign (no agentic, no componente nuevo) → Sonnet. Catalog+routing+features JUNTOS (anti-404). mockup_gate WAIVED."
+
+  # ──────────────────────────────────────────────────────────────────────────
+  - id: T-6
+    title: "F7 — Tests: e2e Ribbon/Operar/mateo-agenda + actualizar specs Valeria + idempotencia migración"
+    surface: FE
+    frente: [F7]
+    production_code: true
+    depends_on: [T-5, T-1]
+    owner_eligibility: [opencode, sonnet, opus]
+    deliverables:
+      - "e2e/regression/vitalia-paradigm-map-zones/ribbon-realign.spec.ts (5 tabs + Plataforma · Mateo · sin Valeria-tab)"
+      - "e2e/regression/vitalia-paradigm-map-zones/mateo-agenda-loads.spec.ts (agenda migrada carga)"
+      - "Actualizar specs e2e existentes que buscaban tab Valeria / [aria-label=Operar] en Valeria (02-impact §9.3)"
+      - "Verificar test idempotencia migración (test_rerun_is_noop) verde + reconcile/validate verdes"
+    covers_scenarios: [fe_shell, SC-4]
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: sonnet
+      must_load_skills:
+        - frontend-expert
+        - playwright-expert
+        - vitalia-design-system
+        - .claude/rules/tdd-mandatory.md
+      must_load_artifacts:
+        - "vitalia/docs/product/stories/vitalia-paradigm-map-zones/03-arch-fe.md (§Tests)"
+        - "vitalia/docs/product/stories/vitalia-paradigm-map-zones/04-validators.yaml (fe_shell + test_construction_plan)"
+      forbidden_to_touch:
+        - "core/@luana/* core/luana-core-*/"
+        - "comunify/ nicolify/ lupulo/"
+        - "tools/luana-cockpit/"
+      rationale: "Tests e2e ruta nueva (RED first) + actualizar specs Valeria. Depende de T-5 (shell) + T-1 (migración)."

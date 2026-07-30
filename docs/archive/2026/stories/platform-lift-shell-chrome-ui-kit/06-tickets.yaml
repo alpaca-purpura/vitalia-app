@@ -1,0 +1,212 @@
+story_id: platform-lift-shell-chrome-ui-kit
+brand: platform
+schema_version: v4.1
+arch_ref: 03-arch.md
+validators_ref: 04-validators.yaml
+guidelines_ref: 05-guidelines.md
+
+# DAG: T-K1 → T-K2 → T-K3 → T-V1 → T-V2 → T-V3 → T-N1 → T-G
+# (kit primero con tests propios → vitalia re-wire+borrado+suite → nicolify converge → gates finales)
+
+tickets:
+  # ════════════════════════════════════════════════════════════════════════════
+  # FASE 1 — KIT (organism brand-agnostic + tests propios)
+  # ════════════════════════════════════════════════════════════════════════════
+  - id: T-K1
+    title: "Kit scaffolding — sub-dir organism/shell + deps + store factory + types genéricos"
+    surface: FE-kit
+    blocks: [T-K2]
+    blocked_by: []
+    deliverables:
+      - "core/@luana/ui-kit/package.json: agregar deps react-resizable-panels (=4.11.1, leer versión exacta de vitalia/frontend/package.json) + zustand (versión exacta de vitalia) · bump version 0.3.0→0.4.0"
+      - "core/@luana/ui-kit/src/organism/shell/types.ts: ShellAgentDescriptor, ShellSubTabMeta, ShellStoreState (supervisorOpen/historyOpen/splitPct/mobileDrawerOpen + actions), ShellChatStoreApi, ShellLayoutProps (verbatim 03-arch § API contract)"
+      - "core/@luana/ui-kit/src/organism/shell/create-shell-store.ts: factory createShellStore({storageKey,version,migrate}) usando @luana/hooks/createSsrSafePersistedStore (machine+migrate+sanitize genéricos, port de stores/shell-store.ts re-parametrizado — valeriaOpen→supervisorOpen)"
+      - "core/@luana/ui-kit/src/organism/shell/routing.ts: extractAgentFromPath/extractSubtabFromPath/isValidAgent/isValidSubtab genéricos (catalog por arg)"
+      - "vitest: createShellStore machine A/B/C + migrate legacy genérico + no-clobber hydration + routing helpers"
+    acceptance:
+      validator_ids: [v-kit-suite, v-store-legacy-hydrate]
+      checks:
+        - "createShellStore consume @luana/hooks (no recrea SSR-safe) — RN-8"
+        - "naming genérico (supervisorOpen, splitPct) — cero 'valeria*' en types"
+    gherkin_coverage: [SC-6]
+    notes_for_downstream: "ESTE es el cimiento. Si la versión de react-resizable-panels/zustand difiere de vitalia → la e2e podría romper en T-V (mismo bug v4 props-capture). Usar la versión EXACTA de vitalia/frontend/package.json."
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: inherit
+      must_load_skills: [frontend-expert]
+      must_load_artifacts: [03-arch.md, 03-arch-fe.md, 05-guidelines.md, "checkpoint.md § Aprendizajes"]
+      forbidden_to_touch: ["vitalia/frontend/**", "nicolify/frontend/**", "core/luana-core-*/src/**", "{brand}/backend/**"]
+      rationale: "FE kit scaffolding (TS package). model inherit (Chris: subagents heredan Fable 5)."
+
+  - id: T-K2
+    title: "Kit chrome components — port verbatim brand-agnostic (fixes v4 SAGRADOS)"
+    surface: FE-kit
+    blocks: [T-K3]
+    blocked_by: [T-K1]
+    deliverables:
+      - "core/@luana/ui-kit/src/organism/shell/ShellLayoutClient.tsx (ex ShellOrganismLayoutClient): fixes v4 VERBATIM (key-remount, retry-rAF, collapsedSize px, push ±histPct, grid implícito, comentarios ★ Live-fix) — splitGroupId + useShellStore + useChatStore por prop"
+      - "ShellLayout.tsx (ex ShellOrganismLayout): wrapper dynamic({ssr:false}) + skeletonSlot por prop"
+      - "SupervisorSidebar/SupervisorCollapsedStrip/SupervisorHistory (ex Valeria*): store + supervisorName/avatar/initial + keyboard por prop"
+      - "ChatPanel (ex ValeriaChat, grid implícito verbatim) + ChatHeader (@[24rem] verbatim) + ChatComposer/ChatMessages/MessageBubble/TypingIndicator/DelegateMarker/StatusDot/TogglePill/EmptyStateInline/ChannelBadge/HistoryGroup/HistoryItem/EmptyState/PlaceholderCard: catalog/store por prop"
+      - "Ribbon/RibbonTab/SubTabsBar/SubTab/SubSubTabsBar/SubTabContent/ConfigTab: agentCatalog/ribbonOrder/subTabsByAgent/routing por prop; ConfigTab label por prop"
+      - "TopBarShell (ex TopBarGlobal): slots logoSlot/rightClusterSlot/onBurgerClick/variant"
+      - "AppPanelSlot + useViewportGuard (SUPERVISOR_MIN_PX) + _agent-tw-classes (catalog por arg)"
+    acceptance:
+      validator_ids: [v-kit-suite, v-kit-grep-brand, v-props-defaults-neutral]
+      checks:
+        - "fixes v4 portados VERBATIM (RN-4) — NO simplificados; comentarios ★ Live-fix preservados"
+        - "grep #01b2f8|vitalia|valeria|nicolify en lógica = 0 (RN-2/SC-7)"
+        - "barrel NO re-exporta react-resizable-panels Group/Panel/Separator (colisión con form Group)"
+    gherkin_coverage: [SC-3, SC-5, SC-7]
+    notes_for_downstream: "RN-4 es HARD: si simplificás la máquina del splitter, la e2e de vitalia (T-V2) rompe. Portar verbatim + renombrar valeria→supervisor sin tocar lógica."
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: inherit
+      must_load_skills: [frontend-expert]
+      must_load_artifacts: [03-arch.md, 03-arch-fe.md, 05-guidelines.md, "checkpoint.md § Aprendizajes"]
+      forbidden_to_touch: ["vitalia/frontend/**", "nicolify/frontend/**", "core/luana-core-*/src/**"]
+      rationale: "FE kit organism port. model inherit."
+
+  - id: T-K3
+    title: "Kit barrel + tests migrados + CHANGELOG"
+    surface: FE-kit
+    blocks: [T-V1]
+    blocked_by: [T-K2]
+    deliverables:
+      - "core/@luana/ui-kit/src/organism/shell/index.ts (barrel) + re-export desde src/index.ts (sin colisión Group)"
+      - "Tests migrados desde vitalia/.../*.test.tsx re-parametrizados a props genéricas (catalog mock, NO 'Valeria'/'vitalia') en organism/shell/__tests__/"
+      - "ShellLayout render-test con catalog mock genérico · TopBarShell slots · _agent-tw-classes con catalog arg"
+      - "CHANGELOG.md: entrada 0.4.0 (organism shell additivo + deps + migration notes legacy localStorage)"
+    acceptance:
+      validator_ids: [v-kit-suite, v-semver-bump]
+      checks:
+        - "pnpm --filter @luana/ui-kit typecheck && test verde"
+        - "CHANGELOG documenta minor + migration notes"
+    gherkin_coverage: [SC-3]
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: inherit
+      must_load_skills: [frontend-expert]
+      must_load_artifacts: [03-arch.md, 03-arch-fe.md, 05-guidelines.md]
+      forbidden_to_touch: ["vitalia/frontend/**", "nicolify/frontend/**", "core/luana-core-*/src/**"]
+      rationale: "FE kit barrel+tests. model inherit."
+
+  # ════════════════════════════════════════════════════════════════════════════
+  # FASE 2 — VITALIA (re-wire + borrado local + suite completa)
+  # ════════════════════════════════════════════════════════════════════════════
+  - id: T-V1
+    title: "Vitalia re-wire — montar ShellLayout del kit + thin shell-store + Tailwind @source"
+    surface: FE-vitalia
+    blocks: [T-V2]
+    blocked_by: [T-K3]
+    deliverables:
+      - "vitalia/frontend/src/stores/shell-store.ts: REPLACE thin → createShellStore({storageKey:'vitalia-shell-state', version:1, migrate: migrateShellState}) — key CONSERVADA (SC-6)"
+      - "app/[tenantId]/(shell-organism)/layout.tsx: import ShellLayout de @luana/ui-kit + montar con props brand (supervisorName='Valeria', agentCatalog=AGENT_CATALOG, ribbonOrder=AGENT_RIBBON_ORDER, subTabsByAgent=RIBBON_SUBTABS, shippedStaticSubtabs, useShellStore, useChatStore, splitGroupId='vitalia-shell-split-agentic', logoSlot=<LogoMark>, rightClusterSlot=<><ThemeToggle/><TenantSwitcher/></>, skeletonSlot)"
+      - "Mover _mock-conversations.ts/_mock-messages.ts de shell-organism/ a stores/ o lib/ (chat-store los importa) ANTES de borrar el chrome"
+      - "globals.css: @source del kit organism (vitalia NO auto-escanea el kit — Decisión Tailwind) — gate JIT classes @[24rem]/grid-cols-[minmax]"
+      - "lib/agent-catalog.ts: re-point helpers (extractAgentFromPath etc.) a @luana/ui-kit; borrar defs locales"
+    acceptance:
+      validator_ids: [v-store-key-conserved, v-vitalia-suite]
+      checks:
+        - "storageKey + splitGroupId conservados (e2e harness intacto)"
+        - "@source del kit en globals.css (o content array) — clases JIT del shell escaneadas"
+    gherkin_coverage: [SC-1, SC-6]
+    notes_for_downstream: "El @source es deliverable REAL: sin él el pill @[24rem] + el grid implícito se rompen visualmente (tsc verde NO lo detecta — gate = resizer-matrix T-V2 + live-verify T-G)."
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: inherit
+      must_load_skills: [frontend-expert, vitalia-design-system]
+      must_load_artifacts: [03-arch.md, 03-arch-fe.md, 05-guidelines.md, "checkpoint.md § Aprendizajes"]
+      forbidden_to_touch: ["vitalia/frontend/src/features/**", "nicolify/frontend/**", "core/luana-core-*/src/**", "{brand}/backend/**"]
+      rationale: "FE vitalia re-wire. vitalia-design-system must_load (SHELL-DESIGN-CONTRACT). model inherit."
+
+  - id: T-V2
+    title: "Vitalia borrar chrome local + allowlist shrink + suite completa (68+7 e2e)"
+    surface: FE-vitalia
+    blocks: [T-N1]
+    blocked_by: [T-V1]
+    deliverables:
+      - "DELETE chrome lifteado de components/shared/shell-organism/ (Shell*/Valeria*/Ribbon*/SubTab*/TopBarGlobal/Chat*/MessageBubble/etc.) + sus .test.tsx (RN-3). KEEP: LogoMark/ThemeToggle/Tenant*/AddClinicPlaceholderModal/types.ts(Tenant)"
+      - "test-no-cross-brand-shell-mirror.test.ts: KNOWN_SANCTIONED_SHELL_MIRROR ENCOGE — remover símbolos lifteados (mismo commit, shrink-only RN-5)"
+      - "Suite completa verde: tsc + eslint + vitest + e2e shell-core-hardening 68/68 + resizer-matrix 7/7 + arch (mirror + clerk-org) — CERO assert modificado (RN-1/Bif-3)"
+    acceptance:
+      validator_ids: [v-chrome-deleted, v-vitalia-suite, v-vitalia-e2e, v-resizer-matrix, v-vitalia-arch, v-mirror-arch, v-mirror-basename]
+      checks:
+        - "68/68 e2e + 7/7 resizer contra chrome del kit"
+        - "git ls-files del chrome lifteado = 0"
+        - "mirror allowlist encogido + CHECK A import cross-brand = 0"
+    gherkin_coverage: [SC-1, SC-4, SC-5]
+    notes_for_downstream: "Si la e2e falla → root cause en el PORT del kit (Bif-3) → fix en T-K2, NUNCA ajustar asserts. Esta es la prueba de que el lift no cambió conducta."
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: inherit
+      must_load_skills: [frontend-expert, vitalia-design-system, playwright-expert]
+      must_load_artifacts: [03-arch.md, 03-arch-fe.md, 05-guidelines.md, "checkpoint.md § Aprendizajes"]
+      forbidden_to_touch: ["vitalia/frontend/src/features/**", "nicolify/frontend/**", "core/luana-core-*/src/**"]
+      rationale: "FE vitalia delete+suite. playwright-expert (e2e 68+7). model inherit."
+
+  # ════════════════════════════════════════════════════════════════════════════
+  # FASE 3 — NICOLIFY (convergencia RN-7)
+  # ════════════════════════════════════════════════════════════════════════════
+  - id: T-N1
+    title: "Nicolify converge — retira máquina legacy + consume ShellLayout del kit"
+    surface: FE-nicolify
+    blocks: [T-G]
+    blocked_by: [T-V2]
+    deliverables:
+      - "stores/shell-store.ts: REPLACE thin → createShellStore({storageKey:'nicolify-shell-state', version:1, migrate: migrateLuanaState}) — mapea luanaState collapsed→closed · history/full→chat, DROP shellMode/splitState (SC-6/Bif-5)"
+      - "app/[tenantId]/(shell-organism)/layout.tsx: montar ShellLayout del kit con catálogo nicolify (supervisorName='Luana', agentCatalog [Luana + Abel/Brenda/Christian/Sara/Norvil], ribbonOrder, subTabsByAgent, useShellStore, splitGroupId='nicolify-shell-split', logoSlot/rightClusterSlot nicolify)"
+      - "RETIRE chrome legacy: LuanaSidebar/LuanaRail/LuanaChat/LuanaHistory/ShellModeToggle/SubSubTab/Shell*/Ribbon*/SubTab*/TopBarGlobal/Chat*/etc. (N3 brand-local EntityWorkspaceLayout/EntitySubNavBar NO se toca — Open Q1)"
+      - "tests legacy (LuanaSidebar/máquina vieja) actualizados a conducta del kit o RETIRADOS (RN-7 — convergencia sancionada, no regresión)"
+      - "lib/agent-catalog.ts re-point helpers al kit · verificar/agregar @source si las clases JIT del shell faltan"
+    acceptance:
+      validator_ids: [v-nicolify-suite, v-nicolify-arch, v-nicolify-render]
+      checks:
+        - "tsc + vitest 0 fail · arch verde · shell monta con sidebar/strip/historial del kit"
+        - "máquina legacy luanaState/LuanaRail/ShellModeToggle RETIRADA"
+    gherkin_coverage: [SC-2]
+    notes_for_downstream: "Bif-2: si el stack :3001 no levanta → criterio degrada a tsc/vitest/arch + render component-level. Bif-1/SC-9: si una pieza (ej. SubSubTab nicolify) es imposible de cubrir con el kit genérico → parquear + HANDOFF-next-session.md + seguir (NO bloquea la story)."
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: inherit
+      must_load_skills: [frontend-expert, nicolify-design-system]
+      must_load_artifacts: [03-arch.md, 03-arch-fe.md, 05-guidelines.md, "checkpoint.md § Aprendizajes"]
+      forbidden_to_touch: ["nicolify/frontend/src/features/**", "vitalia/frontend/**", "core/luana-core-*/src/**", "nicolify/frontend/src/components/shared/shell-organism/EntityWorkspaceLayout.tsx", "nicolify/frontend/src/components/shared/shell-organism/EntitySubNavBar.tsx"]
+      rationale: "FE nicolify converge. nicolify-design-system must_load (port re-temizado). model inherit."
+
+  # ════════════════════════════════════════════════════════════════════════════
+  # FASE 4 — GATES FINALES (grep, allowlists, live-verify, proposal)
+  # ════════════════════════════════════════════════════════════════════════════
+  - id: T-G
+    title: "Gates finales — grep brand-token + allowlists + live-verify #37 + proposal migrated"
+    surface: FE-platform
+    blocks: []
+    blocked_by: [T-N1]
+    deliverables:
+      - "grep #01b2f8|vitalia|valeria en lógica del kit = 0 (SC-3/SC-7) — gate final"
+      - "allowlists mirror ENCOGIDAS a vacío (o solo lo no-convergido documentado)"
+      - "Live-verify #37 vitalia :3002 (Chrome MCP o Playwright autenticado): colapsar/reabrir/historial/drag/'+' ejercidos + logs limpios → dod_evidence en checkpoint (SC-8)"
+      - "proposal 2026-06-01-lift-shell-organism-to-core.md → state: migrated + SEMVER 0.4.0 + target reconciliado (src/organism/shell/)"
+      - "SHELL-DESIGN-CONTRACT.md (vitalia) → § origen: chrome vive en @luana/ui-kit"
+      - "07-merge.md + archive de la story (R2)"
+    acceptance:
+      validator_ids: [v-kit-grep-brand, v-mirror-arch, v-live-verify, v-handoff-doc-if-parked]
+      checks:
+        - "dod_live_verified: true + dod_evidence (writes ejercidos + efecto + logs sin traceback)"
+        - "proposal migrated"
+    gherkin_coverage: [SC-3, SC-4, SC-7, SC-8, SC-9]
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: inherit
+      must_load_skills: [frontend-expert, vitalia-design-system, playwright-expert]
+      must_load_artifacts: [03-arch.md, 04-validators.yaml, 05-guidelines.md, "checkpoint.md § Aprendizajes"]
+      forbidden_to_touch: ["**/features/**", "core/luana-core-*/src/**", "{brand}/backend/**"]
+      rationale: "FE gates+live-verify+governance. playwright-expert (live). model inherit."
+
+# ── Resumen DAG ────────────────────────────────────────────────────────────────
+dag: "T-K1 → T-K2 → T-K3 → T-V1 → T-V2 → T-N1 → T-G (7 tickets, secuencial: kit→vitalia→nicolify→gates)"
+parallel_safe: false
+notes:
+  - "TODO ticket: COMMIT INCREMENTAL por pathspec apenas un bloque verde (builders mueren ~140 tool-uses). SCOPE_GATE_SKIP=1 con razón en body (lift sancionado proposal accepted). Allowlists arch en el MISMO commit del move."
+  - "Modelos: model_preference: inherit en todos (Chris: subagents heredan Fable 5 de la sesión — sin override sonnet/opus)."
+  - "N3 (EntityWorkspaceLayout/EntitySubNavBar) FUERA de scope (ya en kit; nicolify N3 brand-local es otra story)."

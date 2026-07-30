@@ -1,0 +1,476 @@
+# 06-tickets.yaml — vitalia-slice-1-fidelizacion
+# Owner: /architect (Opus 4.7 run 2026-05-20)
+# Schema v4.1 — gherkin_coverage mandatory · must_load_skills resolved · decisions_applicable cited
+
+story_id: vitalia-slice-1-fidelizacion
+brand: vitalia
+schema_version: v4.1
+estimated_total_tickets: 16
+estimated_dev_weeks: 2-3
+
+# ═══════════════════════════════════════════════════════════════════
+# DAG order (recommended ola execution by /dev-team):
+#
+# Stage 1 (foundation):  T-1  → T-2  → T-3  (migrations + opt-in CRM)
+# Stage 2 (BE module):   T-4  + T-5  + T-6  + T-7  (parallel BE: repos, services, workers, API)
+# Stage 3 (templates):   T-8  (WhatsApp templates Meta-approved config)
+# Stage 4 (agentic):     T-9  + T-10  (Adrián tool + Lucas tool — Opus 4.7 R23)
+# Stage 5 (FE):          T-11 + T-12 + T-13 (FE feature + shared NPS badge + Storybook stories)
+# Stage 6 (E2E):         T-14 (Playwright smoke + 4 regression)
+# Stage 7 (agentic ev):  T-15 (eval goldens Adrián 4 + Lucas 3)
+# Stage 8 (cross-story): T-16 (HANDOFF contract verify + cross-story integration test)
+#
+# Parallel safety: BE Stage 2 tickets T-4..T-7 work different files within fidelización module —
+# can build in parallel by different builders/sessions if needed.
+# ═══════════════════════════════════════════════════════════════════
+
+tickets:
+  # ─────────────────────────────────────────────────────────────────
+  # STAGE 1 — FOUNDATION (migrations + opt-in CRM)
+  # ─────────────────────────────────────────────────────────────────
+
+  - id: T-1
+    title: "Migrations Slice 1 fidelización (4 idempotent files)"
+    state: ready
+    surface: backend
+    type: migration
+    production_code: true
+    owner_eligibility: [qwen-opencode, claude-sonnet, claude-opus]
+    estimated_hours: 4
+    files_in_scope:
+      - vitalia/backend/src/modules/vitalia/persistence/migrations/020_slice1_treatment_plans.py
+      - vitalia/backend/src/modules/vitalia/persistence/migrations/021_slice1_re_engagement_events.py
+      - vitalia/backend/src/modules/vitalia/persistence/migrations/022_slice1_nps_responses.py
+      - vitalia/backend/src/modules/vitalia/persistence/migrations/023_slice1_patients_opt_in_columns.py
+      - vitalia/backend/tests/migrations/test_slice1_fidelizacion_migrations.py
+    acceptance:
+      validator_ids: [be_migrations_idempotent, be_arch_fitness]
+    decisions_applicable: [D2, D4, A1.17]
+    must_load_skills: [backend-expert]
+    gherkin_coverage: []
+    gherkin_coverage_note: "Infra puro. Schema enables SC-01..SC-04 backed assertions."
+    blockers: [pre_flight_promotion_proposal_core_platform_extensions_slice_1_migrated]
+
+  - id: T-2
+    title: "CRM extension — patient opt-in/opt-out columns + endpoint + consent service"
+    state: ready
+    surface: backend
+    type: backend
+    production_code: true
+    owner_eligibility: [qwen-opencode, claude-sonnet, claude-opus]
+    estimated_hours: 6
+    files_in_scope:
+      - vitalia/backend/src/modules/vitalia/crm/domain/entities/patient.py (extend)
+      - vitalia/backend/src/modules/vitalia/crm/infrastructure/models/patient_model.py (extend mapped_column)
+      - vitalia/backend/src/modules/vitalia/crm/application/services/patient_consent_service.py (NEW)
+      - vitalia/backend/src/modules/vitalia/crm/application/dtos/consent_dtos.py
+      - vitalia/backend/src/modules/vitalia/crm/api/consent_endpoints.py (NEW POST /opt-out + PATCH /marketing-opt-in)
+      - vitalia/backend/tests/modules/vitalia/crm/test_patient_consent_service.py
+      - vitalia/backend/tests/modules/vitalia/crm/api/test_consent_endpoints.py
+    acceptance:
+      validator_ids: [be_unit_tests_fidelizacion, be_arch_fitness, be_lint_crm_extensions]
+    decisions_applicable: [D1, D2, D3, D5, D25]
+    must_load_skills: [backend-expert]
+    gherkin_coverage:
+      - scenario: "SC-02 Negative — opt_in marketing false bloquea send"
+        tests: ["vitalia/backend/tests/modules/vitalia/crm/test_patient_consent_service.py::test_marketing_opt_in_false_blocks_marketing_template"]
+      - scenario: "SC-04 Adversarial — opt_out cascade cancel"
+        tests: ["vitalia/backend/tests/modules/vitalia/crm/test_patient_consent_service.py::test_opt_out_cascades_cancel_pending_events"]
+    blockers: [T-1]
+
+  - id: T-3
+    title: "Architecture fitness NEW gates: test_cron_envelope_used + test_compound_scope_repository_used"
+    state: ready
+    surface: backend
+    type: tests
+    production_code: false
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    estimated_hours: 3
+    files_in_scope:
+      - vitalia/backend/tests/architecture/test_cron_envelope_used.py (NEW)
+      - vitalia/backend/tests/architecture/test_compound_scope_repository_used.py (NEW)
+    acceptance:
+      validator_ids: [be_arch_fitness]
+    decisions_applicable: [D7, D8]
+    must_load_skills: [backend-expert]
+    gherkin_coverage: []
+    blockers: []
+
+  # ─────────────────────────────────────────────────────────────────
+  # STAGE 2 — BE MODULE (DDD layers parallel)
+  # ─────────────────────────────────────────────────────────────────
+
+  - id: T-4
+    title: "BE fidelización domain + infrastructure (entities, VOs, events, models, repos)"
+    state: ready
+    surface: backend
+    type: backend
+    production_code: true
+    owner_eligibility: [qwen-opencode, claude-sonnet, claude-opus]
+    estimated_hours: 10
+    files_in_scope:
+      - vitalia/backend/src/modules/vitalia/fidelizacion/domain/entities/{treatment_plan,re_engagement_event,nps_response}.py
+      - vitalia/backend/src/modules/vitalia/fidelizacion/domain/value_objects/{re_engagement_pattern,re_engagement_outcome,urgency_level,nps_band}.py
+      - vitalia/backend/src/modules/vitalia/fidelizacion/domain/events.py (ReEngagementTriggered, NPSScoreCollected, PatientOptedOut, PatientPausedReEngagement)
+      - vitalia/backend/src/modules/vitalia/fidelizacion/infrastructure/models/{treatment_plan_model,re_engagement_event_model,nps_response_model}.py
+      - vitalia/backend/src/modules/vitalia/fidelizacion/infrastructure/repositories/{treatment_plan,re_engagement_event,nps_response}_repository.py
+      - vitalia/backend/tests/modules/vitalia/fidelizacion/domain/test_*.py
+      - vitalia/backend/tests/modules/vitalia/fidelizacion/infrastructure/test_*_repository.py
+    acceptance:
+      validator_ids: [be_arch_fitness, be_unit_tests_fidelizacion, be_lint_fidelizacion]
+    decisions_applicable: [D1, D2, D4, D8]
+    must_load_skills: [backend-expert]
+    gherkin_coverage:
+      - scenario: "SC-04 Adversarial — cross-tenant query 404"
+        tests: ["vitalia/backend/tests/modules/vitalia/fidelizacion/infrastructure/test_re_engagement_event_repository.py::test_cross_tenant_query_returns_404"]
+    blockers: [T-1, T-3]
+
+  - id: T-5
+    title: "BE fidelización application services (ReEngagementService, ProactiveOutboundService, PauseService, ManualCallService, NPSService)"
+    state: ready
+    surface: backend
+    type: backend
+    production_code: true
+    owner_eligibility: [qwen-opencode, claude-sonnet, claude-opus]
+    estimated_hours: 14
+    files_in_scope:
+      - vitalia/backend/src/modules/vitalia/fidelizacion/application/services/re_engagement_service.py (detect_multi_session_gaps, detect_follow_up_due, detect_maintenance_due, detect_absence, trigger_nps_post_treatment, mark_response_timeout, list_patterns, check_throttle)
+      - vitalia/backend/src/modules/vitalia/fidelizacion/application/services/proactive_outbound_service.py (send_proactive_reminder full flow with Adrián inject)
+      - vitalia/backend/src/modules/vitalia/fidelizacion/application/services/pause_patient_service.py
+      - vitalia/backend/src/modules/vitalia/fidelizacion/application/services/manual_call_service.py
+      - vitalia/backend/src/modules/vitalia/fidelizacion/application/services/nps_service.py (submit + summary)
+      - vitalia/backend/src/modules/vitalia/fidelizacion/application/services/opt_out_service.py (cascade cancel pending events)
+      - vitalia/backend/src/modules/vitalia/fidelizacion/application/dtos/{re_engagement_dtos,nps_dtos,fidelizacion_summary_dtos}.py
+      - vitalia/backend/tests/modules/vitalia/fidelizacion/application/test_*_service.py
+    acceptance:
+      validator_ids: [be_unit_tests_fidelizacion, be_arch_fitness, be_lint_fidelizacion]
+    decisions_applicable: [D1, D2, D3, D6, D11, D15, D25]
+    must_load_skills: [backend-expert, copilot-expert, sales-agent-expert]
+    gherkin_coverage:
+      - scenario: "SC-01 Happy — send_proactive_reminder flow + idempotency + audit + emit event"
+        tests: ["vitalia/backend/tests/modules/vitalia/fidelizacion/application/test_proactive_outbound_service.py::test_send_proactive_reminder_full_flow"]
+      - scenario: "SC-02 Negative — opt-in check blocks MARKETING template send"
+        tests: ["vitalia/backend/tests/modules/vitalia/fidelizacion/application/test_proactive_outbound_service.py::test_send_proactive_blocks_marketing_no_optin"]
+    blockers: [T-4]
+
+  - id: T-6
+    title: "BE fidelización workers (6 cron jobs wrap @cron_envelope)"
+    state: ready
+    surface: backend
+    type: backend
+    production_code: true
+    owner_eligibility: [qwen-opencode, claude-sonnet, claude-opus]
+    estimated_hours: 10
+    files_in_scope:
+      - vitalia/backend/src/modules/vitalia/fidelizacion/application/workers/__init__.py (ARQ registration)
+      - vitalia/backend/src/modules/vitalia/fidelizacion/application/workers/multi_session_gap_sweep.py
+      - vitalia/backend/src/modules/vitalia/fidelizacion/application/workers/follow_up_due_sweep.py
+      - vitalia/backend/src/modules/vitalia/fidelizacion/application/workers/maintenance_due_sweep.py
+      - vitalia/backend/src/modules/vitalia/fidelizacion/application/workers/absence_sweep.py
+      - vitalia/backend/src/modules/vitalia/fidelizacion/application/workers/nps_post_treatment_sweep.py
+      - vitalia/backend/src/modules/vitalia/fidelizacion/application/workers/re_engagement_response_timeout_sweep.py
+      - vitalia/backend/tests/modules/vitalia/fidelizacion/workers/test_*_sweep.py (smoke + idempotency per cron)
+    acceptance:
+      validator_ids: [be_workers_smoke, be_arch_fitness, be_unit_tests_fidelizacion]
+    decisions_applicable: [D1, D7, D11, A1.4, A1.10, A1.11]
+    must_load_skills: [backend-expert]
+    gherkin_coverage:
+      - scenario: "SC-01 Happy — multi_session_gap_sweep detects gap"
+        tests: ["vitalia/backend/tests/modules/vitalia/fidelizacion/workers/test_multi_session_gap_sweep.py::test_detects_gap_above_alert_days_inserts_event"]
+      - scenario: "SC-03 Edge — follow_up_due_sweep at T-7d window"
+        tests: ["vitalia/backend/tests/modules/vitalia/fidelizacion/workers/test_follow_up_due_sweep.py::test_detects_within_7d_window"]
+    blockers: [T-4, T-5]
+
+  - id: T-7
+    title: "BE fidelización API endpoints (~9 routes /api/v1/vitalia/fidelization/*)"
+    state: ready
+    surface: backend
+    type: backend
+    production_code: true
+    owner_eligibility: [qwen-opencode, claude-sonnet, claude-opus]
+    estimated_hours: 8
+    files_in_scope:
+      - vitalia/backend/src/modules/vitalia/fidelizacion/api/router.py
+      - vitalia/backend/src/modules/vitalia/fidelizacion/api/re_engagement_endpoints.py (GET /patterns, POST /send-proactive, POST /pause, POST /mark-external, POST /mark-no-continue, POST /manual-call)
+      - vitalia/backend/src/modules/vitalia/fidelizacion/api/nps_endpoints.py (GET /nps/summary, POST /nps/submit)
+      - vitalia/backend/src/modules/vitalia/fidelizacion/api/fidelizacion_summary_endpoints.py (GET /summary, GET /activity-stream)
+      - vitalia/backend/tests/modules/vitalia/fidelizacion/api/test_*_router.py
+    acceptance:
+      validator_ids: [be_unit_tests_fidelizacion, be_arch_fitness, be_lint_fidelizacion]
+    decisions_applicable: [D5, D6, A1.8, A1.9, A1.11, A1.14]
+    must_load_skills: [backend-expert]
+    gherkin_coverage:
+      - scenario: "SC-04 Adversarial — RBAC 403 for marketing role on PHI endpoint"
+        tests: ["vitalia/backend/tests/modules/vitalia/fidelizacion/api/test_re_engagement_endpoints.py::test_marketing_role_blocked_phi"]
+    blockers: [T-4, T-5]
+
+  # ─────────────────────────────────────────────────────────────────
+  # STAGE 3 — TEMPLATES META-APPROVED
+  # ─────────────────────────────────────────────────────────────────
+
+  - id: T-8
+    title: "WhatsApp templates Meta-approved JSON config (5 templates) + extensions.py registration"
+    state: ready
+    surface: backend
+    type: backend
+    production_code: true
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    estimated_hours: 4
+    files_in_scope:
+      - vitalia/backend/src/modules/vitalia/connections/whatsapp/templates/fidelizacion/recordatorio_proxima_sesion.json
+      - vitalia/backend/src/modules/vitalia/connections/whatsapp/templates/fidelizacion/recordatorio_control_doctor.json
+      - vitalia/backend/src/modules/vitalia/connections/whatsapp/templates/fidelizacion/invitacion_mantenimiento.json
+      - vitalia/backend/src/modules/vitalia/connections/whatsapp/templates/fidelizacion/re_engagement_ausencia.json
+      - vitalia/backend/src/modules/vitalia/connections/whatsapp/templates/fidelizacion/nps_post_tratamiento.json
+      - vitalia/backend/src/modules/vitalia/extensions.py (extend register_all to mount 5 templates via EP-8)
+      - vitalia/backend/tests/test_extensions.py (verify EP-8 registers 5 NEW templates)
+    acceptance:
+      validator_ids: [be_arch_fitness]
+    decisions_applicable: [D12, B.22]
+    must_load_skills: [backend-expert]
+    gherkin_coverage: []
+    gherkin_coverage_note: "Templates JSON config — referenced in T-5 send_proactive_reminder + T-9 send_proactive_reengagement tool."
+    blockers: []
+
+  # ─────────────────────────────────────────────────────────────────
+  # STAGE 4 — AGENTIC (Opus 4.7 R23 production_code=true)
+  # ─────────────────────────────────────────────────────────────────
+
+  - id: T-9
+    title: "Agentic Adrián tool — send_proactive_reengagement wrapper"
+    state: ready
+    surface: agentic
+    type: agentic
+    production_code: true
+    owner_eligibility: [claude-opus]  # R23 HARD: agentic production_code=true → Opus 4.7 ONLY
+    claude_opus_required: true
+    estimated_hours: 6
+    files_in_scope:
+      - vitalia/backend/src/modules/vitalia/sales_agent/tools/send_proactive_reengagement.py (NEW)
+      - vitalia/backend/src/modules/vitalia/sales_agent/extensions.py (extend register tool via EP-3)
+      - vitalia/backend/tests/modules/vitalia/sales_agent/tools/test_send_proactive_reengagement.py
+    acceptance:
+      validator_ids: [be_unit_tests_fidelizacion, be_arch_fitness, be_lint_agentic, agentic_observability_invariants]
+    decisions_applicable: [D16, D20, A3.1, A3.2, A3.3, A3.13, A3.16]
+    must_load_skills: [sales-agent-expert, copilot-expert, tessl__langgraph, tessl__graceful-degradation]
+    gherkin_coverage:
+      - scenario: "SC-01 Happy — tool delegates to ProactiveOutboundService + Adrián WA template send"
+        tests: ["vitalia/backend/tests/modules/vitalia/sales_agent/tools/test_send_proactive_reengagement.py::test_delegates_to_service_and_emits_event"]
+      - scenario: "SC-02 Negative — tool refuses MARKETING send without opt_in"
+        tests: ["vitalia/backend/tests/modules/vitalia/sales_agent/tools/test_send_proactive_reengagement.py::test_refuses_marketing_no_optin"]
+    blockers: [T-5, T-8]
+
+  - id: T-10
+    title: "Agentic Lucas tool — compute_re_engagement_recommendation (ReAct + aggregate + LLM reasoning)"
+    state: ready
+    surface: agentic
+    type: agentic
+    production_code: true
+    owner_eligibility: [claude-opus]  # R23 HARD
+    claude_opus_required: true
+    estimated_hours: 8
+    files_in_scope:
+      - vitalia/backend/src/modules/vitalia/agentic/lucas/__init__.py (NEW package)
+      - vitalia/backend/src/modules/vitalia/agentic/lucas/tools/compute_re_engagement_recommendation.py (NEW)
+      - vitalia/backend/src/modules/vitalia/agentic/lucas/services/lucas_re_engagement_service.py (NEW — aggregate_patterns, detect_clusters, generate_recommendations)
+      - vitalia/backend/tests/modules/vitalia/agentic/lucas/tools/test_compute_re_engagement_recommendation.py
+      - vitalia/backend/tests/modules/vitalia/agentic/lucas/services/test_lucas_re_engagement_service.py
+    acceptance:
+      validator_ids: [be_unit_tests_fidelizacion, be_arch_fitness, be_lint_agentic, agentic_observability_invariants, agentic_prompt_cache_validation]
+    decisions_applicable: [D10, D17, D18, D20, A3.1, A3.5, A3.6, A3.7]
+    must_load_skills: [copilot-expert, tessl__langgraph, metrics-expert]
+    gherkin_coverage: []
+    gherkin_coverage_note: "Lucas internal recommendation tool — covered by agentic_eval goldens T-15."
+    blockers: [T-4, T-5]
+
+  # ─────────────────────────────────────────────────────────────────
+  # STAGE 5 — FRONTEND
+  # ─────────────────────────────────────────────────────────────────
+
+  - id: T-11
+    title: "FE fidelización feature — layout + KPIs hero + tabs + cards + modals + hooks + store"
+    state: ready
+    surface: frontend
+    type: frontend
+    production_code: true
+    owner_eligibility: [qwen-opencode, claude-sonnet, claude-opus]
+    estimated_hours: 18
+    files_in_scope:
+      - vitalia/frontend/src/app/(app)/fidelizacion/page.tsx (NEW Server Component thin)
+      - vitalia/frontend/src/features/fidelizacion/api/{use-fidelizacion-summary,use-re-engagement-patterns,use-nps-responses,use-activity-stream,use-send-proactive-template,use-pause-patient,use-mark-external,use-mark-no-continue,use-log-manual-call,use-availability-slots}.ts
+      - vitalia/frontend/src/features/fidelizacion/api/index.ts
+      - vitalia/frontend/src/features/fidelizacion/components/{FidelizacionLayout,FidelizacionKPIsHero,FidelizacionTabsBar,FidelizacionActivityFooter,ReEngagementCard,NPSRowCompact,ReEngagementContactSidebar,ConfirmTemplateModal,SuggestSlotsModal,PausePatientModal,ManualCallLoggedModal}.tsx
+      - vitalia/frontend/src/features/fidelizacion/components/tabs/{MultiSessionTab,FollowUpTab,MaintenanceTab,AbsenceTab,NPSResumenTab}.tsx
+      - vitalia/frontend/src/features/fidelizacion/components/index.ts
+      - vitalia/frontend/src/features/fidelizacion/hooks/{use-fidelizacion-store,use-fidelizacion-url-state}.ts
+      - vitalia/frontend/src/features/fidelizacion/store/fidelizacion-store.ts
+      - vitalia/frontend/src/features/fidelizacion/types/{re-engagement,nps,fidelizacion-summary,url-state}.ts
+      - vitalia/frontend/src/features/fidelizacion/copy.ts
+      - vitalia/frontend/src/features/fidelizacion/index.ts
+      - vitalia/frontend/src/lib/zod-schemas/{nps,re-engagement-event}.ts
+      - vitalia/frontend/src/features/fidelizacion/**/__tests__/*.test.ts(x)
+    acceptance:
+      validator_ids: [fe_typecheck, fe_lint_fidelizacion, fe_arch_fitness, fe_unit_tests_fidelizacion, fe_coverage_module]
+    decisions_applicable: [D14, D21, D22, D23, A2.1, A2.2, A2.3, A2.4, A2.5, A2.6, A2.7, A2.8, A2.11, A2.13, A2.14, A2.15]
+    must_load_skills: [frontend-expert]
+    gherkin_coverage:
+      - scenario: "SC-01 Happy — card render + ConfirmTemplateModal flow"
+        tests:
+          - "vitalia/frontend/src/features/fidelizacion/components/__tests__/ReEngagementCard.test.tsx::renders_multi_session_critical_urgency"
+          - "vitalia/frontend/src/features/fidelizacion/components/__tests__/ConfirmTemplateModal.test.tsx::confirm_calls_send_mutation"
+      - scenario: "SC-02 Negative — opt_in disabled button + tooltip"
+        tests:
+          - "vitalia/frontend/src/features/fidelizacion/components/__tests__/ReEngagementCard.test.tsx::absence_no_optin_disables_adrian_button_with_tooltip"
+    blockers: [T-7]
+
+  - id: T-12
+    title: "FE shared NPSTagBadge cross-feature component + Public API"
+    state: ready
+    surface: frontend
+    type: frontend
+    production_code: true
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    estimated_hours: 3
+    files_in_scope:
+      - vitalia/frontend/src/components/shared/nps/NPSTagBadge.tsx (NEW)
+      - vitalia/frontend/src/components/shared/nps/NPSTagBadge.stories.tsx
+      - vitalia/frontend/src/components/shared/nps/index.ts
+      - vitalia/frontend/src/components/shared/nps/README.md
+      - vitalia/frontend/src/components/shared/nps/__tests__/NPSTagBadge.test.tsx
+    acceptance:
+      validator_ids: [fe_typecheck, fe_lint_fidelizacion, fe_arch_fitness, fe_unit_tests_fidelizacion]
+    decisions_applicable: [D22, A2.10, A2.13]
+    must_load_skills: [frontend-expert, brand-expert]
+    gherkin_coverage: []
+    gherkin_coverage_note: "Shared primitive — consumed by /inbox cross-story tag flow."
+    blockers: []
+
+  - id: T-13
+    title: "FE Storybook stories — fidelización components (mandatory coverage)"
+    state: ready
+    surface: frontend
+    type: docs
+    production_code: false
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    estimated_hours: 5
+    files_in_scope:
+      - vitalia/frontend/src/features/fidelizacion/components/*.stories.tsx (all components NEW)
+      - vitalia/frontend/src/features/fidelizacion/components/tabs/*.stories.tsx
+    acceptance:
+      validator_ids: [storybook_build]
+    decisions_applicable: [D24, A2.12]
+    must_load_skills: [frontend-expert]
+    gherkin_coverage: []
+    blockers: [T-11, T-12]
+
+  # ─────────────────────────────────────────────────────────────────
+  # STAGE 6 — E2E
+  # ─────────────────────────────────────────────────────────────────
+
+  - id: T-14
+    title: "E2E Playwright — smoke + 4 regression scenarios + POM + a11y"
+    state: ready
+    surface: frontend
+    type: tests
+    production_code: false
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    estimated_hours: 8
+    files_in_scope:
+      - vitalia/frontend/e2e/pages/fidelizacion.page.ts (POM)
+      - vitalia/frontend/e2e/specs/smoke/fidelizacion.smoke.spec.ts (mount + tabs + KPIs + a11y axe-core)
+      - vitalia/frontend/e2e/specs/regression/fidelizacion-multi-session-happy.spec.ts (SC-01)
+      - vitalia/frontend/e2e/specs/regression/fidelizacion-absence-no-optin.spec.ts (SC-02)
+      - vitalia/frontend/e2e/specs/regression/fidelizacion-follow-up-doctor-vencido.spec.ts (SC-03)
+      - vitalia/frontend/e2e/specs/regression/fidelizacion-adversarial.spec.ts (SC-04)
+      - vitalia/frontend/e2e/fixtures/{fidelizacion-seed,clinic-context}.fixture.ts
+    acceptance:
+      validator_ids: [e2e_smoke_fidelizacion, e2e_regression_sc01, e2e_regression_sc02, e2e_regression_sc03, e2e_regression_sc04, e2e_a11y]
+    decisions_applicable: [A2.13]
+    must_load_skills: [frontend-expert, playwright-expert]
+    gherkin_coverage:
+      - scenario: "SC-01 Happy"
+        tests: ["vitalia/frontend/e2e/specs/regression/fidelizacion-multi-session-happy.spec.ts::scenario-01"]
+      - scenario: "SC-02 Negative"
+        tests: ["vitalia/frontend/e2e/specs/regression/fidelizacion-absence-no-optin.spec.ts::scenario-02"]
+      - scenario: "SC-03 Edge"
+        tests: ["vitalia/frontend/e2e/specs/regression/fidelizacion-follow-up-doctor-vencido.spec.ts::scenario-03"]
+      - scenario: "SC-04 Adversarial"
+        tests: ["vitalia/frontend/e2e/specs/regression/fidelizacion-adversarial.spec.ts::scenario-04"]
+    blockers: [T-11, T-12]
+
+  # ─────────────────────────────────────────────────────────────────
+  # STAGE 7 — AGENTIC EVALS (Sonnet OK — production_code=false)
+  # ─────────────────────────────────────────────────────────────────
+
+  - id: T-15
+    title: "Agentic eval goldens — Adrián 4 reengagement scenarios + Lucas 3 recommendation scenarios + voice fidelity grader smoke"
+    state: ready
+    surface: agentic
+    type: tests
+    production_code: false  # R23 — tests/goldens about agentic = Sonnet OK
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    estimated_hours: 10
+    files_in_scope:
+      - vitalia/backend/tests/agentic_evals/sales_agent/goldens/reengagement/happy_multi_session.yaml
+      - vitalia/backend/tests/agentic_evals/sales_agent/goldens/reengagement/happy_follow_up.yaml
+      - vitalia/backend/tests/agentic_evals/sales_agent/goldens/reengagement/happy_maintenance.yaml
+      - vitalia/backend/tests/agentic_evals/sales_agent/goldens/reengagement/absence_optin_guard.yaml
+      - vitalia/backend/tests/agentic_evals/sales_agent/test_voice_fidelity_reengagement.py
+      - vitalia/backend/tests/agentic_evals/lucas/re_engagement_recommendation/high_value_dental_critico.yaml
+      - vitalia/backend/tests/agentic_evals/lucas/re_engagement_recommendation/psicologia_safety_referral.yaml
+      - vitalia/backend/tests/agentic_evals/lucas/re_engagement_recommendation/estetica_maintenance_segment.yaml
+      - vitalia/backend/tests/agentic_evals/lucas/test_prompt_cache_hit_rate.py
+      - vitalia/backend/tests/agentic_evals/test_observability_invariants.py (extend with reengagement + lucas scenarios)
+    acceptance:
+      validator_ids: [adrian_reengagement_goldens, lucas_reengagement_goldens, adrian_voice_fidelity_reengagement, agentic_observability_invariants, agentic_prompt_cache_validation]
+    decisions_applicable: [D19, D20, A3.8, A3.9, A3.10]
+    must_load_skills: [sales-agent-expert, copilot-expert]
+    gherkin_coverage: []
+    gherkin_coverage_note: "Agentic evals validate tool behavior under varied scenarios — orthogonal to UI Gherkin coverage."
+    blockers: [T-9, T-10]
+
+  # ─────────────────────────────────────────────────────────────────
+  # STAGE 8 — CROSS-STORY INTEGRATION
+  # ─────────────────────────────────────────────────────────────────
+
+  - id: T-16
+    title: "Cross-story contracts verification — NPSScoreCollected + ReEngagementTriggered + endpoint shape"
+    state: ready
+    surface: backend
+    type: tests
+    production_code: false
+    owner_eligibility: [qwen-opencode, claude-sonnet, claude-opus]
+    estimated_hours: 4
+    files_in_scope:
+      - vitalia/backend/tests/integration/test_cross_story_contracts.py (extend — add reengagement + nps producer/consumer shape tests)
+      - vitalia/docs/product/stories/vitalia-slice-1-fidelizacion/HANDOFF-cross-story-updates.md (update post implement — mark contracts as "implemented")
+    acceptance:
+      validator_ids: [be_cross_story_contracts]
+    decisions_applicable: [D15, D21, D22]
+    must_load_skills: [backend-expert]
+    gherkin_coverage: []
+    gherkin_coverage_note: "Cross-story contract verify — orthogonal to in-story Gherkin SC-01..SC-04."
+    blockers: [T-5, T-9, T-12]
+
+# ═══════════════════════════════════════════════════════════════════
+# Summary metadata
+# ═══════════════════════════════════════════════════════════════════
+
+summary:
+  tickets_total: 16
+  by_surface:
+    backend: 9    # T-1, T-2, T-3, T-4, T-5, T-6, T-7, T-8, T-16
+    frontend: 3   # T-11, T-12, T-13, T-14 → 4 (note T-14 is frontend tests)
+    agentic: 4    # T-9, T-10, T-15 (and arguably part of T-5, T-7 integration)
+  by_production_code:
+    true: 9       # T-1, T-2, T-4, T-5, T-6, T-7, T-8, T-9, T-10, T-11, T-12 → 11 (T-12 too)
+    false: 7      # T-3, T-13, T-14, T-15, T-16
+  agentic_opus_required: [T-9, T-10]  # R23 hard
+  total_estimated_hours: 121
+  total_estimated_weeks: ~3 (16 tickets × ~7.5h avg / 40h/week)
+
+# Story closure gate per .claude/rules/story-closure-gate.md:
+# - All tickets state=developed → AUTO-HANDOFF to /auditor
+# - Auditor APPROVED → AUTO-HANDOFF to /pm-vitalia merge
+# - /pm-vitalia writes 07-merge.md (5 sections) + capability YAMLs + modules/fidelizacion.md + archive story
+# - state: reviewing → done

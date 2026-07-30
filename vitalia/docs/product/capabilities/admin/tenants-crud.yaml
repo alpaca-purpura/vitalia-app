@@ -1,0 +1,138 @@
+---
+capability_id: vitalia-admin-tenants-crud
+module: admin
+slug: tenants-crud
+status: live
+date_introduced: 2026-05-19
+story_introduced: vitalia-adopt-luana-core-iam
+package_version: 0.1.0
+package_path: vitalia/backend/src/modules/vitalia/admin/modules/tenants.py + vitalia/backend/src/modules/vitalia/admin/pages/
+license: MIT
+
+# v3 cement 2026-05-27 · 4 dimensiones + dev_preview (ADR-vitalia-005)
+tech_module: admin
+agent_owner: configuracion
+functional_area: admin.panel
+user_visible: true
+nature: feature
+ui_paradigm: admin-panel  # T-3 reconcile 2026-05-29
+
+user_facing_name: "Admin · CRUD tenants"
+user_facing_description: >
+  Página del panel admin para crear, listar y suspender tenants (clínicas reales
+  en la plataforma). Cero SQL crudo: usa el repositorio de tenants del engine
+  de Luana. Cada operación de escritura registra un evento de auditoría
+  sincrónico antes de retornar.
+
+dev_preview:
+  route: "http://localhost:8502 (Streamlit)"
+  how_to_navigate: "Abrir admin Streamlit → navegar a sección Tenants"
+  main_component: "vitalia/backend/src/modules/vitalia/admin/modules/tenants.py"
+  api_endpoints: []
+  e2e_test: null
+  fixtures_required: []
+  storybook_url: null
+  loom_demo: null
+
+summary: |
+  Admin Streamlit page para CRUD tenants (clínicas reales). Consume engine
+  `luana_core_iam.TenantRepository` — cero SQL crudo. Soporta create + list +
+  suspend (toggle is_active). Audit log sync write antes return en cada mutación.
+
+surfaces:
+  backend:
+    - vitalia/backend/src/modules/vitalia/admin/modules/tenants.py
+    - vitalia/backend/src/modules/vitalia/admin/pages/tenants.py
+  tests:
+    - vitalia/backend/tests/modules/vitalia/admin/test_tenants_crud.py
+
+verification:
+  commands:
+    - "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/admin/test_tenants_crud.py -v"
+  gherkin_evidence:
+    - SC-02 Admin crea tenant nuevo → INSERT tenants + audit log row
+    - SC-03 Admin lista tenants → SELECT via TenantRepository
+    - SC-07 Admin suspende tenant → UPDATE tenants SET is_active=false + audit log
+
+# Capability ledger v2 (cement 2026-05-27)
+created_in_story: vitalia-adopt-luana-core-iam   # v2 cement · mirror of story_introduced
+created_date: 2026-05-19   # v2 cement · mirror of date_introduced
+last_modified: 2026-05-30   # backfill scenarios vitalia-stub-caps-scenario-backfill
+parent_cap: null   # v2 cement · mirror of extends_capability
+derives_capabilities: []   # v2 cement · initial empty list
+
+# Capability ledger v2 (cement 2026-05-27)
+
+# Capability change log v2 (cement 2026-05-27)
+change_log:
+  - story_id: vitalia-adopt-luana-core-iam
+    date: 2026-05-19
+    type: new
+    summary: "Implementación inicial · migración legacy a schema v2"
+    merge_sha: null
+    status: done
+  - story_id: vitalia-stub-caps-scenario-backfill
+    date: 2026-05-30
+    type: extend
+    summary: "backfill scenario+e2e → verified-live (deployed-visible)"
+    added_in_story: vitalia-stub-caps-scenario-backfill
+    status: done
+
+scenarios:
+  - id: admin-crea-tenant-nuevo-audit-log
+    name: "Admin crea tenant nuevo via TenantRepository y audit log es registrado"
+    actor: sistema
+    status: live
+    given: "El panel admin está autenticado y el administrador navega a la sección Tenants"
+    when: "El administrador completa el formulario de creación (nombre, slug, país) y hace clic en Crear tenant"
+    then: "Se inserta un row en la tabla tenants; aparece mensaje de éxito en UI; se registra audit log con action=tenant.create y resource_type=tenant"
+    e2e_test: "vitalia/frontend/e2e/admin/admin-tenants-crud.spec.ts"
+    verification_method: admin-panel
+    story_spec_ref: "vitalia/docs/product/stories/vitalia-stub-caps-scenario-backfill/01-spec.md"
+    atomic_ref: null
+    added_in_story: vitalia-stub-caps-scenario-backfill
+    added_date: 2026-05-30
+  - id: admin-lista-tenants-columnas-visibles
+    name: "Listado de tenants muestra columnas ID, Nombre y Slug sin PHI médico"
+    actor: sistema
+    status: live
+    given: "El panel admin está autenticado y el administrador navega al tab Listado de Tenants"
+    when: "Se accede al tab Listado en la página Tenants"
+    then: "La tabla muestra al menos las columnas Nombre y Slug; no se expone PHI médico (sin diagnóstico, tratamiento ni medicación)"
+    e2e_test: "vitalia/frontend/e2e/admin/admin-tenants-crud.spec.ts"
+    verification_method: admin-panel
+    story_spec_ref: "vitalia/docs/product/stories/vitalia-stub-caps-scenario-backfill/01-spec.md"
+    atomic_ref: null
+    added_in_story: vitalia-stub-caps-scenario-backfill
+    added_date: 2026-05-30
+  - id: admin-suspende-tenant-audit-log
+    name: "Admin suspende tenant via toggle is_active y se registra audit log"
+    actor: sistema
+    status: live
+    given: "El panel admin está autenticado y existe al menos un tenant en la base de datos"
+    when: "El administrador hace clic en el botón Toggle Activo/Suspendido en el listado de tenants"
+    then: "Se actualiza is_active en la tabla tenants; se registra audit log con action=tenant.suspend o tenant.activate"
+    e2e_test: "vitalia/frontend/e2e/admin/admin-tenants-crud.spec.ts"
+    verification_method: admin-panel
+    story_spec_ref: "vitalia/docs/product/stories/vitalia-stub-caps-scenario-backfill/01-spec.md"
+    atomic_ref: null
+    added_in_story: vitalia-stub-caps-scenario-backfill
+    added_date: 2026-05-30
+  - id: tenant-write-ui-e2e-pendiente-hardening
+    name: "Operación de escritura (tenant) ejercida end-to-end vía UI admin Streamlit"
+    actor: super_admin
+    status: live
+    given: "El admin Streamlit carga (login OK, navegacion OK, st.dataframe renderiza, db-state 200 tras fix async commit 882f9f49)"
+    when: "Un e2e completa el form de creacion/edicion y verifica el efecto en db-state + audit_log"
+    then: "Row creada/modificada + audit_log row. PENDIENTE: selectores Streamlit fragiles (getByLabel matchea boton Help for X; st.dataframe headers en canvas glide-grid) -> test-hardening en story separada. NO es cap break: el panel funciona hands-on (verificado por orchestrator)."
+    e2e_test: null
+    verification_method: admin-panel
+    added_in_story: vitalia-stub-caps-scenario-backfill
+    added_date: 2026-05-30
+map_box: admin
+
+---
+
+# Admin · CRUD tenants
+
+Página del panel admin para crear, listar y suspender tenants (clínicas reales en la plataforma). Consume el repositorio de tenants del engine luana-core-iam (cero SQL crudo) y registra auditoría sincrónica en cada mutación.

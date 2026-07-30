@@ -1,0 +1,357 @@
+# F1-S4 vitalia-fase1-shell-layout-5050 — work units atómicos
+#
+# 7 tickets · ZERO Opus (FE no-agentic puro · production_code=true salvo T-6/T-7 tests).
+# Cada ticket cita validator_ids + gherkin_coverage explícito (★ v4.1 mandatory post 2026-05-18).
+# Sequence: store → placeholders → layout + resize + viewport guard → page redirect → mode toggle → vitest aggregate + arch tests → E2E + visual goldens.
+#
+# Builders: builder-frontend (Sonnet/opencode).
+# Auditor: auditor-frontend (Opus).
+# R23 NO aplica (no AGENTIC).
+
+story_id: vitalia-fase1-shell-layout-5050
+brand: vitalia
+phase: fase-1
+last_modified: 2026-05-23
+architect_iter: 1
+total_tickets: 7
+parallelizable: false  # secuencial por imports DAG (store → slots → layout → page/toggle → tests)
+opus_tickets: 0         # ZERO Opus (FE no-agentic puro)
+sonnet_tickets: 7
+
+tickets:
+
+  # ──────────────────────────────────────────────────────────────
+  # T-1 — shell-store zustand + persist
+  # ──────────────────────────────────────────────────────────────
+  - id: T-1
+    title: "shell-store: zustand persist + types ValeriaState/ShellMode + cycleValeriaState"
+    state: ready
+    surface: frontend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: true
+    estimated_loc: 80
+    estimated_hours: 1
+    files:
+      new:
+        - vitalia/frontend/src/stores/shell-store.ts
+        - vitalia/frontend/src/stores/__tests__/shell-store.test.ts
+      modify: []
+      delete: []
+    acceptance:
+      validator_ids: [val-fe-tsc, val-fe-lint, val-fe-vitest-unit]
+    gherkin_coverage:
+      - scenario: "SC-1 happy · shellMode='agentic' default + valeriaState='full' default"
+        tests:
+          - "vitalia/frontend/src/stores/__tests__/shell-store.test.ts::initial state agentic + full"
+          - "vitalia/frontend/src/stores/__tests__/shell-store.test.ts::SHELL_STORAGE_KEY exported 'vitalia-shell-state'"
+      - scenario: "SC-3 edge · setValeriaState + cycleValeriaState + setShellMode + persistencia"
+        tests:
+          - "vitalia/frontend/src/stores/__tests__/shell-store.test.ts::setValeriaState updates state"
+          - "vitalia/frontend/src/stores/__tests__/shell-store.test.ts::cycleValeriaState toggles full<->rail"
+          - "vitalia/frontend/src/stores/__tests__/shell-store.test.ts::setShellMode persists localStorage"
+          - "vitalia/frontend/src/stores/__tests__/shell-store.test.ts::partialize includes both fields"
+    spec_anchor: "01-spec.md § 5 (componentes) + 03-arch § 2.5"
+
+  # ──────────────────────────────────────────────────────────────
+  # T-2 — ValeriaSidebarSlot + AppPanelSlot placeholders (Server Components)
+  # ──────────────────────────────────────────────────────────────
+  - id: T-2
+    title: "ValeriaSidebarSlot + AppPanelSlot placeholders Server Components con aria-label legible"
+    state: ready
+    surface: frontend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: true
+    estimated_loc: 80
+    estimated_hours: 1
+    files:
+      new:
+        - vitalia/frontend/src/components/shared/shell-organism/ValeriaSidebarSlot.tsx
+        - vitalia/frontend/src/components/shared/shell-organism/AppPanelSlot.tsx
+        - vitalia/frontend/src/components/shared/shell-organism/ValeriaSidebarSlot.test.tsx
+        - vitalia/frontend/src/components/shared/shell-organism/AppPanelSlot.test.tsx
+      modify: []
+      delete: []
+    depends_on: []
+    acceptance:
+      validator_ids: [val-fe-tsc, val-fe-lint, val-fe-vitest-unit, val-fe-arch-no-default-export]
+    gherkin_coverage:
+      - scenario: "SC-1 happy · ValeriaSidebarSlot + AppPanelSlot rendered"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaSidebarSlot.test.tsx::renders <aside role='complementary'> with aria-label"
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaSidebarSlot.test.tsx::data-testid='valeria-sidebar-slot'"
+          - "vitalia/frontend/src/components/shared/shell-organism/AppPanelSlot.test.tsx::renders <section role='region'> with aria-label"
+          - "vitalia/frontend/src/components/shared/shell-organism/AppPanelSlot.test.tsx::renders children slot"
+          - "vitalia/frontend/src/components/shared/shell-organism/AppPanelSlot.test.tsx::data-testid='app-panel-slot'"
+      - scenario: "SC-4 adversarial · aria-labels legibles Spanish neutro"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaSidebarSlot.test.tsx::aria-label includes 'Panel Valeria'"
+          - "vitalia/frontend/src/components/shared/shell-organism/AppPanelSlot.test.tsx::aria-label includes 'Panel aplicación'"
+    spec_anchor: "01-spec.md § 5 + § 9 a11y + 03-arch § 2.3 + § 2.4"
+
+  # ──────────────────────────────────────────────────────────────
+  # T-3 — ShellOrganismLayout + useViewportGuard + react-resizable-panels integration
+  # ──────────────────────────────────────────────────────────────
+  - id: T-3
+    title: "ShellOrganismLayout (Client) + PanelGroup/Panel/PanelResizeHandle + useViewportGuard hook + main id='main-content'"
+    state: ready
+    surface: frontend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: true
+    estimated_loc: 240
+    estimated_hours: 3
+    files:
+      new:
+        - vitalia/frontend/src/components/shared/shell-organism/ShellOrganismLayout.tsx
+        - vitalia/frontend/src/components/shared/shell-organism/useViewportGuard.ts
+        - vitalia/frontend/src/components/shared/shell-organism/ShellOrganismLayout.test.tsx
+        - vitalia/frontend/src/components/shared/shell-organism/useViewportGuard.test.ts
+      modify:
+        - vitalia/frontend/package.json                 # add react-resizable-panels ^4.11.1
+        - vitalia/frontend/pnpm-lock.yaml               # auto-updated by pnpm install
+      delete: []
+    depends_on: [T-1, T-2]
+    acceptance:
+      validator_ids: [val-fe-tsc, val-fe-lint, val-fe-vitest-unit]
+    gherkin_coverage:
+      - scenario: "SC-1 happy · render 50/50 default modo agentic con PanelGroup + resize handle visible"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/ShellOrganismLayout.test.tsx::renders TopBarGlobal + PanelGroup agentic mode"
+          - "vitalia/frontend/src/components/shared/shell-organism/ShellOrganismLayout.test.tsx::main has id='main-content' tabIndex={-1}"
+          - "vitalia/frontend/src/components/shared/shell-organism/ShellOrganismLayout.test.tsx::Panel valeria-panel + Panel app-panel rendered"
+          - "vitalia/frontend/src/components/shared/shell-organism/ShellOrganismLayout.test.tsx::PanelResizeHandle visible md+ + aria-label='Redimensionar paneles'"
+      - scenario: "SC-2 negative · viewport < md only mobile <main> visible"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/ShellOrganismLayout.test.tsx::md:hidden mobile main rendered"
+          - "vitalia/frontend/src/components/shared/shell-organism/ShellOrganismLayout.test.tsx::mutually-exclusive viewport branches"
+      - scenario: "SC-3 edge · shellMode='web' renders grid 60px/1px/1fr static"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/ShellOrganismLayout.test.tsx::web mode grid-cols-[60px_1px_1fr] applied"
+      - scenario: "SC-3 edge · useViewportGuard force 'full' → 'rail' cuando viewport [768-1023]"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/useViewportGuard.test.ts::no-op when viewport >= 1104"
+          - "vitalia/frontend/src/components/shared/shell-organism/useViewportGuard.test.ts::forces rail when viewport 900 + state='full'"
+          - "vitalia/frontend/src/components/shared/shell-organism/useViewportGuard.test.ts::no auto-restore on viewport grow"
+          - "vitalia/frontend/src/components/shared/shell-organism/useViewportGuard.test.ts::no-op when viewport < 768 (mobile delegate)"
+          - "vitalia/frontend/src/components/shared/shell-organism/useViewportGuard.test.ts::cleanup removeEventListener + cancelAnimationFrame on unmount"
+    spec_anchor: "01-spec.md § 5 + § 8 responsive + 03-arch § 2.2 + § 2.6 + § 2.9"
+
+  # ──────────────────────────────────────────────────────────────
+  # T-4 — Route group [tenantId]/(shell-organism)/ + layout.tsx + page.tsx redirect
+  # ──────────────────────────────────────────────────────────────
+  - id: T-4
+    title: "Route group app/[tenantId]/(shell-organism)/{layout,page}.tsx + redirect /lisa/marca"
+    state: ready
+    surface: frontend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: true
+    estimated_loc: 50
+    estimated_hours: 1
+    files:
+      new:
+        - vitalia/frontend/src/app/[tenantId]/(shell-organism)/layout.tsx
+        - vitalia/frontend/src/app/[tenantId]/(shell-organism)/page.tsx
+      modify: []
+      delete: []
+    depends_on: [T-3]
+    acceptance:
+      validator_ids: [val-fe-tsc, val-fe-lint]
+    gherkin_coverage:
+      - scenario: "SC-1 happy · navega a /{tenantId} → redirect a /{tenantId}/lisa/marca"
+        tests:
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-shell-layout-5050/render-agentic-default.spec.ts::redirect to /lisa/marca"
+        note: "Functional E2E test belongs T-7. T-4 entrega solo el código (redirect Server) — E2E lo valida cross-stack."
+      - scenario: "SC-1 happy · layout.tsx propaga tenantId param a ShellOrganismLayout"
+        tests:
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-shell-layout-5050/render-agentic-default.spec.ts::ShellOrganismLayout mounted con tenantId URL"
+    spec_anchor: "01-spec.md § 1 + § 6 default landing + 03-arch § 2.1"
+
+  # ──────────────────────────────────────────────────────────────
+  # T-5 — ShellModeToggle disabled chip placeholder
+  # ──────────────────────────────────────────────────────────────
+  - id: T-5
+    title: "ShellModeToggle disabled chip (Client) montado overlay TopBar dentro ShellOrganismLayout"
+    state: ready
+    surface: frontend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: true
+    estimated_loc: 60
+    estimated_hours: 1
+    files:
+      new:
+        - vitalia/frontend/src/components/shared/shell-organism/ShellModeToggle.tsx
+        - vitalia/frontend/src/components/shared/shell-organism/ShellModeToggle.test.tsx
+      modify:
+        - vitalia/frontend/src/components/shared/shell-organism/ShellOrganismLayout.tsx  # mount overlay sibling (NO modify TopBarGlobal)
+      delete: []
+    depends_on: [T-3]
+    acceptance:
+      validator_ids: [val-fe-tsc, val-fe-lint, val-fe-vitest-unit]
+    gherkin_coverage:
+      - scenario: "SC-1 happy · ShellModeToggle visible disabled showing 'Agéntico' label"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/ShellModeToggle.test.tsx::renders 'Agéntico' label when shellMode='agentic'"
+          - "vitalia/frontend/src/components/shared/shell-organism/ShellModeToggle.test.tsx::renders 'Web' label when shellMode='web'"
+          - "vitalia/frontend/src/components/shared/shell-organism/ShellModeToggle.test.tsx::disabled attribute + aria-disabled='true'"
+          - "vitalia/frontend/src/components/shared/shell-organism/ShellModeToggle.test.tsx::data-testid='shell-mode-toggle'"
+      - scenario: "SC-4 adversarial · disabled prevents interaction, aria-label dynamic"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/ShellModeToggle.test.tsx::aria-label='Modo de shell: agéntico activo'"
+          - "vitalia/frontend/src/components/shared/shell-organism/ShellModeToggle.test.tsx::click events not fired when disabled"
+    spec_anchor: "01-spec.md § 5 (ShellModeToggle disabled placeholder F1-S4) + 03-arch § 2.7"
+
+  # ──────────────────────────────────────────────────────────────
+  # T-6 — Vitest aggregate + arch tests new (skip-link target, shell-store schema, no-cross-brand mirror)
+  # ──────────────────────────────────────────────────────────────
+  - id: T-6
+    title: "Vitest aggregate run + 3 NEW arch tests (skip-link target · shell-store schema · no-cross-brand-mirror)"
+    state: ready
+    surface: frontend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: false  # tests-only
+    estimated_loc: 150
+    estimated_hours: 2
+    files:
+      new:
+        - vitalia/frontend/src/__tests__/architecture/test-skip-link-target.test.ts
+        - vitalia/frontend/src/__tests__/architecture/test-shell-store-schema.test.ts
+        - vitalia/frontend/src/__tests__/architecture/test-no-cross-brand-shell-mirror.test.ts
+      modify:
+        - vitalia/frontend/src/__tests__/architecture/test-fsd-imports.test.ts          # extend allowlist (shrink only — agregar shell-organism new files si necesario)
+        - vitalia/frontend/src/__tests__/architecture/test-no-default-export.test.ts    # extend allowlist (shrink only)
+      delete: []
+    depends_on: [T-1, T-2, T-3, T-5]
+    acceptance:
+      validator_ids: [val-fe-arch-skip-link, val-fe-arch-shell-store, val-fe-arch-no-cross-brand-mirror, val-fe-arch-fsd, val-fe-arch-no-default-export, val-fe-vitest-unit]
+    gherkin_coverage:
+      - scenario: "SC-4 adversarial · skip-link target invariant"
+        tests:
+          - "vitalia/frontend/src/__tests__/architecture/test-skip-link-target.test.ts::ShellOrganismLayout contains main id='main-content'"
+          - "vitalia/frontend/src/__tests__/architecture/test-skip-link-target.test.ts::main has tabIndex=-1"
+      - scenario: "(architectural) shell-store schema cementado DC §6.1"
+        tests:
+          - "vitalia/frontend/src/__tests__/architecture/test-shell-store-schema.test.ts::exports ValeriaState union 'collapsed'|'rail'|'full'"
+          - "vitalia/frontend/src/__tests__/architecture/test-shell-store-schema.test.ts::exports ShellMode union 'agentic'|'web'"
+          - "vitalia/frontend/src/__tests__/architecture/test-shell-store-schema.test.ts::SHELL_STORAGE_KEY equals 'vitalia-shell-state'"
+      - scenario: "(architectural) anti-duplication cross-brand mirror = 0"
+        tests:
+          - "vitalia/frontend/src/__tests__/architecture/test-no-cross-brand-shell-mirror.test.ts::no matches for ShellOrganismLayout in nicolify/comunify/lupulo"
+          - "vitalia/frontend/src/__tests__/architecture/test-no-cross-brand-shell-mirror.test.ts::no matches for shell-store across brands"
+    spec_anchor: "03-arch § 3.8 architectural_validation + 04-validators.yaml § architectural_validation"
+
+  # ──────────────────────────────────────────────────────────────
+  # T-7 — Playwright E2E (4 functional specs) + visual goldens (6 PNGs) + POM + fixtures
+  # ──────────────────────────────────────────────────────────────
+  - id: T-7
+    title: "Playwright POM ShellLayoutPage + shell-theme fixture + 4 functional E2E specs + 6 visual goldens"
+    state: ready
+    surface: frontend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: false  # tests-only
+    estimated_loc: 480
+    estimated_hours: 4
+    files:
+      new:
+        - vitalia/frontend/e2e/pages/ShellLayoutPage.ts
+        - vitalia/frontend/e2e/fixtures/shell-theme.fixture.ts
+        - vitalia/frontend/e2e/regression/vitalia-fase1-shell-layout-5050/render-agentic-default.spec.ts
+        - vitalia/frontend/e2e/regression/vitalia-fase1-shell-layout-5050/mobile-collapse.spec.ts
+        - vitalia/frontend/e2e/regression/vitalia-fase1-shell-layout-5050/resize-and-state.spec.ts
+        - vitalia/frontend/e2e/regression/vitalia-fase1-shell-layout-5050/a11y-keyboard.spec.ts
+        - vitalia/frontend/e2e/regression/vitalia-fase1-shell-layout-5050/visual-goldens.spec.ts
+        - vitalia/frontend/e2e/__screenshots__/shell-layout-5050/agentic-1280x800-light.png         # iter 1 --update-snapshots post Chris ratify
+        - vitalia/frontend/e2e/__screenshots__/shell-layout-5050/agentic-1280x800-dark.png
+        - vitalia/frontend/e2e/__screenshots__/shell-layout-5050/agentic-rail-1280x800.png
+        - vitalia/frontend/e2e/__screenshots__/shell-layout-5050/web-1280x800-light.png
+        - vitalia/frontend/e2e/__screenshots__/shell-layout-5050/web-1280x800-dark.png
+        - vitalia/frontend/e2e/__screenshots__/shell-layout-5050/agentic-mobile-375x667.png
+      modify: []
+      delete: []
+    depends_on: [T-4, T-5, T-6]
+    acceptance:
+      validator_ids:
+        - val-fe-e2e-render-agentic-default
+        - val-fe-e2e-mobile-collapse
+        - val-fe-e2e-resize-and-state
+        - val-fe-e2e-a11y-keyboard
+        - val-fe-axe
+        - val-fe-visual-agentic-light
+        - val-fe-visual-agentic-dark
+        - val-fe-visual-agentic-rail
+        - val-fe-visual-web-light
+        - val-fe-visual-web-dark
+        - val-fe-visual-mobile
+    gherkin_coverage:
+      - scenario: "SC-1 happy · render 50/50 default modo agentic"
+        tests:
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-shell-layout-5050/render-agentic-default.spec.ts::redirect /lisa/marca executed"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-shell-layout-5050/render-agentic-default.spec.ts::TopBar 48px visible top"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-shell-layout-5050/render-agentic-default.spec.ts::ValeriaSlot >= 620px width default 'full'"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-shell-layout-5050/render-agentic-default.spec.ts::AppSlot >= 480px width"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-shell-layout-5050/render-agentic-default.spec.ts::resize handle visible aria-orientation='vertical'"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-shell-layout-5050/render-agentic-default.spec.ts::localStorage 'vitalia-shell-state' shellMode='agentic'"
+      - scenario: "SC-2 negative · viewport < md (375x667) colapsa a 1 columna"
+        tests:
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-shell-layout-5050/mobile-collapse.spec.ts::resize handle display:none mobile"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-shell-layout-5050/mobile-collapse.spec.ts::ValeriaSlot oculto mobile"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-shell-layout-5050/mobile-collapse.spec.ts::AppSlot 100% viewport mobile"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-shell-layout-5050/mobile-collapse.spec.ts::no overflow horizontal"
+      - scenario: "SC-3 edge · resize boundary clamp + persistencia + snap-up por state change"
+        tests:
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-shell-layout-5050/resize-and-state.spec.ts::drag handle left below 620 clamped"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-shell-layout-5050/resize-and-state.spec.ts::localStorage vitalia-shell-split-agentic persists post-drag"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-shell-layout-5050/resize-and-state.spec.ts::state full->rail no auto-shrink current width"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-shell-layout-5050/resize-and-state.spec.ts::state rail->full at width 400 snap-up to 620"
+      - scenario: "SC-4 adversarial · a11y keyboard nav + axe wcag2aa"
+        tests:
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-shell-layout-5050/a11y-keyboard.spec.ts::Tab order LogoMark→ThemeToggle→TenantSwitcher→main"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-shell-layout-5050/a11y-keyboard.spec.ts::resize handle focusable tabindex='0'"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-shell-layout-5050/a11y-keyboard.spec.ts::ArrowLeft/ArrowRight step 16px on focused handle"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-shell-layout-5050/a11y-keyboard.spec.ts::skip-link 'Saltar al contenido' focuses main#main-content @axe"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-shell-layout-5050/a11y-keyboard.spec.ts::axe wcag2aa passes light theme"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-shell-layout-5050/a11y-keyboard.spec.ts::axe wcag2aa passes dark theme"
+      - scenario: "(visual) goldens 6 PNGs match mockups"
+        tests:
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-shell-layout-5050/visual-goldens.spec.ts::agentic light 1280x800 matches"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-shell-layout-5050/visual-goldens.spec.ts::agentic dark 1280x800 matches"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-shell-layout-5050/visual-goldens.spec.ts::agentic rail 1280x800 matches"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-shell-layout-5050/visual-goldens.spec.ts::web light 1280x800 matches"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-shell-layout-5050/visual-goldens.spec.ts::web dark 1280x800 matches"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-shell-layout-5050/visual-goldens.spec.ts::agentic mobile 375x667 matches"
+    spec_anchor: "01-spec.md § 2 (Gherkin) + § 10 visual goldens + 03-arch § 3"
+    notes: |
+      Iter 1 visual goldens generation: builder T-7 monta mockups en
+      `python3 -m http.server 8888 vitalia/docs/product/stories/vitalia-fase1-shell-layout-5050/mockups/`
+      side-by-side con componente real `localhost:3002`. Solo cuando Chris valida
+      side-by-side OK, builder corre `--update-snapshots --project=visual`.
+      Post-ratify, PNGs committeados + ratchet shrink-only enforced.
+      Si Chris encuentra diferencia visual blocking → STOP, fix componente
+      (no actualizar mockup salvo nueva ratificación visual dedicated).
+
+# ════════════════════════════════════════════════════════════════════
+# Cross-stack handoff notes (1 surface FE only — sin BE/AGENTIC)
+# ════════════════════════════════════════════════════════════════════
+cross_stack_handoff:
+  - "FE only story — no BE or AGENTIC surface."
+  - "Tenant isolation upstream: middleware Clerk + auth verifica tenantId pertenece al user antes que esta ruta renderice. F1-S4 confía en eso (out-of-scope FE)."
+  - "Default redirect /{tenantId}/lisa/marca asume F1-S9 (routing-shell) deployará `[agent]/[subtab]/page.tsx` — F1-S4 puede 404 al final del redirect chain hasta F1-S9. SC-1 igual valida el redirect emitido (status 307 navegacional)."
+  - "Visual goldens iter 1 requiere Chris side-by-side ratificación dedicated MOMENTO antes de --update-snapshots. PM /pm-vitalia coordina con Chris en checkpoint developed→reviewing handoff."
+
+# ════════════════════════════════════════════════════════════════════
+# DAG dependency graph (visualization)
+# ════════════════════════════════════════════════════════════════════
+dag:
+  description: |
+    T-1 (store) ────┐
+    T-2 (slots) ────┼──> T-3 (layout + viewport guard + resize) ──┐
+                                                                   ├──> T-4 (route + redirect) ──┐
+                                                                   │                              ├──> T-7 (Playwright E2E + visual)
+                                                                   ├──> T-5 (mode toggle)  ──────┤
+                                                                                                   │
+                                                                   └──> T-6 (vitest aggregate + arch tests) ──┘
+
+# ════════════════════════════════════════════════════════════════════
+# Total estimate
+# ════════════════════════════════════════════════════════════════════
+total_estimated_hours: 13   # 1 + 1 + 3 + 1 + 1 + 2 + 4
+total_estimated_loc: 1140   # 80 + 80 + 240 + 50 + 60 + 150 + 480
+coherent_with_checkpoint_estimated_dev_days: "1-2 days OK (13h / 8h workday ≈ 1.6 días)"

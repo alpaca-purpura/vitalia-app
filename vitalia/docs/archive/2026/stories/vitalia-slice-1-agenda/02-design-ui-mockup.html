@@ -1,0 +1,566 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Vitalia · /agenda — mockup v1 Batch 4</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    :root {
+      --vitalia-cian: 198 99% 49%;
+      --vitalia-purpura: 287 53% 37%;
+      --vitalia-amarillo: 53 99% 51%;
+      --vitalia-azul-marino: 244 84% 32%;
+      --vitalia-verde-lima: 70 73% 51%;
+      --vitalia-bg: 220 28% 98%;
+      --vitalia-surface: 0 0% 100%;
+      --vitalia-surface-alt: 220 38% 98%;
+      --vitalia-muted: 220 33% 96%;
+      --vitalia-text: 226 36% 16%;
+      --vitalia-text-muted: 220 9% 46%;
+      --vitalia-text-faint: 220 9% 65%;
+      --vitalia-border: 222 18% 93%;
+      --vitalia-border-soft: 220 25% 96%;
+      --vitalia-success: 142 76% 36%;
+      --vitalia-warning: 33 91% 44%;
+      --vitalia-danger: 0 73% 50%;
+      --vitalia-info: 199 89% 48%;
+    }
+    body { font-family: 'Inter', system-ui, sans-serif; background: hsl(var(--vitalia-bg)); color: hsl(var(--vitalia-text)); }
+    .grad-valeria { background: linear-gradient(135deg, #01B2F8 0%, #7B2D91 100%); }
+    .grad-adrian  { background: linear-gradient(135deg, #7B2D91 0%, #180D95 100%); }
+    .grad-lucas   { background: linear-gradient(135deg, #B8DC2A 0%, #01B2F8 100%); }
+    .slot-paid       { background: linear-gradient(135deg, hsl(var(--vitalia-success) / 0.12), hsl(var(--vitalia-success) / 0.04)); border-left: 3px solid hsl(var(--vitalia-success)); }
+    .slot-deposit    { background: linear-gradient(135deg, hsl(var(--vitalia-cian) / 0.12), hsl(var(--vitalia-cian) / 0.04)); border-left: 3px solid hsl(var(--vitalia-cian)); }
+    .slot-pending    { background: linear-gradient(135deg, hsl(var(--vitalia-warning) / 0.12), hsl(var(--vitalia-warning) / 0.04)); border-left: 3px solid hsl(var(--vitalia-warning)); }
+    .slot-no-show    { background: linear-gradient(135deg, hsl(var(--vitalia-danger) / 0.12), hsl(var(--vitalia-danger) / 0.04)); border-left: 3px solid hsl(var(--vitalia-danger)); }
+    .slot-selected   { box-shadow: 0 0 0 2px hsl(var(--vitalia-azul-marino) / 0.5); }
+    .agenda-grid { display: grid; grid-template-columns: 56px repeat(6, 1fr); }
+    .hour-cell { font-size: 10px; color: hsl(var(--vitalia-text-faint)); border-top: 1px solid hsl(var(--vitalia-border-soft)); padding: 2px 6px; min-height: 56px; }
+    .slot-cell { border-top: 1px solid hsl(var(--vitalia-border-soft)); border-right: 1px solid hsl(var(--vitalia-border-soft)); min-height: 56px; padding: 2px; cursor: pointer; }
+    .slot-cell:hover { background: hsl(var(--vitalia-surface-alt)); }
+    .day-header { font-size: 11px; font-weight: 600; text-align: center; padding: 8px 6px; color: hsl(var(--vitalia-text-muted)); text-transform: uppercase; letter-spacing: 0.04em; }
+    .day-header.today { color: hsl(var(--vitalia-azul-marino)); }
+    .day-header.today .day-num { color: hsl(var(--vitalia-cian)); }
+    .day-num { font-size: 16px; font-weight: 700; color: hsl(var(--vitalia-text)); display: block; margin-top: 2px; }
+    .pill { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; font-size: 10px; font-weight: 600; }
+  </style>
+</head>
+<body class="min-h-screen">
+  <!-- Header explainer mockup -->
+  <div class="px-4 py-2 bg-[hsl(var(--vitalia-azul-marino))] text-white text-[11px] flex items-center justify-between">
+    <span>📐 <strong>Mockup Vitalia · /agenda v1 Batch 4 (ratificado 2026-05-17)</strong> · estado success seleccionado — clic en slots NO navega (mockup estático)</span>
+    <span class="opacity-70">8 estados visuales documentados en spec · ver §§§ Estados visuales</span>
+  </div>
+
+  <!-- App shell -->
+  <div class="h-[940px] grid" style="grid-template-columns: 240px 1fr 280px 80px;">
+    <!-- Sidebar 240 -->
+    <aside class="bg-white border-r border-[hsl(var(--vitalia-border))] flex flex-col">
+      <!-- TopBar fragment -->
+      <div class="h-14 px-4 flex items-center gap-2 border-b border-[hsl(var(--vitalia-border))]">
+        <div class="w-7 h-7 rounded grad-valeria flex items-center justify-center text-white font-bold text-[11px]">V</div>
+        <span class="font-bold text-[hsl(var(--vitalia-azul-marino))] text-sm">Vitalia</span>
+      </div>
+      <!-- Clinic switcher -->
+      <div class="px-4 py-3 border-b border-[hsl(var(--vitalia-border-soft))]">
+        <div class="text-[10px] text-[hsl(var(--vitalia-text-muted))] uppercase tracking-wide mb-1">Clínica</div>
+        <button class="w-full text-left flex items-center justify-between px-2 py-1.5 rounded hover:bg-[hsl(var(--vitalia-muted))]">
+          <span class="text-xs font-semibold text-[hsl(var(--vitalia-text))]">Dental Sonríe</span>
+          <i data-lucide="chevron-down" class="w-3 h-3 text-[hsl(var(--vitalia-text-muted))]"></i>
+        </button>
+      </div>
+      <!-- Nav primario -->
+      <nav class="flex-1 px-2 py-3 space-y-1 overflow-auto">
+        <a class="flex items-center gap-2.5 px-3 py-2 rounded text-sm text-[hsl(var(--vitalia-text-muted))] hover:bg-[hsl(var(--vitalia-bg))]">
+          <i data-lucide="message-square" class="w-4 h-4"></i><span>Inbox</span>
+          <span class="ml-auto pill bg-[hsl(var(--vitalia-danger)/0.12)] text-[hsl(var(--vitalia-danger))]">3</span>
+        </a>
+        <a class="flex items-center gap-2.5 px-3 py-2 rounded text-sm text-[hsl(var(--vitalia-text-muted))] hover:bg-[hsl(var(--vitalia-bg))]">
+          <i data-lucide="layout-grid" class="w-4 h-4"></i><span>Pipeline</span>
+        </a>
+        <a class="flex items-center gap-2.5 px-3 py-2 rounded text-sm font-semibold text-[hsl(var(--vitalia-azul-marino))] bg-gradient-to-r from-[hsl(var(--vitalia-cian)/0.10)] to-transparent border-l-[3px] border-[hsl(var(--vitalia-cian))] pl-[9px]">
+          <i data-lucide="calendar-days" class="w-4 h-4"></i><span>Agenda</span>
+        </a>
+        <a class="flex items-center gap-2.5 px-3 py-2 rounded text-sm text-[hsl(var(--vitalia-text-muted))] hover:bg-[hsl(var(--vitalia-bg))]">
+          <i data-lucide="heart-handshake" class="w-4 h-4"></i><span>Fidelización</span>
+        </a>
+        <a class="flex items-center gap-2.5 px-3 py-2 rounded text-sm text-[hsl(var(--vitalia-text-muted))] hover:bg-[hsl(var(--vitalia-bg))]">
+          <i data-lucide="bar-chart-3" class="w-4 h-4"></i><span>Marketing</span>
+        </a>
+        <div class="h-px bg-[hsl(var(--vitalia-border-soft))] my-3"></div>
+        <a class="flex items-center gap-2.5 px-3 py-2 rounded text-sm text-[hsl(var(--vitalia-text-muted))] hover:bg-[hsl(var(--vitalia-bg))]">
+          <i data-lucide="users" class="w-4 h-4"></i><span>CRM</span>
+        </a>
+        <a class="flex items-center gap-2.5 px-3 py-2 rounded text-sm text-[hsl(var(--vitalia-text-muted))] hover:bg-[hsl(var(--vitalia-bg))]">
+          <i data-lucide="stethoscope" class="w-4 h-4"></i><span>Tratamientos</span>
+        </a>
+        <a class="flex items-center gap-2.5 px-3 py-2 rounded text-sm text-[hsl(var(--vitalia-text-muted))] hover:bg-[hsl(var(--vitalia-bg))]">
+          <i data-lucide="package" class="w-4 h-4"></i><span>Ofertas</span>
+        </a>
+        <div class="h-px bg-[hsl(var(--vitalia-border-soft))] my-3"></div>
+        <a class="flex items-center gap-2.5 px-3 py-2 rounded text-sm text-[hsl(var(--vitalia-text-muted))] hover:bg-[hsl(var(--vitalia-bg))]">
+          <i data-lucide="layout-dashboard" class="w-4 h-4"></i><span>Dashboard</span>
+        </a>
+        <a class="flex items-center gap-2.5 px-3 py-2 rounded text-sm text-[hsl(var(--vitalia-text-muted))] hover:bg-[hsl(var(--vitalia-bg))]">
+          <i data-lucide="settings" class="w-4 h-4"></i><span>Configuración</span>
+        </a>
+      </nav>
+      <!-- User badge -->
+      <div class="border-t border-[hsl(var(--vitalia-border))] px-3 py-2.5 flex items-center gap-2">
+        <div class="w-7 h-7 rounded-full bg-[hsl(var(--vitalia-azul-marino))] text-white text-[11px] font-bold flex items-center justify-center">CM</div>
+        <div class="flex-1 min-w-0">
+          <div class="text-xs font-semibold truncate">Carla M.</div>
+          <div class="text-[10px] text-[hsl(var(--vitalia-text-muted))]">Recepción</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN /agenda -->
+    <main class="flex flex-col overflow-hidden">
+      <!-- TopBar 56 -->
+      <header class="h-14 bg-white border-b border-[hsl(var(--vitalia-border))] px-4 flex items-center gap-4">
+        <h1 class="text-base font-semibold text-[hsl(var(--vitalia-azul-marino))]">Agenda</h1>
+        <span class="text-xs text-[hsl(var(--vitalia-text-muted))]">Tus turnos del día + cobranza</span>
+        <div class="ml-auto flex items-center gap-3">
+          <button class="text-xs text-[hsl(var(--vitalia-text-muted))] hover:text-[hsl(var(--vitalia-text))] flex items-center gap-1.5 px-2 py-1 rounded hover:bg-[hsl(var(--vitalia-muted))]">
+            <i data-lucide="search" class="w-3.5 h-3.5"></i><span>⌘K</span>
+          </button>
+          <button class="relative w-8 h-8 rounded hover:bg-[hsl(var(--vitalia-muted))] flex items-center justify-center">
+            <i data-lucide="bell" class="w-4 h-4 text-[hsl(var(--vitalia-text-muted))]"></i>
+            <span class="absolute top-1 right-1 w-2 h-2 rounded-full bg-[hsl(var(--vitalia-danger))]"></span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Toolbar Agenda -->
+      <div class="bg-white border-b border-[hsl(var(--vitalia-border))] px-4 py-3 space-y-3">
+        <div class="flex items-center justify-between gap-3 flex-wrap">
+          <div class="flex items-center gap-2">
+            <button class="w-7 h-7 rounded hover:bg-[hsl(var(--vitalia-muted))] flex items-center justify-center">
+              <i data-lucide="chevron-left" class="w-4 h-4"></i>
+            </button>
+            <div class="text-sm font-semibold text-[hsl(var(--vitalia-text))]">Semana 19–25 May 2026</div>
+            <button class="w-7 h-7 rounded hover:bg-[hsl(var(--vitalia-muted))] flex items-center justify-center">
+              <i data-lucide="chevron-right" class="w-4 h-4"></i>
+            </button>
+            <div class="ml-3 flex items-center bg-[hsl(var(--vitalia-muted))] rounded p-0.5 text-xs">
+              <button class="px-3 py-1 rounded text-[hsl(var(--vitalia-text-muted))]">Día</button>
+              <button class="px-3 py-1 rounded bg-white text-[hsl(var(--vitalia-azul-marino))] font-semibold shadow-sm">Semana</button>
+              <button class="px-3 py-1 rounded text-[hsl(var(--vitalia-text-muted))]">Mes</button>
+            </div>
+            <button class="ml-2 px-3 py-1 text-xs rounded border border-[hsl(var(--vitalia-border))] text-[hsl(var(--vitalia-text))] hover:bg-[hsl(var(--vitalia-muted))] flex items-center gap-1">
+              <i data-lucide="calendar" class="w-3 h-3"></i> Hoy
+            </button>
+          </div>
+          <div class="relative">
+            <button class="bg-[hsl(var(--vitalia-azul-marino))] text-white text-xs font-semibold px-4 py-2 rounded hover:bg-[hsl(var(--vitalia-purpura))] flex items-center gap-2">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i> Crear cita
+              <i data-lucide="chevron-down" class="w-3 h-3"></i>
+            </button>
+            <!-- Pseudo dropdown shown for mockup -->
+            <div class="absolute top-full right-0 mt-1 w-64 bg-white rounded-lg border border-[hsl(var(--vitalia-border))] shadow-lg p-1 z-10">
+              <button class="w-full text-left px-3 py-2 rounded hover:bg-[hsl(var(--vitalia-muted))] flex items-start gap-2.5">
+                <span class="text-base">🚶</span>
+                <div>
+                  <div class="text-xs font-semibold text-[hsl(var(--vitalia-text))]">Walk-in</div>
+                  <div class="text-[10px] text-[hsl(var(--vitalia-text-muted))]">Presente ahora</div>
+                </div>
+              </button>
+              <button class="w-full text-left px-3 py-2 rounded hover:bg-[hsl(var(--vitalia-muted))] flex items-start gap-2.5">
+                <span class="text-base">📞</span>
+                <div>
+                  <div class="text-xs font-semibold text-[hsl(var(--vitalia-text))]">Reserva por teléfono</div>
+                  <div class="text-[10px] text-[hsl(var(--vitalia-text-muted))]">Fecha futura</div>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+        <!-- Filters row -->
+        <div class="flex items-center gap-2 flex-wrap text-xs">
+          <div class="flex items-center gap-1.5 px-2.5 py-1.5 rounded border border-[hsl(var(--vitalia-border))] bg-white">
+            <i data-lucide="search" class="w-3 h-3 text-[hsl(var(--vitalia-text-muted))]"></i>
+            <input placeholder="Buscar paciente" class="bg-transparent outline-none text-xs w-32" />
+          </div>
+          <button class="px-2.5 py-1.5 rounded border border-[hsl(var(--vitalia-border))] bg-white flex items-center gap-1.5">
+            <i data-lucide="stethoscope" class="w-3 h-3 text-[hsl(var(--vitalia-text-muted))]"></i>
+            <span>Doctor:</span><span class="font-semibold">Todos</span>
+            <i data-lucide="chevron-down" class="w-3 h-3"></i>
+          </button>
+          <button class="px-2.5 py-1.5 rounded border border-[hsl(var(--vitalia-border))] bg-white flex items-center gap-1.5">
+            <span>Especialidad:</span><span class="font-semibold">Todas</span>
+            <i data-lucide="chevron-down" class="w-3 h-3"></i>
+          </button>
+          <button class="px-2.5 py-1.5 rounded border border-[hsl(var(--vitalia-border))] bg-white flex items-center gap-1.5">
+            <span>Status pago:</span><span class="font-semibold">Todos</span>
+            <i data-lucide="chevron-down" class="w-3 h-3"></i>
+          </button>
+          <label class="px-2.5 py-1.5 rounded border border-[hsl(var(--vitalia-border-soft))] bg-[hsl(var(--vitalia-muted))] flex items-center gap-1.5 cursor-pointer">
+            <input type="checkbox" class="w-3 h-3" /> <span>Solo riesgo no-show</span>
+          </label>
+          <label class="px-2.5 py-1.5 rounded border border-[hsl(var(--vitalia-border-soft))] bg-[hsl(var(--vitalia-muted))] flex items-center gap-1.5 cursor-pointer">
+            <input type="checkbox" class="w-3 h-3" /> <span>Solo walk-in</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Calendar grid Semana -->
+      <div class="flex-1 overflow-auto bg-[hsl(var(--vitalia-surface-alt))]">
+        <div class="agenda-grid bg-white sticky top-0 z-10 border-b border-[hsl(var(--vitalia-border))]">
+          <div class="day-header"></div>
+          <div class="day-header">Lun <span class="day-num">19</span></div>
+          <div class="day-header today">Mar <span class="day-num">20</span></div>
+          <div class="day-header">Mié <span class="day-num">21</span></div>
+          <div class="day-header">Jue <span class="day-num">22</span></div>
+          <div class="day-header">Vie <span class="day-num">23</span></div>
+          <div class="day-header">Sáb <span class="day-num">24</span></div>
+        </div>
+
+        <div class="agenda-grid bg-white">
+          <!-- 08h row -->
+          <div class="hour-cell">08:00</div>
+          <div class="slot-cell"></div>
+          <div class="slot-cell"></div>
+          <div class="slot-cell"></div>
+          <div class="slot-cell"></div>
+          <div class="slot-cell"></div>
+          <div class="slot-cell"></div>
+
+          <!-- 09h row -->
+          <div class="hour-cell">09:00</div>
+          <div class="slot-cell">
+            <div class="slot-paid h-full rounded-r p-1.5 text-[11px]">
+              <div class="flex items-center justify-between mb-0.5">
+                <strong class="font-semibold text-[hsl(var(--vitalia-text))] truncate">M. Rodríguez</strong>
+                <span class="pill bg-[hsl(var(--vitalia-success)/0.18)] text-[hsl(var(--vitalia-success))]">✓ PAGADO</span>
+              </div>
+              <div class="text-[10px] text-[hsl(var(--vitalia-text-muted))]">Limpieza · Dr. Mendoza</div>
+            </div>
+          </div>
+          <div class="slot-cell"></div>
+          <div class="slot-cell">
+            <div class="slot-deposit h-full rounded-r p-1.5 text-[11px]">
+              <div class="flex items-center justify-between mb-0.5">
+                <strong class="font-semibold text-[hsl(var(--vitalia-text))] truncate">S. López</strong>
+                <span class="pill bg-[hsl(var(--vitalia-cian)/0.18)] text-[hsl(var(--vitalia-cian))]">30%</span>
+              </div>
+              <div class="text-[10px] text-[hsl(var(--vitalia-text-muted))]">Blanqueamiento · Dra. Soto</div>
+            </div>
+          </div>
+          <div class="slot-cell"></div>
+          <div class="slot-cell"></div>
+          <div class="slot-cell"></div>
+
+          <!-- 10h row -->
+          <div class="hour-cell">10:00</div>
+          <div class="slot-cell"></div>
+          <div class="slot-cell">
+            <!-- SELECTED slot -->
+            <div class="slot-deposit slot-selected h-full rounded-r p-1.5 text-[11px]">
+              <div class="flex items-center justify-between mb-0.5">
+                <strong class="font-semibold text-[hsl(var(--vitalia-text))] truncate">J. Pérez</strong>
+                <span class="pill bg-[hsl(var(--vitalia-cian)/0.18)] text-[hsl(var(--vitalia-cian))]">30%</span>
+              </div>
+              <div class="text-[10px] text-[hsl(var(--vitalia-text-muted))]">Consulta · Dr. Mendoza · 10:30</div>
+            </div>
+          </div>
+          <div class="slot-cell"></div>
+          <div class="slot-cell">
+            <div class="slot-pending h-full rounded-r p-1.5 text-[11px]">
+              <div class="flex items-center justify-between mb-0.5">
+                <div class="flex items-center gap-1 min-w-0">
+                  <strong class="font-semibold text-[hsl(var(--vitalia-text))] truncate">A. Ruiz</strong>
+                  <span title="Walk-in" class="text-[9px]">🚶</span>
+                </div>
+                <span class="pill bg-[hsl(var(--vitalia-warning)/0.18)] text-[hsl(var(--vitalia-warning))]">SIN PAGO</span>
+              </div>
+              <div class="text-[10px] text-[hsl(var(--vitalia-text-muted))]">Consulta · Dr. Mendoza</div>
+            </div>
+          </div>
+          <div class="slot-cell"></div>
+          <div class="slot-cell">
+            <div class="slot-pending h-full rounded-r p-1.5 text-[11px]">
+              <div class="flex items-center justify-between mb-0.5">
+                <div class="flex items-center gap-1 min-w-0">
+                  <strong class="font-semibold text-[hsl(var(--vitalia-text))] truncate">L. Vega</strong>
+                  <span title="Phone manual" class="text-[9px]">📞</span>
+                </div>
+                <span class="pill bg-[hsl(var(--vitalia-warning)/0.18)] text-[hsl(var(--vitalia-warning))]">SIN PAGO</span>
+              </div>
+              <div class="text-[10px] text-[hsl(var(--vitalia-text-muted))]">Limpieza · Dra. Soto</div>
+            </div>
+          </div>
+
+          <!-- 11h row -->
+          <div class="hour-cell">11:00</div>
+          <div class="slot-cell">
+            <div class="slot-paid h-full rounded-r p-1.5 text-[11px]">
+              <div class="flex items-center justify-between mb-0.5">
+                <strong class="font-semibold text-[hsl(var(--vitalia-text))] truncate">P. Sosa</strong>
+                <span class="pill bg-[hsl(var(--vitalia-success)/0.18)] text-[hsl(var(--vitalia-success))]">✓ PAGADO</span>
+              </div>
+              <div class="text-[10px] text-[hsl(var(--vitalia-text-muted))]">Endodoncia · Dr. Mendoza</div>
+            </div>
+          </div>
+          <div class="slot-cell"></div>
+          <div class="slot-cell"></div>
+          <div class="slot-cell"></div>
+          <div class="slot-cell">
+            <div class="slot-deposit h-full rounded-r p-1.5 text-[11px]">
+              <div class="flex items-center justify-between mb-0.5">
+                <div class="flex items-center gap-1 min-w-0">
+                  <strong class="font-semibold text-[hsl(var(--vitalia-text))] truncate">M. Díaz</strong>
+                  <span title="Proactive outbound" class="text-[9px]">✉</span>
+                </div>
+                <span class="pill bg-[hsl(var(--vitalia-cian)/0.18)] text-[hsl(var(--vitalia-cian))]">30%</span>
+              </div>
+              <div class="text-[10px] text-[hsl(var(--vitalia-text-muted))]">Blanqueamiento · Dra. Soto</div>
+            </div>
+          </div>
+          <div class="slot-cell"></div>
+
+          <!-- 12h row -->
+          <div class="hour-cell">12:00</div>
+          <div class="slot-cell"></div>
+          <div class="slot-cell"></div>
+          <div class="slot-cell">
+            <div class="slot-deposit h-full rounded-r p-1.5 text-[11px]">
+              <div class="flex items-center justify-between mb-0.5">
+                <strong class="font-semibold text-[hsl(var(--vitalia-text))] truncate">R. Cruz</strong>
+                <span class="pill bg-[hsl(var(--vitalia-cian)/0.18)] text-[hsl(var(--vitalia-cian))]">30%</span>
+              </div>
+              <div class="text-[10px] text-[hsl(var(--vitalia-text-muted))]">Consulta · Dr. Mendoza · 12:30</div>
+            </div>
+          </div>
+          <div class="slot-cell"></div>
+          <div class="slot-cell"></div>
+          <div class="slot-cell"></div>
+
+          <!-- 13h row -->
+          <div class="hour-cell">13:00</div>
+          <div class="slot-cell"></div>
+          <div class="slot-cell"></div>
+          <div class="slot-cell"></div>
+          <div class="slot-cell"></div>
+          <div class="slot-cell"></div>
+          <div class="slot-cell"></div>
+
+          <!-- 14h row -->
+          <div class="hour-cell">14:00</div>
+          <div class="slot-cell"></div>
+          <div class="slot-cell">
+            <div class="slot-no-show h-full rounded-r p-1.5 text-[11px]">
+              <div class="flex items-center justify-between mb-0.5">
+                <strong class="font-semibold text-[hsl(var(--vitalia-text))] truncate">C. Núñez</strong>
+                <span class="pill bg-[hsl(var(--vitalia-danger)/0.18)] text-[hsl(var(--vitalia-danger))]">⚠ NO-SHOW</span>
+              </div>
+              <div class="text-[10px] text-[hsl(var(--vitalia-text-muted))]">Consulta · Dr. Mendoza · histórico 2 faltas</div>
+            </div>
+          </div>
+          <div class="slot-cell"></div>
+          <div class="slot-cell"></div>
+          <div class="slot-cell"></div>
+          <div class="slot-cell"></div>
+
+          <!-- 15h row -->
+          <div class="hour-cell">15:00</div>
+          <div class="slot-cell"></div>
+          <div class="slot-cell"></div>
+          <div class="slot-cell"></div>
+          <div class="slot-cell"></div>
+          <div class="slot-cell"></div>
+          <div class="slot-cell"></div>
+        </div>
+      </div>
+
+      <!-- Legend + activity footer -->
+      <div class="border-t border-[hsl(var(--vitalia-border))] bg-white px-4 py-2 flex items-center justify-between text-[11px]">
+        <div class="flex items-center gap-4 flex-wrap">
+          <span class="text-[hsl(var(--vitalia-text-muted))] font-semibold uppercase tracking-wide text-[9px]">Leyenda</span>
+          <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-[hsl(var(--vitalia-success)/0.5)] border-l-2 border-[hsl(var(--vitalia-success))]"></span>Pagado</span>
+          <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-[hsl(var(--vitalia-cian)/0.5)] border-l-2 border-[hsl(var(--vitalia-cian))]"></span>30% depósito</span>
+          <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-[hsl(var(--vitalia-warning)/0.5)] border-l-2 border-[hsl(var(--vitalia-warning))]"></span>Sin pago</span>
+          <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-[hsl(var(--vitalia-danger)/0.5)] border-l-2 border-[hsl(var(--vitalia-danger))]"></span>No-show riesgo</span>
+          <span class="flex items-center gap-1.5">🚶 walk-in · 📞 phone · ✉ proactiva</span>
+        </div>
+        <div class="text-[hsl(var(--vitalia-text-muted))] italic">
+          <span class="font-semibold text-[hsl(var(--vitalia-azul-marino))]">Adrián</span> propuso 4 turnos hoy · 3 sin pago ·
+          <span class="font-semibold text-[hsl(var(--vitalia-azul-marino))]">Lucas</span>: 3 leads listos
+        </div>
+      </div>
+    </main>
+
+    <!-- ContactSidebar 280 (slot J. Pérez seleccionado) -->
+    <aside class="bg-white border-l border-[hsl(var(--vitalia-border))] flex flex-col overflow-auto">
+      <div class="px-4 py-3 border-b border-[hsl(var(--vitalia-border))] flex items-center justify-between">
+        <button class="text-[hsl(var(--vitalia-text-muted))] hover:text-[hsl(var(--vitalia-text))] text-xs flex items-center gap-1">
+          <i data-lucide="x" class="w-3.5 h-3.5"></i> Cerrar
+        </button>
+        <button class="text-[hsl(var(--vitalia-text-muted))] hover:text-[hsl(var(--vitalia-text))] w-7 h-7 rounded hover:bg-[hsl(var(--vitalia-muted))] flex items-center justify-center">
+          <i data-lucide="more-horizontal" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Patient header (PHI masked default) -->
+      <div class="px-4 py-4 flex items-start gap-3 border-b border-[hsl(var(--vitalia-border-soft))]">
+        <div class="w-10 h-10 rounded-full bg-[hsl(var(--vitalia-muted))] text-[hsl(var(--vitalia-azul-marino))] font-bold text-sm flex items-center justify-center">JP</div>
+        <div class="flex-1 min-w-0">
+          <div class="text-sm font-semibold text-[hsl(var(--vitalia-text))]">J. Pérez</div>
+          <div class="text-[11px] text-[hsl(var(--vitalia-text-muted))] flex items-center gap-1.5 mt-0.5">
+            <i data-lucide="phone" class="w-3 h-3"></i>+51 9** ***-4567
+            <button class="ml-1 text-[hsl(var(--vitalia-cian))] hover:underline text-[10px]">🔓</button>
+          </div>
+          <div class="text-[11px] text-[hsl(var(--vitalia-text-muted))] flex items-center gap-1.5 mt-0.5">
+            <i data-lucide="mail" class="w-3 h-3"></i>j***@gmail.com
+            <button class="ml-1 text-[hsl(var(--vitalia-cian))] hover:underline text-[10px]">🔓</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Turno detail -->
+      <div class="px-4 py-3 border-b border-[hsl(var(--vitalia-border-soft))]">
+        <div class="text-[10px] font-bold tracking-wide uppercase text-[hsl(var(--vitalia-text-muted))] mb-2">Turno · MAR 20 MAY 10:30</div>
+        <dl class="space-y-1.5 text-xs">
+          <div class="flex justify-between"><dt class="text-[hsl(var(--vitalia-text-muted))]">Servicio</dt><dd class="font-medium">Consulta general</dd></div>
+          <div class="flex justify-between"><dt class="text-[hsl(var(--vitalia-text-muted))]">Doctor</dt><dd class="font-medium">Dr. C. Mendoza</dd></div>
+          <div class="flex justify-between"><dt class="text-[hsl(var(--vitalia-text-muted))]">Status pago</dt><dd><span class="pill bg-[hsl(var(--vitalia-cian)/0.18)] text-[hsl(var(--vitalia-cian))]">30% DEPÓSITO</span></dd></div>
+          <div class="flex justify-between"><dt class="text-[hsl(var(--vitalia-text-muted))]">Pagado</dt><dd class="font-medium">$24 / $80 PEN</dd></div>
+          <div class="flex justify-between"><dt class="text-[hsl(var(--vitalia-text-muted))]">Saldo presencial</dt><dd class="font-bold text-[hsl(var(--vitalia-azul-marino))]">$56 PEN</dd></div>
+        </dl>
+      </div>
+
+      <!-- Actions header -->
+      <div class="px-4 py-3 border-b border-[hsl(var(--vitalia-border-soft))]">
+        <div class="text-[10px] font-bold tracking-wide uppercase text-[hsl(var(--vitalia-text-muted))] mb-2">Acciones</div>
+
+        <!-- Payment subform EXPANDED inline (mockup) -->
+        <div class="border border-[hsl(var(--vitalia-cian))] bg-[hsl(var(--vitalia-cian)/0.04)] rounded-lg p-3 space-y-2.5">
+          <div class="flex items-center justify-between">
+            <div class="text-xs font-semibold text-[hsl(var(--vitalia-azul-marino))]">💳 Cobrar saldo</div>
+            <button class="text-[hsl(var(--vitalia-text-muted))] text-[11px] hover:underline">Cancelar</button>
+          </div>
+
+          <div>
+            <label class="text-[10px] text-[hsl(var(--vitalia-text-muted))] uppercase tracking-wide font-semibold">Monto</label>
+            <div class="flex items-center gap-2 mt-1">
+              <input value="$56.00 PEN" class="flex-1 text-sm font-semibold px-2 py-1 border border-[hsl(var(--vitalia-border))] rounded outline-none focus:border-[hsl(var(--vitalia-cian))]" />
+              <button class="text-[10px] text-[hsl(var(--vitalia-cian))] hover:underline">Editar</button>
+            </div>
+          </div>
+
+          <div>
+            <label class="text-[10px] text-[hsl(var(--vitalia-text-muted))] uppercase tracking-wide font-semibold">Método</label>
+            <div class="mt-1 space-y-1.5 text-xs">
+              <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="method" checked class="text-[hsl(var(--vitalia-cian))]" />Efectivo</label>
+              <label class="flex items-center gap-2 cursor-pointer text-[hsl(var(--vitalia-text-muted))]"><input type="radio" name="method" />Tarjeta (manual)</label>
+              <label class="flex items-center gap-2 cursor-pointer text-[hsl(var(--vitalia-text-muted))]"><input type="radio" name="method" />Transferencia</label>
+              <label class="flex items-center gap-2 cursor-pointer text-[hsl(var(--vitalia-text-muted))]"><input type="radio" name="method" />Mercado Pago (manual)</label>
+              <label class="flex items-center gap-2 cursor-pointer text-[hsl(var(--vitalia-text-muted))]"><input type="radio" name="method" />Otro</label>
+            </div>
+          </div>
+
+          <div>
+            <label class="text-[10px] text-[hsl(var(--vitalia-text-muted))] uppercase tracking-wide font-semibold">Notas (opcional)</label>
+            <textarea rows="2" placeholder="Referencia, autorización, etc." class="w-full text-xs px-2 py-1 border border-[hsl(var(--vitalia-border))] rounded outline-none focus:border-[hsl(var(--vitalia-cian))] mt-1"></textarea>
+          </div>
+
+          <!-- Capa 2 fiscal toggle (mockup feature flag ON) -->
+          <div class="border-t border-[hsl(var(--vitalia-border-soft))] pt-2.5">
+            <div class="flex items-center gap-1.5 text-[10px] font-bold tracking-wide uppercase text-[hsl(var(--vitalia-text-muted))] mb-1.5">
+              <i data-lucide="receipt" class="w-3 h-3"></i> ¿Emitir comprobante fiscal? <span class="text-[hsl(var(--vitalia-success))] font-normal normal-case">· Nubefact PE conectado</span>
+            </div>
+            <div class="space-y-1 text-xs">
+              <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="fiscal" checked class="text-[hsl(var(--vitalia-cian))]" />Sí, Boleta electrónica (B/V)</label>
+              <label class="flex items-center gap-2 cursor-pointer text-[hsl(var(--vitalia-text-muted))]"><input type="radio" name="fiscal" />Sí, Factura con RUC (F/V)</label>
+              <label class="flex items-center gap-2 cursor-pointer text-[hsl(var(--vitalia-text-muted))]"><input type="radio" name="fiscal" />No, solo recibo interno</label>
+            </div>
+          </div>
+
+          <button class="w-full bg-[hsl(var(--vitalia-azul-marino))] text-white text-xs font-semibold py-2 rounded hover:bg-[hsl(var(--vitalia-purpura))] flex items-center justify-center gap-2">
+            <i data-lucide="check" class="w-3.5 h-3.5"></i> Confirmar cobro
+          </button>
+        </div>
+
+        <!-- Other actions -->
+        <div class="mt-3 space-y-1.5">
+          <button class="w-full text-left text-xs px-2.5 py-2 rounded hover:bg-[hsl(var(--vitalia-muted))] flex items-center gap-2">
+            <i data-lucide="bell-ring" class="w-3.5 h-3.5 text-[hsl(var(--vitalia-warning))]"></i>
+            <span>Recordar pago pendiente</span>
+            <span class="ml-auto text-[10px] text-[hsl(var(--vitalia-text-faint))]">Último: hace 2h</span>
+          </button>
+          <button class="w-full text-left text-xs px-2.5 py-2 rounded hover:bg-[hsl(var(--vitalia-muted))] flex items-center gap-2">
+            <i data-lucide="calendar-clock" class="w-3.5 h-3.5 text-[hsl(var(--vitalia-cian))]"></i>
+            <span>Reagendar</span>
+          </button>
+          <button class="w-full text-left text-xs px-2.5 py-2 rounded hover:bg-[hsl(var(--vitalia-muted))] flex items-center gap-2 text-[hsl(var(--vitalia-danger))]">
+            <i data-lucide="x-circle" class="w-3.5 h-3.5"></i>
+            <span>Cancelar turno</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Historial -->
+      <div class="px-4 py-3 border-b border-[hsl(var(--vitalia-border-soft))]">
+        <div class="text-[10px] font-bold tracking-wide uppercase text-[hsl(var(--vitalia-text-muted))] mb-2">Historial de este turno</div>
+        <div class="space-y-2.5 text-[11px]">
+          <div class="flex gap-2 items-start">
+            <div class="w-6 h-6 rounded-full grad-adrian text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0">A</div>
+            <div>
+              <div><span class="font-semibold text-[hsl(var(--vitalia-azul-marino))]">Adrián</span> propuso turno</div>
+              <div class="text-[hsl(var(--vitalia-text-muted))] italic">"Sugiero martes 9:00 o 10:30"</div>
+              <div class="text-[10px] text-[hsl(var(--vitalia-text-faint))]">15 May · 14:23</div>
+            </div>
+          </div>
+          <div class="flex gap-2 items-start">
+            <div class="w-6 h-6 rounded-full bg-[hsl(var(--vitalia-success))] text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0">✓</div>
+            <div>
+              <div>Paciente confirmó <span class="text-[hsl(var(--vitalia-text-muted))]">por WhatsApp</span></div>
+              <div class="text-[hsl(var(--vitalia-text-muted))] italic">"Perfecto, el martes 10:30"</div>
+              <div class="text-[10px] text-[hsl(var(--vitalia-text-faint))]">15 May · 14:45</div>
+            </div>
+          </div>
+          <div class="flex gap-2 items-start">
+            <div class="w-6 h-6 rounded-full bg-[hsl(var(--vitalia-cian))] text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0">$</div>
+            <div>
+              <div>Depósito 30% recibido</div>
+              <div class="text-[hsl(var(--vitalia-text-muted))]">$24 PEN · Mercado Pago · ref MP-9842</div>
+              <div class="text-[10px] text-[hsl(var(--vitalia-text-faint))]">15 May · 14:46</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Open conversation cross-link -->
+      <div class="px-4 py-3 mt-auto border-t border-[hsl(var(--vitalia-border))]">
+        <button class="w-full text-xs font-semibold px-3 py-2 rounded border border-[hsl(var(--vitalia-cian))] text-[hsl(var(--vitalia-azul-marino))] hover:bg-[hsl(var(--vitalia-cian)/0.05)] flex items-center justify-center gap-2">
+          <i data-lucide="message-square" class="w-3.5 h-3.5"></i> Abrir conversación
+          <i data-lucide="external-link" class="w-3 h-3"></i>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Copilot rail Valeria 80 -->
+    <aside class="bg-white border-l border-[hsl(var(--vitalia-border))] flex flex-col items-center py-4 gap-3">
+      <div class="w-12 h-12 rounded-full grad-valeria text-white font-bold flex items-center justify-center text-base shadow-md">V</div>
+      <div class="text-[10px] font-semibold text-[hsl(var(--vitalia-azul-marino))]">Valeria</div>
+      <div class="text-[9px] text-center text-[hsl(var(--vitalia-text-muted))] px-2 leading-tight">"¿Te ayudo con la cobranza?"</div>
+      <button class="mt-2 w-9 h-9 rounded-full bg-[hsl(var(--vitalia-muted))] hover:bg-[hsl(var(--vitalia-cian)/0.15)] flex items-center justify-center">
+        <i data-lucide="message-circle-plus" class="w-4 h-4 text-[hsl(var(--vitalia-cian))]"></i>
+      </button>
+    </aside>
+  </div>
+
+  <!-- Footer notes -->
+  <footer class="border-t border-[hsl(var(--vitalia-border))] bg-white px-4 py-3 text-[11px] text-[hsl(var(--vitalia-text-muted))] flex items-center justify-between gap-4 flex-wrap">
+    <div><strong>Mockup:</strong> estado <code>success</code> · J. Pérez slot seleccionado abriendo subform Cobrar saldo inline en ContactSidebar (Capa 1 + Capa 2 feature flag Nubefact PE ON)</div>
+    <div class="flex gap-3">
+      <span>📐 Layout = Propuesta C operación · cementado Batch 1</span>
+      <span>· 4 origins · 3 capas cobranza · 5 Extension SDK registries plugin-ready</span>
+    </div>
+  </footer>
+
+  <script>lucide.createIcons();</script>
+</body>
+</html>

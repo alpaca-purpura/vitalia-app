@@ -1,0 +1,243 @@
+<!doctype html>
+<!-- voseo-allowed: mockup interno de diseño, no es código de producto -->
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mockup FINAL · shell-valeria-responsive (puntos 1-7)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  /* Tokens portados VERBATIM de vitalia/frontend/src/app/globals.css (no inventar) */
+  :root{
+    --background:0 0% 100%; --foreground:240 10% 4%;
+    --card:0 0% 100%; --card-foreground:240 10% 4%;
+    --primary:198 99% 49%; --primary-foreground:0 0% 100%;
+    --secondary:240 5% 96%; --secondary-foreground:240 6% 10%;
+    --muted:240 5% 96%; --muted-foreground:240 4% 46%;
+    --accent:287 53% 37%; --accent-foreground:0 0% 100%;
+    --border:240 6% 90%; --input:240 6% 90%; --ring:198 99% 49%;
+    --agent-valeria:287 53% 37%; --agent-valeria-soft:287 53% 90%;
+    --agent-lisa:156 100% 41%; --agent-adrian:198 99% 49%;
+  }
+  .dark{
+    --background:240 10% 4%; --foreground:0 0% 98%;
+    --card:240 8% 8%; --card-foreground:0 0% 98%;
+    --primary:198 99% 49%; --primary-foreground:240 10% 4%;
+    --secondary:240 4% 16%; --secondary-foreground:0 0% 98%;
+    --muted:240 4% 16%; --muted-foreground:240 5% 65%;
+    --accent:287 53% 50%; --accent-foreground:0 0% 98%;
+    --border:240 4% 20%; --input:240 4% 20%;
+    --agent-valeria:287 53% 50%; --agent-valeria-soft:287 40% 25%;
+  }
+  body{background:hsl(var(--background));color:hsl(var(--foreground));font-family:ui-sans-serif,system-ui,sans-serif;}
+  .bg-card{background:hsl(var(--card));} .bd{border-color:hsl(var(--border));}
+  .text-muted{color:hsl(var(--muted-foreground));} .bg-muted{background:hsl(var(--muted));}
+  .bg-val{background:hsl(var(--agent-valeria));} .bg-valsoft{background:hsl(var(--agent-valeria-soft));}
+  .text-val{color:hsl(var(--agent-valeria));}
+  .bg-primary{background:hsl(var(--primary));} .text-primary{color:hsl(var(--primary));}
+  .logo-grad{background:linear-gradient(135deg,hsl(var(--primary)),hsl(var(--accent)));-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:800;}
+  .panel{transition:width .22s cubic-bezier(.2,.8,.2,1), flex-basis .22s;}
+  .scrn{outline:1px dashed hsl(var(--border));}
+</style>
+</head>
+<body class="p-4">
+
+<div class="max-w-[1400px] mx-auto">
+  <!-- Controles del mockup (NO son parte del shell) -->
+  <div class="flex flex-wrap items-center gap-2 mb-3 text-xs">
+    <span class="font-semibold">Estado Valeria:</span>
+    <button onclick="setState('A')" class="state-btn px-2.5 py-1 rounded-md bd border" data-s="A">A · Cerrada</button>
+    <button onclick="setState('B')" class="state-btn px-2.5 py-1 rounded-md bd border" data-s="B">B · Chat (default)</button>
+    <button onclick="setState('C')" class="state-btn px-2.5 py-1 rounded-md bd border" data-s="C">C · +Historial (empuja)</button>
+    <span class="mx-2 opacity-40">|</span>
+    <span class="font-semibold">Viewport:</span>
+    <button onclick="setVp(1280)" class="vp-btn px-2.5 py-1 rounded-md bd border" data-v="1280">1280 desktop</button>
+    <button onclick="setVp(1100)" class="vp-btn px-2.5 py-1 rounded-md bd border" data-v="1100">1100 angosto</button>
+    <button onclick="setVp(800)" class="vp-btn px-2.5 py-1 rounded-md bd border" data-v="800">800 tablet</button>
+    <span class="mx-2 opacity-40">|</span>
+    <button onclick="document.documentElement.classList.toggle('dark')" class="px-2.5 py-1 rounded-md bd border">🌙 dark</button>
+    <button onclick="setN3('dir')" class="px-2.5 py-1 rounded-md bd border">N3: directorio</button>
+    <button onclick="setN3('ws')" class="px-2.5 py-1 rounded-md bd border">N3: workspace</button>
+  </div>
+
+  <!-- ════════════ SHELL ════════════ -->
+  <div id="shell" class="bg-card border bd rounded-lg overflow-hidden shadow-sm mx-auto" style="width:1280px;">
+    <!-- TOPBAR (punto 1: sin chip web/agéntico · punto 2: switcher al extremo derecho) -->
+    <header class="h-12 border-b bd flex items-center justify-between px-5">
+      <div class="flex items-center gap-3">
+        <button id="burger" class="hidden text-muted">☰</button>
+        <span class="logo-grad text-base">Vitalia</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <button class="h-8 w-8 grid place-items-center rounded-md bg-muted text-muted" title="Tema">🌙</button>
+        <!-- ★ punto 2: switcher de tenant pegado al extremo derecho, después del tema -->
+        <button class="h-8 flex items-center gap-1.5 rounded-md border bd px-2.5 text-xs font-medium">
+          <span class="h-4 w-4 grid place-items-center rounded bg-valsoft text-val text-[10px] font-bold">S</span>
+          Clínica Sanaré <span class="text-muted">▾</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- BODY: [tira/valeria/historial] + agente -->
+    <div id="body" class="flex h-[460px]">
+      <!-- A · TIRA FINA · reabrir = clic en la IMAGEN de Valeria (punto 1 Chris) · atractivo -->
+      <div id="strip" class="hidden shrink-0 w-12 border-r bd flex-col items-center pt-3 gap-1 bg-valsoft">
+        <button onclick="setState('B')" title="Abrir a Valeria" class="group flex flex-col items-center gap-1.5">
+          <span class="relative h-9 w-9 grid place-items-center rounded-full bg-val text-white text-sm font-bold shadow-md ring-2 ring-transparent group-hover:ring-[hsl(var(--agent-valeria))] group-hover:scale-105 transition">
+            V
+            <span class="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-green-500 border-2" style="border-color:hsl(var(--agent-valeria-soft))"></span>
+          </span>
+          <span class="text-[10px] font-semibold text-val [writing-mode:vertical-rl] rotate-180">Valeria</span>
+        </button>
+      </div>
+
+      <!-- HISTORIAL (estado C · ancho FIJO ~260px · empuja) -->
+      <aside id="history" class="hidden shrink-0 w-[260px] border-r bd flex-col bg-card">
+        <div class="h-11 flex items-center justify-between px-3 border-b bd text-xs font-semibold">
+          Historial
+          <button onclick="setState('B')" class="text-muted" title="Cerrar historial">✕</button>
+        </div>
+        <div id="histList" class="p-2 space-y-1 text-xs">
+          <div class="px-2 py-1.5 rounded bg-valsoft text-val">Reagendar a Sra. Díaz</div>
+          <div class="px-2 py-1.5 rounded hover:bg-muted">Confirmar turno implante</div>
+          <div class="px-2 py-1.5 rounded hover:bg-muted">Seguimiento post-blanqueo</div>
+          <div class="px-2 py-1.5 rounded hover:bg-muted">Cotización ortodoncia</div>
+        </div>
+      </aside>
+
+      <!-- VALERIA (chat · resizable · default 30%) -->
+      <section id="valeria" class="panel shrink-0 border-r bd flex flex-col bg-card" style="width:30%;">
+        <!-- cabecera Valeria con su PROPIO botón de colapsar (punto 6/9) -->
+        <div class="h-11 flex items-center justify-between px-3 border-b bd">
+          <div class="flex items-center gap-2">
+            <span class="h-6 w-6 grid place-items-center rounded-full bg-val text-white text-[11px] font-bold">V</span>
+            <span class="text-sm font-semibold">Valeria</span>
+            <span class="h-1.5 w-1.5 rounded-full bg-green-500" title="en línea"></span>
+          </div>
+          <div class="flex items-center gap-1">
+            <button onclick="newConv()" class="h-7 w-7 grid place-items-center rounded-md hover:bg-muted text-muted text-base" title="Nueva conversación (limpia el chat; la actual va al historial)">+</button>
+            <button onclick="toggleHistory()" id="histBtn" class="h-7 w-7 grid place-items-center rounded-md hover:bg-muted text-muted" title="Historial">◷</button>
+            <button onclick="setState('A')" class="h-7 w-7 grid place-items-center rounded-md hover:bg-muted text-muted" title="Colapsar Valeria">⟨</button>
+          </div>
+        </div>
+        <div id="chatBody" class="flex-1 p-3 space-y-2 text-xs overflow-auto">
+          <div class="max-w-[85%] rounded-lg bg-muted px-3 py-2">Hola, soy Valeria. ¿Te ayudo con la agenda de hoy?</div>
+          <div class="max-w-[85%] ml-auto rounded-lg bg-valsoft text-val px-3 py-2">Reagendá el turno de las 3pm</div>
+        </div>
+        <div class="p-2 border-t bd">
+          <div class="h-9 rounded-md border bd flex items-center px-3 text-xs text-muted">Escribí a Valeria… <span class="ml-auto">⌘K</span></div>
+        </div>
+      </section>
+
+      <!-- AGENTE (sub-tab · ~70% · contenido representativo: N3 list/detail) -->
+      <main id="agent" class="flex-1 min-w-0 flex flex-col">
+        <!-- ribbon + subtabs (referencia, no cambian) -->
+        <div class="h-9 border-b bd flex items-center gap-3 px-4 text-xs text-muted">
+          <span class="text-val font-semibold">Lisa</span><span>Mateo</span><span>Adrián</span><span>Lucas</span><span>Camila</span>
+        </div>
+        <div class="h-9 border-b bd flex items-center gap-3 px-4 text-xs">
+          <span class="font-medium" style="color:hsl(var(--agent-lisa))">Staff</span>
+          <span class="text-muted">Marca</span><span class="text-muted">Servicios</span>
+        </div>
+
+        <!-- N3-dynamic list/detail (punto 7 · EntityWorkspaceLayout) -->
+        <!-- DIRECTORIO -->
+        <div id="n3-dir" class="flex-1 p-4 overflow-auto">
+          <div class="text-sm font-semibold mb-3">Staff de la clínica</div>
+          <div class="space-y-1.5 text-sm">
+            <div onclick="setN3('ws')" class="flex items-center justify-between px-3 py-2 rounded-md border bd hover:bg-muted cursor-pointer">
+              <span class="flex items-center gap-2"><span class="h-6 w-6 rounded-full bg-muted grid place-items-center text-[10px]">DP</span> Dra. Pérez</span>
+              <span class="text-xs text-green-600">Activa</span>
+            </div>
+            <div class="flex items-center justify-between px-3 py-2 rounded-md border bd">
+              <span class="flex items-center gap-2"><span class="h-6 w-6 rounded-full bg-muted grid place-items-center text-[10px]">DG</span> Dr. Gómez</span>
+              <span class="text-xs text-green-600">Activo</span>
+            </div>
+            <div class="flex items-center justify-between px-3 py-2 rounded-md border bd">
+              <span class="flex items-center gap-2"><span class="h-6 w-6 rounded-full bg-muted grid place-items-center text-[10px]">DR</span> Dra. Ruiz</span>
+              <span class="text-xs text-muted">Inactiva</span>
+            </div>
+          </div>
+        </div>
+        <!-- WORKSPACE (EntitySubNavBar) -->
+        <div id="n3-ws" class="hidden flex-1 flex flex-col">
+          <div class="h-10 border-b bd flex items-center gap-3 px-4 text-xs" role="tablist">
+            <button onclick="setN3('dir')" class="text-muted hover:text-foreground">‹ Staff</button>
+            <span class="flex items-center gap-1.5 font-medium"><span class="h-5 w-5 rounded-full bg-muted grid place-items-center text-[9px]">DP</span> Dra. Pérez</span>
+            <span class="mx-1 opacity-30">|</span>
+            <button class="px-2 py-1 rounded bg-valsoft text-val font-medium">Perfil</button>
+            <button class="px-2 py-1 rounded hover:bg-muted text-muted">Horarios</button>
+            <button class="px-2 py-1 rounded hover:bg-muted text-muted">Servicios</button>
+          </div>
+          <div class="flex-1 p-4 text-sm text-muted">Contenido del leaf activo (Perfil de Dra. Pérez)…</div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <p class="text-xs text-muted mt-3 max-w-[1280px] mx-auto">
+    Mockup FINAL · puntos 1-7. Tokens portados de <code>globals.css</code>. Probá: estados A/B/C (historial EMPUJA al agente, ancho fijo 260px),
+    viewport 800 (drawer · agente full), N3 directorio↔workspace (EntityWorkspaceLayout). Dark mode = wrapper OK (el fix de dark mode es story hermana, fuera de scope).
+  </p>
+</div>
+
+<script>
+  let st='B', vp=1280, n3='dir';
+  function render(){
+    const shell=document.getElementById('shell');
+    const strip=document.getElementById('strip'), hist=document.getElementById('history'),
+          val=document.getElementById('valeria'), agent=document.getElementById('agent'),
+          burger=document.getElementById('burger'), body=document.getElementById('body');
+    shell.style.width=vp+'px';
+    document.querySelectorAll('.state-btn').forEach(b=>b.style.background=b.dataset.s===st?'hsl(var(--agent-valeria-soft))':'');
+    document.querySelectorAll('.vp-btn').forEach(b=>b.style.background=+b.dataset.v===vp?'hsl(var(--muted))':'');
+    const tablet = vp<1024;
+    // reset
+    strip.classList.add('hidden'); strip.classList.remove('flex');
+    hist.classList.add('hidden'); hist.classList.remove('flex');
+    val.classList.remove('hidden');
+    burger.classList.toggle('hidden', !tablet);
+    if(tablet){
+      // <1024: Valeria drawer → agente full (mockup: ocultamos panel inline)
+      val.classList.add('hidden'); strip.classList.add('hidden');
+    } else if(st==='A'){
+      val.classList.add('hidden');
+      strip.classList.remove('hidden'); strip.classList.add('flex');
+    } else {
+      // B o C: Valeria visible, clamp min 320 en angosto
+      val.style.width = vp<1280 ? '320px' : '30%';
+      if(st==='C'){ hist.classList.remove('hidden'); hist.classList.add('flex'); }
+    }
+    // N3
+    document.getElementById('n3-dir').classList.toggle('hidden', n3!=='dir');
+    document.getElementById('n3-ws').classList.toggle('hidden', n3!=='ws');
+    document.getElementById('n3-ws').classList.toggle('flex', n3==='ws');
+  }
+  function setState(s){st=s;render();}
+  function setVp(v){vp=v;render();}
+  function setN3(n){n3=n;render();}
+  function toggleHistory(){ st = st==='C' ? 'B' : 'C'; render(); }
+  // "+" nueva conversación (punto 2 Chris): la conversación actual va al HISTORIAL + el chat se limpia a estado vacío
+  let convN=1;
+  function newConv(){
+    const list=document.getElementById('histList');
+    const item=document.createElement('div');
+    item.className='px-2 py-1.5 rounded bg-valsoft text-val';
+    item.textContent='Conversación reagendar #'+convN; convN++;
+    list.prepend(item);
+    document.getElementById('chatBody').innerHTML=
+      '<div class="h-full flex flex-col items-center justify-center text-center gap-1 text-muted">'+
+      '<span class="h-9 w-9 grid place-items-center rounded-full bg-valsoft text-val font-bold">V</span>'+
+      '<p class="text-xs">Nueva conversación</p><p class="text-[10px]">La anterior quedó guardada en el historial.</p></div>';
+    toast('Nueva conversación · la anterior fue al historial');
+  }
+  function toast(msg){
+    const t=document.createElement('div');
+    t.className='fixed bottom-4 left-1/2 -translate-x-1/2 bg-card border bd rounded-md px-3 py-2 text-xs shadow-lg';
+    t.textContent=msg; document.body.appendChild(t);
+    setTimeout(()=>t.remove(),1800);
+  }
+  render();
+</script>
+</body>
+</html>

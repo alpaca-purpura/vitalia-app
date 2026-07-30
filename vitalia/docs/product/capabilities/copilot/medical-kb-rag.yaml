@@ -1,0 +1,105 @@
+---
+capability_id: vitalia-medical-kb-rag
+module: copilot
+slug: medical-kb-rag
+status: deprecated
+date_introduced: 2026-05-15
+story_introduced: luana-vitalia-bootstrap
+package_version: 0.1.0
+package_path: vitalia/backend/src/modules/vitalia/copilot/kb
+license: proprietary
+
+# v3 cement 2026-05-27 · 4 dimensiones + dev_preview (ADR-vitalia-005)
+tech_module: copilot
+agent_owner: motor-agentico
+functional_area: motor-agentico.copilot
+user_visible: false
+nature: extension-point
+ui_paradigm: slice-1-superseded  # T-3 reconcile 2026-05-29
+
+user_facing_name: "Knowledge base RAG médica"
+user_facing_description: >
+  Sistema de recuperación de conocimiento médico (RAG) respaldado por Qdrant con
+  filtrado por tenant. Indexa guías clínicas, protocolos y respuestas frecuentes
+  en tres especialidades (odontología, psicología, psiquiatría). Los agentes
+  consultan este repositorio antes de responder para fundamentar sus respuestas
+  en contenido médico validado.
+
+dev_preview:
+  route: null
+  how_to_navigate: "BE-only · ver via tests de integración en vitalia/backend/tests/agentic_evals/kb_packs/"
+  main_component: null
+  api_endpoints: []
+  e2e_test: null
+  fixtures_required: []
+  storybook_url: null
+  loom_demo: null
+
+# Capability ledger v2 (cement 2026-05-27)
+created_in_story: luana-vitalia-bootstrap   # v2 cement · mirror of story_introduced
+created_date: 2026-05-15   # v2 cement · mirror of date_introduced
+last_modified: 2026-05-29   # T-3 reconcile 2026-05-29
+parent_cap: null   # v2 cement · mirror of extends_capability
+derives_capabilities: []   # v2 cement · initial empty list
+
+# Capability ledger v2 (cement 2026-05-27)
+
+# Capability change log v2 (cement 2026-05-27)
+change_log:
+  - story_id: vitalia-bootstrap-inventory-2026-05-15
+    date: 2026-05-15
+    type: new
+    summary: "Implementación inicial · migración legacy a schema v2"
+    merge_sha: null
+    status: done
+map_box: motor-agentico
+
+---
+
+# vitalia-medical-kb-rag
+
+3 KB packs médicos con Qdrant tenant-filtering: dental (~150 chunks procedures/materials/recovery/Q&A/complications), psychology (~200 chunks + crisis boundary protocol), psychiatry (131 chunks + forced disclaimer top-1 en cada respuesta). Registrados vía Extension SDK EP-14.
+
+## Surface
+
+### KB Packs (`vitalia/backend/src/modules/vitalia/copilot/kb/`)
+
+- **`medical_kb_dental_v1/`** — 150 chunks
+  - `manifest.yaml` (collection: vitalia_medical_kb_dental_v1, embedding text-embedding-3-large 1536, top_k 5, threshold 0.72)
+  - `01_procedures.md` · `02_materials.md` · `03_recovery.md` · `04_common_questions.md` · `05_complications.md`
+- **`medical_kb_psychology_v1/`** — ~200 chunks + crisis boundary (suicidal ideation → escalate)
+- **`medical_kb_psychiatry_v1/`** — 131 chunks + forced retrieval top-1 con disclaimer obligatorio ("consult licensed psychiatrist")
+
+### Config (`vitalia/config/brand.yaml`)
+
+```yaml
+medical_kb_packs: [medical_kb_dental_v1, medical_kb_psychology_v1, medical_kb_psychiatry_v1]
+```
+
+### Module registry (`vitalia/backend/src/modules/vitalia/copilot/`)
+
+- **`module_registry_entry.py`** — registra KB packs en copilot ModuleDescriptor
+
+## Test coverage
+
+- `vitalia/backend/tests/agentic_evals/kb_packs/test_medical_kb_dental_retrieval.py`
+- `vitalia/backend/tests/agentic_evals/kb_packs/test_medical_kb_psychology_boundary_chunks.py`
+- `vitalia/backend/tests/agentic_evals/kb_packs/test_medical_kb_psychiatry_forced_disclaimer.py`
+
+## Dependencies
+
+- `core/luana-core-platform` (Qdrant adapter + tenant filtering)
+- `core/luana-core-extension-sdk` EP-14 (KbPackDef registration)
+- `core/luana-core-copilot` (consumer del KB packs registrados)
+
+## Scenarios live
+
+- Consulta dental → recupera chunks dental KB tenant-filtered
+- Consulta psicología detecta patrón de crisis → protocolo de boundary disparado (escalate humano)
+- Consulta psiquiatría → siempre append disclaimer forzado ("consult licensed psychiatrist")
+- Tenant_scope: `brand` (chunks compartidos cross-tenant — referencia médica, NO PHI per-tenant)
+- Bump `version` field → reseed completo vía stable_id rotation
+
+## Referencias
+
+- Archive: `docs/archive/2026/snapshot-pre-multibrand-pm-redesign/capabilities/vitalia/medical-kb-rag.yaml`

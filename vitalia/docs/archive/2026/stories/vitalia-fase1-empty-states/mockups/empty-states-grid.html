@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="es-LA" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<title>F1-S10 — Empty States Grid (TOC navegable)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  :root {
+    --bg-app:#f8fafc; --bg-panel:#fff; --bg-elevated:#fff; --bg-hover:#f1f5f9;
+    --text-primary:#0f172a; --text-secondary:#475569; --text-muted:#94a3b8;
+    --border:#e2e8f0; --border-strong:#cbd5e1;
+    --c-lisa:#00D084; --c-lucas:#111; --c-adrian:#01b2f8; --c-valeria:#7b2d91; --c-camila:#180d95; --c-config:#64748b;
+    --c-lisa-soft:#d1fae8; --c-lucas-soft:#e5e7eb; --c-adrian-soft:#cef0fb; --c-valeria-soft:#ebd6f4; --c-camila-soft:#d4d0f5; --c-config-soft:#f1f5f9;
+    --shadow-sm:0 1px 2px rgba(0,0,0,.04); --shadow-md:0 4px 12px rgba(0,0,0,.08);
+  }
+  [data-theme="dark"] {
+    --bg-app:#0a0e1a; --bg-panel:#131927; --bg-elevated:#1c2333; --bg-hover:#1f2937;
+    --text-primary:#f1f5f9; --text-secondary:#cbd5e1; --text-muted:#64748b;
+    --border:#2a3344; --border-strong:#3b4659;
+    --c-lisa-soft:#064e3b; --c-lucas-soft:#374151; --c-adrian-soft:#075985; --c-valeria-soft:#581c87; --c-camila-soft:#312e81; --c-config-soft:#1f2937;
+  }
+  body { background: var(--bg-app); color: var(--text-primary); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  .panel { background: var(--bg-panel); border: 1px solid var(--border); }
+  .muted { color: var(--text-muted); }
+  .border-app { border-color: var(--border); }
+  .hover-bg:hover { background: var(--bg-hover); }
+  .shadow-sm-app { box-shadow: var(--shadow-sm); }
+  .shadow-md-app { box-shadow: var(--shadow-md); }
+  /* Agent colors */
+  .text-lisa { color: var(--c-lisa); } .bg-lisa-soft { background: var(--c-lisa-soft); } .ring-lisa { --tw-ring-color: var(--c-lisa); }
+  .text-lucas { color: var(--c-lucas); } .bg-lucas-soft { background: var(--c-lucas-soft); } .ring-lucas { --tw-ring-color: var(--c-lucas); }
+  .text-adrian { color: var(--c-adrian); } .bg-adrian-soft { background: var(--c-adrian-soft); } .ring-adrian { --tw-ring-color: var(--c-adrian); }
+  .text-valeria { color: var(--c-valeria); } .bg-valeria-soft { background: var(--c-valeria-soft); } .ring-valeria { --tw-ring-color: var(--c-valeria); }
+  .text-camila { color: var(--c-camila); } .bg-camila-soft { background: var(--c-camila-soft); } .ring-camila { --tw-ring-color: var(--c-camila); }
+  .text-config { color: var(--c-config); } .bg-config-soft { background: var(--c-config-soft); } .ring-config { --tw-ring-color: var(--c-config); }
+
+  .toggle-pill { display:inline-flex; background: var(--bg-hover); border-radius: 9999px; padding: 4px; gap: 4px; font-size: 13px; font-weight: 500; }
+  .toggle-pill-option { padding: 6px 14px; border-radius: 9999px; cursor: pointer; color: var(--text-secondary); transition: all .15s; user-select: none; }
+  .toggle-pill-option:hover { color: var(--text-primary); }
+  .toggle-pill-option.active { background: var(--bg-panel); color: var(--text-primary); box-shadow: var(--shadow-sm); }
+  [data-theme="dark"] .toggle-pill-option.active { background: var(--bg-elevated); }
+  .status-dot { width: 8px; height: 8px; border-radius: 9999px; display: inline-block; }
+  .ph-card { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 10px; padding: 14px; transition: all .15s; }
+  .ph-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+  .empty-state-icon { font-size: 40px; opacity: 0.5; }
+  .anchor-target { scroll-margin-top: 80px; }
+  .lead-card { background: var(--bg-app); border: 1px solid var(--border); border-radius: 8px; padding: 10px; font-size: 12px; }
+  [data-theme="dark"] .lead-card { background: var(--bg-elevated); }
+  .agenda-slot { border-left: 3px solid var(--border); padding: 4px 6px; font-size: 11px; min-height: 28px; background: var(--bg-app); }
+  [data-theme="dark"] .agenda-slot { background: var(--bg-elevated); }
+  .agenda-slot.paid { border-left-color: #10b981; }
+  .agenda-slot.deposit { border-left-color: #f59e0b; }
+  .agenda-slot.unpaid { border-left-color: #ef4444; }
+  .agenda-slot.noshow { border-left-color: #94a3b8; color: var(--text-muted); text-decoration: line-through; }
+</style>
+</head>
+<body class="min-h-screen">
+
+<!-- Sticky topbar -->
+<header class="sticky top-0 z-10 panel border-b border-app px-6 py-3 flex items-center justify-between">
+  <div class="flex items-center gap-3">
+    <div class="text-xl font-bold">Vitalia · F1-S10 Empty States Grid</div>
+    <span class="muted text-xs">TOC navegable — 22 sub-tabs</span>
+  </div>
+  <div class="flex items-center gap-3">
+    <select id="anchor-select" class="px-3 py-1.5 border border-app rounded-md text-sm bg-transparent">
+      <option value="">— ir a sub-tab —</option>
+      <optgroup label="Lisa (4)">
+        <option value="#lisa-marca">lisa/marca</option>
+        <option value="#lisa-doctores">lisa/doctores</option>
+        <option value="#lisa-servicios">lisa/servicios ★</option>
+        <option value="#lisa-compliance">lisa/compliance</option>
+      </optgroup>
+      <optgroup label="Lucas (5)">
+        <option value="#lucas-lanzar">lucas/lanzar</option>
+        <option value="#lucas-envuelo">lucas/envuelo</option>
+        <option value="#lucas-recursos">lucas/recursos</option>
+        <option value="#lucas-resultados">lucas/resultados</option>
+        <option value="#lucas-mercado">lucas/mercado</option>
+      </optgroup>
+      <optgroup label="Adrián (4)">
+        <option value="#adrian-inbox">adrian/inbox ★</option>
+        <option value="#adrian-embudo">adrian/embudo ★</option>
+        <option value="#adrian-outbound">adrian/outbound</option>
+        <option value="#adrian-propuestas">adrian/propuestas</option>
+      </optgroup>
+      <optgroup label="Valeria (2)">
+        <option value="#valeria-agenda">valeria/agenda ★</option>
+        <option value="#valeria-pacientes">valeria/pacientes</option>
+      </optgroup>
+      <optgroup label="Camila (4)">
+        <option value="#camila-voz">camila/voz ★</option>
+        <option value="#camila-reactivar">camila/reactivar</option>
+        <option value="#camila-multiplicar">camila/multiplicar</option>
+        <option value="#camila-reputacion">camila/reputacion</option>
+      </optgroup>
+      <optgroup label="Config (3)">
+        <option value="#config-cuenta">config/cuenta</option>
+        <option value="#config-conexiones">config/conexiones ★</option>
+        <option value="#config-avanzado">config/avanzado</option>
+      </optgroup>
+    </select>
+    <button onclick="toggleTheme()" class="px-3 py-1.5 border border-app rounded-md text-sm hover-bg">🌓</button>
+  </div>
+</header>
+
+<main class="max-w-7xl mx-auto px-6 py-6 space-y-10">
+
+  <!-- Intro -->
+  <section class="panel rounded-lg p-5">
+    <h1 class="text-lg font-semibold mb-2">F1-S10 — Empty States · 22 sub-tabs Fase 1</h1>
+    <p class="text-sm muted mb-3">★ = placeholder especial (mockup-parity vs dual-mode-shell.html). Resto = EmptyState genérico uniforme.</p>
+    <div class="flex flex-wrap gap-2 text-xs">
+      <span class="px-2.5 py-1 rounded-full bg-lisa-soft text-lisa">Lisa · 4 sub-tabs</span>
+      <span class="px-2.5 py-1 rounded-full bg-lucas-soft text-lucas">Lucas · 5 sub-tabs</span>
+      <span class="px-2.5 py-1 rounded-full bg-adrian-soft text-adrian">Adrián · 4 sub-tabs</span>
+      <span class="px-2.5 py-1 rounded-full bg-valeria-soft text-valeria">Valeria · 2 sub-tabs</span>
+      <span class="px-2.5 py-1 rounded-full bg-camila-soft text-camila">Camila · 4 sub-tabs</span>
+      <span class="px-2.5 py-1 rounded-full bg-config-soft text-config">Config · 3 sub-tabs</span>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       LISA — 4 sub-tabs (3 genéricas + 1 especial)
+       ============================================================ -->
+  <section>
+    <h2 class="text-base font-semibold mb-3 flex items-center gap-2"><span class="status-dot" style="background:var(--c-lisa)"></span>Lisa · Mi Clínica</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+
+      <!-- lisa/marca (genérico) -->
+      <article id="lisa-marca" class="anchor-target panel rounded-lg p-5 text-center">
+        <div class="text-xs muted text-left mb-1">lisa/marca</div>
+        <h3 class="text-sm font-semibold mb-3 text-left">Marca</h3>
+        <p class="text-xs muted text-left mb-4">Vista placeholder — el contenido real se cablea en Fase 2.</p>
+        <div class="empty-state-icon">🏥</div>
+        <div class="text-sm font-medium mt-2">Marca — próximamente</div>
+        <p class="text-xs muted mt-1">Esta vista vive acá.</p>
+      </article>
+
+      <!-- lisa/doctores (genérico) -->
+      <article id="lisa-doctores" class="anchor-target panel rounded-lg p-5 text-center">
+        <div class="text-xs muted text-left mb-1">lisa/doctores</div>
+        <h3 class="text-sm font-semibold mb-3 text-left">Doctores</h3>
+        <p class="text-xs muted text-left mb-4">Vista placeholder — el contenido real se cablea en Fase 2.</p>
+        <div class="empty-state-icon">👨‍⚕️</div>
+        <div class="text-sm font-medium mt-2">Doctores — próximamente</div>
+        <p class="text-xs muted mt-1">Esta vista vive acá.</p>
+      </article>
+
+      <!-- lisa/compliance (genérico) -->
+      <article id="lisa-compliance" class="anchor-target panel rounded-lg p-5 text-center">
+        <div class="text-xs muted text-left mb-1">lisa/compliance</div>
+        <h3 class="text-sm font-semibold mb-3 text-left">Compliance</h3>
+        <p class="text-xs muted text-left mb-4">Vista placeholder — el contenido real se cablea en Fase 2.</p>
+        <div class="empty-state-icon">🛡️</div>
+        <div class="text-sm font-medium mt-2">Compliance — próximamente</div>
+        <p class="text-xs muted mt-1">Esta vista vive acá.</p>
+      </article>
+
+    </div>
+
+    <!-- lisa/servicios ★ -->
+    <article id="lisa-servicios" class="anchor-target panel rounded-lg p-5 mt-4">
+      <div class="flex items-start justify-between mb-3">
+        <div>
+          <div class="text-xs muted">lisa/servicios ★ especial</div>
+          <h3 class="text-base font-semibold">Servicios</h3>
+          <p class="text-xs muted">Catálogo de tratamientos y escalera de valor (placeholder Fase 1).</p>
+        </div>
+        <div class="toggle-pill" data-toggle="lisa-servicios">
+          <div class="toggle-pill-option active" data-state="catalogo">Catálogo</div>
+          <div class="toggle-pill-option" data-state="escalera">Escalera</div>
+        </div>
+      </div>
+      <div data-pane="lisa-servicios-catalogo" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+        <div class="ph-card"><div class="text-2xl mb-1">🦷</div><div class="text-sm font-medium">Limpieza dental</div><div class="text-xs muted">S/ 120 · 30 min</div><div class="mt-2"><span class="status-dot" style="background:#10b981"></span> <span class="text-xs muted">activo</span></div></div>
+        <div class="ph-card"><div class="text-2xl mb-1">✨</div><div class="text-sm font-medium">Blanqueamiento</div><div class="text-xs muted">S/ 380 · 60 min</div><div class="mt-2"><span class="status-dot" style="background:#10b981"></span> <span class="text-xs muted">activo</span></div></div>
+        <div class="ph-card"><div class="text-2xl mb-1">🦴</div><div class="text-sm font-medium">Implante</div><div class="text-xs muted">S/ 2,400 · 90 min</div><div class="mt-2"><span class="status-dot" style="background:#f59e0b"></span> <span class="text-xs muted">borrador</span></div></div>
+        <div class="ph-card"><div class="text-2xl mb-1">🪥</div><div class="text-sm font-medium">Mantenimiento periodontal</div><div class="text-xs muted">S/ 180 · 45 min</div><div class="mt-2"><span class="status-dot" style="background:#10b981"></span> <span class="text-xs muted">activo</span></div></div>
+        <div class="ph-card border-dashed text-center flex flex-col items-center justify-center text-sm muted"><div class="text-2xl mb-1">+</div>Nuevo tratamiento</div>
+      </div>
+      <div data-pane="lisa-servicios-escalera" class="hidden text-center py-12">
+        <div class="empty-state-icon">📈</div>
+        <div class="text-sm font-medium mt-2">Escalera de valor — próximamente</div>
+        <p class="text-xs muted mt-1">Aquí vivirán los niveles de la escalera de valor del paciente.</p>
+      </div>
+    </article>
+  </section>
+
+  <!-- ============================================================
+       LUCAS — 5 sub-tabs (todas genéricas)
+       ============================================================ -->
+  <section>
+    <h2 class="text-base font-semibold mb-3 flex items-center gap-2"><span class="status-dot" style="background:var(--c-lucas)"></span>Lucas · Atraer</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <article id="lucas-lanzar" class="anchor-target panel rounded-lg p-5 text-center"><div class="text-xs muted text-left mb-1">lucas/lanzar</div><h3 class="text-sm font-semibold mb-3 text-left">Lanzar</h3><p class="text-xs muted text-left mb-4">Vista placeholder — el contenido real se cablea en Fase 2.</p><div class="empty-state-icon">🚀</div><div class="text-sm font-medium mt-2">Lanzar — próximamente</div><p class="text-xs muted mt-1">Esta vista vive acá.</p></article>
+      <article id="lucas-envuelo" class="anchor-target panel rounded-lg p-5 text-center"><div class="text-xs muted text-left mb-1">lucas/envuelo</div><h3 class="text-sm font-semibold mb-3 text-left">En vuelo</h3><p class="text-xs muted text-left mb-4">Vista placeholder — el contenido real se cablea en Fase 2.</p><div class="empty-state-icon">📡</div><div class="text-sm font-medium mt-2">En vuelo — próximamente</div><p class="text-xs muted mt-1">Esta vista vive acá.</p></article>
+      <article id="lucas-recursos" class="anchor-target panel rounded-lg p-5 text-center"><div class="text-xs muted text-left mb-1">lucas/recursos</div><h3 class="text-sm font-semibold mb-3 text-left">Recursos</h3><p class="text-xs muted text-left mb-4">Vista placeholder — el contenido real se cablea en Fase 2.</p><div class="empty-state-icon">📚</div><div class="text-sm font-medium mt-2">Recursos — próximamente</div><p class="text-xs muted mt-1">Esta vista vive acá.</p></article>
+      <article id="lucas-resultados" class="anchor-target panel rounded-lg p-5 text-center"><div class="text-xs muted text-left mb-1">lucas/resultados</div><h3 class="text-sm font-semibold mb-3 text-left">Resultados</h3><p class="text-xs muted text-left mb-4">Vista placeholder — el contenido real se cablea en Fase 2.</p><div class="empty-state-icon">📈</div><div class="text-sm font-medium mt-2">Resultados — próximamente</div><p class="text-xs muted mt-1">Esta vista vive acá.</p></article>
+      <article id="lucas-mercado" class="anchor-target panel rounded-lg p-5 text-center"><div class="text-xs muted text-left mb-1">lucas/mercado</div><h3 class="text-sm font-semibold mb-3 text-left">Mercado</h3><p class="text-xs muted text-left mb-4">Vista placeholder — el contenido real se cablea en Fase 2.</p><div class="empty-state-icon">🌍</div><div class="text-sm font-medium mt-2">Mercado — próximamente</div><p class="text-xs muted mt-1">Esta vista vive acá.</p></article>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       ADRIÁN — 4 sub-tabs (2 genéricas + 2 especiales)
+       ============================================================ -->
+  <section>
+    <h2 class="text-base font-semibold mb-3 flex items-center gap-2"><span class="status-dot" style="background:var(--c-adrian)"></span>Adrián · Vender</h2>
+
+    <!-- adrian/inbox ★ -->
+    <article id="adrian-inbox" class="anchor-target panel rounded-lg p-5 mb-4">
+      <div class="flex items-start justify-between mb-3">
+        <div>
+          <div class="text-xs muted">adrian/inbox ★ especial</div>
+          <h3 class="text-base font-semibold">Inbox</h3>
+          <p class="text-xs muted">Bandeja de conversaciones con tres modos de operación de Adrián.</p>
+        </div>
+        <div class="toggle-pill" data-toggle="adrian-inbox">
+          <div class="toggle-pill-option active" data-state="decide">🤖 Adrián decide</div>
+          <div class="toggle-pill-option" data-state="consulta">👀 Te consulta</div>
+          <div class="toggle-pill-option" data-state="manual">✋ Manual</div>
+        </div>
+      </div>
+      <div class="grid grid-cols-12 gap-3 min-h-[280px]">
+        <!-- ConversationList -->
+        <aside class="col-span-3 panel rounded-md p-2 space-y-1 text-xs">
+          <div class="ph-card cursor-pointer">
+            <div class="font-medium">María González</div>
+            <div class="muted truncate">hola, vi su anuncio sobre limpie...</div>
+            <div class="muted text-[10px] mt-1">📱 WhatsApp · hace 2 min</div>
+          </div>
+          <div class="ph-card cursor-pointer">
+            <div class="font-medium">Carlos Pérez</div>
+            <div class="muted truncate">¿tienen turno mañana?</div>
+            <div class="muted text-[10px] mt-1">🌐 Web · hace 8 min</div>
+          </div>
+          <div class="ph-card cursor-pointer">
+            <div class="font-medium">Lucía Ramos</div>
+            <div class="muted truncate">gracias por la info!</div>
+            <div class="muted text-[10px] mt-1">📱 WhatsApp · hace 1 h</div>
+          </div>
+        </aside>
+        <!-- Thread -->
+        <section class="col-span-6 panel rounded-md p-3 text-xs space-y-2">
+          <div class="bg-adrian-soft inline-block px-3 py-2 rounded-md max-w-[80%]">Hola, vi su anuncio sobre limpieza dental. ¿Cuánto sale?</div>
+          <div class="bg-lisa-soft inline-block px-3 py-2 rounded-md max-w-[80%] ml-auto block text-right">¡Hola María! La limpieza dental es S/ 120, dura 30 min. ¿Te agendo?</div>
+          <div class="bg-adrian-soft inline-block px-3 py-2 rounded-md max-w-[80%]">Sí, mañana al mediodía si tienen</div>
+          <div class="muted text-center text-[10px] mt-3">Adrián decidirá la respuesta cuando vuelva el modo automático</div>
+        </section>
+        <!-- ContactSidebar -->
+        <aside class="col-span-3 panel rounded-md p-3 text-xs space-y-3">
+          <div><div class="muted text-[10px] uppercase tracking-wide mb-1">Nombre</div><div class="font-medium">María González</div></div>
+          <div><div class="muted text-[10px] uppercase tracking-wide mb-1">Teléfono</div><div>+51 987 654 321</div></div>
+          <div><div class="muted text-[10px] uppercase tracking-wide mb-1">Origen</div><div>📱 WhatsApp · Meta Ads</div></div>
+          <div><div class="muted text-[10px] uppercase tracking-wide mb-1">Estado embudo</div><div>🟢 Calificando</div></div>
+        </aside>
+      </div>
+    </article>
+
+    <!-- adrian/embudo ★ -->
+    <article id="adrian-embudo" class="anchor-target panel rounded-lg p-5 mb-4">
+      <div class="flex items-start justify-between mb-3">
+        <div>
+          <div class="text-xs muted">adrian/embudo ★ especial</div>
+          <h3 class="text-base font-semibold">Embudo</h3>
+          <p class="text-xs muted">Pipeline de leads en 6 estados (placeholder con leads ficticios).</p>
+        </div>
+        <div class="toggle-pill" data-toggle="adrian-embudo">
+          <div class="toggle-pill-option active" data-state="kanban">Kanban</div>
+          <div class="toggle-pill-option" data-state="lista">Lista</div>
+        </div>
+      </div>
+      <div data-pane="adrian-embudo-kanban" class="overflow-x-auto">
+        <div class="grid grid-cols-6 gap-2 min-w-[900px]">
+          <!-- col 1 -->
+          <div class="panel rounded-md p-2">
+            <div class="text-xs font-medium mb-2 flex items-center justify-between"><span>⚪ Interesado</span><span class="muted">12 · S/ 84k</span></div>
+            <div class="space-y-1.5">
+              <div class="lead-card"><div class="font-medium">María G.</div><div class="muted">S/ 7k · WhatsApp</div></div>
+              <div class="lead-card"><div class="font-medium">Carlos P.</div><div class="muted">S/ 4k · Web</div></div>
+              <div class="lead-card"><div class="font-medium">Sofía R.</div><div class="muted">S/ 12k · Meta</div></div>
+            </div>
+          </div>
+          <!-- col 2 -->
+          <div class="panel rounded-md p-2">
+            <div class="text-xs font-medium mb-2 flex items-center justify-between"><span>🟢 Calificando</span><span class="muted">8 · S/ 62k</span></div>
+            <div class="space-y-1.5">
+              <div class="lead-card"><div class="font-medium">Ana V.</div><div class="muted">S/ 8k · Manual</div></div>
+              <div class="lead-card"><div class="font-medium">Pedro M.</div><div class="muted">S/ 6k · WhatsApp</div></div>
+              <div class="lead-card"><div class="font-medium">Lucía R.</div><div class="muted">S/ 9k · Web</div></div>
+            </div>
+          </div>
+          <!-- col 3 -->
+          <div class="panel rounded-md p-2">
+            <div class="text-xs font-medium mb-2 flex items-center justify-between"><span>🟡 Considerando</span><span class="muted">5 · S/ 41k</span></div>
+            <div class="space-y-1.5">
+              <div class="lead-card"><div class="font-medium">JP Méndez</div><div class="muted">S/ 11k · WhatsApp</div></div>
+              <div class="lead-card"><div class="font-medium">Marta L.</div><div class="muted">S/ 8k · Web</div></div>
+              <div class="lead-card"><div class="font-medium">Diego F.</div><div class="muted">S/ 7k · Meta</div></div>
+            </div>
+          </div>
+          <!-- col 4 -->
+          <div class="panel rounded-md p-2">
+            <div class="text-xs font-medium mb-2 flex items-center justify-between"><span>🔵 Listo</span><span class="muted">3 · S/ 28k</span></div>
+            <div class="space-y-1.5">
+              <div class="lead-card"><div class="font-medium">Rosa V.</div><div class="muted">S/ 12k · Reservado</div></div>
+              <div class="lead-card"><div class="font-medium">Felipe T.</div><div class="muted">S/ 9k · Reservado</div></div>
+            </div>
+          </div>
+          <!-- col 5 -->
+          <div class="panel rounded-md p-2">
+            <div class="text-xs font-medium mb-2 flex items-center justify-between"><span>🟣 Reservado</span><span class="muted">2 · S/ 15k</span></div>
+            <div class="space-y-1.5">
+              <div class="lead-card"><div class="font-medium">Camila B.</div><div class="muted">S/ 8k · pagó</div></div>
+              <div class="lead-card"><div class="font-medium">Mateo L.</div><div class="muted">S/ 7k · pagó</div></div>
+            </div>
+          </div>
+          <!-- col 6 -->
+          <div class="panel rounded-md p-2">
+            <div class="text-xs font-medium mb-2 flex items-center justify-between"><span>⚫ Decidió no</span><span class="muted">4 · —</span></div>
+            <div class="space-y-1.5">
+              <div class="lead-card"><div class="font-medium">Iván S.</div><div class="muted">precio</div></div>
+              <div class="lead-card"><div class="font-medium">Patricia C.</div><div class="muted">no disponible</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-pane="adrian-embudo-lista" class="hidden text-center py-12">
+        <div class="empty-state-icon">📋</div>
+        <div class="text-sm font-medium mt-2">Vista lista — próximamente</div>
+        <p class="text-xs muted mt-1">Tabla con filtros y orden por valor / antigüedad / origen.</p>
+      </div>
+    </article>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <article id="adrian-outbound" class="anchor-target panel rounded-lg p-5 text-center"><div class="text-xs muted text-left mb-1">adrian/outbound</div><h3 class="text-sm font-semibold mb-3 text-left">Outbound</h3><p class="text-xs muted text-left mb-4">Vista placeholder — el contenido real se cablea en Fase 2.</p><div class="empty-state-icon">📣</div><div class="text-sm font-medium mt-2">Outbound — próximamente</div><p class="text-xs muted mt-1">Esta vista vive acá.</p></article>
+      <article id="adrian-propuestas" class="anchor-target panel rounded-lg p-5 text-center"><div class="text-xs muted text-left mb-1">adrian/propuestas</div><h3 class="text-sm font-semibold mb-3 text-left">Propuestas</h3><p class="text-xs muted text-left mb-4">Vista placeholder — el contenido real se cablea en Fase 2.</p><div class="empty-state-icon">💼</div><div class="text-sm font-medium mt-2">Propuestas — próximamente</div><p class="text-xs muted mt-1">Esta vista vive acá.</p></article>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       VALERIA — 2 sub-tabs (1 especial + 1 genérica)
+       ============================================================ -->
+  <section>
+    <h2 class="text-base font-semibold mb-3 flex items-center gap-2"><span class="status-dot" style="background:var(--c-valeria)"></span>Valeria · Operar</h2>
+
+    <!-- valeria/agenda ★ -->
+    <article id="valeria-agenda" class="anchor-target panel rounded-lg p-5 mb-4">
+      <div class="flex items-start justify-between mb-3">
+        <div>
+          <div class="text-xs muted">valeria/agenda ★ especial</div>
+          <h3 class="text-base font-semibold">Agenda</h3>
+          <p class="text-xs muted">Vista semanal de citas con estados de pago.</p>
+        </div>
+        <button class="px-3 py-1.5 bg-valeria-soft text-valeria rounded-md text-sm font-medium hover:opacity-80">+ Crear cita</button>
+      </div>
+      <div class="flex flex-wrap gap-3 text-xs mb-3">
+        <span class="flex items-center gap-1.5"><span class="status-dot" style="background:#10b981"></span>Pagado</span>
+        <span class="flex items-center gap-1.5"><span class="status-dot" style="background:#f59e0b"></span>Depósito</span>
+        <span class="flex items-center gap-1.5"><span class="status-dot" style="background:#ef4444"></span>Sin pago</span>
+        <span class="flex items-center gap-1.5"><span class="status-dot" style="background:#94a3b8"></span>No-show</span>
+      </div>
+      <div class="grid grid-cols-6 gap-1 text-[11px]" style="grid-template-columns: 60px repeat(5, 1fr);">
+        <div></div>
+        <div class="text-center font-medium muted">Lun 26</div>
+        <div class="text-center font-medium muted">Mar 27</div>
+        <div class="text-center font-medium muted">Mié 28</div>
+        <div class="text-center font-medium muted">Jue 29</div>
+        <div class="text-center font-medium muted">Vie 30</div>
+
+        <!-- 09:00 -->
+        <div class="muted text-right pr-2">09:00</div>
+        <div class="agenda-slot"></div>
+        <div class="agenda-slot"></div>
+        <div class="agenda-slot paid">Marta L. 🌐</div>
+        <div class="agenda-slot"></div>
+        <div class="agenda-slot"></div>
+
+        <!-- 10:00 -->
+        <div class="muted text-right pr-2">10:00</div>
+        <div class="agenda-slot deposit">Lucas S. 📱</div>
+        <div class="agenda-slot"></div>
+        <div class="agenda-slot"></div>
+        <div class="agenda-slot"></div>
+        <div class="agenda-slot unpaid">Ana V. 📱</div>
+
+        <!-- 11:00 -->
+        <div class="muted text-right pr-2">11:00</div>
+        <div class="agenda-slot"></div>
+        <div class="agenda-slot paid">Sofía R. 🌐</div>
+        <div class="agenda-slot"></div>
+        <div class="agenda-slot"></div>
+        <div class="agenda-slot"></div>
+
+        <!-- 12:00 -->
+        <div class="muted text-right pr-2">12:00</div>
+        <div class="agenda-slot"></div>
+        <div class="agenda-slot"></div>
+        <div class="agenda-slot"></div>
+        <div class="agenda-slot"></div>
+        <div class="agenda-slot"></div>
+
+        <!-- 13:00 -->
+        <div class="muted text-right pr-2">13:00</div>
+        <div class="agenda-slot"></div>
+        <div class="agenda-slot"></div>
+        <div class="agenda-slot"></div>
+        <div class="agenda-slot"></div>
+        <div class="agenda-slot"></div>
+
+        <!-- 14:00 -->
+        <div class="muted text-right pr-2">14:00</div>
+        <div class="agenda-slot"></div>
+        <div class="agenda-slot"></div>
+        <div class="agenda-slot"></div>
+        <div class="agenda-slot paid">Sofía B. ✋</div>
+        <div class="agenda-slot"></div>
+
+        <!-- 15:00 -->
+        <div class="muted text-right pr-2">15:00</div>
+        <div class="agenda-slot"></div>
+        <div class="agenda-slot"></div>
+        <div class="agenda-slot"></div>
+        <div class="agenda-slot"></div>
+        <div class="agenda-slot"></div>
+
+        <!-- 16:00 -->
+        <div class="muted text-right pr-2">16:00</div>
+        <div class="agenda-slot"></div>
+        <div class="agenda-slot noshow">JP Méndez 📱</div>
+        <div class="agenda-slot"></div>
+        <div class="agenda-slot"></div>
+        <div class="agenda-slot"></div>
+      </div>
+    </article>
+
+    <article id="valeria-pacientes" class="anchor-target panel rounded-lg p-5 text-center max-w-md">
+      <div class="text-xs muted text-left mb-1">valeria/pacientes</div>
+      <h3 class="text-sm font-semibold mb-3 text-left">Pacientes</h3>
+      <p class="text-xs muted text-left mb-4">Vista placeholder — el contenido real se cablea en Fase 2.</p>
+      <div class="empty-state-icon">👥</div>
+      <div class="text-sm font-medium mt-2">Pacientes — próximamente</div>
+      <p class="text-xs muted mt-1">Esta vista vive acá.</p>
+    </article>
+  </section>
+
+  <!-- ============================================================
+       CAMILA — 4 sub-tabs (1 especial + 3 genéricas)
+       ============================================================ -->
+  <section>
+    <h2 class="text-base font-semibold mb-3 flex items-center gap-2"><span class="status-dot" style="background:var(--c-camila)"></span>Camila · Fidelizar</h2>
+
+    <!-- camila/voz ★ -->
+    <article id="camila-voz" class="anchor-target panel rounded-lg p-5 mb-4">
+      <div class="flex items-start justify-between mb-3 gap-4">
+        <div class="flex-1">
+          <div class="text-xs muted">camila/voz ★ especial</div>
+          <h3 class="text-base font-semibold">Voz del paciente</h3>
+          <p class="text-xs muted">Camila pide feedback al paciente tras la visita y categoriza la respuesta para derivarla a reactivación, reputación o nueva venta.</p>
+        </div>
+        <div class="toggle-pill" data-toggle="camila-voz">
+          <div class="toggle-pill-option active" data-state="decide">🤖 Camila decide</div>
+          <div class="toggle-pill-option" data-state="curaduria">🔍 Curaduría</div>
+          <div class="toggle-pill-option" data-state="manual">✋ Manual</div>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div class="ph-card text-center">
+          <div class="text-3xl mb-2">📥</div>
+          <div class="text-2xl font-bold text-camila">12</div>
+          <div class="text-sm font-medium">Entrante</div>
+          <div class="text-xs muted mt-1 px-1">Pacientes que respondieron — esperando que Camila analice y categorice</div>
+        </div>
+        <div class="ph-card text-center">
+          <div class="text-3xl mb-2">🔍</div>
+          <div class="text-2xl font-bold text-camila">4</div>
+          <div class="text-sm font-medium">Curaduría</div>
+          <div class="text-xs muted mt-1 px-1">Casos ambiguos que necesitan tu revisión antes de derivar</div>
+        </div>
+        <div class="ph-card text-center">
+          <div class="text-3xl mb-2">🔁</div>
+          <div class="text-2xl font-bold text-camila">47</div>
+          <div class="text-sm font-medium">Ciclos activos</div>
+          <div class="text-xs muted mt-1 px-1">Pacientes en flujo de seguimiento automático</div>
+        </div>
+      </div>
+      <div class="text-center text-[11px] muted mt-3 pt-3 border-t border-app">
+        Camila te avisa cuando algo sale del patrón esperado · te ahorra responder cada feedback uno por uno.
+      </div>
+    </article>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <article id="camila-reactivar" class="anchor-target panel rounded-lg p-5 text-center"><div class="text-xs muted text-left mb-1">camila/reactivar</div><h3 class="text-sm font-semibold mb-3 text-left">Reactivar</h3><p class="text-xs muted text-left mb-4">Vista placeholder — el contenido real se cablea en Fase 2.</p><div class="empty-state-icon">🪃</div><div class="text-sm font-medium mt-2">Reactivar — próximamente</div><p class="text-xs muted mt-1">Esta vista vive acá.</p></article>
+      <article id="camila-multiplicar" class="anchor-target panel rounded-lg p-5 text-center"><div class="text-xs muted text-left mb-1">camila/multiplicar</div><h3 class="text-sm font-semibold mb-3 text-left">Multiplicar</h3><p class="text-xs muted text-left mb-4">Vista placeholder — el contenido real se cablea en Fase 2.</p><div class="empty-state-icon">🤝</div><div class="text-sm font-medium mt-2">Multiplicar — próximamente</div><p class="text-xs muted mt-1">Esta vista vive acá.</p></article>
+      <article id="camila-reputacion" class="anchor-target panel rounded-lg p-5 text-center"><div class="text-xs muted text-left mb-1">camila/reputacion</div><h3 class="text-sm font-semibold mb-3 text-left">Reputación</h3><p class="text-xs muted text-left mb-4">Vista placeholder — el contenido real se cablea en Fase 2.</p><div class="empty-state-icon">📊</div><div class="text-sm font-medium mt-2">Reputación — próximamente</div><p class="text-xs muted mt-1">Esta vista vive acá.</p></article>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       CONFIG — 3 sub-tabs (2 genéricas + 1 especial)
+       ============================================================ -->
+  <section>
+    <h2 class="text-base font-semibold mb-3 flex items-center gap-2"><span class="status-dot" style="background:var(--c-config)"></span>Configurar</h2>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+      <article id="config-cuenta" class="anchor-target panel rounded-lg p-5 text-center"><div class="text-xs muted text-left mb-1">config/cuenta</div><h3 class="text-sm font-semibold mb-3 text-left">Mi cuenta</h3><p class="text-xs muted text-left mb-4">Vista placeholder — el contenido real se cablea en Fase 2.</p><div class="empty-state-icon">🏢</div><div class="text-sm font-medium mt-2">Mi cuenta — próximamente</div><p class="text-xs muted mt-1">Esta vista vive acá.</p></article>
+      <article id="config-avanzado" class="anchor-target panel rounded-lg p-5 text-center"><div class="text-xs muted text-left mb-1">config/avanzado</div><h3 class="text-sm font-semibold mb-3 text-left">Avanzado</h3><p class="text-xs muted text-left mb-4">Vista placeholder — el contenido real se cablea en Fase 2.</p><div class="empty-state-icon">🔬</div><div class="text-sm font-medium mt-2">Avanzado — próximamente</div><p class="text-xs muted mt-1">Esta vista vive acá.</p></article>
+    </div>
+
+    <!-- config/conexiones ★ -->
+    <article id="config-conexiones" class="anchor-target panel rounded-lg p-5">
+      <div class="mb-3">
+        <div class="text-xs muted">config/conexiones ★ especial</div>
+        <h3 class="text-base font-semibold">Conexiones</h3>
+        <p class="text-xs muted">Integraciones externas agrupadas por categoría.</p>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div class="ph-card"><div class="text-2xl mb-2">📣</div><div class="text-sm font-semibold mb-1">Marketing</div><div class="text-xs muted">Meta Ads · Google Ads</div><div class="mt-2 flex gap-1 text-[10px]"><span class="px-1.5 py-0.5 rounded bg-lisa-soft text-lisa">2 activas</span></div></div>
+        <div class="ph-card"><div class="text-2xl mb-2">💬</div><div class="text-sm font-semibold mb-1">Mensajería</div><div class="text-xs muted">WhatsApp · ManyChat</div><div class="mt-2 flex gap-1 text-[10px]"><span class="px-1.5 py-0.5 rounded bg-lisa-soft text-lisa">1 activa</span></div></div>
+        <div class="ph-card"><div class="text-2xl mb-2">💳</div><div class="text-sm font-semibold mb-1">Pagos</div><div class="text-xs muted">Stripe · MercadoPago</div><div class="mt-2 flex gap-1 text-[10px]"><span class="muted">no configurado</span></div></div>
+        <div class="ph-card"><div class="text-2xl mb-2">📅</div><div class="text-sm font-semibold mb-1">Calendarios</div><div class="text-xs muted">Google Calendar · Outlook</div><div class="mt-2 flex gap-1 text-[10px]"><span class="px-1.5 py-0.5 rounded bg-lisa-soft text-lisa">1 activa</span></div></div>
+        <div class="ph-card"><div class="text-2xl mb-2">🌐</div><div class="text-sm font-semibold mb-1">Presencia</div><div class="text-xs muted">Sitio web · Instagram</div><div class="mt-2 flex gap-1 text-[10px]"><span class="muted">no configurado</span></div></div>
+        <div class="ph-card"><div class="text-2xl mb-2">🔧</div><div class="text-sm font-semibold mb-1">Técnicas</div><div class="text-xs muted">Webhooks · API</div><div class="mt-2 flex gap-1 text-[10px]"><span class="muted">no configurado</span></div></div>
+      </div>
+    </article>
+  </section>
+
+  <footer class="text-center text-xs muted py-10">
+    F1-S10 · empty-states-grid.html · /po-ux v1 · 2026-05-26 · Vitalia Salud y Bienestar
+  </footer>
+</main>
+
+<script>
+  function toggleTheme() {
+    const html = document.documentElement;
+    html.dataset.theme = html.dataset.theme === 'dark' ? 'light' : 'dark';
+  }
+  document.getElementById('anchor-select').addEventListener('change', (e) => {
+    if (e.target.value) {
+      document.querySelector(e.target.value)?.scrollIntoView({ behavior: 'smooth' });
+      e.target.value = '';
+    }
+  });
+  // Toggle pills
+  document.querySelectorAll('.toggle-pill').forEach((pill) => {
+    const key = pill.dataset.toggle;
+    pill.querySelectorAll('.toggle-pill-option').forEach((opt) => {
+      opt.addEventListener('click', () => {
+        pill.querySelectorAll('.toggle-pill-option').forEach((o) => o.classList.remove('active'));
+        opt.classList.add('active');
+        const state = opt.dataset.state;
+        // hide all panes for this toggle
+        document.querySelectorAll(`[data-pane^="${key}-"]`).forEach((p) => p.classList.add('hidden'));
+        // show target pane (if exists; some toggles are decorative only — inbox/voz)
+        const target = document.querySelector(`[data-pane="${key}-${state}"]`);
+        if (target) target.classList.remove('hidden');
+      });
+    });
+  });
+</script>
+</body>
+</html>

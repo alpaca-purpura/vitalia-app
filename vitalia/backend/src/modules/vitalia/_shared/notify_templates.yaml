@@ -1,0 +1,45 @@
+# Vitalia WhatsApp Notification Template Catalog — F2-S1 Seed
+#
+# HIPAA-lite constraints:
+#   - Templates are pre-approved by clinic owner + WhatsApp Business API.
+#   - No PHI in template body text: no patient name, no diagnosis, no DNI.
+#   - Patient identification uses {patient_ref} = masked reference ("P. Hernández").
+#   - Template body resolved at dispatch time from template_id (this catalog).
+#   - ComplianceService.validate_outbound_message guards channel before dispatch.
+#
+# Template fields:
+#   template_id: slug identifier (max 64 chars, snake_case)
+#   label_es: human-readable label in Spanish neutro LatAm
+#   body_es: message body with {placeholders} for dynamic values
+#   channel: channel this template is approved for
+#   phi_risk: false (all templates must be PHI-free by design)
+#
+# downstream-regression-na: brand-local notify template catalog for vitalia F2-S1
+
+templates:
+  - template_id: "recordatorio_manana"
+    label_es: "Recordatorio de cita — mañana"
+    body_es: >-
+      Hola {patient_ref}, te recordamos que tienes una cita en {clinic_name}
+      mañana {date_es} a las {time_local}. Si necesitas reagendar, responde
+      a este mensaje. ¡Te esperamos!
+    channel: "whatsapp"
+    phi_risk: false
+
+  - template_id: "confirma_asistencia_24h"
+    label_es: "Confirmación de asistencia — 24 horas"
+    body_es: >-
+      Hola {patient_ref}, tu cita en {clinic_name} es el {date_es} a las
+      {time_local}. ¿Confirmas tu asistencia? Responde SÍ para confirmar
+      o NO para cancelar. Para reagendar, responde REAGENDAR.
+    channel: "whatsapp"
+    phi_risk: false
+
+  - template_id: "reagendar_opciones"
+    label_es: "Opciones para reagendar"
+    body_es: >-
+      Hola {patient_ref}, queremos ayudarte a reagendar tu cita en
+      {clinic_name}. Contáctanos al {clinic_phone} o visita tu portal
+      de paciente para ver disponibilidad. Lamentamos los inconvenientes.
+    channel: "whatsapp"
+    phi_risk: false

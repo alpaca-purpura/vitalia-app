@@ -1,0 +1,270 @@
+story_id: vitalia-fase2-adrian-canal-inbound
+brand: vitalia
+arch_version: 1
+autonomous_mode: false   # agentic + PHI = stake-asimétrico; gate G (Chris-verify live Telegram) mandatory
+
+# ─────────────────────────────────────────────────────────────
+# DAG NOTE: 3 carriles.
+#   carril LIFT (T-LIFT-1) — /pm-luana, NO builder. Desbloquea T-AG-2/3/4/5.
+#   carril BE/FE (T-BE-*, T-FE-*) — buildable HOY, NO depende del lift.
+#   carril AGENTIC (T-AG-*) — T-AG-1 buildable; T-AG-2..5 BLOQUEADOS por T-LIFT-1.
+# El BUILD agentic tampoco arranca antes de confirmar deps duras done (lisa-servicios + adrian-inbox + lisa-doctores — confirmados archivados).
+# ─────────────────────────────────────────────────────────────
+
+tickets:
+
+  # ═══════════════ LIFT (no builder — /pm-luana promotion gate) ═══════════════
+  - id: T-LIFT-1
+    title: "/pm-luana — abrir engine sales_agent: scheduler per-tenant + extension-tool merge + stage-scope (ESC-1/2/3)"
+    surface: engine
+    production_code: true
+    blocked: true
+    blocker_reason: "Engine edit core/luana-core-sales-agent/src/ — REQUIERE promotion gate /pm-luana, NO builder"
+    owner_eligibility: ["/pm-luana"]
+    depends_on: []
+    blocks: [T-AG-2, T-AG-3, T-AG-4, T-AG-5]
+    acceptance:
+      validator_ids: [V-ARCH-5, V-FN-8, V-FN-9, V-FN-11, V-FN-12]
+      criteria:
+        - "ESC-1: scheduler_provider_for_tenant routea per-tenant (no hardcode 'internal') + arch test test_scheduler_provider_per_tenant.py"
+        - "ESC-2: engine TOOL_REGISTRY mergea tools EP-3 (register_tool_from_extension implementado) + dispatch en nodes.py + arch test test_extension_tool_dispatchable.py"
+        - "ESC-3: get_tools_for_stage mergea stage-scope de extensión EP-3"
+    notes_for_downstream: >
+      Contrato que el lift debe exponer para que el brand cablee sin más engine edits:
+      (1) register_scheduler_provider(VitaliaSchedulerProvider) + scheduler_provider_for_tenant elige por
+          tenant_config.scheduler_provider; (2) EP-3 sales_agent_tool_register acepta stage_scope + el grafo
+          dispatcha el tool por nombre desde un registry que incluye extension tools;
+      (3) Protocol SchedulerProvider permanece sync (db: Session) — el brand provider hace el bridge a sus
+          services async. CERO cambio al AgentState TypedDict (las keys brand viven en overlay/metadata_info).
+
+  # ═══════════════ BE (builder-backend · workhorse · buildable HOY) ═══════════════
+  - id: T-BE-1
+    title: "Telegram inbound channel: adapter + webhook route (secret + tenant resolve + update_id dedup) + replace stubs"
+    surface: be
+    production_code: true
+    blocked: false
+    owner_eligibility: [builder-backend]
+    depends_on: []
+    blocks: [T-AG-1]
+    gherkin_coverage: [SC-1, SC-5, SC-6]
+    acceptance:
+      validator_ids: [V-NF-1, V-NF-4, V-FN-5, V-FN-6, V-ARCH-3]
+      criteria:
+        - "POST /api/v1/connections/telegram/webhook valida X-Telegram-Bot-Api-Secret-Token + dedup update_id → orchestrator.handle_telegram_webhook"
+        - "adapter implementa BaseChannel.normalize_payload (patrón whatsapp/instagram)"
+        - "webhook_routes.py stubs T-be-8 reemplazados por dispatch real; include_router en main.py"
+    notes_for_downstream: >
+      Endpoint method+path (HB-71): POST /api/v1/connections/telegram/webhook (response_model=TelegramWebhookAck,
+      auth=secret_token header). Consume engine: orchestrator.handle_telegram_webhook(payload, bg, tenant_id, db).
+    assignment:
+      primary_agent: builder-backend
+      model_preference: workhorse
+      must_load_skills: [backend-expert, hipaa-lite, anti-duplication, tenant-isolation, tdd-mandatory, chrome-devtools-verify]
+      must_load_artifacts: [03-arch.md, 03-arch-be.md, 05-guidelines.md]
+      forbidden_to_touch: ["core/luana-core-*/src/", "vitalia_bookings", "BookingService", "otros brands"]
+      rationale: "BE no-agentic; canal Telegram brand-local consume engine wired."
+
+  - id: T-BE-2
+    title: "Scheduling plomería: marcar availability_slot + hold-status/TTL + sweep job (cierra RN-26 gap)"
+    surface: be
+    production_code: true
+    blocked: false
+    owner_eligibility: [builder-backend]
+    depends_on: []
+    blocks: [T-AG-3]
+    gherkin_coverage: [SC-10]
+    acceptance:
+      validator_ids: [V-NF-2, V-NF-3, V-NF-5, V-FN-10, V-ARCH-2]
+      criteria:
+        - "create_appointment_service marca availability_slot.has_confirmed_appointment=True al crear (origin proactivo_adrian)"
+        - "hold_status/hold_expires_at columns (migration idempotente) + SchedulingHoldService set_hold(TTL=tenant_config default 30min)"
+        - "HoldExpirySweepService idempotente libera holds vencidos + slot + activity al inbox"
+        - "anti doble-booking: 409 sobre (doctor,slot); NUNCA vitalia_bookings"
+    notes_for_downstream: >
+      Service firma (HB-71) que el book agentic (T-AG-3) llama vía DI:
+      create_appointment_service.create_appointment(tenant_id, clinic_id, user_id, origin="proactivo_adrian",
+      patient_id, doctor_id, service_label, start_time, end_time) -> dict. SchedulingHoldPort:
+      mark_slot_confirmed(tenant_id,clinic_id,slot_id,confirmed) · set_hold(...,status,expires_at) · list_expired_holds(tenant_id,now).
+      ★ Coordinar con vitalia-scheduling-mateo-review (misma agenda — el slot-marking fija también el create manual).
+    assignment:
+      primary_agent: builder-backend
+      model_preference: workhorse
+      must_load_skills: [backend-expert, hipaa-lite, anti-duplication, tenant-isolation, tdd-mandatory]
+      must_load_artifacts: [03-arch.md, 03-arch-be.md, 05-guidelines.md]
+      forbidden_to_touch: ["core/luana-core-*/src/", "vitalia_bookings", "BookingService", "otros brands"]
+      rationale: "Plomería scheduling brand-local; cierra el gap de slot-marking + hold-TTL del lane vivo."
+
+  - id: T-BE-3
+    title: "Honor-modo bridge (decide/consulta/pausa) + set-instruction endpoint (BE side)"
+    surface: be
+    production_code: true
+    blocked: false
+    owner_eligibility: [builder-backend]
+    depends_on: [T-BE-1]
+    blocks: [T-FE-1, T-AG-1]
+    gherkin_coverage: [SC-2, SC-3, SC-8]
+    acceptance:
+      validator_ids: [V-NF-3, V-NF-4, V-FN-2, V-FN-3, V-FN-7]
+      criteria:
+        - "HonorModeBridge: decide→envía · consulta→borrador (intercepta outbound pre-send) · pausa→skip (engine handle_human_mode)"
+        - "POST /api/v1/adrian/conversations/{id}/instruction (Bearer+X-Tenant-ID, response_model) → OperatorInstructionService"
+        - "audit row + activity NON-PHI por instrucción"
+    notes_for_downstream: >
+      Endpoint (HB-71): POST /api/v1/adrian/conversations/{conversation_id}/instruction
+      (SetOperatorInstructionRequest → SetOperatorInstructionResponse). Lee handler_mode/proposal_required/pause_until
+      del inbox (cap adrian-inbox). El composer FE (T-FE-1) consume este endpoint.
+    assignment:
+      primary_agent: builder-backend
+      model_preference: workhorse
+      must_load_skills: [backend-expert, hipaa-lite, tenant-isolation, tdd-mandatory]
+      must_load_artifacts: [03-arch.md, 03-arch-be.md, 05-guidelines.md]
+      forbidden_to_touch: ["core/luana-core-*/src/", "OutputManager", "otros brands"]
+      rationale: "Bridge honor-modo brand-local; el engine solo honra 'human', el brand añade 'consulta'."
+
+  # ═══════════════ AGENTIC (builder-agentic · flagship · R23 HARD) ═══════════════
+  - id: T-AG-1
+    title: "EXTEND state_overlay (booking keys) + operator-instruction wiring + persona tuning + goldens buildables"
+    surface: agentic
+    production_code: true
+    blocked: false
+    owner_eligibility: [builder-agentic]
+    depends_on: [T-BE-1, T-BE-3]
+    blocks: []
+    gherkin_coverage: [SC-4, SC-8]
+    acceptance:
+      validator_ids: [V-FN-4, V-FN-7, "G-honor-mode", "G-screening-gate", "G-objection-trust", "G-ethical", "G-operator-instr"]
+      criteria:
+        - "state_overlay EXTEND: recommended_doctor_id, recommended_service_offer_id, candidate_slots, doctor_profile_shared_at"
+        - "operator_instruction_service reusa override_context_wire (metadata_info) — persistente, SLOT volátil"
+        - "persona/playbook tuning médico (guardrails NO se tocan); prompt slots declaran ttl:1h"
+        - "goldens buildables verdes (honor-mode/screening-gate/objection-trust/ethical/operator-instr)"
+    notes_for_downstream: "Las keys overlay las popula el adapter inbound (clinic_id) + el match (post-lift)."
+    assignment:
+      primary_agent: builder-agentic
+      model_preference: flagship   # R23 HARD — agentic production_code
+      must_load_skills: [sales-agent-expert, copilot-expert, hipaa-lite, anti-duplication, tenant-isolation, tdd-mandatory, chrome-devtools-verify]
+      must_load_artifacts: [03-arch.md, 03-arch-agentic.md, 02-design-agentic.md, 05-guidelines.md]
+      forbidden_to_touch: ["core/luana-core-*/src/", "PromptVersionModel", "guardrails médicos (slot_4)", "otros brands"]
+      rationale: "Agentic prod (overlay+persona+eval) — flagship obligatorio (R23). Cero engine; lo lift-gated va en T-AG-2..5."
+
+  - id: T-AG-2
+    title: "VitaliaSchedulerProvider (impl SchedulerProvider) + registro — BLOQUEADO por T-LIFT-1 (ESC-1)"
+    surface: agentic
+    production_code: true
+    blocked: true
+    blocker_reason: "ESC-1: scheduler_provider_for_tenant hardcodea 'internal'; sin lift el provider no routea"
+    owner_eligibility: [builder-agentic]
+    depends_on: [T-LIFT-1, T-BE-2]
+    blocks: [T-AG-3]
+    gherkin_coverage: [SC-9, SC-12]
+    acceptance:
+      validator_ids: [V-FN-9, V-FN-12, "G-book-no-isla", "G-book-race"]
+      criteria:
+        - "VitaliaSchedulerProvider.get_available_slots lee availability_slots libres filtrados por doctores del servicio"
+        - "create_booking_link → create_appointment_service(origin=proactivo_adrian) + marca slot"
+        - "verify_booking_status alimenta verify_pending_bookings (hold-TTL gratis)"
+        - "register_scheduler_provider + routing per-tenant (vía lift ESC-1)"
+    notes_for_downstream: "Protocol engine es sync (db: Session); el provider hace el bridge a services async de vitalia."
+    assignment:
+      primary_agent: builder-agentic
+      model_preference: flagship   # R23 HARD
+      must_load_skills: [sales-agent-expert, hipaa-lite, anti-duplication, tenant-isolation, tdd-mandatory, chrome-devtools-verify]
+      must_load_artifacts: [03-arch.md, 03-arch-agentic.md, 05-guidelines.md]
+      forbidden_to_touch: ["core/luana-core-*/src/ (post-lift, solo registro vía API)", "vitalia_bookings", "otros brands"]
+      rationale: "Provider brand-local; consume engine Protocol. Lift-gated (ESC-1)."
+
+  - id: T-AG-3
+    title: "book_appointment tool (fina → provider) + bindeo grafo — BLOQUEADO por T-LIFT-1 (ESC-2/3)"
+    surface: agentic
+    production_code: true
+    blocked: true
+    blocker_reason: "ESC-2/3: TOOL_REGISTRY no mergea EP-3 + STAGE_TOOL_SCOPE hardcodeado; sin lift el tool no dispatcha"
+    owner_eligibility: [builder-agentic]
+    depends_on: [T-LIFT-1, T-AG-2, T-BE-2]
+    blocks: []
+    gherkin_coverage: [SC-9, SC-11, SC-12]
+    acceptance:
+      validator_ids: [V-FN-9, V-FN-11, V-FN-12, V-ARCH-5, "G-book-happy", "G-book-consulta", "G-book-hold-exp"]
+      criteria:
+        - "book_appointment (closing stage) → VitaliaSchedulerProvider; modo decide=ejecuta · consulta=borrador"
+        - "selección de slot por razonamiento (bar no-if), candidate_slots en SLOT 8"
+        - "idempotencia (patient,doctor,slot); 409 carrera → re-propone"
+        - "dedup reschedule: base portada de appointment_reschedule_with_doctor::propose_and_book; EP-3 duplicado deprecado"
+    notes_for_downstream: "El screening (DERIVAR_EMERGENCIA) precede al book — gate ético reuse."
+    assignment:
+      primary_agent: builder-agentic
+      model_preference: flagship   # R23 HARD
+      must_load_skills: [sales-agent-expert, hipaa-lite, anti-duplication, tenant-isolation, tdd-mandatory, chrome-devtools-verify]
+      must_load_artifacts: [03-arch.md, 03-arch-agentic.md, 02-design-agentic.md, 05-guidelines.md]
+      forbidden_to_touch: ["core/luana-core-*/src/", "vitalia_bookings", "guardrails médicos", "otros brands"]
+      rationale: "Tool agentic prod — flagship (R23). Lift-gated (ESC-2/3)."
+
+  - id: T-AG-4
+    title: "match_service_and_specialist tool — BLOQUEADO por T-LIFT-1 (ESC-2/3)"
+    surface: agentic
+    production_code: true
+    blocked: true
+    blocker_reason: "ESC-2/3 — tool nuevo no dispatcha sin lift"
+    owner_eligibility: [builder-agentic]
+    depends_on: [T-LIFT-1]
+    blocks: [T-AG-3]
+    gherkin_coverage: [SC-9]
+    acceptance:
+      validator_ids: [V-FN-9]
+      criteria:
+        - "match_service_and_specialist(service_intent) → {primary: doctor(bio_public+url), callbacks} vía offer_service_specialist_links + disponibilidad"
+        - "solo doctores visible_en_landing; sin PHI"
+    assignment:
+      primary_agent: builder-agentic
+      model_preference: flagship
+      must_load_skills: [sales-agent-expert, offer-expert, hipaa-lite, tenant-isolation, tdd-mandatory]
+      must_load_artifacts: [03-arch.md, 03-arch-agentic.md, 05-guidelines.md]
+      forbidden_to_touch: ["core/luana-core-*/src/", "otros brands"]
+      rationale: "Tool agentic prod — flagship (R23). Lift-gated."
+
+  - id: T-AG-5
+    title: "share_doctor_profile tool (URL pública /d/) — BLOQUEADO por T-LIFT-1 (ESC-2/3)"
+    surface: agentic
+    production_code: true
+    blocked: true
+    blocker_reason: "ESC-2/3 — tool nuevo no dispatcha sin lift"
+    owner_eligibility: [builder-agentic]
+    depends_on: [T-LIFT-1]
+    blocks: []
+    gherkin_coverage: [SC-9]
+    acceptance:
+      validator_ids: ["G-objection-trust"]
+      criteria:
+        - "share_doctor_profile(doctor_id) → URL /d/{clinica-slug}/{doctor-slug} (solo visible_en_landing)"
+    assignment:
+      primary_agent: builder-agentic
+      model_preference: flagship
+      must_load_skills: [sales-agent-expert, hipaa-lite, tenant-isolation, tdd-mandatory]
+      must_load_artifacts: [03-arch.md, 03-arch-agentic.md, 05-guidelines.md]
+      forbidden_to_touch: ["core/luana-core-*/src/", "otros brands"]
+      rationale: "Tool trivial (devuelve URL existente) agentic prod — flagship (R23). Lift-gated."
+
+  # ═══════════════ FE (builder-frontend · workhorse · buildable HOY) ═══════════════
+  - id: T-FE-1
+    title: "Composer modo-instrucción (EXTEND inbox composer · effectiveMode)"
+    surface: fe
+    production_code: true
+    blocked: false
+    owner_eligibility: [builder-frontend]
+    depends_on: [T-BE-3]
+    blocks: []
+    gherkin_coverage: [SC-8]
+    acceptance:
+      validator_ids: [V-VIS-1, V-FN-7, V-ARCH-4]
+      criteria:
+        - "composer effectiveMode: human→direct · decide→instruction; label '🤖 Instrucción a Adrián' + chip activa"
+        - "useOperatorInstruction (React Query) → POST set-instruction; tenant via useTenantId()"
+        - "regression: specs composer inbox shipped verdes sin tocarse (excepción coordinada RN-14/15)"
+    notes_for_downstream: "Consume endpoint T-BE-3. NO ruta nueva — extiende /{tenantId}/adrian/inbox."
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: workhorse
+      must_load_skills: [frontend-expert, vitalia-design-system, playwright-expert, chrome-devtools-verify, tenant-isolation]
+      must_load_artifacts: [03-arch.md, 03-arch-fe.md, 05-guidelines.md]
+      forbidden_to_touch: ["core/", "otros brands", "otras sub-tabs inbox", "shell-organism wrapper"]
+      rationale: "FE no-agentic; EXTEND composer existente."

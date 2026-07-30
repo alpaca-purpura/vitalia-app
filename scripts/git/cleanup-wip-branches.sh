@@ -1,0 +1,1 @@
+../../core-harness/scripts/git/cleanup-wip-branches.sh

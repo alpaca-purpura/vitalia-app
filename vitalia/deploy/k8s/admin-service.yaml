@@ -1,0 +1,29 @@
+---
+# vitalia/deploy/k8s/admin-service.yaml
+# ClusterIP Service for vitalia-admin — exposes Streamlit port 8501 internally.
+# Ingress routes vitalia-admin.vitalialat.com → this service via admin-ingress.yaml.
+#
+# NOT exposed externally via LoadBalancer — access only through Ingress + TLS.
+# Cloudflare Tunnel (cloudflared) handles external TLS termination if needed.
+#
+# Arch ref: vitalia-auth-base-functional T-5 D7 · admin-panel.md
+apiVersion: v1
+kind: Service
+metadata:
+  name: vitalia-admin
+  namespace: vitalia
+  labels:
+    app.kubernetes.io/name: vitalia-admin
+    app.kubernetes.io/component: admin
+    app.kubernetes.io/part-of: vitalia
+    app.kubernetes.io/managed-by: kubectl
+    env: dev
+spec:
+  type: ClusterIP
+  selector:
+    app: vitalia-admin
+  ports:
+    - name: streamlit
+      port: 8501
+      targetPort: 8501
+      protocol: TCP

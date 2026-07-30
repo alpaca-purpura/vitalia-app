@@ -1,0 +1,332 @@
+<!doctype html>
+<!-- voseo-allowed: mockup interno de revisión, no es código de producto user-facing -->
+<!-- VARIANTE B: el detalle del lead abre como DRAWER flotante (overlay) en vez de panel lateral. Comparar con embudo-agentico-concept.html (panel). -->
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Embudo de Adrián — variante DRAWER · vitalia</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: { extend: { colors: {
+      background:'hsl(var(--background))', foreground:'hsl(var(--foreground))',
+      card:'hsl(var(--card))', 'card-foreground':'hsl(var(--card-foreground))',
+      primary:'hsl(var(--primary))', 'primary-foreground':'hsl(var(--primary-foreground))',
+      muted:'hsl(var(--muted))', 'muted-foreground':'hsl(var(--muted-foreground))',
+      accent:'hsl(var(--accent))', 'accent-foreground':'hsl(var(--accent-foreground))',
+      border:'hsl(var(--border))', destructive:'hsl(var(--destructive))', ring:'hsl(var(--ring))',
+      'agent-adrian':'hsl(var(--agent-adrian))', 'agent-adrian-soft':'hsl(var(--agent-adrian-soft))',
+      'agent-valeria':'hsl(var(--agent-valeria))', 'agent-camila':'hsl(var(--agent-camila))',
+    }, borderRadius:{ md:'0.5rem' } } }
+  }
+</script>
+<style>
+  :root{
+    --background:0 0% 100%; --foreground:240 10% 4%;
+    --card:0 0% 100%; --card-foreground:240 10% 4%;
+    --primary:198 99% 49%; --primary-foreground:0 0% 100%;
+    --muted:240 5% 96%; --muted-foreground:240 4% 46%;
+    --accent:287 53% 37%; --accent-foreground:0 0% 100%;
+    --destructive:0 84% 60%; --border:240 6% 90%; --ring:198 99% 49%;
+    --agent-adrian:198 99% 49%; --agent-adrian-soft:197 90% 89%;
+    --agent-valeria:287 53% 37%; --agent-camila:244 84% 32%;
+  }
+  .dark{
+    --background:240 10% 4%; --foreground:0 0% 98%;
+    --card:240 8% 8%; --card-foreground:0 0% 98%;
+    --primary:198 99% 49%; --primary-foreground:240 10% 4%;
+    --muted:240 4% 16%; --muted-foreground:240 5% 65%;
+    --accent:287 53% 50%; --destructive:0 63% 31%; --border:240 4% 20%; --ring:198 99% 49%;
+    --agent-adrian-soft:198 60% 20%; --agent-camila:244 80% 78%;
+  }
+  body{ background:hsl(var(--background)); color:hsl(var(--foreground)); }
+  .scroll::-webkit-scrollbar{ width:6px;height:6px } .scroll::-webkit-scrollbar-thumb{ background:hsl(var(--border)); border-radius:3px }
+  .val-grad{ background:linear-gradient(135deg,hsl(var(--agent-valeria)),hsl(var(--accent))) }
+  @keyframes pop{ from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
+  .pop{ animation:pop .25s ease both }
+  /* drawer slide */
+  #drawer .panel{ transform:translateX(100%); transition:transform .28s cubic-bezier(.32,.72,0,1) }
+  #drawer.open .panel{ transform:translateX(0) }
+  #drawer .scrim{ opacity:0; transition:opacity .28s ease }
+  #drawer.open .scrim{ opacity:1 }
+</style>
+</head>
+<body class="font-sans text-sm antialiased h-screen flex flex-col overflow-hidden">
+
+<!-- ============ TOPBAR global ============ -->
+<header class="flex items-center justify-between border-b border-border px-4 h-12 bg-card shrink-0">
+  <div class="flex items-center gap-3">
+    <div class="h-6 w-6 rounded-md" style="background:linear-gradient(135deg,hsl(var(--primary)),hsl(var(--accent)))"></div>
+    <span class="font-semibold">Vitalia</span>
+    <span class="text-muted-foreground">·</span>
+    <span class="text-muted-foreground">Clínica Sanaré <span class="text-xs">▾</span></span>
+    <span class="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">variante B · drawer</span>
+  </div>
+  <div class="flex items-center gap-3 text-xs">
+    <span class="flex items-center gap-1 text-emerald-500"><span class="h-2 w-2 rounded-full bg-emerald-500"></span> en vivo</span>
+    <button onclick="cycleSplit()" class="rounded-md border border-border px-2 py-1 hover:bg-muted">⇄ panel Valeria</button>
+    <button onclick="document.documentElement.classList.toggle('dark')" class="rounded-md border border-border px-2 py-1 hover:bg-muted">🌓 tema</button>
+  </div>
+</header>
+
+<!-- ============ SHELL BODY: Valeria | splitter | panel-content ============ -->
+<div class="flex-1 flex overflow-hidden">
+
+  <!-- ===== PANEL VALERIA ===== -->
+  <aside id="valeria" class="shrink-0 border-r border-border bg-card flex flex-col" style="width:360px">
+    <div class="flex items-center gap-2.5 px-4 h-14 border-b border-border">
+      <div class="relative">
+        <div class="h-9 w-9 rounded-full val-grad flex items-center justify-center text-white font-semibold">V</div>
+        <span class="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-500 border-2 border-card"></span>
+      </div>
+      <div class="leading-tight">
+        <div class="font-semibold">Valeria</div>
+        <div class="text-[11px] text-muted-foreground">Supervisora · coordina a tu equipo IA</div>
+      </div>
+    </div>
+    <div id="valMsgs" class="flex-1 overflow-y-auto scroll p-3 space-y-3 text-xs">
+      <div class="flex gap-2">
+        <div class="h-6 w-6 shrink-0 rounded-full val-grad text-white flex items-center justify-center text-[10px] font-semibold">V</div>
+        <div class="rounded-md rounded-tl-none bg-muted p-2.5 leading-relaxed">Buen día 👋 Resumen de hoy: <b>Adrián</b> atendió 29 conversaciones, movió 7 leads y cobró 1 depósito (Camila B., S/&nbsp;2k).</div>
+      </div>
+      <div class="flex gap-2">
+        <div class="h-6 w-6 shrink-0 rounded-full val-grad text-white flex items-center justify-center text-[10px] font-semibold">V</div>
+        <div class="rounded-md rounded-tl-none p-2.5 leading-relaxed border border-amber-500/40 bg-amber-500/10">⚠️ 3 leads se están <b>enfriando</b>. <b>Rosa V.</b> lleva 16 días en “Plan presentado”. ¿Querés que Adrián le haga seguimiento?
+          <div class="flex gap-1.5 mt-2"><button class="rounded-md bg-primary text-primary-foreground px-2 py-1 text-[11px]">Sí, que la siga</button><button class="rounded-md border border-border px-2 py-1 text-[11px] hover:bg-card">La veo yo</button></div>
+        </div>
+      </div>
+      <div class="flex gap-2">
+        <div class="h-6 w-6 shrink-0 rounded-full val-grad text-white flex items-center justify-center text-[10px] font-semibold">V</div>
+        <div class="rounded-md rounded-tl-none bg-muted p-2.5 leading-relaxed">🧊 2 conversaciones <b>congeladas</b> necesitan tu decisión.<div class="mt-2"><button class="rounded-md border border-border px-2 py-1 text-[11px] hover:bg-card">Ver congeladas</button></div></div>
+      </div>
+    </div>
+    <div class="border-t border-border p-2.5">
+      <div class="flex items-center gap-2 rounded-md border border-border bg-background px-2.5 py-2">
+        <input class="flex-1 bg-transparent outline-none text-xs placeholder:text-muted-foreground" placeholder="Preguntale a Valeria…" />
+        <span class="text-muted-foreground text-[10px]">⌘K</span><button class="text-primary">➤</button>
+      </div>
+    </div>
+  </aside>
+
+  <div class="w-px bg-border shrink-0"></div>
+
+  <!-- ===== PANEL CONTENT ===== -->
+  <main class="flex-1 flex flex-col overflow-hidden relative">
+    <nav class="flex items-center gap-1 border-b border-border px-3 h-10 bg-background text-xs shrink-0">
+      <span class="px-2 py-1 text-muted-foreground">Lisa</span>
+      <span class="px-2 py-1 rounded-md font-medium text-agent-adrian border-b-2" style="border-color:hsl(var(--agent-adrian))">Adrián</span>
+      <span class="px-2 py-1 text-muted-foreground">Lucas</span>
+      <span class="px-2 py-1 text-muted-foreground">Camila</span>
+      <span class="px-2 py-1 text-muted-foreground">Mateo</span>
+      <span class="ml-auto px-2 py-1 text-muted-foreground">Configurar</span>
+    </nav>
+    <nav class="flex items-center gap-4 border-b border-border px-3 h-9 bg-background text-xs text-muted-foreground shrink-0">
+      <span>Inbox</span><span class="font-medium text-foreground border-b-2 pb-2" style="border-color:hsl(var(--agent-adrian))">Embudo</span><span>Outbound</span><span>Propuestas</span>
+    </nav>
+
+    <div class="flex-1 overflow-y-auto scroll p-4">
+      <div class="flex flex-wrap items-start justify-between gap-3 mb-3">
+        <div>
+          <h1 class="text-lg font-semibold flex items-center gap-2">Embudo
+            <span class="text-xs font-normal px-2 py-0.5 rounded-full" style="background:hsl(var(--agent-adrian-soft));color:hsl(var(--agent-adrian))">🤖 operado por Adrián</span></h1>
+          <p class="text-muted-foreground text-xs mt-0.5">Variante B: el detalle abre como <b>drawer flotante</b> sobre el board (no empuja el contenido).</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <div class="flex rounded-md border border-border overflow-hidden text-xs"><button class="px-3 py-1.5 bg-primary text-primary-foreground font-medium">Kanban</button><button class="px-3 py-1.5 hover:bg-muted">Lista</button></div>
+          <div class="flex rounded-md border border-border overflow-hidden text-xs"><button class="px-3 py-1.5 bg-muted font-medium">Modo Adrián</button><button class="px-3 py-1.5 hover:bg-muted text-muted-foreground">Todos</button></div>
+          <button class="rounded-md bg-primary text-primary-foreground px-3 py-1.5 text-xs font-medium">+ Nuevo lead</button>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap gap-2 mb-4 text-xs">
+        <div class="rounded-md border border-border bg-card px-3 py-1.5"><b>34</b> <span class="text-muted-foreground">activos</span></div>
+        <div class="rounded-md border border-border bg-card px-3 py-1.5 flex items-center gap-1"><span class="text-agent-adrian">🤖</span> <b>29</b> <span class="text-muted-foreground">Adrián</span></div>
+        <div class="rounded-md border border-border bg-card px-3 py-1.5 flex items-center gap-1"><span class="text-emerald-500">🙋</span> <b>5</b> <span class="text-muted-foreground">humano</span></div>
+        <div class="rounded-md border border-border bg-card px-3 py-1.5">🔥 9 · 🌡️ 16 · ❄️ 9</div>
+        <div class="rounded-md border border-border bg-card px-3 py-1.5">score prom <b class="font-mono">61</b></div>
+        <div class="rounded-md border border-border bg-card px-3 py-1.5">⭐ tasa depósito <b>22%</b></div>
+        <div class="rounded-md border border-amber-500/50 bg-amber-500/10 px-3 py-1.5 text-amber-600 dark:text-amber-400">🧊 3 congeladas</div>
+      </div>
+
+      <div class="overflow-x-auto scroll pb-2">
+       <div class="grid grid-cols-6 gap-3 min-w-[1100px]">
+        <!-- Col 1 -->
+        <section class="flex flex-col">
+          <div class="flex items-center justify-between mb-2 px-1"><span class="font-medium">⚪ Interesado</span><span class="text-xs text-muted-foreground">12 · S/84k</span></div>
+          <div class="space-y-2">
+            <article onclick="openLead()" class="cursor-pointer rounded-md border border-border bg-card p-2.5 border-l-2 hover:ring-1 hover:ring-primary/40" style="border-left-color:#f43f5e">
+              <div class="flex items-center justify-between"><span class="font-medium">María G███</span><span class="text-[10px] px-1.5 py-0.5 rounded-full" style="background:hsl(var(--agent-adrian-soft));color:hsl(var(--agent-adrian))">🤖 Adrián</span></div>
+              <div class="text-[11px] text-muted-foreground mt-0.5">S/ 7k · WhatsApp</div>
+              <div class="mt-2"><div class="flex justify-between text-[10px] text-muted-foreground"><span>score</span><span>48</span></div><div class="h-1.5 rounded-full bg-muted mt-0.5"><div class="h-1.5 rounded-full bg-amber-500" style="width:48%"></div></div></div>
+              <div class="flex flex-wrap gap-1 mt-2"><span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">💬 preguntó precio</span></div>
+              <div class="flex items-center justify-between mt-2 text-[10px]"><span class="flex items-center gap-1 text-emerald-600 dark:text-emerald-400"><span class="h-2 w-2 rounded-full bg-emerald-500"></span> 2d</span></div>
+              <div class="mt-1.5 pt-1.5 border-t border-border text-[10px] text-muted-foreground">🤖 Adrián saludó · hace 2h <span class="text-primary">· clic para ver</span></div>
+            </article>
+            <article class="rounded-md border border-border bg-card p-2.5 border-l-2" style="border-left-color:#3b82f6">
+              <div class="flex items-center justify-between"><span class="font-medium">Carlos P███</span><span class="text-[10px] px-1.5 py-0.5 rounded-full" style="background:hsl(var(--agent-adrian-soft));color:hsl(var(--agent-adrian))">🤖 Adrián</span></div>
+              <div class="text-[11px] text-muted-foreground mt-0.5">S/ 4k · Instagram</div>
+              <div class="mt-2"><div class="flex justify-between text-[10px] text-muted-foreground"><span>score</span><span>33</span></div><div class="h-1.5 rounded-full bg-muted mt-0.5"><div class="h-1.5 rounded-full bg-destructive" style="width:33%"></div></div></div>
+              <div class="flex items-center justify-between mt-2 text-[10px]"><span class="flex items-center gap-1 text-amber-600 dark:text-amber-400"><span class="h-2 w-2 rounded-full bg-amber-500"></span> 9d</span></div>
+            </article>
+          </div>
+        </section>
+        <!-- Col 2 -->
+        <section class="flex flex-col">
+          <div class="flex items-center justify-between mb-2 px-1"><span class="font-medium">🟢 Calificando</span><span class="text-xs text-muted-foreground">8 · S/62k</span></div>
+          <div class="space-y-2">
+            <article class="rounded-md border border-border bg-card p-2.5 border-l-2" style="border-left-color:#f43f5e">
+              <div class="flex items-center justify-between"><span class="font-medium">Ana V███</span><span class="text-[10px] px-1.5 py-0.5 rounded-full" style="background:hsl(var(--agent-adrian-soft));color:hsl(var(--agent-adrian))">🤖 Adrián</span></div>
+              <div class="text-[11px] text-muted-foreground mt-0.5">S/ 8k · Ortodoncia</div>
+              <div class="mt-2"><div class="flex justify-between text-[10px] text-muted-foreground"><span>score</span><span>64</span></div><div class="h-1.5 rounded-full bg-muted mt-0.5"><div class="h-1.5 rounded-full bg-amber-500" style="width:64%"></div></div></div>
+              <div class="flex flex-wrap gap-1 mt-2"><span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">⏰ urgencia</span><span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">💬 presupuesto ok</span></div>
+              <div class="mt-1.5 pt-1.5 border-t border-border text-[10px] text-muted-foreground">🤖 Adrián movió a Calificando · hace 1h</div>
+            </article>
+            <article class="rounded-md border border-border bg-card p-2.5 border-l-2" style="border-left-color:#f97316">
+              <div class="flex items-center justify-between"><span class="font-medium">Pedro M███</span><span class="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">🙋 Vos</span></div>
+              <div class="text-[11px] text-muted-foreground mt-0.5">S/ 6k · WhatsApp</div>
+              <div class="mt-2"><div class="flex justify-between text-[10px] text-muted-foreground"><span>score</span><span>52</span></div><div class="h-1.5 rounded-full bg-muted mt-0.5"><div class="h-1.5 rounded-full bg-amber-500" style="width:52%"></div></div></div>
+              <div class="mt-1.5 pt-1.5 border-t border-border text-[10px] text-muted-foreground">🙋 Tomaste el control · hace 20m</div>
+            </article>
+          </div>
+        </section>
+        <!-- Col 3 -->
+        <section class="flex flex-col">
+          <div class="flex items-center justify-between mb-2 px-1"><span class="font-medium">🔵 Consulta agendada</span><span class="text-xs text-muted-foreground">5 · S/41k</span></div>
+          <div class="space-y-2">
+            <article class="rounded-md border border-border bg-card p-2.5 border-l-2" style="border-left-color:#f43f5e">
+              <div class="flex items-center justify-between"><span class="font-medium">JP Méndez███</span><span class="text-[10px] px-1.5 py-0.5 rounded-full" style="background:hsl(var(--agent-adrian-soft));color:hsl(var(--agent-adrian))">🤖 Adrián</span></div>
+              <div class="text-[11px] text-muted-foreground mt-0.5">S/ 11k · WhatsApp</div>
+              <div class="text-[10px] mt-1 px-1.5 py-0.5 rounded inline-block bg-primary/10 text-primary">📅 jue 5 jun · 15:00 · Dra. Rojas</div>
+              <div class="mt-2"><div class="flex justify-between text-[10px] text-muted-foreground"><span>score</span><span>71</span></div><div class="h-1.5 rounded-full bg-muted mt-0.5"><div class="h-1.5 rounded-full bg-emerald-500" style="width:71%"></div></div></div>
+              <div class="mt-1.5 pt-1.5 border-t border-border text-[10px] text-muted-foreground">🤖 Adrián agendó · ayer</div>
+            </article>
+          </div>
+        </section>
+        <!-- Col 4 -->
+        <section class="flex flex-col">
+          <div class="flex items-center justify-between mb-2 px-1"><span class="font-medium">🟡 Plan presentado</span><span class="text-xs text-muted-foreground">3 · S/28k</span></div>
+          <div class="space-y-2">
+            <article class="rounded-md border border-border bg-card p-2.5 border-l-2 ring-1 ring-amber-500/40" style="border-left-color:#f43f5e">
+              <div class="flex items-center justify-between"><span class="font-medium">Rosa V███</span><span class="text-[10px] px-1.5 py-0.5 rounded-full" style="background:hsl(var(--agent-adrian-soft));color:hsl(var(--agent-adrian))">🤖 Adrián</span></div>
+              <div class="text-[11px] text-muted-foreground mt-0.5">S/ 12k · Implantes</div>
+              <div class="mt-2"><div class="flex justify-between text-[10px] text-muted-foreground"><span>score</span><span>78</span></div><div class="h-1.5 rounded-full bg-muted mt-0.5"><div class="h-1.5 rounded-full bg-emerald-500" style="width:78%"></div></div></div>
+              <div class="flex items-center justify-between mt-2 text-[10px]"><span class="flex items-center gap-1 text-red-600 dark:text-red-400"><span class="h-2 w-2 rounded-full bg-red-500"></span> 16d · estancado</span></div>
+              <div class="mt-1.5 pt-1.5 border-t border-border text-[10px] text-muted-foreground">🤖 Adrián envió propuesta · hace 16d</div>
+            </article>
+          </div>
+        </section>
+        <!-- Col 5 -->
+        <section class="flex flex-col">
+          <div class="flex items-center justify-between mb-2 px-1"><span class="font-medium">🟣 Reservado ⭐</span><span class="text-xs text-muted-foreground">2 · S/15k</span></div>
+          <div class="space-y-2">
+            <article class="rounded-md border border-border bg-card p-2.5 border-l-2" style="border-left-color:#10b981">
+              <div class="flex items-center justify-between"><span class="font-medium">Camila B███</span><span class="text-[10px] px-1.5 py-0.5 rounded-full" style="background:hsl(var(--agent-adrian-soft));color:hsl(var(--agent-adrian))">🤖 Adrián</span></div>
+              <div class="text-[11px] text-muted-foreground mt-0.5">S/ 8k · Blanqueamiento</div>
+              <div class="text-[10px] mt-1 px-1.5 py-0.5 rounded inline-block bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">✅ depósito S/ 2k</div>
+              <div class="mt-1.5 pt-1.5 border-t border-border text-[10px] text-muted-foreground">🤖 Adrián cobró · hoy 09:12</div>
+            </article>
+            <article class="rounded-md border border-border bg-card p-2.5 border-l-2" style="border-left-color:#f97316">
+              <div class="flex items-center justify-between"><span class="font-medium">Mateo L███</span><span class="text-[10px] px-1.5 py-0.5 rounded-full" style="background:hsl(var(--agent-adrian-soft));color:hsl(var(--agent-adrian))">🤖 Adrián</span></div>
+              <div class="text-[11px] text-muted-foreground mt-0.5">S/ 7k · Ortodoncia</div>
+              <div class="text-[10px] mt-1 px-1.5 py-0.5 rounded inline-block bg-amber-500/15 text-amber-600 dark:text-amber-400">💳 esperando pago</div>
+              <div class="mt-1.5 pt-1.5 border-t border-border text-[10px] text-muted-foreground">🤖 Adrián envió link · hace 3h</div>
+            </article>
+          </div>
+        </section>
+        <!-- Col 6 -->
+        <section class="flex flex-col">
+          <div class="flex items-center justify-between mb-2 px-1"><span class="font-medium">⚫ Decidió que no</span><span class="text-xs text-muted-foreground">4 · —</span></div>
+          <div class="space-y-2">
+            <article class="rounded-md border border-border bg-card p-2.5 opacity-75"><div class="font-medium">Iván S███</div><div class="text-[11px] text-muted-foreground mt-0.5">razón: precio</div><div class="mt-1.5 pt-1.5 border-t border-border text-[10px]" style="color:hsl(var(--agent-camila))">↻ Camila lo reactivará en 90d</div></article>
+            <article class="rounded-md border border-border bg-card p-2.5 opacity-75"><div class="font-medium">Patricia C███</div><div class="text-[11px] text-muted-foreground mt-0.5">razón: sin disponibilidad</div><div class="mt-1.5 pt-1.5 border-t border-border text-[10px]" style="color:hsl(var(--agent-camila))">↻ cohorte reactivación</div></article>
+          </div>
+        </section>
+       </div>
+      </div>
+
+      <p class="text-[11px] text-muted-foreground mt-3">👉 Clic en <b>María G.</b> → el detalle entra como <b>drawer</b> desde la derecha (scrim sobre el board) + Valeria reacciona a la izquierda.</p>
+    </div>
+  </main>
+</div>
+
+<!-- ============ DRAWER (overlay flotante, fuera del flujo) ============ -->
+<div id="drawer" class="fixed inset-0 z-50 hidden">
+  <div class="scrim absolute inset-0 bg-black/40" onclick="closeLead()"></div>
+  <aside class="panel absolute right-0 top-0 h-full w-full max-w-sm bg-card border-l border-border shadow-2xl flex flex-col">
+    <div class="flex items-center justify-between px-4 h-12 border-b border-border shrink-0">
+      <div class="flex items-center gap-2"><span class="font-semibold">María G███</span><span class="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">⚪ Interesado</span></div>
+      <button onclick="closeLead()" class="text-muted-foreground hover:text-foreground text-lg leading-none">×</button>
+    </div>
+    <div class="m-3 rounded-md border p-3" style="border-color:hsl(var(--agent-adrian));background:hsl(var(--agent-adrian-soft))">
+      <div class="flex items-center justify-between"><span class="text-xs font-medium flex items-center gap-1" style="color:hsl(var(--agent-adrian))">🤖 Adrián la está atendiendo</span><button class="text-[11px] rounded-md bg-card border border-border px-2 py-1 hover:bg-muted">🙋 Tomar control</button></div>
+      <div class="text-[11px] text-muted-foreground mt-1.5"><b>Puede:</b> mover etapa · agendar · enviar info. <b>Necesita tu OK:</b> cobrar · descuentos · temas clínicos.</div>
+      <div class="mt-2 flex gap-2"><button class="text-[11px] rounded-md bg-card border border-border px-2 py-1 hover:bg-muted">💬 Instrucción oculta</button><button class="text-[11px] rounded-md bg-card border border-border px-2 py-1 hover:bg-muted">⚡ Nudge</button></div>
+    </div>
+    <div class="flex gap-4 px-4 border-b border-border text-xs shrink-0">
+      <button class="py-2 font-medium border-b-2" style="border-color:hsl(var(--agent-adrian))">Datos</button><button class="py-2 text-muted-foreground">Historial</button><button class="py-2 text-muted-foreground">Score</button>
+    </div>
+    <div class="flex-1 overflow-y-auto scroll p-4 space-y-4 text-xs">
+      <div class="space-y-1.5">
+        <div class="flex justify-between"><span class="text-muted-foreground">Contacto</span><span>+51 9██ ███ ██4 · WA</span></div>
+        <div class="flex justify-between"><span class="text-muted-foreground">Origen</span><span>IG Ads · “Sonrisa 2026”</span></div>
+        <div class="flex justify-between"><span class="text-muted-foreground">Interés</span><span>Blanqueamiento</span></div>
+        <div class="flex justify-between"><span class="text-muted-foreground">Doctor</span><span>sin asignar</span></div>
+        <div class="flex justify-between"><span class="text-muted-foreground">Etiquetas</span><span>nuevo · sensible-precio</span></div>
+      </div>
+      <div class="rounded-md border border-border p-3">
+        <div class="flex items-center justify-between mb-2"><span class="font-medium">Score 48 <span class="text-muted-foreground font-normal">/100</span></span><span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400">tibio</span></div>
+        <div class="h-1.5 rounded-full bg-muted mb-3"><div class="h-1.5 rounded-full bg-amber-500" style="width:48%"></div></div>
+        <div class="space-y-1 text-[11px]">
+          <div class="flex justify-between"><span class="text-muted-foreground">preguntó por precio</span><span class="text-emerald-600 dark:text-emerald-400">+25</span></div>
+          <div class="flex justify-between"><span class="text-muted-foreground">respondió en &lt;5 min</span><span class="text-emerald-600 dark:text-emerald-400">+15</span></div>
+          <div class="flex justify-between"><span class="text-muted-foreground">vino de campaña pagada</span><span class="text-emerald-600 dark:text-emerald-400">+10</span></div>
+          <div class="flex justify-between"><span class="text-muted-foreground">sin agendar (2 días)</span><span class="text-destructive">−2</span></div>
+        </div>
+        <div class="text-[10px] text-muted-foreground mt-2 pt-2 border-t border-border">Reglas + recencia, sin caja negra.</div>
+      </div>
+      <div>
+        <div class="font-medium mb-2">Línea de tiempo</div>
+        <ol class="space-y-2 border-l border-border pl-3">
+          <li class="text-[11px]"><span class="text-muted-foreground">2h</span> · <span style="color:hsl(var(--agent-adrian))">🤖 Adrián</span>: “¡Hola María! Te cuento del blanqueamiento ✨”</li>
+          <li class="text-[11px]"><span class="text-muted-foreground">2h</span> · 💬 María: “¿cuánto sale?”</li>
+          <li class="text-[11px]"><span class="text-muted-foreground">2h</span> · <span style="color:hsl(var(--agent-adrian))">🤖</span> señal <span class="px-1 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">preguntó precio</span></li>
+          <li class="text-[11px]"><a href="#" class="text-primary underline">Abrir en el Inbox →</a></li>
+        </ol>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<script>
+  function openLead(){
+    const d = document.getElementById('drawer');
+    d.classList.remove('hidden'); requestAnimationFrame(()=>d.classList.add('open'));
+    const wrap = document.getElementById('valMsgs');
+    if (document.getElementById('val-ctx')) { wrap.scrollTop = wrap.scrollHeight; return; }
+    const el = document.createElement('div');
+    el.id = 'val-ctx'; el.className = 'flex gap-2 pop';
+    el.innerHTML = `
+      <div class="h-6 w-6 shrink-0 rounded-full val-grad text-white flex items-center justify-center text-[10px] font-semibold">V</div>
+      <div class="rounded-md rounded-tl-none p-2.5 leading-relaxed border" style="border-color:hsl(var(--agent-adrian));background:hsl(var(--agent-adrian-soft))">
+        Estás viendo a <b>María G.</b> — Interesado, score 48 (tibio), enfriándose (2&nbsp;d). Preguntó precio pero no agendó.
+        ¿Querés que le ofrezca la <b>promo de blanqueamiento</b>?
+        <div class="flex flex-wrap gap-1.5 mt-2">
+          <button class="rounded-md bg-primary text-primary-foreground px-2 py-1 text-[11px]">Sí, ofrécela</button>
+          <button class="rounded-md border border-border bg-card px-2 py-1 text-[11px] hover:bg-muted">🙋 Tomar control</button>
+          <button class="rounded-md border border-border bg-card px-2 py-1 text-[11px] hover:bg-muted">📅 Agendar yo</button>
+        </div>
+      </div>`;
+    wrap.appendChild(el); wrap.scrollTop = wrap.scrollHeight;
+  }
+  function closeLead(){
+    const d = document.getElementById('drawer'); d.classList.remove('open');
+    setTimeout(()=>d.classList.add('hidden'), 280);
+    const ctx = document.getElementById('val-ctx'); if (ctx) ctx.remove();
+  }
+  let split = 0; const widths = [360, 280, 480];
+  function cycleSplit(){ split=(split+1)%widths.length; document.getElementById('valeria').style.width = widths[split]+'px'; }
+</script>
+</body>
+</html>

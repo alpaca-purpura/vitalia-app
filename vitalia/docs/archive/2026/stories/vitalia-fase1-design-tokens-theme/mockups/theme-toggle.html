@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>F1-S1 · ThemeToggle mockup — 4 states</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    // Tailwind config inline para activar dark mode via data-attr
+    tailwind.config = {
+      darkMode: ['class', '[data-theme="dark"]'],
+      theme: {
+        extend: {
+          colors: {
+            background: 'hsl(var(--background))',
+            foreground: 'hsl(var(--foreground))',
+            card: 'hsl(var(--card))',
+            'card-foreground': 'hsl(var(--card-foreground))',
+            primary: 'hsl(var(--primary))',
+            'primary-foreground': 'hsl(var(--primary-foreground))',
+            accent: 'hsl(var(--accent))',
+            'accent-foreground': 'hsl(var(--accent-foreground))',
+            muted: 'hsl(var(--muted))',
+            'muted-foreground': 'hsl(var(--muted-foreground))',
+            border: 'hsl(var(--border))',
+            ring: 'hsl(var(--ring))',
+          },
+          borderRadius: {
+            lg: 'var(--radius)',
+            md: 'calc(var(--radius) - 2px)',
+            sm: 'calc(var(--radius) - 4px)',
+          },
+        },
+      },
+    }
+  </script>
+  <style>
+    /* Vitalia design tokens — verbatim Design Contract § 5.1 */
+    :root {
+      --background: 0 0% 100%;
+      --foreground: 240 10% 4%;
+      --card: 0 0% 100%;
+      --card-foreground: 240 10% 4%;
+      --primary: 198 99% 49%;
+      --primary-foreground: 0 0% 100%;
+      --secondary: 240 5% 96%;
+      --secondary-foreground: 240 6% 10%;
+      --muted: 240 5% 96%;
+      --muted-foreground: 240 4% 46%;
+      --accent: 287 53% 37%;
+      --accent-foreground: 0 0% 100%;
+      --destructive: 0 84% 60%;
+      --destructive-foreground: 0 0% 98%;
+      --border: 240 6% 90%;
+      --input: 240 6% 90%;
+      --ring: 198 99% 49%;
+      --radius: 0.5rem;
+    }
+
+    /* Dark mode — verbatim Design Contract § 5.1 */
+    .dark, [data-theme="dark"] {
+      --background: 240 10% 4%;
+      --foreground: 0 0% 98%;
+      --card: 240 8% 8%;
+      --card-foreground: 0 0% 98%;
+      --primary: 198 99% 49%;
+      --primary-foreground: 240 10% 4%;
+      --secondary: 240 6% 14%;
+      --secondary-foreground: 0 0% 98%;
+      --muted: 240 6% 14%;
+      --muted-foreground: 240 4% 60%;
+      --accent: 287 53% 60%;
+      --accent-foreground: 240 10% 4%;
+      --destructive: 0 84% 60%;
+      --destructive-foreground: 0 0% 98%;
+      --border: 240 6% 18%;
+      --input: 240 6% 18%;
+      --ring: 198 99% 49%;
+    }
+
+    /* Body root */
+    body {
+      background: hsl(var(--background));
+      color: hsl(var(--foreground));
+      font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+    }
+
+    /* Shadcn Button ghost icon — verbatim styles */
+    .btn-ghost-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      height: 2.5rem;
+      width: 2.5rem;
+      border-radius: var(--radius);
+      background-color: transparent;
+      color: hsl(var(--foreground));
+      transition: background-color 150ms, color 150ms;
+      cursor: pointer;
+      border: none;
+      outline: none;
+    }
+    .btn-ghost-icon:focus-visible {
+      box-shadow: 0 0 0 2px hsl(var(--ring) / 0.6);
+    }
+    .btn-ghost-icon.hover {
+      background-color: hsl(var(--accent) / 0.1);
+      color: hsl(var(--accent-foreground));
+    }
+    [data-theme="dark"] .btn-ghost-icon.hover {
+      background-color: hsl(var(--accent) / 0.2);
+    }
+  </style>
+</head>
+<body class="min-h-screen">
+
+  <!-- ─── Header ─────────────────────────────────────────── -->
+  <header class="border-b" style="border-color: hsl(var(--border));">
+    <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div>
+        <h1 class="text-lg font-semibold">F1-S1 · ThemeToggle mockup</h1>
+        <p class="text-sm" style="color: hsl(var(--muted-foreground));">
+          4 estados side-by-side · ratificación visual Chris pre-refined
+        </p>
+      </div>
+      <div class="text-xs" style="color: hsl(var(--muted-foreground));">
+        story: vitalia-fase1-design-tokens-theme · v1.0
+      </div>
+    </div>
+  </header>
+
+  <!-- ─── Main ───────────────────────────────────────────── -->
+  <main class="max-w-6xl mx-auto px-6 py-12">
+
+    <!-- Section: Light theme states -->
+    <section class="mb-12">
+      <h2 class="text-base font-semibold mb-1">Light theme · 2 states</h2>
+      <p class="text-sm mb-6" style="color: hsl(var(--muted-foreground));">
+        Theme inicial. Icono Moon visible (sugiere "switch to dark"). aria-label = "Cambiar tema (actual: claro)".
+      </p>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+        <!-- State 1: Light + Idle -->
+        <div
+          data-theme="light"
+          class="rounded-lg border p-8 flex flex-col items-center justify-center min-h-[200px]"
+          style="background: hsl(var(--card)); border-color: hsl(var(--border));"
+        >
+          <button
+            class="btn-ghost-icon"
+            aria-label="Cambiar tema (actual: claro)"
+            aria-pressed="false"
+            data-testid="theme-toggle"
+            type="button"
+          >
+            <!-- Lucide Moon icon -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+          </button>
+          <div class="mt-6 text-xs font-medium" style="color: hsl(var(--muted-foreground));">
+            Light · Idle
+          </div>
+          <div class="mt-1 text-[10px] font-mono" style="color: hsl(var(--muted-foreground));">
+            aria-pressed="false"
+          </div>
+        </div>
+
+        <!-- State 2: Light + Hover -->
+        <div
+          data-theme="light"
+          class="rounded-lg border p-8 flex flex-col items-center justify-center min-h-[200px]"
+          style="background: hsl(var(--card)); border-color: hsl(var(--border));"
+        >
+          <button
+            class="btn-ghost-icon hover"
+            aria-label="Cambiar tema (actual: claro)"
+            aria-pressed="false"
+            data-testid="theme-toggle"
+            type="button"
+          >
+            <!-- Lucide Moon icon -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+          </button>
+          <div class="mt-6 text-xs font-medium" style="color: hsl(var(--muted-foreground));">
+            Light · Hover
+          </div>
+          <div class="mt-1 text-[10px] font-mono" style="color: hsl(var(--muted-foreground));">
+            bg-accent/10 subtle
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Section: Dark theme states -->
+    <section class="mb-12">
+      <h2 class="text-base font-semibold mb-1">Dark theme · 2 states</h2>
+      <p class="text-sm mb-6" style="color: hsl(var(--muted-foreground));">
+        Post toggle (o reload con localStorage dark). Icono Sun visible (sugiere "switch to light"). aria-label = "Cambiar tema (actual: oscuro)".
+      </p>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+        <!-- State 3: Dark + Idle -->
+        <div
+          data-theme="dark"
+          class="rounded-lg border p-8 flex flex-col items-center justify-center min-h-[200px]"
+          style="background: hsl(var(--card)); border-color: hsl(var(--border));"
+        >
+          <button
+            class="btn-ghost-icon"
+            aria-label="Cambiar tema (actual: oscuro)"
+            aria-pressed="true"
+            data-testid="theme-toggle"
+            type="button"
+            style="color: hsl(var(--foreground));"
+          >
+            <!-- Lucide Sun icon -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="4"></circle>
+              <path d="M12 2v2"></path>
+              <path d="M12 20v2"></path>
+              <path d="m4.93 4.93 1.41 1.41"></path>
+              <path d="m17.66 17.66 1.41 1.41"></path>
+              <path d="M2 12h2"></path>
+              <path d="M20 12h2"></path>
+              <path d="m6.34 17.66-1.41 1.41"></path>
+              <path d="m19.07 4.93-1.41 1.41"></path>
+            </svg>
+          </button>
+          <div class="mt-6 text-xs font-medium" style="color: hsl(var(--muted-foreground));">
+            Dark · Idle
+          </div>
+          <div class="mt-1 text-[10px] font-mono" style="color: hsl(var(--muted-foreground));">
+            aria-pressed="true"
+          </div>
+        </div>
+
+        <!-- State 4: Dark + Hover -->
+        <div
+          data-theme="dark"
+          class="rounded-lg border p-8 flex flex-col items-center justify-center min-h-[200px]"
+          style="background: hsl(var(--card)); border-color: hsl(var(--border));"
+        >
+          <button
+            class="btn-ghost-icon hover"
+            aria-label="Cambiar tema (actual: oscuro)"
+            aria-pressed="true"
+            data-testid="theme-toggle"
+            type="button"
+            style="color: hsl(var(--foreground));"
+          >
+            <!-- Lucide Sun icon -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="4"></circle>
+              <path d="M12 2v2"></path>
+              <path d="M12 20v2"></path>
+              <path d="m4.93 4.93 1.41 1.41"></path>
+              <path d="m17.66 17.66 1.41 1.41"></path>
+              <path d="M2 12h2"></path>
+              <path d="M20 12h2"></path>
+              <path d="m6.34 17.66-1.41 1.41"></path>
+              <path d="m19.07 4.93-1.41 1.41"></path>
+            </svg>
+          </button>
+          <div class="mt-6 text-xs font-medium" style="color: hsl(var(--muted-foreground));">
+            Dark · Hover
+          </div>
+          <div class="mt-1 text-[10px] font-mono" style="color: hsl(var(--muted-foreground));">
+            bg-accent/20 subtle (dark variant)
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Section: Spec details -->
+    <section class="mb-12 grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+      <!-- Tech contract -->
+      <div class="rounded-lg border p-6" style="background: hsl(var(--card)); border-color: hsl(var(--border));">
+        <h3 class="text-sm font-semibold mb-3">Contrato técnico</h3>
+        <dl class="space-y-2 text-sm">
+          <div class="flex gap-2">
+            <dt class="font-medium" style="min-width: 7rem;">Component:</dt>
+            <dd class="font-mono text-xs" style="color: hsl(var(--muted-foreground));">ThemeToggle.tsx</dd>
+          </div>
+          <div class="flex gap-2">
+            <dt class="font-medium" style="min-width: 7rem;">Path:</dt>
+            <dd class="font-mono text-xs" style="color: hsl(var(--muted-foreground));">components/shared/shell-organism/</dd>
+          </div>
+          <div class="flex gap-2">
+            <dt class="font-medium" style="min-width: 7rem;">Variant:</dt>
+            <dd class="font-mono text-xs" style="color: hsl(var(--muted-foreground));">Button ghost icon</dd>
+          </div>
+          <div class="flex gap-2">
+            <dt class="font-medium" style="min-width: 7rem;">Icons:</dt>
+            <dd class="font-mono text-xs" style="color: hsl(var(--muted-foreground));">Lucide Moon · Sun</dd>
+          </div>
+          <div class="flex gap-2">
+            <dt class="font-medium" style="min-width: 7rem;">Provider:</dt>
+            <dd class="font-mono text-xs" style="color: hsl(var(--muted-foreground));">next-themes ^0.3.0</dd>
+          </div>
+          <div class="flex gap-2">
+            <dt class="font-medium" style="min-width: 7rem;">Attribute:</dt>
+            <dd class="font-mono text-xs" style="color: hsl(var(--muted-foreground));">data-theme (NO class)</dd>
+          </div>
+          <div class="flex gap-2">
+            <dt class="font-medium" style="min-width: 7rem;">Default:</dt>
+            <dd class="font-mono text-xs" style="color: hsl(var(--muted-foreground));">light · enableSystem=false</dd>
+          </div>
+          <div class="flex gap-2">
+            <dt class="font-medium" style="min-width: 7rem;">Storage:</dt>
+            <dd class="font-mono text-xs" style="color: hsl(var(--muted-foreground));">localStorage 'vitalia-theme'</dd>
+          </div>
+        </dl>
+      </div>
+
+      <!-- A11y + i18n -->
+      <div class="rounded-lg border p-6" style="background: hsl(var(--card)); border-color: hsl(var(--border));">
+        <h3 class="text-sm font-semibold mb-3">A11y + i18n</h3>
+        <ul class="space-y-2 text-sm">
+          <li class="flex gap-2">
+            <span class="font-medium" style="min-width: 7rem;">aria-label:</span>
+            <span class="text-xs" style="color: hsl(var(--muted-foreground));">"Cambiar tema (actual: claro/oscuro)"</span>
+          </li>
+          <li class="flex gap-2">
+            <span class="font-medium" style="min-width: 7rem;">aria-pressed:</span>
+            <span class="font-mono text-xs" style="color: hsl(var(--muted-foreground));">"true" si dark · "false" si light</span>
+          </li>
+          <li class="flex gap-2">
+            <span class="font-medium" style="min-width: 7rem;">Keyboard:</span>
+            <span class="text-xs" style="color: hsl(var(--muted-foreground));">Tab focus · Enter o Space activan</span>
+          </li>
+          <li class="flex gap-2">
+            <span class="font-medium" style="min-width: 7rem;">Focus ring:</span>
+            <span class="text-xs" style="color: hsl(var(--muted-foreground));">2px ring color --ring (Adrián cyan)</span>
+          </li>
+          <li class="flex gap-2">
+            <span class="font-medium" style="min-width: 7rem;">Contrast:</span>
+            <span class="text-xs" style="color: hsl(var(--muted-foreground));">≥3:1 icon vs background (WCAG AA UI)</span>
+          </li>
+          <li class="flex gap-2">
+            <span class="font-medium" style="min-width: 7rem;">Spanish:</span>
+            <span class="text-xs" style="color: hsl(var(--muted-foreground));">Neutro LatAm · NO voseo</span>
+          </li>
+          <li class="flex gap-2">
+            <span class="font-medium" style="min-width: 7rem;">data-testid:</span>
+            <span class="font-mono text-xs" style="color: hsl(var(--muted-foreground));">"theme-toggle"</span>
+          </li>
+        </ul>
+      </div>
+
+    </section>
+
+    <!-- Section: Footer notes -->
+    <section class="rounded-lg border p-6" style="background: hsl(var(--muted)); border-color: hsl(var(--border));">
+      <h3 class="text-sm font-semibold mb-3">Notas mockup</h3>
+      <ul class="text-sm space-y-1 list-disc list-inside" style="color: hsl(var(--muted-foreground));">
+        <li>Estados <code class="font-mono">Light · Idle</code> y <code class="font-mono">Dark · Idle</code> son los goldens Playwright que se commitean</li>
+        <li>Estados Hover NO se snapshottean directamente (animations:disabled previene flaky) — se ejercen vía <code class="font-mono">page.hover()</code> + assertion CSS</li>
+        <li>El icono switch (Moon ↔ Sun) sucede al click via <code class="font-mono">setTheme()</code> hook de next-themes</li>
+        <li>Hydration SSR-safe via <code class="font-mono">&lt;html lang="es" suppressHydrationWarning&gt;</code> + <code class="font-mono">ThemeProvider</code> wrap</li>
+        <li>F1-S2 TopBarGlobal embebe este componente en rightmost area (sin modificar la API — child drop-in)</li>
+        <li>Decisión Chris ratificada 2026-05-22: light/dark only (NO system), 4 states mockup, Storybook N/A</li>
+      </ul>
+    </section>
+
+  </main>
+
+  <!-- ─── Footer ─────────────────────────────────────────── -->
+  <footer class="border-t mt-12" style="border-color: hsl(var(--border));">
+    <div class="max-w-6xl mx-auto px-6 py-4 text-xs" style="color: hsl(var(--muted-foreground));">
+      Mockup per <code class="font-mono">vitalia/.claude/rules/shell-mockup-per-component.md</code> · ratificación visual Chris pre-refined ·
+      story <code class="font-mono">vitalia-fase1-design-tokens-theme</code> · v1.0
+    </div>
+  </footer>
+
+</body>
+</html>

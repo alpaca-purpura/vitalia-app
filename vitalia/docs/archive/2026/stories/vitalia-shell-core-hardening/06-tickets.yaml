@@ -1,0 +1,316 @@
+story_id: vitalia-shell-core-hardening
+brand: vitalia
+arch_version: 1
+architecture_pattern: ADR-vitalia-004
+total_tickets: 8
+
+# ─────────────────────────────────────────────────────────────────────
+# DAG
+#   T-1 (store máquina) ─┬─ T-2 (chrome layout: topbar/clamp/drawer/quitar web)
+#                        └─ T-3 (Valeria: tira-avatar + cabecera +/historial + push)
+#   T-4 (proxy edge-redirect + revertir band-aid) ── depende de nada (paralelo)
+#   T-5 (N3 → @luana/ui-kit) ── depende de T-2 (chrome estable)
+#   T-6 (dark token-audit shipped) ── depende de T-2,T-3,T-5 (superficies en su forma final)
+#   T-7 (e2e suite SC-1..22 + reactivar race) ── depende de T-1..T-6
+#   T-8 (SHELL-DESIGN-CONTRACT update + handoff /pm-luana) ── depende de T-1..T-7
+# ─────────────────────────────────────────────────────────────────────
+
+tickets:
+
+  - id: T-1
+    title: "Refactor shell-store: máquina de estados nueva (closed|chat + historyOpen aditivo) + migrate legacy"
+    surface: FE
+    production_code: true
+    depends_on: []
+    owner_eligibility: [opencode, sonnet, opus]
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: sonnet
+      must_load_skills:
+        - frontend-expert
+        - .claude/rules/frontend-fsd.md
+        - .claude/rules/tdd-mandatory.md
+        - vitalia/docs/architecture/ADR-vitalia-006-ssr-safe-persisted-store.md
+      must_load_artifacts:
+        - "vitalia/docs/product/stories/vitalia-shell-core-hardening/03-arch-fe.md § 1"
+        - "vitalia/frontend/src/stores/shell-store.ts (actual)"
+      forbidden_to_touch:
+        - "core/luana-core-*/src/"
+        - "nicolify/"
+        - "vitalia/frontend/src/components/ui/"
+      rationale: "Refactor de store UI-local con factory SSR-safe ya existente; Sonnet sweet spot. No agentic, no BE."
+    deliverables:
+      - "shell-store.ts: valeriaOpen('closed'|'chat') + historyOpen(no-persist) + valeriaPct + mobileDrawerOpen(slice indep)"
+      - "Quitar shellMode + cycleValeriaState rail/full. Transiciones RN-5/6/13."
+      - "migrate legacy: collapsed→closed, rail/full→chat (sin restaurar historial); corrupto→fallback+warn (no clobber SSR)"
+    gherkin_coverage: [SC-1, SC-5, SC-8, SC-18]
+    acceptance:
+      validator_ids: [unit, architecture]
+      checks:
+        - "vitest: transiciones máquina nueva + migrate legacy + no-clobber (RED first)"
+        - "grep shellMode = 0 (AC-1)"
+        - "mutation_gate (Stryker) 100% líneas nuevas o advisory si falta tool"
+    state: pushed                      # ★ 2026-06-10 gates GREEN (tsc 0 · vitest 631/631 · eslint clean) — finalize orchestrator (builder context-exhausted mid-verify, patrón continuation)
+
+  - id: T-2
+    title: "Chrome layout: TopBar switcher derecha + sin chip · clamp 320 · drawer <1024 · quitar web-mode/rail · historial empuja 260"
+    surface: FE
+    production_code: true
+    state: pushed                      # ★ 2026-06-10 builder-frontend · gates GREEN (tsc 0 · eslint clean · vitest shell-organism 515/515 · arch grep shellMode/ShellModeToggle=0 prod) · commits b19a227d (topbar) + b522043a (layout/guard/historial)
+    depends_on: [T-1]
+    owner_eligibility: [opencode, sonnet, opus]
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: sonnet
+      must_load_skills:
+        - frontend-expert
+        - vitalia-design-system
+        - .claude/rules/frontend-visual-fidelity.md
+        - .claude/rules/frontend-fsd.md
+        - .claude/rules/tdd-mandatory.md
+      must_load_artifacts:
+        - "vitalia/docs/product/stories/vitalia-shell-core-hardening/03-arch-fe.md § 2, § 3, § 6"
+        - "vitalia/docs/product/stories/vitalia-bugfix-shell-valeria-responsive/mockups/shell-valeria-states.html"
+        - "vitalia/docs/architecture/SHELL-DESIGN-CONTRACT.md"
+      forbidden_to_touch:
+        - "core/luana-core-*/src/"
+        - "nicolify/"
+        - "vitalia/frontend/src/components/ui/"
+        - "vitalia/frontend/src/features/*/components/**  (contenido sub-tabs)"
+      rationale: "Modifica el wrapper chrome (organism layout, topbar, viewport guard). Behavior-fi; estilo del canon. Sonnet."
+    deliverables:
+      - "ShellOrganismLayoutClient: máquina nueva; quitar ShellModeToggle/web-grid/rail 60px; historial empuja 260; ssr:false conservado; gate desktop↔mobile CSS"
+      - "TopBarGlobal: cluster derecho [ThemeToggle][TenantSwitcher]; sin chip; skeleton variant conservado"
+      - "RETIRE ShellModeToggle.tsx"
+      - "useViewportGuard: clamp 320; drawer 1024; sin 620/rail"
+      - "ValeriaHistory: 260px fijo empuja"
+    gherkin_coverage: [SC-2, SC-3, SC-6, SC-9, SC-10, SC-14]
+    acceptance:
+      validator_ids: [unit, architecture, static]
+      checks:
+        - "vitest: TopBar orden + useViewportGuard clamp/drawer + ValeriaHistory empuja"
+        - "arch grep shellMode/ShellModeToggle = 0"
+        - "tsc + eslint verde"
+
+  - id: T-3
+    title: "Valeria: tira-avatar estado A (RN-12) + cabecera (+ nueva conv / historial / colapsar propio)"
+    surface: FE
+    production_code: true
+    state: pushed                      # ★ 2026-06-10 commits incrementales aea54462+a394ccba+2ab62914+0b0dca16 · gates GREEN (tsc 0 · vitest 620 · eslint clean) — finalize orchestrator
+    depends_on: [T-1]
+    owner_eligibility: [opencode, sonnet, opus]
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: sonnet
+      must_load_skills:
+        - frontend-expert
+        - vitalia-design-system
+        - .claude/rules/frontend-visual-fidelity.md
+        - .claude/rules/spanish-text.md
+        - .claude/rules/tdd-mandatory.md
+      must_load_artifacts:
+        - "vitalia/docs/product/stories/vitalia-shell-core-hardening/03-arch-fe.md § 4, § 5"
+        - "vitalia/docs/product/stories/vitalia-bugfix-shell-valeria-responsive/01-spec.md § Microcopy"
+      forbidden_to_touch:
+        - "core/luana-core-*/src/"
+        - "nicolify/"
+        - "vitalia/frontend/src/components/ui/"
+      rationale: "Componente afford. de reapertura (tira-avatar NEW) + cabecera Valeria. Avatar = asset catálogo. Sonnet. NO toca comportamiento del agente (chrome only)."
+    deliverables:
+      - "ValeriaCollapsedStrip.tsx NEW (44px + avatar real + dot + label; clic reabre B; aria 'Abrir a Valeria')"
+      - "RETIRE/TRANSFORM ValeriaRail.tsx (rail 60px se va)"
+      - "ChatHeader/ValeriaSidebar: botones [+][◷][⟨] aria-labels neutro; + archiva conv (UI-local); colapsar→A; historial→C"
+      - "GUARD: si '+' debe persistir conversaciones reales (BE/agentic) → STOP, escalate /pm-vitalia"
+    gherkin_coverage: [SC-5, SC-7, SC-8, SC-13, SC-16, SC-17]
+    acceptance:
+      validator_ids: [unit, a11y, static]
+      checks:
+        - "vitest: tira-avatar clickable reabre; cabecera botones"
+        - "axe: focusables + aria-labels"
+        - "microcopy neutro sin voseo"
+
+  - id: T-4
+    title: "Soft-nav (Decisión A): edge-redirect proxy + revertir band-aid hard-nav frozen-kpi-badge → next/link"
+    surface: FE
+    production_code: true
+    depends_on: []
+    owner_eligibility: [opencode, sonnet, opus]
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: sonnet
+      must_load_skills:
+        - frontend-expert
+        - playwright-expert
+        - .claude/rules/tdd-mandatory.md
+      must_load_artifacts:
+        - "vitalia/docs/product/stories/vitalia-shell-core-hardening/03-arch.md § Architecture Decisions A"
+        - "docs/learnings/2026-06-03-next16-softnav-redirect-rendered-more-hooks.md"
+        - "vitalia/frontend/src/proxy.ts (actual) + features/adrian/components/embudo/EmbudoMetrics.tsx"
+      forbidden_to_touch:
+        - "core/luana-core-*/src/"
+        - "nicolify/"
+        - "vitalia/frontend/src/components/ui/"
+      rationale: "Edge-redirect + revertir band-aid. Investigar (WebSearch + nextjs.org) si hay fix upstream Next del 'Rendered more hooks' antes de más edge-redirects, PERO no bumpear Next sin gate completo. Sonnet."
+    deliverables:
+      - "proxy.ts: verificar/extender bareTenantLandingRedirect 307 (matcher UUID-only) cubre landing"
+      - "EmbudoMetrics.tsx: revertir frozen-kpi-badge <a href> → next/link (soft-nav); actualizar comentario B1-fix"
+      - "Documentar en T-4-impl-log: chequeo de fix upstream Next (versión instalada) + decisión"
+    gherkin_coverage: [SC-21]
+    acceptance:
+      validator_ids: [architecture, e2e_functional]
+      checks:
+        - "arch: frozen-kpi-badge usa next/link, NO <a href> (AC-13)"
+        - "e2e SC-21: board→recuperar soft + loop ×15 → montaje + consola limpia (base.ts)"
+    state: pushed                      # ★ 2026-06-10 builder-frontend · AC-13 GREEN (tsc 0 · eslint clean · vitest EmbudoMetrics 6/6 + shell-routes 8/8 + embudo dir 37/37) · revert band-aid <a>→next/link + verify proxy 307 coverage · commit 523fe7c8 · e2e SC-21 ×15 = T-7 (e2e_functional) · Next bump NO (WebSearch/WebFetch disabled en contexto → no verificable; default Decisión A opción 2; bump requeriría escalate Chris)
+
+  - id: T-5
+    title: "N3 → @luana/ui-kit (Decisión B): migrar staff+embudo a EntityWorkspaceLayout core + RETIRAR EntitySubNavBar brand-local"
+    surface: FE
+    production_code: true
+    depends_on: [T-2]
+    owner_eligibility: [opencode, sonnet, opus]
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: sonnet
+      must_load_skills:
+        - frontend-expert
+        - vitalia-design-system
+        - .claude/rules/frontend-visual-fidelity.md
+        - .claude/rules/frontend-fsd.md
+        - vitalia/.claude/rules/shell-feature-architecture-mandatory.md
+        - docs/architecture/luana-platform/design-system-canon.md
+      must_load_artifacts:
+        - "vitalia/docs/product/stories/vitalia-shell-core-hardening/03-arch-fe.md § 7"
+        - "core/@luana/ui-kit/src/EntityWorkspaceLayout.tsx + EntitySubNavBar.tsx (signatura canon)"
+        - "vitalia/frontend/src/features/lisa/components/staff/workspace/StaffWorkspaceShell.tsx (actual)"
+      forbidden_to_touch:
+        - "core/luana-core-*/src/"
+        - "nicolify/"
+        - "vitalia/frontend/src/components/ui/"
+        - "core/@luana/ui-kit/src/  (CONSUMIR; edit additivo-mínimo SOLO si falta pieza N3 → si no-additivo: STOP /pm-luana)"
+      rationale: "Migrar consumers vitalia al N3 ya shipped en @luana/ui-kit v0.3.0; retirar copia brand-local (mata mirror). Adaptar signatura. Sonnet."
+    deliverables:
+      - "StaffWorkspaceShell + lisa/staff/[doctor-id]/layout.tsx: consume EntityWorkspaceLayout de @luana/ui-kit"
+      - "adrian/embudo/[leadId]/layout.tsx: monta EntityWorkspaceLayout de @luana/ui-kit (construir si no existe)"
+      - "RETIRE vitalia/.../shell-organism/EntitySubNavBar.tsx + su test (migrados al core)"
+      - "Adaptar call-sites a signatura canon (rootHref/rootLabel/entity/leaves)"
+      - "Si edit additivo a ui-kit: typecheck+test kit + downstream vitalia"
+    gherkin_coverage: [SC-11, SC-12, SC-15]
+    acceptance:
+      validator_ids: [architecture, e2e_functional]
+      checks:
+        - "arch: staff+embudo importan @luana/ui-kit EntityWorkspaceLayout; brand-local retirado; cross-brand-shell-mirror allowlist ENCOGE (shrink-only)"
+        - "e2e SC-11/12: directorio→workspace→back; leafs disabled sin entidad"
+        - "regression: embudo board/writes live-verified intactos (AC-10)"
+    state: pushed                      # ★ 2026-06-10 builder-frontend · 3 commits (d3b06b11 · 8d62c958 · a042e1df) · kit activeLeaf override additive-minimal (10/10 kit tests GREEN) · StaffWorkspaceShell + LeadWorkspace + NewLeadPage migrated to @luana/ui-kit · brand-local EntitySubNavBar.tsx + test DELETED · tsc 0 errors · eslint 0 errors · 8 targeted tests GREEN · cross-brand-shell-mirror arch 31/31 PASS · pre-existing arch test failures (embudo-server internal import + stale inbox allowlist) unrelated to T-5
+
+  - id: T-6
+    title: "Dark token-audit (Decisión C): hardcoded→token en sub-tabs shipped + --vitalia-*-soft faltantes"
+    surface: FE
+    production_code: true
+    depends_on: [T-2, T-3, T-5]
+    owner_eligibility: [opencode, sonnet, opus]
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: sonnet
+      must_load_skills:
+        - frontend-expert
+        - vitalia-design-system
+        - .claude/rules/frontend-visual-fidelity.md
+        - chrome-devtools-verify
+      must_load_artifacts:
+        - "vitalia/docs/product/stories/vitalia-shell-core-hardening/03-arch-fe.md § 8"
+        - "vitalia/docs/observed-bugs/2026-06-04-shell-valeria-squeeze-plus-darkmode.md § BUG#2"
+        - "vitalia/frontend/src/app/globals.css (tokens + vt-* + dark scope)"
+      forbidden_to_touch:
+        - "core/luana-core-*/src/"
+        - "nicolify/"
+        - "vitalia/frontend/src/components/ui/  (re-estilizar primitives)"
+        - "placeholders / sub-tabs NO shipped (fuera del barrido)"
+      rationale: "Token-audit acotado shipped-only; preferir migrar hardcoded→token (reduce deuda) sobre nuevas variantes. Live-verify dark per-subtab. Sonnet."
+    deliverables:
+      - "Barrer shipped: lisa/marca, adrian/inbox, adrian/embudo, lisa/staff, mateo/agenda + wrapper"
+      - "Migrar color hardcodeado (#hex/rgb()/bg-white/bg-[#]) → token semántico dark-aware (bg-card/vt-bg-surface/text-foreground)"
+      - "Completar [data-theme=dark] SOLO para --vitalia-*-soft/derivados faltantes (grep + computed live)"
+      - "Conservar wiring next-themes + tailwind darkMode"
+    gherkin_coverage: [SC-19, SC-20]
+    acceptance:
+      validator_ids: [architecture, a11y, e2e_functional]
+      checks:
+        - "arch grep: 0 color hardcodeado en superficies shipped (AC-12)"
+        - "e2e SC-20: toggle dark cada sub-tab → computed colors oscuros, sin mitad clara"
+        - "axe: contraste ≥4.5:1 en dark"
+        - "SC-19: light sin regresión (baseline)"
+    state: pushed # ★ 2026-06-10 builder-frontend · DoctorPerfilView bg-white→bg-background + TakeoverBanner dark:bg-amber-600 variant
+
+  - id: T-7
+    title: "E2E suite SC-1..22 + reactivar test de race omitido (AC-14) + regression cross-tab AMBOS temas"
+    surface: FE
+    production_code: true
+    depends_on: [T-1, T-2, T-3, T-4, T-5, T-6]
+    owner_eligibility: [opencode, sonnet, opus]
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: sonnet
+      must_load_skills:
+        - playwright-expert
+        - frontend-expert
+        - .claude/rules/tdd-mandatory.md
+        - .claude/rules/definition-of-done-live-verify.md
+      must_load_artifacts:
+        - "vitalia/docs/product/stories/vitalia-shell-core-hardening/04-validators.yaml § test_construction_plan"
+        - "vitalia/docs/product/stories/vitalia-bugfix-shell-valeria-responsive/01-spec.md § Gherkin (SC-1..19)"
+        - "vitalia/frontend/e2e/regression/vitalia-fase1-shell-layout-5050/resize-and-state.spec.ts"
+        - "vitalia/frontend/e2e/fixtures/base.ts"
+      forbidden_to_touch:
+        - "core/luana-core-*/src/"
+        - "nicolify/"
+        - "vitalia/frontend/src/components/ui/"
+      rationale: "Suite e2e completa real-backend con base.ts. Reactivar test omitido del race. Sonnet con playwright-expert."
+    deliverables:
+      - "e2e/regression/shell-core-hardening/*.spec.ts (SC-1..21 mapeo en validators scenario_to_test)"
+      - "REACTIVAR resize-and-state.spec.ts test omitido del race (SC-22, AC-14) adaptado a máquina nueva"
+      - "ShellLayoutPage POM extendida + EntityWorkspacePage si falta"
+      - "Todos importan base.ts; SC-20/21/22 real-backend"
+      - "Tenant seed: ≥1 doctor + ≥1 lead + conversaciones (historial)"
+    gherkin_coverage: [SC-1, SC-2, SC-3, SC-4, SC-5, SC-6, SC-7, SC-8, SC-9, SC-10, SC-11, SC-12, SC-13, SC-14, SC-15, SC-16, SC-17, SC-18, SC-19, SC-20, SC-21, SC-22]
+    state: pushed                      # ★ 2026-06-10 suite 52 passed + 2 flaky(retry-pass, documentados) + race 8/8 · 3 bugs producto cazados+arreglados (rewrites /api · strip collapsedSize · drag-collapse) · commits 00b3e259+93ccf620+cd99265d+e1a0bad0
+    acceptance:
+      validator_ids: [e2e_functional, a11y]
+      checks:
+        - "AC-14: resize-and-state test reactivado y verde"
+        - "SC-1..22 verdes (base.ts anti-burbuja)"
+        - "axe wcag2aa AMBOS temas"
+
+  - id: T-8
+    title: "SHELL-DESIGN-CONTRACT update (N3+dark+máquina) + handoff proposal /pm-luana (chrome listo para lift) + live-verify"
+    surface: FE
+    production_code: false
+    depends_on: [T-1, T-2, T-3, T-4, T-5, T-6, T-7]
+    owner_eligibility: [opencode, sonnet, opus]
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: sonnet
+      must_load_skills:
+        - vitalia-design-system
+        - chrome-devtools-verify
+        - .claude/rules/definition-of-done-live-verify.md
+      must_load_artifacts:
+        - "vitalia/docs/architecture/SHELL-DESIGN-CONTRACT.md"
+        - "docs/promotion-protocol/proposals/2026-06-01-lift-shell-organism-to-core.md"
+        - "vitalia/docs/product/stories/vitalia-shell-core-hardening/03-arch.md § 13"
+      forbidden_to_touch:
+        - "core/luana-core-*/src/"
+        - "nicolify/"
+      rationale: "Docs update + handoff proposal + live-verify final consolidado (gate #37). NO production code (docs). Sonnet."
+    deliverables:
+      - "SHELL-DESIGN-CONTRACT.md: § N3 (consume @luana/ui-kit, retira brand-local) + § dark (hardcoded→token) + § Valeria states (closed|chat + historyOpen + tira-avatar + +)"
+      - "Handoff a /pm-luana: chrome brand 'excelente' listo para lift 2026-06-01-lift-shell-organism (outcome platform 1-2 sem)"
+      - "live-verify dev-app consolidado: dod_evidence (≥1 write/acción real por superficie + logs + efecto) + demo-script.md"
+    gherkin_coverage: []
+    acceptance:
+      validator_ids: [dev_app_verified]
+      checks:
+        - "dod_live_verified: true + dod_evidence (dark + soft-nav + colapsar/+ + N3 ejercidos LIVE)"
+        - "demo-script.md listo para Chris (G chris_verify.signoff)"
+        - "SHELL-DESIGN-CONTRACT actualizado"

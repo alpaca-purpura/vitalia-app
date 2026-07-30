@@ -1,0 +1,52 @@
+diff --git a/esm/index.mjs b/esm/index.mjs
+index a1afbf8acf7941798234bb33310acd31d060be86..a65c352fba6d8f14998cfb33207cd0c7439dccc5 100644
+--- a/esm/index.mjs
++++ b/esm/index.mjs
+@@ -1,2 +1,2 @@
+-export * from 'zustand/vanilla';
+-export * from 'zustand/react';
++export * from './vanilla.mjs';
++export * from './react.mjs';
+diff --git a/esm/react/shallow.mjs b/esm/react/shallow.mjs
+index 570729c7487c170e3fe3b5c6ee7c74cf0bd45abd..97660d28fd0a0f48e62966b74559af10ccefb879 100644
+--- a/esm/react/shallow.mjs
++++ b/esm/react/shallow.mjs
+@@ -1,5 +1,5 @@
+ import React from 'react';
+-import { shallow } from 'zustand/vanilla/shallow';
++import { shallow } from '../vanilla/shallow.mjs';
+ 
+ function useShallow(selector) {
+   const prev = React.useRef(void 0);
+diff --git a/esm/react.mjs b/esm/react.mjs
+index 8577f1613648730c2ef01d2673b937504fbbf728..2858f6f3f52d92ddf977582a675581bbef7c2c0f 100644
+--- a/esm/react.mjs
++++ b/esm/react.mjs
+@@ -1,5 +1,5 @@
+ import React from 'react';
+-import { createStore } from 'zustand/vanilla';
++import { createStore } from './vanilla.mjs';
+ 
+ const identity = (arg) => arg;
+ function useStore(api, selector = identity) {
+diff --git a/esm/shallow.mjs b/esm/shallow.mjs
+index 806efca385799e139c8713196d326bee713ce725..d2fc673a33b0615e5701902dbe19e30131c3f5b3 100644
+--- a/esm/shallow.mjs
++++ b/esm/shallow.mjs
+@@ -1,2 +1,2 @@
+-export { shallow } from 'zustand/vanilla/shallow';
+-export { useShallow } from 'zustand/react/shallow';
++export { shallow } from './vanilla/shallow.mjs';
++export { useShallow } from './react/shallow.mjs';
+diff --git a/esm/traditional.mjs b/esm/traditional.mjs
+index 48fd78877d5fbeb328498a5a023ae8c5b4855bd7..ede48409eac532368e4be7ef0304cb18f37d6994 100644
+--- a/esm/traditional.mjs
++++ b/esm/traditional.mjs
+@@ -1,6 +1,6 @@
+ import React from 'react';
+ import useSyncExternalStoreExports from 'use-sync-external-store/shim/with-selector.js';
+-import { createStore } from 'zustand/vanilla';
++import { createStore } from './vanilla.mjs';
+ 
+ const { useSyncExternalStoreWithSelector } = useSyncExternalStoreExports;
+ const identity = (arg) => arg;

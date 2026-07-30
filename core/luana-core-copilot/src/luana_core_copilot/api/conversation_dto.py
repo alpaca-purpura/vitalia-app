@@ -1,0 +1,227 @@
+"""DTOs for the Copilot conversations endpoints (CONTRACT §4.1)."""
+
+from __future__ import annotations
+
+from datetime import datetime
+from typing import Annotated, Literal
+from uuid import UUID
+
+from pydantic import BaseModel, ConfigDict, Field
+
+ModelRoleLiteral = Literal["nano", "fast", "reasoning", "agent", "vision", "embedding"]
+
+
+class ConversationSummary(BaseModel):
+    """Summary DTO returned for every conversation list and CRUD operation."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    title: str | None
+    title_auto_generated: bool
+    updated_at: datetime
+    message_count: int
+    total_tokens: int
+    last_tier_used: ModelRoleLiteral | None
+    has_procedure: bool
+    procedure_progress: Annotated[float | None, Field(default=None, ge=0.0, le=1.0)]
+    archived_at: datetime | None = None
+
+
+class ConversationListResponse(BaseModel):
+    """Paginated list of conversation summaries."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    items: list[ConversationSummary]
+    next_cursor: str | None = None
+
+
+class ConversationMessageDTO(BaseModel):
+    """Single decoded message in a conversation detail response.
+
+    Mirrors the canonical v2 envelope (CONTRACT-MULTIMODAL §3) while
+    keeping `blocks` as an untyped list — block validation happens via
+    `decode_message`, and every client renderer is block-schema aware.
+    """
+
+    model_config = ConfigDict(extra="ignore")
+
+    id: UUID
+    role: Literal["user", "assistant", "tool"]
+    content: str
+    blocks: list[dict] | None = None
+    status: Literal["sending", "streaming", "sent", "error"] = "sent"
+    created_at: datetime
+    tokens_used: int | None = None
+    metadata: dict | None = None
+
+
+class ConversationDetail(ConversationSummary):
+    """Full conversation: summary + decoded messages list.
+
+    Used when the client opens a historical conversation and needs to
+    hydrate the chat panel in one round-trip.
+    """
+
+    messages: list[ConversationMessageDTO]
+
+
+class PatchConversationRequest(BaseModel):
+    """Request body for PATCH /conversations/{id}."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    title: str | None = Field(default=None, min_length=1, max_length=120)
+    archived: bool | None = None
+
+
+class RevertRequest(BaseModel):
+    """Request body for POST /conversations/{id}/revert.
+
+    When mutation_ids is omitted, all active mutations are reverted.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    mutation_ids: list[UUID] | None = None
+
+
+class RevertFailure(BaseModel):
+    """A single revert failure entry."""
+
+    id: UUID
+    error: str
+
+
+class RevertResponse(BaseModel):
+    """Response from POST /conversations/{id}/revert."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    reverted_count: int
+    failed: list[RevertFailure] = Field(default_factory=list)
+
+
+class ApplyMutationUpdate(BaseModel):
+    """One proposed update inside an apply request (B22-FP1).
+
+    Mirrors ``ProposalUpdate`` shape emitted by ``propose_field_updates``
+    so the FE can forward it verbatim through the fallback path when no
+    ``FormRuntimeBridge`` is connected.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    field_id: str
+    new_value: object | None
+    reason: str | None = None
+
+
+class ApplyMutationsRequest(BaseModel):
+    """Request body for POST /conversations/{id}/mutations/apply.
+
+    ``entity_id`` is required for domains with multiple aggregates per
+    tenant (offer, buyer_persona). Brand has a single tenant-scoped
+    aggregate so ``entity_id`` is omitted there.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    message_id: UUID
+    updates: list[ApplyMutationUpdate]
+    entity_id: UUID | None = None
+
+
+class AppliedMutationDTO(BaseModel):
+    """A single applied (or already-existing idempotent) journal row."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    field_path: str
+    domain: str
+    status: Literal["applied", "existing"]
+
+
+class RejectedMutationDTO(BaseModel):
+    """A single update the apply pipeline refused to persist."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    field_id: str
+    reason: str
+
+
+class ApplyMutationsResponse(BaseModel):
+    """Response from POST /conversations/{id}/mutations/apply."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    applied: list[AppliedMutationDTO] = Field(default_factory=list)
+    rejected: list[RejectedMutationDTO] = Field(default_factory=list)
+
+
+class MutationJournalEntryDTO(BaseModel):
+    """A single ``copilot_mutation_journal`` row exposed to the FE.
+
+    Used by ``ProposalCard`` to repaint per-field "applied" status after
+    a refresh — without this the card always re-renders pending and the
+    user sees the same proposal twice. Reverted rows are omitted by the
+    list endpoint.
+    """
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    message_id: UUID
+    domain: str
+    entity_id: UUID | None
+    field_path: str
+    applied_at: datetime
+
+
+class MutationJournalListResponse(BaseModel):
+    """Response for GET /conversations/{id}/mutations."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entries: list[MutationJournalEntryDTO] = Field(default_factory=list)
+
+
+class ActiveJobProgressDTO(BaseModel):
+    """Progress snapshot for a single in-flight extraction job.
+
+    Fields sourced from procedure_state (persisted) + Redis key (live progress).
+    When Redis has expired (job finished long ago or TTL hit), status/progress/
+    stage fields are None — FE treats that as "job likely done, reload sections".
+    """
+
+    model_config = ConfigDict(from_attributes=True)
+
+    job_id: str
+    module: str
+    entity_id: str | None
+    source_kind: str
+    source_ref: str
+    scope: str
+    mode: str
+    started_at: str
+    # Live progress from Redis (None if Redis key expired):
+    status: str | None  # "queued" | "processing" | "completed" | "failed" | None
+    progress: int | None
+    stage: str | None
+    filled_fields: list[str]
+    filled_fields_by_section: dict[str, list[str]]
+    sections_touched: list[str]
+    sections_completed: list[str]
+    finished_at: str | None
+    poll_endpoint: str  # relative URL for FE to continue polling
+
+
+class ActiveJobsResponse(BaseModel):
+    """Response for GET /conversations/{id}/active-jobs."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    jobs: list[ActiveJobProgressDTO]

@@ -1,0 +1,170 @@
+# 04-validators.yaml — vitalia-shell-dual-mount-a11y-fix
+# Bugfix arquitectónico FE (single-main + single-slot). 5 categorías.
+# architecture_pattern: ADR-vitalia-004 (partial — shell CORE, no sub-tab nueva)
+
+story_id: vitalia-shell-dual-mount-a11y-fix
+brand: vitalia
+arch_version: 1
+schema_version: v4.1
+
+# ─────────────────────────────────────────────────────────────────────────
+# 1. FUNCTIONAL — vitest unit (RED-first)
+# ─────────────────────────────────────────────────────────────────────────
+functional:
+  - id: F-1
+    desc: "ShellOrganismLayout.test.tsx REWRITTEN — single-main + single-slot asserts"
+    file: vitalia/frontend/src/components/shared/shell-organism/ShellOrganismLayout.test.tsx
+    cmd: "cd vitalia/frontend && npx vitest run src/components/shared/shell-organism/ShellOrganismLayout.test.tsx"
+    assertions:
+      - "container.querySelectorAll('#main-content').length === 1 (NO 3) — en shellMode agentic"
+      - "container.querySelectorAll('#main-content').length === 1 — en shellMode web"
+      - "getAllByTestId('app-panel-slot').length === 1 (NO 2) — agentic full + agentic rail + web"
+      - "el único <main> tiene id='main-content' + tabIndex={-1} + aria-label='Contenido principal'"
+      - "renderiza Panel valeria-panel + Panel app-panel + Separator aria-label='Redimensionar paneles' (agentic)"
+      - "shellMode='web': no panel-group, no resize-handle (grid estático) + valeria-sidebar presente"
+      - "ShellModeToggle disabled chip presente"
+      - "render NO emite console.error de hooks ('Rendered more hooks') en ningún shellMode/valeriaState"
+    red_first: true
+    must_delete_assertions:
+      - "SC-1: 'passes children to AppPanelSlot (triple-main: appears in both desktop+mobile branches)' → reescribir a single-slot"
+      - "SC-4: 'all rendered <main> have id=main-content' loop con length>=1 → cambiar a length===1"
+      - "SC-2: 'mobile branch' + getAllByTestId plural → asertar slot único (no rama mobile separada con slot)"
+  - id: F-2
+    desc: "AppPanelSlot.test.tsx — contrato Ribbon/SubTabsBar/aria preservado + single-mount en contexto"
+    file: vitalia/frontend/src/components/shared/shell-organism/AppPanelSlot.test.tsx
+    cmd: "cd vitalia/frontend && npx vitest run src/components/shared/shell-organism/AppPanelSlot.test.tsx"
+    assertions:
+      - "section role=region aria-label='Panel aplicación' data-testid='app-panel-slot' (PRESERVADO)"
+      - "Ribbon + SubTabsBar + SubSubTabsBar mounts PRESERVADOS (regression guard)"
+      - "children pass-through PRESERVADO"
+    red_first: false   # contrato existente preservado; el doble-mount venía del layout, no del slot
+
+# ─────────────────────────────────────────────────────────────────────────
+# 2. ARCHITECTURAL VALIDATION — arch fitness gates (deben seguir verdes + nuevos asserts)
+# ─────────────────────────────────────────────────────────────────────────
+architectural_validation:
+  - id: A-1
+    desc: "Single <main id='main-content'> — skip-link arch gate (lee ShellOrganismLayout.tsx wrapper, NO modificado)"
+    cmd: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test-skip-link-target.test.ts"
+    expect: "GREEN — wrapper skeleton sigue teniendo 1 <main id='main-content'> tabIndex={-1}"
+  - id: A-2
+    desc: "Cross-brand mirror = 0 (ShellOrganismLayout/useShellStore/Ribbon/AGENT_CATALOG no aparecen en nicolify/comunify/lupulo)"
+    cmd: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test-no-cross-brand-shell-mirror.test.ts"
+    expect: "GREEN — fix es brand-local; aplicar patrón nicolify, NO compartir archivo"
+  - id: A-3
+    desc: "FSD-Lite boundaries + no cross-feature imports"
+    cmd: "cd vitalia/frontend && npx eslint src/components/shared/shell-organism/ --cache"
+    expect: "0 errors — shared no importa de features"
+  - id: A-4
+    desc: "TS strict"
+    cmd: "cd vitalia/frontend && npx tsc --noEmit"
+    expect: "0 errors"
+  - id: A-5
+    desc: "Single-slot DOM invariant (puede vivir como test arch nuevo o dentro de F-1) — querySelectorAll length===1"
+    note: "Criterio de aceptación duro de 03-arch § D2: 1 sola #main-content + 1 sola app-panel-slot en CUALQUIER viewport/shellMode"
+
+# ─────────────────────────────────────────────────────────────────────────
+# 3. VISUAL — TRANSVERSAL (★ máximo riesgo: shell de TODOS los agentes)
+#    5 agentes (lisa/mateo/adrian/lucas/camila) + valeria sidebar × 3 modos (agentic/web/mobile)
+# ─────────────────────────────────────────────────────────────────────────
+visual:
+  transversal_mandatory: true
+  rationale: "Un error en el shell rompe la UI de los 5 agentes + valeria simultáneamente. Verificación transversal NO negociable."
+  agents: [lisa, mateo, adrian, lucas, camila]      # AGENT_RIBBON_ORDER v1.2
+  orchestrator: valeria                              # sidebar supervisora (panel izquierdo, fuera del Ribbon)
+  modes: [agentic, web, mobile]
+  checks:
+    - id: V-1
+      desc: "vitest — el shell renderiza OK para cada agente activo en el Ribbon × cada shellMode, sin crash de hooks"
+      cmd: "cd vitalia/frontend && npx vitest run src/components/shared/shell-organism/"
+      assertions:
+        - "Ribbon muestra 5 tabs [lisa, mateo, adrian, lucas, camila] sin romper layout"
+        - "ValeriaSidebar renderiza en agentic (full/rail) y web; en mobile via drawer (no slot dup)"
+    - id: V-2
+      desc: "axe wcag2aa — 0 violaciones de duplicate-id / landmark-unique en el shell"
+      cmd: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/ --grep @axe-shell --project=smoke"
+      assertions:
+        - "regla 'duplicate-id-aria' / 'duplicate-id' SIN violación (id='main-content' único)"
+        - "regla 'landmark-unique' SIN violación (un solo <main>)"
+        - "ejecutar para ruta de al menos lisa + valeria-sidebar abierto, desktop + mobile"
+    - id: V-3
+      desc: "visual smoke — el shell de cada agente se ve idéntico al baseline (sin regresión de chrome)"
+      cmd: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/visual/ --grep shell --project=smoke"
+      note: "Reusar baselines existentes del shell si los hay; scope a chrome (topbar/ribbon/sub-tabs/valeria), NO pixel-perfect de contenido de cada sub-tab (D3 scope discipline)"
+
+# ─────────────────────────────────────────────────────────────────────────
+# 4. TEST CONSTRUCTION PLAN — orden TDD (RED→GREEN)
+# ─────────────────────────────────────────────────────────────────────────
+test_construction_plan:
+  order:
+    - step: 1
+      action: "RED — reescribir ShellOrganismLayout.test.tsx: cambiar asserts triple-main → single-main (length===1) + single-slot (getAllByTestId('app-panel-slot').length===1). Correr contra el componente ACTUAL → debe FALLAR (prueba que el bug existe)."
+    - step: 2
+      action: "Setup jsdom: SI el builder decide consultar window.matchMedia (D4 dice que NO debería), mockear en setup. Si cumple D4 (gate 100% CSS, sin isDesktop JS) → NO se necesita mock; documentar la decisión en el header."
+    - step: 3
+      action: "GREEN — reescribir ShellOrganismLayoutClient.tsx: single <main id='main-content'> (D1) + single <AppPanelSlot> (D2, approach A o B documentado) + todos los hooks al tope incondicional (D3) + NO usar useMediaQuery/isDesktop (D4) + chrome por CSS (D5). Borrar comentario 'Triple-main pattern' del header; documentar approach + lección nicolify verbatim."
+    - step: 4
+      action: "Verificar F-1 GREEN + AppPanelSlot.test.tsx GREEN (F-2 contrato preservado)."
+    - step: 5
+      action: "Arch gates: A-1 (skip-link), A-2 (cross-brand mirror), A-3 (eslint), A-4 (tsc) — todos GREEN."
+    - step: 6
+      action: "Transversal: V-1 vitest 5 agentes × 3 modos + V-2 axe + V-3 visual smoke."
+    - step: 7
+      action: "dev-app live (ADR-008): ejercer lisa + valeria sidebar desktop+mobile."
+
+# ─────────────────────────────────────────────────────────────────────────
+# 5. PLAYWRIGHT VISUAL SCOPE (frontend-visual-fidelity D3 scope discipline)
+# ─────────────────────────────────────────────────────────────────────────
+playwright_visual_scope:
+  story_scope: "shell-organism layout core (ShellOrganismLayoutClient render structure)"
+  story_scope_routes:
+    - "/{tenantId}/lisa/* (cualquier sub-tab — el shell es el mismo)"
+    - "/{tenantId}/mateo/* · /adrian/* · /lucas/* · /camila/* (transversal)"
+  story_scope_components:
+    - "ShellOrganismLayoutClient (estructura: 1 main, 1 app-panel-slot)"
+    - "Ribbon + ValeriaSidebar (verificar que renderizan dentro del nuevo árbol)"
+  out_of_mockup_scope:
+    - "Contenido interno de cada sub-tab (no se toca; no pixel-perfect)"
+    - "POMs de doctores .filter({visible:true}) — su cleanup es de la story doctores"
+  e2e_proof:
+    desc: "★ Prueba de fuego — E2E doctores getByTestId resuelve a 1 elemento SIN workaround"
+    spec: "e2e/regression/vitalia-fase2-lisa-doctores/ (o un spec de regresión propio del shell)"
+    cmd: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/vitalia-fase2-lisa-doctores/ --project=smoke"
+    assert: "getByTestId('btn-nuevo-integrante') resuelve a 1 (no strict-mode violation); validar también staff-directory, staff-card-*"
+  dev_app_live_verification:    # ADR-vitalia-008 — superficie user-reachable (shell de todos los agentes)
+    required: true
+    url: "https://dev-app.vitalialat.com"
+    bring_up: "make dev-app-vitalia (desde worktree ~/Proyectos/luana-vitalia — footgun cross-worktree)"
+    test_user: "dr.demo@vitalialat.com"
+    evidence_required:
+      - "lisa desktop: abrir /{tenant}/lisa/staff → consola sin 'Rendered more hooks' ni hydration error; document.querySelectorAll('#main-content').length===1; document.querySelectorAll('[data-testid=app-panel-slot]').length===1"
+      - "lisa mobile (viewport <768): mismo check — 1 main, 1 slot, sin crash"
+      - "valeria sidebar desktop: panel izquierdo renderiza (full/rail) sin romper; resize handle funciona"
+      - "valeria sidebar mobile: drawer abre sin duplicar slot"
+      - "tool: chrome-devtools-verify (live) primero; golden Playwright autenticado después"
+
+# ─────────────────────────────────────────────────────────────────────────
+# SCENARIO COVERAGE (criterios DONE del checkpoint § Bar de verificación)
+# ─────────────────────────────────────────────────────────────────────────
+scenario_coverage:
+  - id: SC-single-main-per-viewport
+    desc: "Un solo <main id='main-content'> por viewport (no 3)"
+    verified_by: [F-1, A-5, V-2, dev_app_live_verification]
+  - id: SC-single-slot
+    desc: "<AppPanelSlot> (children) renderizado UNA sola vez"
+    verified_by: [F-1, A-5, e2e_proof, dev_app_live_verification]
+  - id: SC-no-duplicate-testid
+    desc: "Cada data-testid del panel resuelve a 1 (E2E doctores sin .filter workaround)"
+    verified_by: [e2e_proof, dev_app_live_verification]
+  - id: SC-no-hook-count-crash
+    desc: "Sin 'Rendered more hooks than previous render' en consola (lección nicolify)"
+    verified_by: [F-1, dev_app_live_verification]
+  - id: SC-a11y-axe
+    desc: "axe wcag2aa sin id-dup / landmark-unique violation"
+    verified_by: [V-2, dev_app_live_verification]
+  - id: SC-all-5-agents-render
+    desc: "lisa/mateo/adrian/lucas/camila renderizan OK en el nuevo shell"
+    verified_by: [V-1, V-3, dev_app_live_verification]
+  - id: SC-all-3-modes-render
+    desc: "agentic/web/mobile renderizan OK (single-main + single-slot en los 3)"
+    verified_by: [F-1, V-1, V-3, dev_app_live_verification]

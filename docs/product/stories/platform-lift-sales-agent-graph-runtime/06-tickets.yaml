@@ -1,0 +1,178 @@
+# 06-tickets.yaml — platform-lift-sales-agent-graph-runtime (Phase 1: ESC-4/5/6 runtime)
+# Engine lift AUTORIZADO por proposal accepted (ratified Chris). Los tickets EDITAN core/ (excepción del promotion gate).
+# Worktree: wip/core-sales-agent-multibrand. PYTHONPATH override OBLIGATORIO al validar (learning 2026-06-16).
+# autonomous_mode: false → /dev-team NO auto-encadena a /auditor.
+#
+# ★ Los 3 fixes están EMPÍRICAMENTE PROBADOS por el architect (RED→GREEN + no-regression). El builder APLICA los
+#   diffs exactos (03-arch § TL;DR) bajo TDD + crea los arch tests proven (verified-arch-tests.md). No inventa.
+
+story_id: platform-lift-sales-agent-graph-runtime
+phase: 1
+story_type: technical-story
+total_tickets: 4
+
+tickets:
+  # ───────────────────────── T-ESC4 (BLOCKER PRIMARIO) ─────────────────────────
+  - id: T-ESC4
+    title: "ESC-4 — qualify engine relationship target (UNILATERAL: solo crm.py)"
+    surface: AGENTIC                      # engine data-layer del grafo · blast radius = mapper init ∀ marca
+    production_code: true
+    module: [platform-crm, sales_agent]
+    depends_on: []
+    blocks: [T-ESC5, T-ESC6]
+    files_in_scope:
+      - core/luana-core-platform/src/luana_core_platform/infrastructure/models/crm.py    # SOLO L210: target string qualified
+      - core/luana-core-sales-agent/tests/architecture/test_esc4_relationship_module_qualified.py  # NEW (verified-arch-tests.md)
+      - core/luana-core-sales-agent/tests/architecture/__init__.py                        # NEW si no existe
+    change: |
+      Diff EXACTO (probado · 03-arch § TL;DR / § ESC-4):
+        crm.py LeadModel.messages: "MessageModel" → "luana_core_sales_agent.infrastructure.models.message_model.MessageModel"
+      ★ UNILATERAL: NO tocar message_model.py:46 ("LeadModel" es único — vitalia no homonyma LeadModel; probado).
+      NO tocar columnas/FKs/back_populates ni appointments/tenant (ver 03-arch § Latent finding).
+      Crear el arch test (subproceso) ANTES del diff (TDD RED) — código en verified-arch-tests.md.
+    repro_evidence:
+      repro_verified: true
+      reproduced_local: true
+      trace_evidence:
+        source: conversation-log
+        ref: "InvalidRequestError: Multiple classes found for path 'MessageModel' — reproducido por el architect en spike (returncode 1) + error live G vitalia-fase2-adrian-canal-inbound."
+    acceptance:
+      validator_ids: [esc4_relationship_module_qualified, platform_suite_canonical, ruff_check, ruff_format]
+    gherkin_coverage: "ESC-4 — technical · arch test subproceso RED-first es el contrato"
+    assignment:
+      primary_agent: builder-agentic
+      model_preference: flagship          # engine agentic + blast radius máximo (mapper init 4 marcas) — stake-asimétrico
+      must_load_skills: [sales-agent-expert, backend-expert, ".claude/rules/tdd-mandatory.md", ".claude/rules/anti-duplication.md", ".claude/rules/auditor-downstream-regression.md"]
+      must_load_artifacts:
+        - "docs/product/stories/platform-lift-sales-agent-graph-runtime/03-arch.md § ESC-4 + § TL;DR"
+        - "docs/product/stories/platform-lift-sales-agent-graph-runtime/verified-arch-tests.md"
+      forbidden_to_touch:
+        - "vitalia/**"
+        - "nicolify/**"
+        - "comunify/**"
+        - "lupulo/**"
+        - "core/luana-core-sales-agent/src/luana_core_sales_agent/infrastructure/models/message_model.py"  # ★ one-sided: NO tocar (LeadModel único)
+        - "core/luana-core-platform/src/luana_core_platform/infrastructure/models/crm.py # línea appointments/tenant"  # solo messages
+        - "core/luana-core-sales-agent/.../application/**"
+        - "core/luana-core-*/.../prompts/templates/**"
+      rationale: "ESC-4 toca la data-layer del grafo (LeadModel↔MessageModel), mapper init consumido por 4 marcas. flagship por blast-radius + stake-asimétrico."
+
+  # ───────────────────────── T-ESC5 ─────────────────────────
+  - id: T-ESC5
+    title: "ESC-5 — PromptLoader templates engine-package-relative (cwd-independiente)"
+    surface: AGENTIC
+    production_code: true
+    module: [sales_agent]
+    depends_on: [T-ESC4]
+    blocks: []
+    files_in_scope:
+      - core/luana-core-sales-agent/src/luana_core_sales_agent/infrastructure/prompts/base.py   # __init__ (diff 03-arch § ESC-5)
+      - core/luana-core-sales-agent/tests/architecture/test_esc5_templates_cwd_independent.py   # NEW (verified-arch-tests.md)
+    change: |
+      Diff EXACTO (probado · 03-arch § ESC-5): default templates_dir=None → Path(__file__).resolve().parent/"templates";
+      override branch (absoluto as-is / relativo contra cwd) back-compat. self.templates_dir pasa a ser el path resuelto.
+      Verificado: self.templates_dir solo se consume dentro de base.py (sin consumer externo).
+    repro_evidence:
+      repro_verified: true
+      reproduced_local: true
+      trace_evidence: {source: conversation-log, ref: "TemplateNotFound message_completeness.j2 — reproducido por architect (cwd=/tmp) + error live."}
+    acceptance:
+      validator_ids: [esc5_templates_cwd_independent, sales_agent_suite_canonical, ruff_check, ruff_format]
+    gherkin_coverage: "ESC-5 — technical · arch test RED-first"
+    assignment:
+      primary_agent: builder-agentic
+      model_preference: flagship
+      must_load_skills: [sales-agent-expert, backend-expert, ".claude/rules/tdd-mandatory.md"]
+      must_load_artifacts: ["docs/product/stories/platform-lift-sales-agent-graph-runtime/03-arch.md § ESC-5", "docs/product/stories/platform-lift-sales-agent-graph-runtime/verified-arch-tests.md"]
+      forbidden_to_touch:
+        - "vitalia/**"
+        - "nicolify/**"
+        - "comunify/**"
+        - "lupulo/**"
+        - "core/luana-core-platform/src/luana_core_platform/infrastructure/prompts/base.py"  # copilot sibling — fuera de scope → /harness-issue
+        - "core/luana-core-*/.../prompts/templates/**"
+      rationale: "Path resolution del prompt loader del engine sales_agent. flagship por consistencia agentic."
+
+  # ───────────────────────── T-ESC6 ─────────────────────────
+  - id: T-ESC6
+    title: "ESC-6 — prompt_versions.tenant_id (modelo) + migration_notes brand-authored"
+    surface: AGENTIC
+    production_code: true
+    module: [sales_agent]
+    depends_on: [T-ESC4]
+    blocks: []
+    files_in_scope:
+      - core/luana-core-sales-agent/src/luana_core_sales_agent/infrastructure/models/prompt_version_model.py  # +columna (diff 03-arch § ESC-6)
+      - core/luana-core-sales-agent/tests/architecture/test_esc6_prompt_version_tenant_id.py  # NEW (verified-arch-tests.md)
+      - docs/product/stories/platform-lift-sales-agent-graph-runtime/migration_notes.md       # VALIDAR DDL vs modelo final (NO autorea migración de marca)
+    change: |
+      Diff EXACTO (probado): + tenant_id = Column(UUID(as_uuid=True), nullable=True, index=True)  # None=system default; sin FK.
+      Migración NO se autorea acá (cero marca). migration_notes.md = DDL idempotente para cada brand en SU alembic.
+    repro_evidence:
+      repro_verified: true
+      reproduced_local: true
+      trace_evidence: {source: conversation-log, ref: "AttributeError no attribute 'tenant_id' — reproducido por architect (hasattr False) + error live."}
+    acceptance:
+      validator_ids: [esc6_prompt_version_tenant_id, sales_agent_suite_canonical, ruff_check, ruff_format]
+    gherkin_coverage: "ESC-6 — technical · arch test RED-first; DB-level deferido a brand-migration + efecto runtime"
+    assignment:
+      primary_agent: builder-agentic
+      model_preference: flagship
+      must_load_skills: [sales-agent-expert, backend-expert, ".claude/rules/tdd-mandatory.md", ".claude/rules/backend-migrations.md"]
+      must_load_artifacts: ["docs/product/stories/platform-lift-sales-agent-graph-runtime/03-arch.md § ESC-6", "docs/product/stories/platform-lift-sales-agent-graph-runtime/migration_notes.md", "docs/product/stories/platform-lift-sales-agent-graph-runtime/verified-arch-tests.md"]
+      forbidden_to_touch:
+        - "vitalia/**"
+        - "nicolify/**"
+        - "comunify/**"
+        - "lupulo/**"
+        - "*/backend/alembic/versions/**"   # NINGUNA migración de marca acá
+      rationale: "Columna de scoping en el modelo del engine + notes para migración brand-authored. flagship por consistencia agentic."
+
+  # ───────────────────────── T-DEBT1 (test housekeeping · independiente) ─────────────────────────
+  - id: T-DEBT1
+    title: "Fix import stale del test de colección (habilita el gate de suite completa)"
+    surface: BE                            # test-only, sin production code, sin comportamiento agentic
+    production_code: false
+    module: [sales_agent]
+    depends_on: []
+    blocks: []                             # independiente; correr antes de asertar sales_agent_suite_canonical
+    files_in_scope:
+      - core/luana-core-sales-agent/tests/orchestrator/test_chat_orchestrator_snapshot.py   # SOLO L27: import path
+    change: |
+      Fix EXACTO (verificado que resuelve · 1 línea, L27):
+        from tests.modules.sales_agent.orchestrator._chat_flow_snapshot_helpers import (...)
+        →  from tests.orchestrator._chat_flow_snapshot_helpers import (...)
+      El helper existe en core/luana-core-sales-agent/tests/orchestrator/_chat_flow_snapshot_helpers.py
+      (mismo dir); el path monolítico 'tests.modules.sales_agent.orchestrator' es pre-multibrand.
+      Verificado: el import corregido resuelve + el helper expone TENANT_ID/FlowCapture/etc.
+    repro_evidence:
+      repro_verified: true
+      reproduced_local: true
+      trace_evidence: {source: conversation-log, ref: "ModuleNotFoundError: No module named 'tests.modules' — bloquea colección de la suite sales-agent (reproducido por architect)."}
+    acceptance:
+      validator_ids: [suite_collects, ruff_check]
+    gherkin_coverage: "N/A · test-housekeeping · el efecto = la suite colecta sin error"
+    assignment:
+      primary_agent: builder-agentic       # vive en el paquete sales_agent; builder-agentic lo posee sin conflicto de scope
+      model_preference: workhorse          # test-only, sin comportamiento agentic (R23: AGENTIC=false → workhorse OK)
+      must_load_skills: [".claude/rules/tdd-mandatory.md"]
+      must_load_artifacts: ["docs/product/stories/platform-lift-sales-agent-graph-runtime/03-arch.md § Realidad del entorno"]
+      forbidden_to_touch:
+        - "vitalia/**"
+        - "nicolify/**"
+        - "comunify/**"
+        - "lupulo/**"
+        - "core/**/src/**"                 # T-DEBT1 es SOLO el archivo de test (cero production code)
+        - "core/luana-core-sales-agent/tests/conftest.py"   # el AppointmentModel sintético = stub Story-8, NO tocar
+      rationale: "Restaura el gate de suite completa (regression net del engine compartido) con un fix test-only de 1 línea, cero riesgo prod."
+
+# DAG: T-ESC4 (blocker) → {T-ESC5, T-ESC6}. T-DEBT1 independiente (correr antes del gate sales_agent_suite_canonical). Mismo engine package → serializar por WIP cap módulo.
+# Cierre Phase 1: 3 arch tests GREEN + ruff + (canónico) suites verdes → developed. Chris ratifica →
+#   /pm-luana migrate (merge a main + sync vitalia) → vitalia ejerce el grafo LIVE (efecto runtime · cierra G canal-inbound) → Phase 2.
+
+# Non-egoísmo (bugs vistos fuera de scope · flag, NO arreglar inline):
+out_of_scope_to_flag:
+  - "conftest sintético AppointmentModel = stub DELIBERADO Story-8-pending (documentado en el propio conftest) → no tocar; se resuelve con el lift de scheduling (Story 8)"
+  - "copilot PromptLoader mismo bug-class ESC-5 (core/luana-core-platform/.../prompts/base.py:23) → /harness-issue (futuro copilot)"
+  - "LeadModel.appointments ambigüedad latente (Story 8 lift) → nota en 03-arch § Latent finding"
+# NOTA: el test stale de colección PASÓ a in-scope como T-DEBT1 (Chris ratificó 2026-06-22).

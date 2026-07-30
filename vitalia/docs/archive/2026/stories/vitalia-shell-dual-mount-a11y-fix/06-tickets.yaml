@@ -1,0 +1,115 @@
+# 06-tickets.yaml — vitalia-shell-dual-mount-a11y-fix
+# Bugfix arquitectónico FE NO-AGENTIC. Sonnet (R23 NO aplica).
+story_id: vitalia-shell-dual-mount-a11y-fix
+brand: vitalia
+arch_version: 1
+schema_version: v4.1
+architecture_pattern: ADR-vitalia-004
+autonomous_mode: false
+
+tickets:
+  - id: T-1
+    title: "Reescribir ShellOrganismLayoutClient a single-main + single-slot + reescribir sus tests (RED→GREEN)"
+    nature: bugfix-architectural-fe
+    production_code: true
+    repro_verified: true   # hereda hotfix-repro-mandatory (checkpoint.hotfix_metadata.repro_verified=true)
+    description: >
+      Eliminar el "Triple-main pattern" (3 <main id=main-content> + 2 <AppPanelSlot>).
+      Implementar single <main id=main-content> (patrón nicolify, D1) + <AppPanelSlot>
+      renderizado UNA sola vez (D2). Todos los hooks al tope incondicional (D3). NO usar
+      useMediaQuery/isDesktop (D4). Gate desktop↔mobile por CSS md: (D5). Reescribir
+      ShellOrganismLayout.test.tsx: borrar asserts triple-main (SC-1 "both branches",
+      SC-4 "all mains" loop, SC-2 plural) → asertar querySelectorAll('#main-content').length===1
+      + getAllByTestId('app-panel-slot').length===1. RED primero (falla contra el componente actual).
+    deliverables:
+      - "ShellOrganismLayoutClient.tsx — single-main + single-slot + hook-count estable + header doc actualizado (borrar Triple-main; documentar approach A/B + lección nicolify)"
+      - "ShellOrganismLayout.test.tsx — reescrito single-main + single-slot + (si aplica) window.matchMedia jsdom mock"
+      - "AppPanelSlot.test.tsx — contrato preservado (Ribbon/SubTabsBar/aria); opcional single-mount"
+    gherkin_coverage:
+      - "Given shellMode=agentic When render Then querySelectorAll('#main-content').length===1 AND getAllByTestId('app-panel-slot').length===1"
+      - "Given shellMode=web When render Then 1 main, 1 slot, grid estático, valeria-sidebar presente, no panel-group"
+      - "Given valeriaState in {full,rail} When render Then sin console.error de hooks ('Rendered more hooks')"
+      - "Given mobile viewport When render Then single slot (no rama mobile separada con <AppPanelSlot> extra)"
+      - "Given el <main> único Then id=main-content + tabIndex=-1 + aria-label='Contenido principal'"
+    test_first: true   # RED: reescribir test asertando single-main → falla contra triple-main actual
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: sonnet   # FE NO-AGENTIC — R23 NO aplica (no prompt slots / eval goldens / state machine)
+      must_load_skills:
+        - frontend-expert
+        - vitalia-design-system
+        - tessl__react-patterns
+        - tessl__vitest
+      must_load_artifacts:
+        - vitalia/docs/product/stories/vitalia-shell-dual-mount-a11y-fix/03-arch.md
+        - vitalia/docs/product/stories/vitalia-shell-dual-mount-a11y-fix/05-guidelines.md
+        - vitalia/docs/observed-bugs/2026-05-31-shell-dual-mount-duplicate-testids.md
+        - nicolify/frontend/src/components/shared/shell-organism/ShellOrganismLayoutClient.tsx  # PRIOR ART read-only (port pattern, no compartir)
+      forbidden_to_touch:
+        - "core/luana-core-*/**  (engine — lift gate)"
+        - "nicolify/**  (aplicar patrón, NO compartir archivo)"
+        - "vitalia/frontend/src/hooks/useMediaQuery.ts"
+        - "vitalia/frontend/src/components/shared/shell-organism/useViewportGuard.ts"
+        - "vitalia/frontend/src/components/shared/shell-organism/ValeriaSidebar.tsx"
+        - "vitalia/frontend/src/components/shared/shell-organism/Ribbon.tsx"
+        - "vitalia/frontend/src/components/shared/shell-organism/ShellOrganismLayout.tsx  (wrapper — skip-link arch test lo lee; no tocar)"
+        - "vitalia/frontend/src/features/**  (otras features)"
+        - "vitalia/frontend/src/components/ui/**  (primitivas)"
+      rationale: >
+        FE chrome shell, no agentic, no PHI, no BE. Sonnet alcanza. El riesgo es transversal
+        (5 agentes + valeria) pero el cambio es localizado en un componente. La prohibición
+        central (no mount condicional del Group detrás de isDesktop) está documentada D3/D4.
+    gates:
+      - "cd vitalia/frontend && npx vitest run src/components/shared/shell-organism/ShellOrganismLayout.test.tsx"
+      - "cd vitalia/frontend && npx vitest run src/components/shared/shell-organism/AppPanelSlot.test.tsx"
+      - "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test-skip-link-target.test.ts"
+      - "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test-no-cross-brand-shell-mirror.test.ts"
+      - "cd vitalia/frontend && npx tsc --noEmit"
+      - "cd vitalia/frontend && npx eslint src/components/shared/shell-organism/ --cache"
+
+  - id: T-2
+    title: "Re-verificación transversal (5 agentes × 3 modos) + axe + dev-app live"
+    nature: verification-transversal
+    production_code: false   # specs/verificación sobre el fix; no production code nuevo de feature
+    depends_on: [T-1]
+    description: >
+      Verificación transversal OBLIGATORIA (shell compartido — un error rompe a TODOS).
+      vitest 5 agentes × 3 modos + axe wcag2aa (id-dup/landmark) + visual smoke chrome.
+      Live en dev-app (ADR-008): ejercer lisa + valeria sidebar desktop+mobile, leer consola
+      (sin 'more hooks' / hydration error), confirmar single main-content + single slot en DOM real.
+      E2E doctores: getByTestId resuelve a 1 SIN .filter({visible:true}) — prueba de fuego.
+    deliverables:
+      - "spec/golden de re-verificación transversal (vitest + axe-shell + visual smoke), reusando baselines de shell si existen"
+      - "evidence dev-app en checkpoint.dev_app_verified.evidence (lisa + valeria, desktop + mobile)"
+    gherkin_coverage:
+      - "Given los 5 agentes [lisa,mateo,adrian,lucas,camila] When navego cada uno Then shell renderiza con 1 main + 1 slot, sin crash"
+      - "Given axe wcag2aa en lisa + valeria abierto Then 0 violaciones duplicate-id / landmark-unique"
+      - "Given dev-app lisa desktop+mobile When ejerzo la UI Then consola sin 'Rendered more hooks' ni hydration error AND document.querySelectorAll('#main-content').length===1 AND querySelectorAll('[data-testid=app-panel-slot]').length===1"
+      - "Given E2E doctores Then getByTestId('btn-nuevo-integrante') resuelve a 1 (sin strict-mode violation, sin .filter workaround)"
+    test_first: false
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: sonnet
+      must_load_skills:
+        - playwright-expert
+        - vitalia-design-system
+        - chrome-devtools-verify
+      must_load_artifacts:
+        - vitalia/docs/product/stories/vitalia-shell-dual-mount-a11y-fix/04-validators.yaml
+        - vitalia/docs/product/stories/vitalia-shell-dual-mount-a11y-fix/03-arch.md
+      forbidden_to_touch:
+        - "core/luana-core-*/**"
+        - "nicolify/**"
+        - "vitalia/frontend/src/features/**  (salvo lectura; no editar lógica de feature)"
+      rationale: >
+        Verificación transversal + live (Playwright + Chrome MCP). Sonnet alcanza; usa dev-app
+        provisto (make dev-app-vitalia desde worktree vitalia — footgun cross-worktree).
+    gates:
+      - "cd vitalia/frontend && npx vitest run src/components/shared/shell-organism/"
+      - "make dev-app-vitalia  # luego Chrome MCP / Playwright autenticado contra https://dev-app.vitalialat.com"
+      - "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/vitalia-fase2-lisa-doctores/ --project=smoke"
+
+notes:
+  - "WIP cap module-scoped: code:shell-organism (1 story a la vez en developing/developed/reviewing)."
+  - "Story-closure-gate: developed → AUTO /auditor (auditor-frontend Opus) → APPROVED → AUTO /pm-vitalia merge."
+  - "T-2 puede colapsarse en T-1 si /dev-team prefiere un solo ticket; mantener depends_on y verificación transversal explícita."

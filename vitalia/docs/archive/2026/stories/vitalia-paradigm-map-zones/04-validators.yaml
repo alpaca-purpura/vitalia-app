@@ -1,0 +1,212 @@
+# voseo-allowed: validators internos de migración, no user-facing
+# 04-validators — vitalia-paradigm-map-zones
+# Categorías: non_functional · functional · architectural_validation
+# scenario_coverage cubre SC-1..SC-7 (01-spec). test_construction_plan para e2e shell.
+
+story_id: vitalia-paradigm-map-zones
+brand: vitalia
+schema_version: v4.1
+architecture_pattern: ADR-vitalia-005 (v2) + ADR-vitalia-004 (addendum)
+
+# ────────────────────────────────────────────────────────────────────────────
+# NON-FUNCTIONAL
+# ────────────────────────────────────────────────────────────────────────────
+non_functional:
+  - id: NF-1
+    name: "Migración idempotente (re-run = no-op)"
+    must_pass: true
+    type: contract_test
+    path: "scripts/tests/test_map_zones_migration.py::test_rerun_is_noop"
+    rationale: "Cardinal: aplicar dos veces no produce diffs (SC-4)."
+
+  - id: NF-2
+    name: "Migración halt-no-silent ante cap sin mapeo"
+    must_pass: true
+    type: contract_test
+    path: "scripts/tests/test_map_zones_migration.py::test_unmapped_cap_halts"
+    rationale: "NUNCA asigna caja por defecto; halta + lista (SC-3)."
+
+  - id: NF-3
+    name: "Cero edición de otras brands ni engine"
+    must_pass: true
+    type: state_check
+    target: shell
+    cmd: "git diff --name-only | grep -E '^(comunify|nicolify|lupulo|core/)' | wc -l"
+    expect: "0"
+    rationale: "Scope gate M13 + cero engine (SC-5, AC-7)."
+
+  - id: NF-4
+    name: "Cockpit tool NO tocado por esta story (tool-scope separado)"
+    must_pass: true
+    type: state_check
+    target: shell
+    cmd: "git diff --name-only | grep -E '^tools/luana-cockpit/' | wc -l"
+    expect: "0"
+    rationale: "F3 es dispatch tool-scope, no tickets de esta story."
+
+  - id: NF-5
+    name: "Native-first — sin docker exec para scripts/tests/lint"
+    must_pass: true
+    type: manual_review
+    rationale: "Scripts con ${WS}/.venv/bin/python; FE con npx."
+
+# ────────────────────────────────────────────────────────────────────────────
+# FUNCTIONAL — scenario_coverage SC-1..SC-7
+# ────────────────────────────────────────────────────────────────────────────
+functional:
+  scenario_coverage:
+    - scenario: SC-1
+      name: "Re-tag caps + SYSTEM-MAP promovido"
+      must_pass: true
+      graders:
+        - { type: state_check, target: shell, cmd: "grep -rlE 'agent_owner:\\s*(config|infra)\\b' vitalia/docs/product/capabilities/ | wc -l", expect: "0" }
+        - { type: state_check, target: shell, cmd: "${WS}/.venv/bin/python scripts/reconcile_capabilities.py --brand vitalia; echo $?", expect: "0" }
+        - { type: state_check, target: shell, cmd: "${WS}/.venv/bin/python scripts/validate_system_map.py --brand vitalia; echo $?", expect: "0" }
+        - { type: contract_test, path: "scripts/tests/test_map_zones_migration.py::test_config_infra_valeria_fully_retagged" }
+
+    - scenario: SC-2
+      name: "Valeria→supervisora / Mateo→Operar"
+      must_pass: true
+      graders:
+        - { type: state_check, target: shell, cmd: "python3 -c \"import yaml;d=yaml.safe_load(open('vitalia/docs/architecture/SYSTEM-MAP.yaml'));print('valeria' in d['zones'][0].get('boxes',[]))\"", expect: "False" }
+        - { type: state_check, target: shell, cmd: "grep -rlE '^agent_owner:\\s*valeria' vitalia/docs/product/capabilities/booking vitalia/docs/product/capabilities/scheduling | wc -l", expect: "0" }
+
+    - scenario: SC-3
+      name: "Cap sin caja válida → STOP, no silent"
+      must_pass: true
+      graders:
+        - { type: contract_test, path: "scripts/tests/test_map_zones_migration.py::test_unmapped_cap_halts" }
+
+    - scenario: SC-4
+      name: "Idempotencia + user_visible derivado"
+      must_pass: true
+      graders:
+        - { type: state_check, target: shell, cmd: "git diff --quiet vitalia/docs/product/capabilities/ && echo clean", expect: "clean" }
+        - { type: contract_test, path: "scripts/tests/test_map_zones_migration.py::test_rerun_is_noop" }
+
+    - scenario: SC-5
+      name: "Box inventado rechazado + cross-brand intacto"
+      must_pass: true
+      graders:
+        - { type: contract_test, path: "scripts/tests/test_map_zones_migration.py::test_invalid_box_rejected" }
+        - { type: state_check, target: shell, cmd: "git diff --name-only | grep -E '^(comunify|nicolify|lupulo)/' | wc -l", expect: "0" }
+
+    - scenario: SC-6
+      name: "Backlog Fase 2 re-mapeado (cada story con map_box)"
+      must_pass: true
+      graders:
+        - { type: state_check, target: shell, cmd: "grep -L 'map_box:' vitalia/docs/product/stories/vitalia-fase2-*/checkpoint.md | wc -l", expect: "0" }
+
+    - scenario: SC-7
+      name: "Actions-index (Plano 2) generado + regenerable"
+      must_pass: true
+      graders:
+        - { type: state_check, target: shell, cmd: "test -f vitalia/docs/product/capabilities/_actions-index.json && echo ok", expect: "ok" }
+        - { type: state_check, target: shell, cmd: "${WS}/.venv/bin/python scripts/generate_actions_index.py --brand vitalia; echo $?", expect: "0" }
+
+  # FE shell realign (verificación funcional del Ribbon)
+  fe_shell:
+    - id: FE-1
+      name: "Ribbon: 5 especialistas + Plataforma, Mateo presente, Valeria fuera del ribbon"
+      must_pass: true
+      type: e2e
+      path: "vitalia/frontend/e2e/regression/vitalia-paradigm-map-zones/ribbon-realign.spec.ts"
+    - id: FE-2
+      name: "mateo/agenda carga (agenda migrada de valeria)"
+      must_pass: true
+      type: e2e
+      path: "vitalia/frontend/e2e/regression/vitalia-paradigm-map-zones/mateo-agenda-loads.spec.ts"
+    - id: FE-3
+      name: "agent-catalog SSoT: AGENT_RIBBON_ORDER + RIBBON_SUBTABS + SHIPPED_STATIC_SUBTABS"
+      must_pass: true
+      type: vitest
+      path: "vitalia/frontend/src/__tests__/architecture/agent-catalog-ribbon-taxonomy.test.ts"
+
+# ────────────────────────────────────────────────────────────────────────────
+# ARCHITECTURAL VALIDATION
+# ────────────────────────────────────────────────────────────────────────────
+architectural_validation:
+  - id: AV-1
+    name: "validate_system_map map_box-aware: 12 cajas válidas, box inventado falla"
+    must_pass: true
+    type: state_check
+    target: shell
+    cmd: "${WS}/.venv/bin/python scripts/validate_system_map.py --brand vitalia; echo $?"
+    expect: "0"
+
+  - id: AV-2
+    name: "BE arch fitness intacto (story no toca backend/src)"
+    must_pass: true
+    type: state_check
+    target: shell
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/architecture/ -x -q >/dev/null 2>&1; echo $?"
+    expect: "0"
+
+  - id: AV-3
+    name: "FE typecheck + lint + arch fitness"
+    must_pass: true
+    type: state_check
+    target: shell
+    cmd: "cd vitalia/frontend && npx tsc --noEmit && npx eslint src/ --cache && npx vitest run --silent >/dev/null 2>&1; echo $?"
+    expect: "0"
+
+  - id: AV-4
+    name: "Cap nuevo platform.product-map-zonas con schema v4 + change_log[0] type:new"
+    must_pass: true
+    type: state_check
+    target: shell
+    cmd: "test -f vitalia/docs/product/capabilities/platform/product-map-zonas.yaml && echo ok"
+    expect: "ok"
+
+  - id: AV-5
+    name: "ADR-vitalia-005 bumped a v2 (5ª dim map_box)"
+    must_pass: true
+    type: state_check
+    target: shell
+    cmd: "grep -cE 'v2\\.0|5ª dim|map_box' vitalia/docs/architecture/ADR-vitalia-005-capability-model-4-dimensions.md"
+    expect_min: "1"
+
+# ────────────────────────────────────────────────────────────────────────────
+# TEST CONSTRUCTION PLAN (TDD RED-first — naturaleza del ticket → batería)
+# ────────────────────────────────────────────────────────────────────────────
+test_construction_plan:
+  # Naturaleza: script de migración → contract tests (halt/idempotencia/box-invalid)
+  migration_scripts:
+    red_first: true
+    layer: "scripts/tests/"
+    tests:
+      - "test_unmapped_cap_halts (SC-3)"
+      - "test_rerun_is_noop (SC-4 idempotencia)"
+      - "test_invalid_box_rejected (SC-5)"
+      - "test_config_infra_valeria_fully_retagged (SC-1)"
+    fixtures: "cap YAML temp dir + SYSTEM-MAP fixture con target_boxes.absorbs"
+
+  # Naturaleza: FE shell realign (catalog + routing + e2e ruta migrada)
+  fe_shell:
+    red_first: true
+    vitest:
+      - "agent-catalog-ribbon-taxonomy.test.ts (FE-3)"
+    e2e_playwright:
+      - path: "vitalia/frontend/e2e/regression/vitalia-paradigm-map-zones/ribbon-realign.spec.ts"
+        scope: "Ribbon — 5 tabs + Plataforma, Mateo presente, sin tab Valeria (FE-1)"
+      - path: "vitalia/frontend/e2e/regression/vitalia-paradigm-map-zones/mateo-agenda-loads.spec.ts"
+        scope: "mateo/agenda carga la agenda migrada (FE-2) — ruta NUEVA → smoke RED primero"
+    visual_scope:
+      story_scope_routes: ["/[tenantId]/mateo/agenda"]
+      story_scope_components: ["Ribbon.tsx", "RibbonTab", "ConfigTab", "SubTabsBar"]
+      forbidden_visual_changes:
+        - "vitalia/frontend/src/components/ui/"
+        - "vitalia/frontend/src/app/[tenantId]/layout.tsx"
+        - "ValeriaSidebar (sin cambio funcional)"
+
+  # Naturaleza: docs/ADRs → review (no TDD), pero validate_system_map gatea coherencia
+  docs_adrs:
+    red_first: false
+    note: "ADRs/rules/SHELL-DESIGN-CONTRACT son docs (TDD no aplica); validate_system_map + reconcile gatean coherencia de datos."
+
+# ────────────────────────────────────────────────────────────────────────────
+# TESTS AUDIT (default flip) — NO APLICA
+# ────────────────────────────────────────────────────────────────────────────
+tests_audit_default_flip:
+  applies: false
+  reason: "CONTRACT no flipea defaults de feature flag side-effect (events/persistence/LLM routing). Es migración de datos + taxonomía + shell."

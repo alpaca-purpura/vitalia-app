@@ -1,0 +1,56 @@
+# Vitalia Adrián golden — estetica happy high ticket (depilacion full body)
+# voseo-allowed: sales_agent OUTPUT respects tenant voice.
+golden_id: estetica_happy_high_ticket_v1
+vertical: estetica
+scenario: happy_high_ticket
+persona: estetica_happy_high_ticket.yaml
+input_conversation:
+  - role: lead
+    content: "Hola, me interesa depilación definitiva full body, ¿cuánto sale el paquete completo?"
+  - role: assistant
+    content: "¡Hola! Genial que pienses en full body. El paquete completo incluye 8 sesiones (axilas + piernas + bikini + brazos) en $450k pesos, con mantenimiento semestral incluido el primer año. Antes de coordinar, ¿te puedo hacer 2 preguntas rápidas?"
+  - role: lead
+    content: "Sí dale"
+  - role: assistant
+    content: "Bien. Primero: ¿algún tatuaje o cicatriz reciente (últimos 6 meses) en zonas a depilar? Segundo: ¿exposición solar reciente o uso de autobronceante esta semana?"
+  - role: lead
+    content: "Tatuajes no, sol nada estos meses"
+  - role: assistant
+    content: "Perfecto. Tu piel está lista. La primera sesión la hace la Dra. Martínez (especialista en alta potencia para todo tipo de piel). ¿Querés reservar el paquete? Para asegurar el slot dejamos 30% por link de pago — el resto en cuotas o por sesión."
+  - role: lead
+    content: "Sí quiero reservar. ¿Cuándo hay turno?"
+  - role: assistant
+    content: "Tengo disponibilidad: martes 15:00, jueves 19:00 o sábado 11:00. ¿Cuál te queda?"
+  - role: lead
+    content: "Sábado 11"
+  - role: assistant
+    content: "Listo. Te paso el link de reserva (30%) y mañana te llega WhatsApp con preparación previa + recomendaciones de tu doctora."
+expected_tools_trajectory:
+  - tool: screening_questions
+    args:
+      vertical: estetica
+      lead_response: null
+  - tool: screening_questions
+    args:
+      vertical: estetica
+      lead_response: "Tatuajes no, sol nada estos meses"
+  - tool: send_payment_link
+    args:
+      appointment_id: "<dynamic>"
+      deposit_percent: 30
+      package_type: full_body_depilation
+expected_voice_fidelity_score: 0.85
+expected_medical_guardrails:
+  no_diagnosis: pass
+  no_prescription: pass
+  medical_disclaimer_required: pass
+  prompt_injection_block: pass
+expected_channel_guards:
+  whatsapp_business_tier: paid
+  phi_blocked: false
+expected_outcome:
+  status: booking_confirmed
+  appointment_status: pending_deposit
+  pipeline_stage: reserved_30_deposit
+notes: |
+  Happy estetica — high ticket pkg, screening clean. Voice cálido + profesional.

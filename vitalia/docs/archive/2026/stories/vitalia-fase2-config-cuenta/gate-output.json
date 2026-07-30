@@ -1,0 +1,69 @@
+{
+  "schema_version": "1.0",
+  "pr_folder": "/home/chalreme/Proyectos/luana-vitalia/vitalia/docs/product/stories/vitalia-fase2-config-cuenta",
+  "ticket": "audit-1",
+  "iter": 1,
+  "command": "test-vitalia",
+  "command_alias": "test-vitalia",
+  "started_at": "2026-06-11T00:00:00Z",
+  "finished_at": "2026-06-11T00:15:00Z",
+  "duration_ms": 900000,
+  "exit_code": 0,
+  "raw_log_path": "/home/chalreme/Proyectos/luana-vitalia/vitalia/docs/product/stories/vitalia-fase2-config-cuenta/gate-logs/iter-1-test-vitalia-2026-06-11T000000Z.log",
+  "gates": [
+    {
+      "name": "ruff (lint check)",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": []
+    },
+    {
+      "name": "ruff (format check)",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": []
+    },
+    {
+      "name": "pytest (clinics tests)",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": []
+    },
+    {
+      "name": "pytest (architecture selective)",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": []
+    },
+    {
+      "name": "tsc (TypeScript type check)",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": []
+    },
+    {
+      "name": "eslint (config feature)",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": []
+    },
+    {
+      "name": "vitest (config feature tests)",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": []
+    },
+    {
+      "name": "vitest (architecture tests)",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": []
+    }
+  ],
+  "overall": {
+    "any_fail": false,
+    "fail_gate_names": [],
+    "summary": "All 8 gates PASS: ruff lint+format, pytest clinics+arch selective, tsc, eslint, vitest features+arch (30 test files, 210 tests total GREEN)"
+  },
+  "notes": "Pre-existing skip: test_pgcrypto_phi_columns.py (treatment_plans.notes TEXT in module treatment, documented in T-2-result.md, outside scope config-cuenta). Warnings: FastAPI httpx deprecation + Pydantic v2 config style (not errors, logged to raw_log_path). Vitest arch tests include 5 SKIPPEDs for Ribbon/ConfigTab/SubTabsBar components not found (expected, story infrastructure phase)."
+}

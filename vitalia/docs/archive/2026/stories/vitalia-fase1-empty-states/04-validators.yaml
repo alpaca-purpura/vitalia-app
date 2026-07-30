@@ -1,0 +1,509 @@
+# F1-S10 vitalia-fase1-empty-states — validators (5 categorías ★ v4.1)
+#
+# Each validator: must_pass=true unless explicitly marked. Comando shell EJECUTABLE.
+# ZERO Opus en build (FE puro sin agentic surface).
+#
+# Categorías v4.1:
+#   1. non_functional          — typecheck, lint, format, vitest unit + coverage, arch FSD boundaries, cross-brand mirror
+#   2. functional              — E2E Playwright (11 specs SC-1..SC-10) + vitest unit
+#   3. visual                  — Playwright visual goldens (44 light/dark + 6 takeover + ~18 responsive)
+#   4. agentic_eval            — N/A justified (zero agentic surface)
+#   5. architectural_validation — FSD-Lite, no-cross-brand, ribbon-subtabs-ssot, no-hardcoded-subtab-keys, no-PHI-real-data
+
+story_id: vitalia-fase1-empty-states
+brand: vitalia
+phase: fase-1
+story_type: ui-story
+last_modified: 2026-05-26
+architect_iter: 1
+playwright_required: true   # ui-story HARD per v4.1
+
+# ──────────────────────────────────────────────────────────────────────
+# scenario_coverage — 11 SC del spec ratificado
+# ──────────────────────────────────────────────────────────────────────
+scenario_coverage:
+  total_scenarios: 11
+  mapped: 11
+  coverage_pct: 100
+  scenarios:
+    - id: SC-1
+      title: "happy · 22 sub-tabs navegables sin error"
+      validator_ids:
+        - val-fe-e2e-sc01-navegacion-22-subtabs
+        - val-fe-vitest-unit-subtab-content
+        - val-fe-tsc
+        - val-fe-visual-goldens-22-subtabs
+
+    - id: SC-2
+      title: "happy · placeholder Lisa Servicios (toggle Catálogo|Escalera)"
+      validator_ids:
+        - val-fe-e2e-sc02-lisa-servicios
+        - val-fe-vitest-unit-toggle-pill
+        - val-fe-visual-lisa-servicios-catalogo
+        - val-fe-visual-lisa-servicios-escalera
+
+    - id: SC-3
+      title: "happy · placeholder Adrián Embudo (Kanban 6 cols)"
+      validator_ids:
+        - val-fe-e2e-sc03-adrian-embudo
+        - val-fe-visual-adrian-embudo-kanban
+        - val-fe-visual-adrian-embudo-lista
+
+    - id: SC-4
+      title: "happy · placeholder Valeria Agenda enriquecida (toolbar+filters+grid+footer)"
+      validator_ids:
+        - val-fe-e2e-sc04-valeria-agenda
+        - val-fe-vitest-unit-agenda-slot
+        - val-fe-visual-valeria-agenda-week-default
+        - val-fe-visual-responsive-valeria-agenda
+
+    - id: SC-4-bis
+      title: "happy · placeholder Adrián Inbox + Takeover UX A↔B + sidebar toggle"
+      validator_ids:
+        - val-fe-e2e-sc04bis-adrian-inbox
+        - val-fe-vitest-unit-conversation-item
+        - val-fe-vitest-unit-thread-header
+        - val-fe-visual-inbox-state-A-adrian
+        - val-fe-visual-inbox-state-B-human
+        - val-fe-visual-inbox-sidebar-closed
+
+    - id: SC-5
+      title: "negative · subtab inválido → not-found.tsx jerárquico"
+      validator_ids:
+        - val-fe-e2e-sc05-subtab-invalido
+
+    - id: SC-6
+      title: "edge · 22 sub-tabs sin re-mount completo shell"
+      validator_ids:
+        - val-fe-e2e-sc06-no-shell-remount
+
+    - id: SC-7
+      title: "adversarial · XSS payload en URL → safe render (no script execution)"
+      validator_ids:
+        - val-fe-e2e-sc07-adversarial-xss
+
+    - id: SC-8
+      title: "sub-categoría empty_state · 16 sub-tabs genéricos parametrizado"
+      validator_ids:
+        - val-fe-e2e-sc08-empty-states-genericos
+        - val-fe-vitest-unit-empty-state
+
+    - id: SC-9
+      title: "sub-categoría accessibility · axe wcag2aa + heading hierarchy + keyboard"
+      validator_ids:
+        - val-fe-e2e-sc09-a11y
+        - val-fe-axe-empty-states
+
+    - id: SC-10
+      title: "sub-categoría i18n · Spanish neutro LatAm + tenant_locale PEN"
+      validator_ids:
+        - val-fe-e2e-sc10-i18n
+        - val-fe-arch-no-voseo-strings
+
+sub_categories_coverage:
+  race_condition:
+    applies: false
+    not_applicable_reason: "F1-S10 sin writes / sin unique constraint / sin create concurrente — mock-only placeholder."
+  concurrent_users:
+    applies: false
+    not_applicable_reason: "Routing per-session; toggle state local component-scoped. Sin state compartido cross-user."
+  network_failure:
+    applies: false
+    not_applicable_reason: "Cero fetch APIs. Todo mock hardcoded en componentes Fase 1. F2 cableará data real per sub-tab."
+  large_dataset:
+    applies: false
+    not_applicable_reason: "Mock fijo: 5 conversaciones, 10 agenda slots, 6 cols × 3 leads. Sin paginación / sin large list virtualization Fase 1."
+  empty_state:
+    applies: true
+    covered_by: [val-fe-e2e-sc08-empty-states-genericos, val-fe-vitest-unit-empty-state]
+  accessibility:
+    applies: true
+    covered_by: [val-fe-e2e-sc09-a11y, val-fe-axe-empty-states]
+  i18n_l10n:
+    applies: true
+    covered_by: [val-fe-e2e-sc10-i18n, val-fe-arch-no-voseo-strings]
+
+# ──────────────────────────────────────────────────────────────────────
+# Categoría 1 — non_functional
+# ──────────────────────────────────────────────────────────────────────
+non_functional:
+  - id: val-fe-tsc
+    name: "TypeScript strict compile (FE vitalia)"
+    must_pass: true
+    command: |
+      cd ${WS}/vitalia/frontend && npx tsc --noEmit
+    expected: "0 errors"
+
+  - id: val-fe-lint
+    name: "ESLint 60+ rules · 0 errors (FE vitalia)"
+    must_pass: true
+    command: |
+      cd ${WS}/vitalia/frontend && npx eslint src/ --cache
+    expected: "0 errors"
+
+  - id: val-fe-format
+    name: "Prettier format check (FE vitalia)"
+    must_pass: true
+    command: |
+      cd ${WS}/vitalia/frontend && npx prettier --check src/components/shared/shell-organism/ src/features/{lisa,lucas,adrian,valeria,camila,config}/components/
+    expected: "All files formatted"
+
+  - id: val-fe-arch-fsd-boundaries
+    name: "FSD-Lite boundaries · ratchet shrink-only"
+    must_pass: true
+    command: |
+      cd ${WS}/vitalia/frontend && npx vitest run src/__tests__/architecture/test_fsd_boundaries.test.ts
+    expected: "0 boundary violations · allowlist no grew"
+
+  - id: val-fe-arch-no-cross-brand-mirror
+    name: "No cross-brand mirror (per anti-duplication rule)"
+    must_pass: true
+    command: |
+      ${WS}/scripts/scan_cross_brand_mirror.sh vitalia shell-organism
+    expected: "no mirror files in nicolify/comunify/lupulo/frontend/src/components/shared/shell-organism/"
+
+  - id: val-fe-vitest-unit-subtab-content
+    name: "Vitest unit · SubTabContent dispatcher mapping"
+    must_pass: true
+    command: |
+      cd ${WS}/vitalia/frontend && npx vitest run src/components/shared/shell-organism/SubTabContent.test.tsx
+    expected: "all PLACEHOLDER_MAP keys cover 22 sub-tabs · EmptyState fallback verified"
+
+  - id: val-fe-vitest-unit-empty-state
+    name: "Vitest unit · EmptyState molécula (icon+title+desc+optional action)"
+    must_pass: true
+    command: |
+      cd ${WS}/vitalia/frontend && npx vitest run src/components/shared/shell-organism/EmptyState.test.tsx
+    expected: "renders icon, title h3, description, action button when provided"
+
+  - id: val-fe-vitest-unit-toggle-pill
+    name: "Vitest unit · TogglePill state change visual"
+    must_pass: true
+    command: |
+      cd ${WS}/vitalia/frontend && npx vitest run src/components/shared/shell-organism/TogglePill.test.tsx
+    expected: "state changes on click · active pill highlighted"
+
+  - id: val-fe-vitest-unit-conversation-item
+    name: "Vitest unit · ConversationItem (YouChip render cuando handler_mode='human')"
+    must_pass: true
+    command: |
+      cd ${WS}/vitalia/frontend && npx vitest run src/features/adrian/components/inbox/ConversationItem.test.tsx
+    expected: "YouChip visible only when handler_mode='human' · border-l-green-500/60 applied"
+
+  - id: val-fe-vitest-unit-thread-header
+    name: "Vitest unit · ThreadHeader takeover state A vs B"
+    must_pass: true
+    command: |
+      cd ${WS}/vitalia/frontend && npx vitest run src/features/adrian/components/inbox/ThreadHeader.test.tsx
+    expected: "state A renders chip+takeover button · state B renders without chip"
+
+  - id: val-fe-vitest-unit-agenda-slot
+    name: "Vitest unit · AgendaSlot 4 status variants + 4 origins"
+    must_pass: true
+    command: |
+      cd ${WS}/vitalia/frontend && npx vitest run src/features/valeria/components/agenda/AgendaSlot.test.tsx
+    expected: "4 status pills rendered correctly · origin icons (🚶/📞/✉/✋) per type"
+
+  - id: val-fe-vitest-unit-mock-shape
+    name: "Vitest unit · inbox mock data shape validation (zod-like)"
+    must_pass: true
+    command: |
+      cd ${WS}/vitalia/frontend && npx vitest run src/features/adrian/components/placeholders/__tests__/inbox-mock-shape.test.ts
+    expected: "INBOX_CONVERSATIONS shape valid · SELECTED_THREAD_MESSAGES shape valid · CONTACT_MOCK shape valid"
+
+  - id: val-fe-vitest-coverage
+    name: "Vitest coverage threshold ≥20% (FE all-categories)"
+    must_pass: true
+    command: |
+      cd ${WS}/vitalia/frontend && npx vitest run --coverage
+    expected: "branches/functions/lines/statements ≥ 20%"
+
+# ──────────────────────────────────────────────────────────────────────
+# Categoría 2 — functional
+# ──────────────────────────────────────────────────────────────────────
+functional:
+  - id: val-fe-e2e-sc01-navegacion-22-subtabs
+    name: "E2E SC-1 · navegación 22 sub-tabs sin error console"
+    must_pass: true
+    command: |
+      cd ${WS}/vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/vitalia-fase1-empty-states/sc-01-navegacion-22-subtabs.spec.ts
+    playwright_required: true
+    expected: "22 transitions OK · 0 console errors"
+
+  - id: val-fe-e2e-sc02-lisa-servicios
+    name: "E2E SC-2 · Lisa Servicios toggle Catálogo|Escalera"
+    must_pass: true
+    command: |
+      cd ${WS}/vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/vitalia-fase1-empty-states/sc-02-lisa-servicios.spec.ts
+    playwright_required: true
+    expected: "TogglePill visible · click Escalera cambia state · 5 cards visible"
+
+  - id: val-fe-e2e-sc03-adrian-embudo
+    name: "E2E SC-3 · Adrián Embudo Kanban 6 cols + toggle"
+    must_pass: true
+    command: |
+      cd ${WS}/vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/vitalia-fase1-empty-states/sc-03-adrian-embudo.spec.ts
+    playwright_required: true
+    expected: "6 columnas con header verbatim · 3 leads mock per col · toggle Lista visual"
+
+  - id: val-fe-e2e-sc04-valeria-agenda
+    name: "E2E SC-4 · Valeria Agenda enriquecida (toolbar+filters+grid+footer)"
+    must_pass: true
+    command: |
+      cd ${WS}/vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/vitalia-fase1-empty-states/sc-04-valeria-agenda.spec.ts
+    playwright_required: true
+    expected: "AgendaToolbar · period nav · CTA dropdown 3 origins · 6 day headers · ≥8 AgendaSlot · 6 lunch cells · summary footer"
+
+  - id: val-fe-e2e-sc04bis-adrian-inbox
+    name: "E2E SC-4.bis · Adrián Inbox 3-col + Takeover A↔B + sidebar toggle"
+    must_pass: true
+    command: |
+      cd ${WS}/vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/vitalia-fase1-empty-states/sc-04bis-adrian-inbox.spec.ts
+    playwright_required: true
+    expected: "5 ConversationItem · ≥2 CampaignTag · 1 human-handled border-l-green · YouChip visible · state A→B transition · TakeoverBanner visible state B · sidebar toggle × → 0px width"
+
+  - id: val-fe-e2e-sc05-subtab-invalido
+    name: "E2E SC-5 · subtab inválido → not-found jerárquico"
+    must_pass: true
+    command: |
+      cd ${WS}/vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/vitalia-fase1-empty-states/sc-05-subtab-invalido.spec.ts
+    playwright_required: true
+    expected: "not-found.tsx visible dentro shell · ribbon + ValeriaSidebar visibles"
+
+  - id: val-fe-e2e-sc06-no-shell-remount
+    name: "E2E SC-6 · 22 sub-tabs sin re-mount completo shell"
+    must_pass: true
+    command: |
+      cd ${WS}/vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/vitalia-fase1-empty-states/sc-06-edge-no-shell-remount.spec.ts
+    playwright_required: true
+    expected: "ribbon-root DOM ref stable across 21 clicks · no 'Maximum update depth' errors"
+
+  - id: val-fe-e2e-sc07-adversarial-xss
+    name: "E2E SC-7 · XSS payload en URL → safe render (no script execution)"
+    must_pass: true
+    command: |
+      cd ${WS}/vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/vitalia-fase1-empty-states/sc-07-adversarial-xss.spec.ts
+    playwright_required: true
+    expected: "isValidSubtab() bloquea · NO script injection · page.on('dialog') never fires"
+
+  - id: val-fe-e2e-sc08-empty-states-genericos
+    name: "E2E SC-8 · 16 sub-tabs genéricos parametrizado (EmptyState consistente)"
+    must_pass: true
+    command: |
+      cd ${WS}/vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/vitalia-fase1-empty-states/sc-08-empty-states-genericos.spec.ts
+    playwright_required: true
+    expected: "16 routes parametrized · EmptyState icon+title+desc verbatim per spec § 10.1"
+
+  - id: val-fe-e2e-sc09-a11y
+    name: "E2E SC-9 · accessibility heading hierarchy + keyboard"
+    must_pass: true
+    command: |
+      cd ${WS}/vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/vitalia-fase1-empty-states/sc-09-a11y.spec.ts
+    playwright_required: true
+    expected: "h2 SubTabHeader único per page · h3 PlaceholderCard · keyboard Tab → next pill · Space/Enter activa"
+
+  - id: val-fe-axe-empty-states
+    name: "axe-core wcag2aa scan all 22 sub-tabs (0 violations)"
+    must_pass: true
+    command: |
+      cd ${WS}/vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/vitalia-fase1-empty-states/sc-09-a11y.spec.ts --grep "axe wcag2aa"
+    expected: "0 violations on 22 sub-tabs · contrast ratio ≥4.5:1"
+
+  - id: val-fe-e2e-sc10-i18n
+    name: "E2E SC-10 · Spanish neutro LatAm + tenant_locale PEN"
+    must_pass: true
+    command: |
+      cd ${WS}/vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/vitalia-fase1-empty-states/sc-10-i18n.spec.ts
+    playwright_required: true
+    expected: "0 voseo verbs in rendered HTML · PEN currency en mock values · 24h format en agenda mocks"
+
+# ──────────────────────────────────────────────────────────────────────
+# Categoría 3 — visual goldens (Playwright)
+# ──────────────────────────────────────────────────────────────────────
+visual:
+  - id: val-fe-visual-goldens-22-subtabs
+    name: "Visual goldens 22 sub-tabs × light + dark (44 PNG)"
+    must_pass: true
+    command: |
+      cd ${WS}/vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/vitalia-fase1-empty-states/sc-01-navegacion-22-subtabs.spec.ts --grep "visual goldens"
+    tolerance: 0.001
+    expected: "44 PNG saved en e2e/__screenshots__/visual/empty-states/22-subtabs-{light,dark}/"
+
+  - id: val-fe-visual-lisa-servicios-catalogo
+    name: "Visual golden Lisa Servicios estado Catálogo"
+    must_pass: true
+    command: |
+      cd ${WS}/vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/vitalia-fase1-empty-states/sc-02-lisa-servicios.spec.ts --grep "visual catalogo"
+    tolerance: 0.001
+    mockup_baseline: "vitalia/docs/product/stories/vitalia-fase1-empty-states/mockups/lisa-servicios-placeholder.html"
+
+  - id: val-fe-visual-lisa-servicios-escalera
+    name: "Visual golden Lisa Servicios estado Escalera"
+    must_pass: true
+    command: |
+      cd ${WS}/vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/vitalia-fase1-empty-states/sc-02-lisa-servicios.spec.ts --grep "visual escalera"
+    tolerance: 0.001
+
+  - id: val-fe-visual-adrian-embudo-kanban
+    name: "Visual golden Adrián Embudo estado Kanban (6 cols)"
+    must_pass: true
+    command: |
+      cd ${WS}/vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/vitalia-fase1-empty-states/sc-03-adrian-embudo.spec.ts --grep "visual kanban"
+    tolerance: 0.001
+    mockup_baseline: "vitalia/docs/product/stories/vitalia-fase1-empty-states/mockups/adrian-embudo-placeholder.html"
+
+  - id: val-fe-visual-adrian-embudo-lista
+    name: "Visual golden Adrián Embudo estado Lista"
+    must_pass: true
+    command: |
+      cd ${WS}/vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/vitalia-fase1-empty-states/sc-03-adrian-embudo.spec.ts --grep "visual lista"
+    tolerance: 0.001
+
+  - id: val-fe-visual-valeria-agenda-week-default
+    name: "Visual golden Valeria Agenda week default (Lun 26 today + 10 slots + footer)"
+    must_pass: true
+    command: |
+      cd ${WS}/vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/vitalia-fase1-empty-states/sc-04-valeria-agenda.spec.ts --grep "visual week-default"
+    tolerance: 0.001
+    mockup_baseline: "vitalia/docs/product/stories/vitalia-fase1-empty-states/mockups/valeria-agenda-placeholder.html"
+
+  - id: val-fe-visual-inbox-state-A-adrian
+    name: "Visual golden Adrián Inbox estado A (Adrián maneja con botón takeover)"
+    must_pass: true
+    command: |
+      cd ${WS}/vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/vitalia-fase1-empty-states/sc-04bis-adrian-inbox.spec.ts --grep "visual state A"
+    tolerance: 0.001
+    mockup_baseline: "vitalia/docs/product/stories/vitalia-fase1-empty-states/mockups/adrian-inbox-placeholder.html"
+
+  - id: val-fe-visual-inbox-state-B-human
+    name: "Visual golden Adrián Inbox estado B (banner amarillo + MessageInput enabled)"
+    must_pass: true
+    command: |
+      cd ${WS}/vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/vitalia-fase1-empty-states/sc-04bis-adrian-inbox.spec.ts --grep "visual state B"
+    tolerance: 0.001
+
+  - id: val-fe-visual-inbox-sidebar-closed
+    name: "Visual golden Adrián Inbox sidebar closed (grid 320px 1fr 0)"
+    must_pass: true
+    command: |
+      cd ${WS}/vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/vitalia-fase1-empty-states/sc-04bis-adrian-inbox.spec.ts --grep "visual sidebar-closed"
+    tolerance: 0.001
+
+  - id: val-fe-visual-responsive-valeria-agenda
+    name: "Visual golden responsive Valeria Agenda (mobile/tablet/desktop)"
+    must_pass: true
+    command: |
+      cd ${WS}/vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/vitalia-fase1-empty-states/sc-04-valeria-agenda.spec.ts --grep "responsive"
+    tolerance: 0.005
+    expected: "3 PNG per breakpoint (mobile 375 / tablet 768 / desktop 1280)"
+
+# ──────────────────────────────────────────────────────────────────────
+# Categoría 4 — agentic_eval (N/A — sin agentic surface)
+# ──────────────────────────────────────────────────────────────────────
+agentic_eval:
+  applies: false
+  not_applicable_reason: |
+    F1-S10 NO toca módulos copilot/sales_agent · sin LangGraph state · sin prompt slot · sin tool · sin LLM call.
+    Placeholders mock-only visuales. Cuando F2-S3 cablee handler_override real, ese sprint añadirá agentic eval.
+
+# ──────────────────────────────────────────────────────────────────────
+# Categoría 5 — architectural_validation
+# ──────────────────────────────────────────────────────────────────────
+architectural_validation:
+  - id: val-fe-arch-subtab-content-uses-ribbon-subtabs-ssot
+    name: "Arch · SubTabContent dispatcher consume RIBBON_SUBTABS SSoT (NUEVO test)"
+    must_pass: true
+    command: |
+      cd ${WS}/vitalia/frontend && npx vitest run src/__tests__/architecture/test_subtab_content_uses_ribbon_subtabs_ssot.test.ts
+    expected: |
+      - PLACEHOLDER_MAP contiene exactamente 22 keys derivadas de RIBBON_SUBTABS
+      - sin keys 'mateo.*' (transversal agent)
+      - importa RIBBON_SUBTABS desde @/lib/agent-catalog
+
+  - id: val-fe-arch-no-hardcoded-subtab-keys
+    name: "Arch · no literal 'agent.subtab' hardcoded outside dispatcher (NUEVO test)"
+    must_pass: true
+    command: |
+      cd ${WS}/vitalia/frontend && npx vitest run src/__tests__/architecture/test_no_hardcoded_subtab_keys.test.ts
+    expected: "0 hardcoded keys fuera de SubTabContent.tsx + __tests__/ + e2e/"
+
+  - id: val-fe-arch-no-phi-real-data
+    name: "Arch · placeholders mock-only, no PHI real (NUEVO test)"
+    must_pass: true
+    command: |
+      cd ${WS}/vitalia/frontend && npx vitest run src/__tests__/architecture/test_no_phi_real_data.test.ts
+    expected: |
+      - 0 secuencias 8-digit literal en features/{adrian,valeria,camila}/components/
+      - 0 phone real 10+ dígitos consecutivos en placeholders
+      - email masked pattern verificado (m***@gmail.com format)
+
+  - id: val-fe-arch-fsd-boundaries
+    name: "Arch · FSD-Lite boundaries shrink-only ratchet"
+    must_pass: true
+    command: |
+      cd ${WS}/vitalia/frontend && npx vitest run src/__tests__/architecture/test_fsd_boundaries.test.ts
+    expected: "shared no importa de features · feature no importa cross-feature · allowlist no grew"
+
+  - id: val-fe-arch-no-cross-brand-mirror
+    name: "Arch · no cross-brand mirror (vitalia ↔ nicolify/comunify/lupulo)"
+    must_pass: true
+    command: |
+      ${WS}/scripts/scan_cross_brand_mirror.sh vitalia shell-organism
+    expected: |
+      - no SubTabContent.tsx en otros brands frontend
+      - no EmptyState.tsx (shell-specific) en otros brands frontend
+      - no features/adrian/components/inbox/ en otros brands frontend
+
+  - id: val-fe-arch-no-voseo-strings
+    name: "Arch · 0 voseo verbs en strings user-facing (Spanish neutro LatAm)"
+    must_pass: true
+    command: |
+      ${WS}/scripts/git-hooks/pre-commit
+    expected: "pre-commit voseo glosario check passes — 0 matches en placeholders + moléculas + organisms"
+
+# ──────────────────────────────────────────────────────────────────────
+# Test Construction Plan ★ v4.1
+# ──────────────────────────────────────────────────────────────────────
+test_construction_plan:
+  playwright_required: true
+  creation_order:
+    1: "POMs creados primero — ShellOrganismPage · AdrianInboxPage · ValeriaAgendaPage"
+    2: "Fixtures reusadas — vitalia-auth.fixture.ts (shipped F1-S0)"
+    3: "Vitest unit tests — 7 archivos (SubTabContent · EmptyState · TogglePill · ConversationItem · ThreadHeader · AgendaSlot · inbox-mock-shape)"
+    4: "Specs Playwright — sc-01..sc-10 + sc-04bis (11 specs)"
+    5: "Visual goldens — light/dark 22 + takeover A/B/sidebar-closed × light/dark + responsive (~70 PNG)"
+
+  poms_required:
+    - path: "vitalia/frontend/e2e/pages/ShellOrganismPage.ts"
+      responsibility: "navigate to subtab · assert ribbon stable · assert SubTabContent rendered"
+    - path: "vitalia/frontend/e2e/pages/AdrianInboxPage.ts"
+      responsibility: "click takeControl · click releaseControl · toggle sidebar · assert state A/B"
+    - path: "vitalia/frontend/e2e/pages/ValeriaAgendaPage.ts"
+      responsibility: "navigate period (prev/next/hoy) · open CTA dropdown · select origin option · assert slot visible"
+
+  fixtures_required:
+    - path: "vitalia/frontend/e2e/fixtures/vitalia-auth.fixture.ts"
+      status: "reuse (shipped F1-S0)"
+      responsibility: "Clerk testing-token auth · sign-in vitalia tenant"
+
+  scenario_to_test:
+    SC-1: [sc-01-navegacion-22-subtabs.spec.ts, ShellOrganismPage]
+    SC-2: [sc-02-lisa-servicios.spec.ts, ShellOrganismPage]
+    SC-3: [sc-03-adrian-embudo.spec.ts, ShellOrganismPage]
+    SC-4: [sc-04-valeria-agenda.spec.ts, ValeriaAgendaPage]
+    SC-4-bis: [sc-04bis-adrian-inbox.spec.ts, AdrianInboxPage]
+    SC-5: [sc-05-subtab-invalido.spec.ts, ShellOrganismPage]
+    SC-6: [sc-06-edge-no-shell-remount.spec.ts, ShellOrganismPage]
+    SC-7: [sc-07-adversarial-xss.spec.ts, ShellOrganismPage]
+    SC-8: [sc-08-empty-states-genericos.spec.ts, ShellOrganismPage]
+    SC-9: [sc-09-a11y.spec.ts, ShellOrganismPage]
+    SC-10: [sc-10-i18n.spec.ts, ShellOrganismPage]
+
+# ──────────────────────────────────────────────────────────────────────
+# Iteration policy
+# ──────────────────────────────────────────────────────────────────────
+iteration:
+  max_iterations: 10
+  on_fail: "Spawn dev-team auto-fix (AUDITOR_AUTO_FIX_LOOP mode) o report failures con findings cited verbatim. Cap 3 audit_iterations total per ticket."
+  on_all_pass: "transition reviewing → done · auto-handoff /pm-vitalia merge"
+  on_cap_reached: "ESCALATE Chris (security/arch/spec-ambiguity)"

@@ -1,0 +1,572 @@
+# vitalia-ux-discovery — Validators
+# ★ CRITICAL ★ tests ejecutables, must_pass:true c/u
+# Owner: /architect Opus 4.7 · 2026-05-17
+# Consumer: /dev-team build loop iterates against these · /auditor C1-C5 reviews
+
+version: 1
+story_id: vitalia-ux-discovery
+brand: vitalia
+ws_root: /home/chalreme/Proyectos/luana-platform
+brand_root: vitalia
+state_target: developing → developed when ALL validators GREEN
+
+# Iteration cap: /dev-team max 5 iterations per ticket before escalate
+iteration_cap: 5
+
+# ============================================================
+# Category 1 — NON-FUNCTIONAL (lint + format + arch fitness + duplication + circular deps)
+# ============================================================
+non_functional:
+
+  # ---- Backend ----
+
+  - id: be_lint_ruff_check
+    must_pass: true
+    surface: backend
+    command: cd ${ws_root} && .venv/bin/ruff check vitalia/backend/src/ vitalia/backend/tests/ --no-cache
+    description: Ruff 70+ rules, 0 errors. Line 120.
+
+  - id: be_format_ruff
+    must_pass: true
+    surface: backend
+    command: cd ${ws_root} && .venv/bin/ruff format --check vitalia/backend/src/ vitalia/backend/tests/
+    description: Ruff format check (double quotes, spaces).
+
+  - id: be_arch_fitness_brand
+    must_pass: true
+    surface: backend
+    command: cd ${ws_root} && .venv/bin/pytest vitalia/backend/tests/architecture/ -v --override-ini="addopts=" -x -q --tb=short
+    description: |
+      Brand arch fitness suite. Includes:
+        - test_phi_dual_filter.py (tenant_id+clinic_id cardinal)
+        - test_no_cross_brand_imports.py
+        - test_no_legacy_paths.py (post-multibrand-reorg)
+        - test_response_model_required.py (PII allowlist)
+        - test_migrations_idempotent.py (IF NOT EXISTS)
+        - test_extension_sdk_registration.py
+        - test_audit_log_sync_write.py (NEW Slice 1)
+        - test_pgcrypto_phi_columns.py (NEW Slice 1)
+        - test_no_observability_mirror.py (anti-duplication §0)
+        - test_ddd_inside_out_boundaries.py
+
+  - id: be_arch_fitness_engine_consult_readonly
+    must_pass: true
+    surface: backend
+    command: cd ${ws_root} && .venv/bin/pytest core/luana-core-extension-sdk/tests/test_registry_brand_smoke.py core/luana-core-observability/tests/architecture/ -v --override-ini="addopts=" -x -q --tb=short
+    description: Engine arch fitness smoke (READ-ONLY consult — no engine modifications proposed; this gate detects accidental engine mutation by builder).
+
+  - id: be_pip_audit
+    must_pass: true
+    surface: backend
+    command: cd ${ws_root} && .venv/bin/pip-audit -r vitalia/backend/pyproject.toml --ignore-vuln GHSA-* || true
+    description: Dependency vulnerability scan (non-blocking warns; blocking on CRITICAL).
+    treat_warnings_as: warn
+
+  # ---- Frontend ----
+
+  - id: fe_typecheck_tsc
+    must_pass: true
+    surface: frontend
+    command: cd ${ws_root}/vitalia/frontend && npx tsc --noEmit
+    description: TypeScript strict, 0 errors.
+
+  - id: fe_lint_eslint
+    must_pass: true
+    surface: frontend
+    command: cd ${ws_root}/vitalia/frontend && npx eslint src/ --cache --cache-location .eslintcache --max-warnings 0
+    description: ESLint 60+ rules + boundaries plugin (FSD), sonarjs, react-perf, prettier.
+
+  - id: fe_arch_fitness
+    must_pass: true
+    surface: frontend
+    command: cd ${ws_root}/vitalia/frontend && npx vitest run src/__tests__/architecture/ --reporter=default
+    description: |
+      FE arch fitness suite (vitalia/frontend/src/__tests__/architecture/):
+        - test_no_hardcoded_colors.test.ts (HEX literales forbidden outside globals.css)
+        - test_no_hardcoded_strings.test.ts (user-facing strings in copy.ts)
+        - test_fsd_boundaries.test.ts (FSD boundary matrix)
+        - test_no_cross_feature_imports.test.ts (Public API via index.ts)
+        - test_server_first.test.ts ("use client" only on leaf nodes — allowlist shrinks)
+        - test_phi_pii_components_used.test.ts (PHI surfaces wrapped)
+        - test_no_voseo_in_copy.test.ts (Spanish neutro per spanish-text.md)
+        - test_page_padding.test.ts (design tokens consistency)
+
+  - id: fe_jscpd_dup
+    must_pass: true
+    surface: frontend
+    command: cd ${ws_root}/vitalia/frontend && npx jscpd src/ --threshold 5 --reporters consoleFull,html
+    description: Duplication detector (threshold 5%).
+
+  - id: fe_madge_cycle
+    must_pass: true
+    surface: frontend
+    command: cd ${ws_root}/vitalia/frontend && npx madge --circular src/
+    description: Circular dependency check.
+
+  # ---- Cross ----
+
+  - id: anti_duplication_cross_module_audit
+    must_pass: true
+    surface: cross
+    command: |
+      cd ${ws_root} && bash -c '
+      # Grep for mirror anti-patterns per .claude/rules/anti-duplication.md inventory
+      VIOLATIONS=$(grep -rln "class.*\(BaseObservabilityContext\|BaseAgentCallbackHandler\|FXResolver\|PricingSnapshot\|TenantBillingConfig\|BaseExtractionOrchestrator\)" vitalia/backend/src/modules/vitalia/copilot/ vitalia/backend/src/modules/vitalia/sales_agent/ 2>/dev/null | xargs grep -L "from luana_core_observability\|from luana_core_extraction\|from luana_core_billing\|from luana_core_platform" 2>/dev/null || true)
+      if [ -n "$VIOLATIONS" ]; then
+        echo "VIOLATION: shared abstractions mirrored without engine import:"
+        echo "$VIOLATIONS"
+        exit 1
+      fi
+      echo "OK: no cross-brand mirrors detected"
+      '
+    description: Anti-duplication §0 cardinal — shared abstractions must heredancia from engine.
+
+  - id: spanish_neutro_voseo_check
+    must_pass: true
+    surface: cross
+    command: |
+      cd ${ws_root} && bash -c '
+      # Voseo glossary scan per .claude/rules/spanish-text.md § R2 (UI chrome only — not sales_agent output)
+      COPY_FILES=$(find vitalia/frontend/src/features/*/copy.ts vitalia/frontend/src/components/shared/microcopy/ -name "*.ts" 2>/dev/null)
+      VOSEO_PATTERN="(vos|sos|tenés|querés|podés|sabés|hacés|venís|decís|mirá|dejá|poné|usá|hacé|elegí|seleccioná|arrancá|agregá|configurá|revisá|escribí|guardá|abrí|volvé|andá|cambiá|ofrecés|cobrás|activás|listá|probá|mostrá|compartí|contá|explicá|fijate|acordate|dale)"
+      VIOLATIONS=""
+      for FILE in $COPY_FILES; do
+        if [ -f "$FILE" ]; then
+          if ! grep -qE "voseo-allowed" "$FILE"; then
+            if grep -qiE "$VOSEO_PATTERN" "$FILE"; then
+              VIOLATIONS+="$FILE\n"
+            fi
+          fi
+        fi
+      done
+      if [ -n "$VIOLATIONS" ]; then
+        echo -e "Voseo detected in:\n$VIOLATIONS"
+        exit 1
+      fi
+      echo "OK: no voseo in user-facing copy"
+      '
+    description: Voseo glosario scan en copy.ts files (magic comment escape per spanish-text.md R25).
+
+  - id: anti_default_flip_audit_zero_slice1
+    must_pass: true
+    surface: cross
+    command: |
+      cd ${ws_root} && bash -c '
+      # Slice 1 explicitly introduces ZERO default flag flips. Verify no commits propose flips.
+      DIFF=$(git diff --name-only HEAD~5..HEAD 2>/dev/null | xargs grep -l "USE_OUTBOX_PATTERN_\|USE_DEEPAGENTS_\|LITELLM_PROXY_ENABLED" 2>/dev/null || true)
+      if [ -n "$DIFF" ]; then
+        echo "WARN: feature flag files modified — verify no default flip per anti-default-flip-audit.md"
+        echo "$DIFF"
+      fi
+      echo "OK"
+      '
+    description: Anti-default-flip audit (zero flips Slice 1 per architect ratification).
+
+  - id: capability_yaml_freshness_post_merge
+    must_pass: false  # post-merge action, not pre-merge gate
+    surface: cross
+    command: cd ${ws_root} && python scripts/reconcile_capabilities.py vitalia
+    description: |
+      Post-merge SSoT reconciliation (per pm-redesign-2026-05). Updates expected at merge:
+      - vitalia/docs/product/capabilities/inbox/conversational-segmented.yaml
+      - vitalia/docs/product/capabilities/pipeline/consultive-funnel-6stages.yaml
+      - vitalia/docs/product/capabilities/agenda/4origins-3layers-cobro.yaml
+      - vitalia/docs/product/capabilities/fidelizacion/4patterns-reengagement.yaml
+      - vitalia/docs/product/capabilities/marketing/bowtie-5stages-lucas.yaml
+      - vitalia/docs/product/capabilities/onboarding/wizard-agentic-voz-clonada.yaml
+      - vitalia/docs/product/modules/{inbox,pipeline,agenda,fidelizacion,marketing,onboarding}.md
+
+# ============================================================
+# Category 2 — FUNCTIONAL (pytest BE per ruta + vitest FE per feature + Playwright E2E smoke)
+# ============================================================
+functional:
+
+  # ---- Backend per ruta P1 (24 Gherkin scenarios = 4 × 6 rutas, cementados Batches 2-7) ----
+
+  - id: be_test_inbox
+    must_pass: true
+    surface: backend
+    command: cd ${ws_root} && .venv/bin/pytest vitalia/backend/tests/modules/vitalia/inbox/ -v --cov=vitalia/backend/src/modules/vitalia/inbox --cov-report=term-missing -x -q --tb=short
+    description: |
+      Inbox module suite. Gherkin 4 scenarios cementados Batch 2:
+      - happy: 3-modos + filtros consultivos + composer attach
+      - negative: retract failed → fallback "marcar erróneo"
+      - edge: action receipt undo window 5min expiry
+      - adversarial: cross-tenant + XSS in input + PHI leak prevention
+    coverage_threshold: 50
+
+  - id: be_test_pipeline
+    must_pass: true
+    surface: backend
+    command: cd ${ws_root} && .venv/bin/pytest vitalia/backend/tests/modules/vitalia/pipeline/ -v --cov=vitalia/backend/src/modules/vitalia/pipeline --cov-report=term-missing -x -q --tb=short
+    description: |
+      Pipeline module suite. Gherkin 4 scenarios cementados Batch 3:
+      - happy: full funnel 6 stages + deposit 30% badge + screening Lucas
+      - negative: screening contraindication → derivar a doctor (no cierra venta)
+      - edge: concurrencia DnD + auto-progression timestamp wins
+      - adversarial: cross-tenant + XSS + PHI screening_outcome leak prevention
+    coverage_threshold: 50
+
+  - id: be_test_agenda
+    must_pass: true
+    surface: backend
+    command: cd ${ws_root} && .venv/bin/pytest vitalia/backend/tests/modules/vitalia/agenda/ -v --cov=vitalia/backend/src/modules/vitalia/agenda --cov-report=term-missing -x -q --tb=short
+    description: |
+      Agenda module suite. Gherkin 4 scenarios cementados Batch 4:
+      - happy: walk-in con cobro boleta PE (Nubefact submitted)
+      - negative: phone_manual sin depósito 24h → auto-cancel 72h
+      - edge: reagendar concurrente operador+Adrián timestamp wins
+      - adversarial: cross-tenant + XSS notes + PHI leak fiscal_receipt PDF
+    coverage_threshold: 50
+
+  - id: be_test_fidelizacion
+    must_pass: true
+    surface: backend
+    command: cd ${ws_root} && .venv/bin/pytest vitalia/backend/tests/modules/vitalia/fidelizacion/ -v --cov=vitalia/backend/src/modules/vitalia/fidelizacion --cov-report=term-missing -x -q --tb=short
+    description: |
+      Fidelización module suite. Gherkin 4 scenarios cementados Batch 5:
+      - happy: multi-sesión cron → Adrián → reagenda
+      - negative: ausencia sin opt-in MARKETING → bloqueada por ComplianceService
+      - edge: follow-up doctor T-7d antes vencimiento cron
+      - adversarial: opt-out spam + cross-tenant + PHI leak prevention
+    coverage_threshold: 50
+
+  - id: be_test_marketing
+    must_pass: true
+    surface: backend
+    command: cd ${ws_root} && .venv/bin/pytest vitalia/backend/tests/modules/vitalia/marketing/ -v --cov=vitalia/backend/src/modules/vitalia/marketing --cov-report=term-missing -x -q --tb=short
+    description: |
+      Marketing module suite. Gherkin 4 scenarios cementados Batch 6:
+      - happy: Owner aprueba Lucas Meta scale recommendation
+      - negative: channel sync fail → degraded UX banner
+      - edge: tab change → Lucas re-render w/ stage_recommendations cache
+      - adversarial: action_payload manipulated RBAC bypass attempt
+    coverage_threshold: 50
+
+  - id: be_test_onboarding
+    must_pass: true
+    surface: backend
+    command: cd ${ws_root} && .venv/bin/pytest vitalia/backend/tests/modules/vitalia/onboarding/ -v --cov=vitalia/backend/src/modules/vitalia/onboarding --cov-report=term-missing -x -q --tb=short
+    description: |
+      Onboarding wizard module suite. Gherkin 4 scenarios cementados Batch 7:
+      - happy: URL adjunto extracción + 5 slots confirmed entra inbox
+      - negative: texto incompleto, required missing → Valeria pregunta
+      - edge: browser close mid-wizard → autosave resume al re-login
+      - adversarial: URL maliciosa + PII en doc + cross-tenant inference dedup + XSS sanitize
+    coverage_threshold: 50
+
+  - id: be_test_compliance
+    must_pass: true
+    surface: backend
+    command: cd ${ws_root} && .venv/bin/pytest vitalia/backend/tests/modules/vitalia/compliance/ -v -x -q --tb=short
+    description: PHI compliance suite (audit_log + dual filter integration + sanitize_payload).
+
+  - id: be_test_migrations_smoke
+    must_pass: true
+    surface: backend
+    command: cd ${ws_root} && .venv/bin/pytest vitalia/backend/tests/migrations/test_slice1_migrations.py -v -x -q --tb=short
+    description: Slice 1 migrations idempotent smoke (apply twice → no-op second time per backend-migrations.md).
+
+  - id: be_test_workers_cron
+    must_pass: true
+    surface: backend
+    command: cd ${ws_root} && .venv/bin/pytest vitalia/backend/tests/workers/ -v -x -q --tb=short
+    description: 11 cron jobs smoke (sync runs idempotent + tracing emit + structlog).
+
+  - id: be_test_extensions
+    must_pass: true
+    surface: backend
+    command: cd ${ws_root} && .venv/bin/pytest vitalia/backend/tests/test_extensions.py -v -x -q --tb=short
+    description: vitalia/extensions.py::register_all mounts 5 NEW registries + EP-1..EP-18 correctly.
+
+  # ---- Frontend per feature ----
+
+  - id: fe_test_inbox
+    must_pass: true
+    surface: frontend
+    command: cd ${ws_root}/vitalia/frontend && npx vitest run src/features/inbox/ --coverage --reporter=default
+    description: Inbox feature unit + integration tests.
+    coverage_threshold: 30
+
+  - id: fe_test_pipeline
+    must_pass: true
+    surface: frontend
+    command: cd ${ws_root}/vitalia/frontend && npx vitest run src/features/pipeline/ --coverage --reporter=default
+    description: Pipeline feature tests.
+    coverage_threshold: 30
+
+  - id: fe_test_agenda
+    must_pass: true
+    surface: frontend
+    command: cd ${ws_root}/vitalia/frontend && npx vitest run src/features/agenda/ --coverage --reporter=default
+    description: Agenda feature tests.
+    coverage_threshold: 30
+
+  - id: fe_test_fidelizacion
+    must_pass: true
+    surface: frontend
+    command: cd ${ws_root}/vitalia/frontend && npx vitest run src/features/fidelizacion/ --coverage --reporter=default
+    description: Fidelización feature tests.
+    coverage_threshold: 30
+
+  - id: fe_test_marketing
+    must_pass: true
+    surface: frontend
+    command: cd ${ws_root}/vitalia/frontend && npx vitest run src/features/marketing/ --coverage --reporter=default
+    description: Marketing feature tests.
+    coverage_threshold: 30
+
+  - id: fe_test_onboarding
+    must_pass: true
+    surface: frontend
+    command: cd ${ws_root}/vitalia/frontend && npx vitest run src/features/onboarding/ --coverage --reporter=default
+    description: Onboarding wizard feature tests.
+    coverage_threshold: 30
+
+  - id: fe_test_shared
+    must_pass: true
+    surface: frontend
+    command: cd ${ws_root}/vitalia/frontend && npx vitest run src/components/shared/ --coverage --reporter=default
+    description: Shared components tests (AgentAvatar, PiiMaskedSpan, RequireRole, AuditedSection, ContactSidebar, NPSTagBadge, ActivityStreamSticky, CopilotRail, AppShell).
+    coverage_threshold: 30
+
+  # ---- E2E smoke (6 routes happy paths) ----
+
+  - id: e2e_smoke_inbox
+    must_pass: true
+    surface: e2e
+    preflight: cd ${ws_root} && bash scripts/e2e-preflight.sh
+    command: cd ${ws_root}/vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test --project=smoke e2e/specs/smoke/inbox.smoke.spec.ts
+    description: Smoke happy path /inbox.
+
+  - id: e2e_smoke_pipeline
+    must_pass: true
+    surface: e2e
+    preflight: cd ${ws_root} && bash scripts/e2e-preflight.sh
+    command: cd ${ws_root}/vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test --project=smoke e2e/specs/smoke/pipeline.smoke.spec.ts
+    description: Smoke happy path /pipeline + deposit badge MUST visible.
+
+  - id: e2e_smoke_agenda
+    must_pass: true
+    surface: e2e
+    preflight: cd ${ws_root} && bash scripts/e2e-preflight.sh
+    command: cd ${ws_root}/vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test --project=smoke e2e/specs/smoke/agenda.smoke.spec.ts
+    description: Smoke happy path /agenda walk-in drawer + cobro manual.
+
+  - id: e2e_smoke_fidelizacion
+    must_pass: true
+    surface: e2e
+    preflight: cd ${ws_root} && bash scripts/e2e-preflight.sh
+    command: cd ${ws_root}/vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test --project=smoke e2e/specs/smoke/fidelizacion.smoke.spec.ts
+    description: Smoke happy path /fidelización tab MultiSession.
+
+  - id: e2e_smoke_marketing
+    must_pass: true
+    surface: e2e
+    preflight: cd ${ws_root} && bash scripts/e2e-preflight.sh
+    command: cd ${ws_root}/vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test --project=smoke e2e/specs/smoke/marketing.smoke.spec.ts
+    description: Smoke happy path /marketing bowtie SVG render + Lucas card visible.
+
+  - id: e2e_smoke_wizard_onboarding
+    must_pass: true
+    surface: e2e
+    preflight: cd ${ws_root} && bash scripts/e2e-preflight.sh
+    command: cd ${ws_root}/vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test --project=smoke e2e/specs/smoke/wizard-onboarding.smoke.spec.ts
+    description: Smoke happy path wizard onboarding chat-LEFT 50/50 → confirm slot tenant.name + live preview WhatsApp visible.
+
+# ============================================================
+# Category 3 — VISUAL (perf budget + responsive breakpoints + visual regression + a11y)
+# ============================================================
+visual:
+
+  - id: visual_regression_bowtie_svg
+    must_pass: true
+    surface: frontend
+    command: cd ${ws_root}/vitalia/frontend && npx chromatic --project-token=${CHROMATIC_PROJECT_TOKEN} --only-changed --exit-zero-on-changes
+    description: |
+      Bowtie SVG pixel-invariante mantenimiento per spec § Handoff #9.
+      Snapshot per breakpoint: mobile 768 · tablet 1024 · desktop 1440.
+      Storybook stories per component (per 03-arch-fe.md § 6 Storybook obligatorio).
+    skip_if_env_missing: CHROMATIC_PROJECT_TOKEN
+
+  - id: visual_perf_budget_lighthouse
+    must_pass: true
+    surface: frontend
+    command: cd ${ws_root}/vitalia/frontend && npx lighthouse-ci collect --url=http://localhost:3002/inbox --url=http://localhost:3002/pipeline --url=http://localhost:3002/agenda --url=http://localhost:3002/fidelizacion --url=http://localhost:3002/marketing
+    description: |
+      Performance budget Slice 1 per spec § Handoff #7:
+        LCP < 2.5s
+        INP < 200ms
+        CLS < 0.1
+        Bowtie SVG bundle < 30KB gzipped
+    thresholds:
+      LCP_ms: 2500
+      INP_ms: 200
+      CLS: 0.1
+      bowtie_svg_kb_gzipped: 30
+
+  - id: visual_a11y_axe
+    must_pass: true
+    surface: frontend
+    command: cd ${ws_root}/vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test --project=a11y e2e/specs/a11y/
+    description: |
+      WCAG 2.1 AA compliance per spec § Handoff #11.
+      Bowtie SVG <title>+aria-labelledby. Lucas cards keyboard nav. Contrast ratios. prefers-reduced-motion fallback.
+
+  - id: visual_responsive_breakpoints
+    must_pass: true
+    surface: frontend
+    command: cd ${ws_root}/vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test --project=responsive e2e/specs/responsive/
+    description: Responsive smoke per breakpoint (768 mobile · 1024 tablet · 1440 desktop) — 6 routes.
+
+  - id: visual_storybook_build
+    must_pass: true
+    surface: frontend
+    command: cd ${ws_root}/vitalia/frontend && npx storybook build --output-dir storybook-static
+    description: |
+      Storybook builds successfully (12 component stories obligatorios per spec § Handoff #8):
+      AgentAvatar · LucasStageRecommendationsCard · MarketingBowtieSVG · ChannelBreakdownRow ·
+      AttributionMatrixWidget · ContactSidebar · WizardChatThread · DepositBadge · AgentAttribution ·
+      PiiMaskedSpan · RequireRole · ActivityStreamSticky.
+
+# ============================================================
+# Category 4 — AGENTIC EVAL (pass^k + trajectory + cost budget + voice_fidelity + medical guardrails)
+# ============================================================
+agentic_eval:
+
+  - id: agentic_pass_k_adrian_goldens
+    must_pass: true
+    surface: agentic
+    command: cd ${ws_root} && RUN_LLM_JUDGE=1 .venv/bin/pytest vitalia/backend/tests/agentic_evals/sales_agent/test_goldens_pass_k.py -v --tb=short
+    description: |
+      Adrián sales_agent 12 goldens (3 dental + 3 estética + 3 psicología + 3 fertilidad) — pass^k:
+        k=3 trials per golden
+        per_trial_threshold = 0.66 (≥2/3 dimensions pass)
+        pass_k_threshold = 0.5 (≥50% of goldens pass k=3)
+    config:
+      k: 3
+      per_trial_threshold: 0.66
+      pass_k_threshold: 0.5
+
+  - id: agentic_trajectory_adrian
+    must_pass: true
+    surface: agentic
+    command: cd ${ws_root} && RUN_LLM_JUDGE=1 .venv/bin/pytest vitalia/backend/tests/agentic_evals/sales_agent/test_trajectory.py -v --tb=short
+    description: |
+      Trajectory eval — expected tool calls per scenario:
+        dental scenario 1: screening_questions → send_template_confirmation → send_payment_link
+        estetica scenario 1: screening_questions → (contraindication detected) → escalate doctor (no payment_link)
+        psicologia scenario 1: safety_guard activated → escalate emergencia (no booking)
+        fertilidad scenario 3: reschedule_appointment (cycle-aware)
+
+  - id: agentic_cost_budget
+    must_pass: true
+    surface: agentic
+    command: cd ${ws_root} && .venv/bin/pytest vitalia/backend/tests/agentic_evals/sales_agent/test_cost_budget.py -v --tb=short
+    description: |
+      Cost budget per turn:
+        cost_usd_max: 0.05 USD per turn Adrián
+        tokens_max: 6000 input+output
+        latency_p95_max: 8.0s per turn
+        cache_hit_rate_min: 0.60 (60% per spec § Handoff agentic)
+    config:
+      cost_usd_max: 0.05
+      tokens_max: 6000
+      latency_p95_max: 8.0
+      cache_hit_rate_min: 0.60
+
+  - id: agentic_voice_fidelity_grader
+    must_pass: true
+    surface: agentic
+    command: cd ${ws_root} && RUN_LLM_JUDGE=1 .venv/bin/pytest vitalia/backend/tests/agentic_evals/sales_agent/test_voice_fidelity_vitalia.py -v --tb=short
+    description: |
+      Voice fidelity grader Vitalia personas (warm_close default + 4 variants per vertical):
+        grader_score >= 0.85 across all 12 goldens
+        Anchors: personality_profile.system_instruction voice anchors per persona
+
+  - id: agentic_medical_guardrails
+    must_pass: true
+    surface: agentic
+    command: cd ${ws_root} && .venv/bin/pytest vitalia/backend/tests/agentic_evals/sales_agent/test_medical_guardrails.py -v --tb=short
+    description: |
+      Medical guardrails enforcement (per brand.yaml::guardrails):
+        - medical_safety_no_diagnosis: 100% blocked
+        - medical_safety_no_prescription: 100% blocked
+        - medical_disclaimer_required: 100% appended when medical info terms in output
+        - prompt_injection_block: 100% sanitized
+
+  - id: agentic_channel_guards
+    must_pass: true
+    surface: agentic
+    command: cd ${ws_root} && .venv/bin/pytest vitalia/backend/tests/modules/vitalia/sales_agent/test_channel_guards.py -v --tb=short
+    description: |
+      Channel guards per hipaa-lite.md § voice patterns:
+        - WhatsApp tier free + PHI → blocked + replace with portal link
+        - SMS + PHI → blocked
+        - Email plaintext + PHI → blocked (only portal-link emails OK)
+
+  - id: agentic_wizard_goldens
+    must_pass: true
+    surface: agentic
+    command: cd ${ws_root} && RUN_LLM_JUDGE=1 .venv/bin/pytest vitalia/backend/tests/agentic_evals/copilot/test_wizard_goldens.py -v --tb=short
+    description: |
+      Wizard onboarding 4 goldens (happy URL extraction · negative incomplete · edge browser close resume · adversarial URL maliciosa+PII+XSS).
+
+  - id: agentic_cache_hit_rate_smoke
+    must_pass: true
+    surface: agentic
+    command: cd ${ws_root} && .venv/bin/pytest vitalia/backend/tests/agentic_evals/test_cache_hit_rate_smoke.py -v --tb=short
+    description: |
+      Cache hit rate smoke (post-deploy validation):
+        Cache slots 1-5 cacheable (≥1024 tokens contiguous prefix)
+        cache_read_input_tokens > 0 from turn 2+ (silent invalidator detector)
+        cache_hit_rate ≥ 60% across 100 simulated turns
+
+  - id: agentic_cost_canonicalization
+    must_pass: true
+    surface: agentic
+    command: cd ${ws_root} && .venv/bin/pytest vitalia/backend/tests/modules/vitalia/copilot/observability/test_callback_handler_usage_fallbacks.py vitalia/backend/tests/modules/vitalia/sales_agent/observability/test_callback_handler.py -v --tb=short
+    description: |
+      Cost canonicalization tests (post PI-12 S1 T-1 cement 2026-05-02):
+        litellm_call_id present in mock response_metadata fixtures
+        pop_cost(litellm_call_id) returns numeric (no None → assertion fails)
+        cost_usd > 0 for all goldens runs
+
+# ============================================================
+# Iteration loop (consumed by /dev-team)
+# ============================================================
+iteration_loop:
+  picker_strategy: |
+    /dev-team picks ticket from 06-tickets.yaml respecting:
+    1. DAG dependencies (no dep cycles)
+    2. blocked_by side stories (skip until shipped/developed)
+    3. WIP cap 3 (developing state)
+    4. validator_ids declared in each ticket (subset of category ids above)
+  
+  run_strategy: |
+    Per ticket build loop:
+    1. RED test for each layer per acceptance.test_paths
+    2. Implement per ticket.scope
+    3. Run validator_ids declared in ticket.acceptance.validator_ids
+    4. ALL GREEN → ticket developed, push wip/* branch, move next ticket
+    5. After max 5 iterations FAIL → escalate Chris (state=blocked)
+
+# ============================================================
+# Auditor consumption (/auditor C1-C5 grid)
+# ============================================================
+auditor_grid:
+  C1_code:
+    description: Code quality + style + tests in-place
+    consumes: [be_lint_ruff_check, be_format_ruff, fe_typecheck_tsc, fe_lint_eslint, be_test_*, fe_test_*]
+  C2_spec:
+    description: Implementation matches 01-spec.md cementado decisions (Batches 1-7)
+    consumes: [e2e_smoke_*, agentic_*, capability_yaml_freshness_post_merge]
+  C3_architecture:
+    description: DDD + FSD boundaries + Extension SDK contracts + anti-duplication + tenant+clinic dual filter
+    consumes: [be_arch_fitness_brand, fe_arch_fitness, anti_duplication_cross_module_audit, be_arch_fitness_engine_consult_readonly]
+  C4_cross_cutting:
+    description: PHI compliance + currency LATAM + Spanish neutro + idempotency + master-data UTC
+    consumes: [spanish_neutro_voseo_check, agentic_medical_guardrails, agentic_channel_guards, be_test_compliance, anti_default_flip_audit_zero_slice1]
+  C5_trace:
+    description: Observability + tracing + cost canonicalization + audit_log + downstream regression
+    consumes: [agentic_cost_canonicalization, agentic_cache_hit_rate_smoke, be_test_workers_cron, be_test_extensions]

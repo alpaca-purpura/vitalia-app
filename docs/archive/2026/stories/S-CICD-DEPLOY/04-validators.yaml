@@ -1,0 +1,265 @@
+# 04-validators.yaml — S-CICD-DEPLOY
+# CI/CD selectivo per brand (GH Actions + Environments)
+# Schema v4. Owner: /architect.
+#
+# /dev-team itera contra estos validators en bucle hasta GREEN o cap_reached.
+# /auditor verifica cada uno fue corrido + GREEN antes APPROVED.
+#
+# Surface: INFRA pura (workflows + k8s manifests + scripts Python).
+# No aplica: visual (sin UI), agentic_eval (sin LLM runtime).
+# Sí aplica: non_functional (lint/yaml) + functional (7 scenarios spec).
+
+story_id: S-CICD-DEPLOY
+schema_version: v4
+
+validators:
+  # ═══════════════════════════════════════════════════════════════
+  # NON-FUNCTIONAL — code quality (lint, format, yaml)
+  # ═══════════════════════════════════════════════════════════════
+
+  - id: actionlint_workflows
+    category: non_functional
+    type: shell
+    cmd: "actionlint .github/workflows/cd-prod.yml .github/workflows/cd-staging.yml .github/workflows/_deploy-brand.yml"
+    must_pass: true
+    timeout_sec: 30
+    description: "actionlint valida todos los workflows nuevos de esta story. 0 errores obligatorio."
+    note: "Instalar: brew install actionlint o go install github.com/rhysd/actionlint/cmd/actionlint@latest"
+
+  - id: yamllint_workflows
+    category: non_functional
+    type: shell
+    cmd: "yamllint -d '{extends: default, rules: {line-length: {max: 120}}}' .github/workflows/cd-prod.yml .github/workflows/cd-staging.yml .github/workflows/_deploy-brand.yml"
+    must_pass: true
+    timeout_sec: 30
+    description: "YAML lint — indentación, trailing spaces, estructura válida."
+
+  - id: yamllint_k8s_nicolify
+    category: non_functional
+    type: shell
+    cmd: "yamllint nicolify/deploy/k8s/"
+    must_pass: true
+    timeout_sec: 30
+    description: "K8s manifests de nicolify sin errores YAML."
+
+  - id: yamllint_k8s_lupulo
+    category: non_functional
+    type: shell
+    cmd: "yamllint lupulo/deploy/k8s/"
+    must_pass: true
+    timeout_sec: 30
+    description: "K8s manifests de lupulo sin errores YAML."
+
+  - id: python_changelog_script_lint
+    category: non_functional
+    type: shell
+    cmd: ".venv/bin/ruff check scripts/extract_changelog_section.py --no-cache"
+    must_pass: true
+    timeout_sec: 30
+    description: "Ruff lint del script Python de extracción de changelog."
+
+  - id: python_changelog_script_format
+    category: non_functional
+    type: shell
+    cmd: ".venv/bin/ruff format --check scripts/extract_changelog_section.py"
+    must_pass: true
+    timeout_sec: 30
+    description: "Ruff format check del script."
+
+  # ═══════════════════════════════════════════════════════════════
+  # FUNCTIONAL — Gherkin scenarios (happy / negative / edge / adversarial)
+  # ═══════════════════════════════════════════════════════════════
+
+  - id: scenario_happy_release_to_prod_parse
+    category: functional
+    type: shell
+    cmd: |
+      # Test parse-release regex con fixtures válidos
+      # Simula el script de parse-release de cd-prod.yml
+      python scripts/test_parse_release.py \
+        --fixture "release/vitalia-v0.3.0" --expect-brand vitalia --expect-version "0.3.0" && \
+      python scripts/test_parse_release.py \
+        --fixture "release/comunify-v1.0.0-rc1" --expect-brand comunify --expect-version "1.0.0-rc1" && \
+      python scripts/test_parse_release.py \
+        --fixture "release/nicolify-v2.1.3" --expect-brand nicolify --expect-version "2.1.3"
+    must_pass: true
+    timeout_sec: 30
+    scenario_id: happy-prod-deploy
+    description: "Scenario 1: parse de branch release/* extrae brand + version correctamente."
+
+  - id: scenario_happy_staging_trigger
+    category: functional
+    type: shell
+    cmd: |
+      # Verificar cd-staging.yml tiene trigger correcto (push: main) y NO release/*
+      grep -q "branches:" .github/workflows/cd-staging.yml && \
+      grep -A3 "push:" .github/workflows/cd-staging.yml | grep -q "main" && \
+      ! grep -q "release/" .github/workflows/cd-staging.yml
+    must_pass: true
+    timeout_sec: 10
+    scenario_id: happy-staging-auto-deploy
+    description: "Scenario 2: cd-staging.yml dispara en push a main, NO en release/*."
+
+  - id: scenario_happy_release_yml_preserved
+    category: functional
+    type: shell
+    cmd: |
+      # Verificar que release.yml NO fue modificado en esta story
+      # Requiere acceso a git history — verifica que el archivo existe y es válido YAML
+      test -f .github/workflows/release.yml && \
+      yamllint .github/workflows/release.yml && \
+      grep -q "publish-python" .github/workflows/release.yml && \
+      grep -q "publish-typescript" .github/workflows/release.yml && \
+      grep -q "ghcr.io" .github/workflows/release.yml || \
+      grep -q "pkg.github.com" .github/workflows/release.yml
+    must_pass: true
+    timeout_sec: 10
+    scenario_id: happy-release-yml-preserved
+    description: "Scenario 3: release.yml existe, es YAML válido, tiene jobs publish. No fue tocado."
+
+  - id: scenario_negative_invalid_branch_format
+    category: functional
+    type: shell
+    cmd: |
+      # Test que el script de parse-release FALLA en formatos inválidos
+      python scripts/test_parse_release.py \
+        --fixture "release/invalido-vbroken" --expect-exit 1 && \
+      python scripts/test_parse_release.py \
+        --fixture "release/vitalia-1.2.3" --expect-exit 1 && \
+      python scripts/test_parse_release.py \
+        --fixture "release/-v1.0.0" --expect-exit 1
+    must_pass: true
+    timeout_sec: 30
+    scenario_id: negative-invalid-release-branch-format
+    description: "Scenario 4: branch con formato inválido → parse-release falla con exit 1 + mensaje claro."
+
+  - id: scenario_edge_no_changes_skip
+    category: functional
+    type: shell
+    cmd: |
+      # Verificar que job 'deploy' en cd-prod.yml tiene condición if: should_deploy == 'true'
+      grep -A5 "^  deploy:" .github/workflows/cd-prod.yml | \
+        grep -q "should_deploy.*==.*'true'"
+    must_pass: true
+    timeout_sec: 10
+    scenario_id: edge-no-changes-skip-deploy
+    description: "Scenario 5: job deploy tiene condición if: correcto para skipear cuando no hay cambios."
+
+  - id: scenario_adversarial_kubeconfig_required
+    category: functional
+    type: shell
+    cmd: |
+      # Verificar que _deploy-brand.yml declara KUBECONFIG como required: true
+      grep -A5 "KUBECONFIG:" .github/workflows/_deploy-brand.yml | \
+        grep -q "required: true" && \
+      # Verificar que NO hay kubeconfig hardcodeado (ruta fija)
+      ! grep -E "kubeconfig-path:|kubeconfig: /|~/.kube/config" \
+        .github/workflows/_deploy-brand.yml | \
+        grep -v "~/.kube/config  # generated from secret"
+    must_pass: true
+    timeout_sec: 10
+    scenario_id: adversarial-missing-kubeconfig-secret
+    description: "Scenario 6: KUBECONFIG declarado required: true. Sin hardcoding de ruta."
+
+  - id: scenario_happy_changelog_extract
+    category: functional
+    type: pytest
+    cmd: ".venv/bin/pytest tests/scripts/test_changelog_extract.py -v --override-ini='addopts='"
+    must_pass: true
+    timeout_sec: 60
+    scenario_id: happy-changelog-auto-extract
+    description: "Scenario 7: script extract_changelog_section.py — happy, sección vacía, archivo ausente."
+
+  - id: k8s_manifests_dry_run_nicolify
+    category: functional
+    type: shell
+    cmd: "kubectl apply --dry-run=client -f nicolify/deploy/k8s/"
+    must_pass: true
+    timeout_sec: 30
+    description: "K8s manifests nicolify pasan dry-run. Requiere kubectl instalado (CI lo tiene via azure/setup-kubectl@v4 o local)."
+    note: "Si kubectl no disponible local: skippear con SKIP_KUBECTL_DRYRUN=1. Obligatorio en CI."
+
+  - id: k8s_manifests_dry_run_lupulo
+    category: functional
+    type: shell
+    cmd: "kubectl apply --dry-run=client -f lupulo/deploy/k8s/"
+    must_pass: true
+    timeout_sec: 30
+    description: "K8s manifests lupulo (placeholder) pasan dry-run."
+
+  - id: changelogs_spanish_neutro
+    category: functional
+    type: shell
+    cmd: |
+      # Verificar que CHANGELOG-PUBLIC.md de cada brand no contiene voseo
+      for brand in nicolify vitalia comunify lupulo; do
+        if [ -f "${brand}/CHANGELOG-PUBLIC.md" ]; then
+          if grep -qE '\b(podés|tenés|hacés|decís|sabés|venís|querés|sos\b|vos\b)' \
+            "${brand}/CHANGELOG-PUBLIC.md"; then
+            echo "FALLO: voseo detectado en ${brand}/CHANGELOG-PUBLIC.md"
+            exit 1
+          fi
+        fi
+      done
+      echo "OK: changelogs sin voseo"
+    must_pass: true
+    timeout_sec: 15
+    description: "Changelogs públicos en Spanish neutro (sin voseo). Ver .claude/rules/spanish-text.md."
+
+  - id: deploy_brand_workflow_no_mirror
+    category: functional
+    type: shell
+    cmd: |
+      # Anti-duplication: verificar que NO hay lógica build+kubectl duplicada per-brand
+      # Solo _deploy-brand.yml debe tener docker/build-push-action
+      COUNT=$(grep -l "build-push-action" .github/workflows/*.yml | wc -l)
+      if [ "$COUNT" -gt 1 ]; then
+        echo "FALLO: docker/build-push-action encontrado en múltiples workflows (anti-duplication.md)"
+        grep -l "build-push-action" .github/workflows/*.yml
+        exit 1
+      fi
+      echo "OK: build-push-action solo en _deploy-brand.yml (${COUNT} file)"
+    must_pass: true
+    timeout_sec: 10
+    description: "Anti-duplication: lógica de build imagen solo en _deploy-brand.yml, no mirrored per brand."
+
+  # ═══════════════════════════════════════════════════════════════
+  # VISUAL — No aplica (story es infra pura, sin UI)
+  # ═══════════════════════════════════════════════════════════════
+  # visual: SKIP — S-CICD-DEPLOY es service-story/infra, sin componentes UI
+
+  # ═══════════════════════════════════════════════════════════════
+  # AGENTIC EVAL — No aplica (sin código runtime LLM en esta story)
+  # ═══════════════════════════════════════════════════════════════
+  # agentic_eval: SKIP — S-CICD-DEPLOY no toca modules/copilot ni modules/sales_agent
+
+# ═══════════════════════════════════════════════════════════════
+# Scenario coverage matrix
+# ═══════════════════════════════════════════════════════════════
+
+scenario_coverage:
+  - scenario_id: happy-prod-deploy
+    validators: [scenario_happy_release_to_prod_parse, actionlint_workflows, k8s_manifests_dry_run_nicolify]
+  - scenario_id: happy-staging-auto-deploy
+    validators: [scenario_happy_staging_trigger, yamllint_workflows]
+  - scenario_id: happy-release-yml-preserved
+    validators: [scenario_happy_release_yml_preserved]
+  - scenario_id: negative-invalid-release-branch-format
+    validators: [scenario_negative_invalid_branch_format]
+  - scenario_id: edge-no-changes-skip-deploy
+    validators: [scenario_edge_no_changes_skip]
+  - scenario_id: adversarial-missing-kubeconfig-secret
+    validators: [scenario_adversarial_kubeconfig_required]
+  - scenario_id: happy-changelog-auto-extract
+    validators: [scenario_happy_changelog_extract, changelogs_spanish_neutro]
+
+# ═══════════════════════════════════════════════════════════════
+# Iteration policy — autonomous build behavior
+# ═══════════════════════════════════════════════════════════════
+
+iteration:
+  max_iterations: 10
+  on_fail: "fix targeted file based on validator output, re-run failing validator only"
+  on_all_pass: "set state=developing→developed, append iteration_log to T-{n}-impl-log.md"
+  on_cap_reached: "set state=developing→blocked, escalate to Chris with last error trace"
+  kubectl_note: "Si kubectl no está disponible en entorno local de /dev-team, los validators k8s_manifests_dry_run_* pueden correrse en GitHub Actions CI con el job dedicado. No bloquea iteración local."

@@ -1,0 +1,311 @@
+// cap: lisa.servicios
+// story-origin: vitalia-fase2-lisa-servicios T-7 + T-R2
+/**
+ * ServicioWorkspaceShell.test.tsx — Workspace shell unit tests (TDD RED-first).
+ *
+ * The servicio workspace is the N3 detail surface (mirror of StaffWorkspaceShell)
+ * built on EntityWorkspaceLayout + EntitySubNavBar from @luana/ui-kit. This test
+ * locks the shell contract:
+ *   - root pill "‹ Servicios" (rootHref/rootLabel) back-navigates to the catalog
+ *   - 5 leaves: Resumen · Para Adrián · Especialistas · Plan de pago · Prueba social
+ *   - entity name = public_name (catalog detail is NOT PHI → X-Tenant-ID only gate)
+ *   - activeLeaf passed through (vitalia uses STATIC leaf segments, segments[4])
+ *
+ * T-R2 additions:
+ *   - Shell renders ServiceStatusBar above {children} (sticky activo toggle + chip)
+ *   - Activo toggle calls useActivateServicio mutate with {offerId, isActive}
+ *
+ * Mocks: @luana/ui-kit (thin layout passthrough exposing props), next/navigation,
+ * @clerk/nextjs, ../../../api/servicios, ../../../../../hooks/{useTenantId,useClinicId}.
+ *
+ * downstream-regression-na: brand-local vitalia FE tests; no cross-brand consumers
+ * spec_anchor: 06-tickets.yaml T-7 + T-R2 + 01-spec.md §8 + ADR-vitalia-004 § Routing
+ */
+
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, screen, fireEvent } from "@testing-library/react";
+import type { ServiceDetail } from "../../../types/servicios.types";
+
+// ── Mock @luana/ui-kit EntityWorkspaceLayout to a thin passthrough ──────────────
+// Exposes the leaf labels, rootLabel and entity name as DOM so we assert the
+// shell wiring without depending on the real layout internals.
+vi.mock("@luana/ui-kit", () => ({
+  EntityWorkspaceLayout: (props: {
+    entity: { id: string; name: string } | null;
+    leaves: { id: string; label: string; href: string }[];
+    rootHref: string;
+    rootLabel: string;
+    activeLeaf?: string | null;
+    entityIdentitySlot?: React.ReactNode;
+    children: React.ReactNode;
+  }) => (
+    <div data-testid="entity-workspace-layout">
+      <div data-testid="root-label">{props.rootLabel}</div>
+      <div data-testid="root-href">{props.rootHref}</div>
+      <div data-testid="active-leaf">{props.activeLeaf ?? ""}</div>
+      <div data-testid="entity-name">{props.entity?.name ?? ""}</div>
+      <ul data-testid="leaves">
+        {props.leaves.map((l) => (
+          <li key={l.id} data-leaf-id={l.id} data-leaf-href={l.href}>
+            {l.label}
+          </li>
+        ))}
+      </ul>
+      <div data-testid="identity-slot">{props.entityIdentitySlot}</div>
+      <div data-testid="entity-workspace-content">{props.children}</div>
+    </div>
+  ),
+  EntityPicker: () => <div data-testid="entity-picker" />,
+  Switch: ({
+    id,
+    checked,
+    onCheckedChange,
+    disabled,
+  }: {
+    id: string;
+    checked: boolean;
+    onCheckedChange?: (v: boolean) => void;
+    disabled?: boolean;
+  }) => (
+    <button
+      data-testid="activo-switch"
+      data-checked={String(checked)}
+      disabled={disabled}
+      onClick={() => onCheckedChange?.(!checked)}
+      role="switch"
+      aria-checked={checked}
+      id={id}
+    />
+  ),
+}));
+
+const mockSearchParamsGet = vi.fn(() => null as string | null);
+vi.mock("next/navigation", () => ({
+  useRouter: vi.fn(() => ({ push: vi.fn() })),
+  usePathname: vi.fn(
+    () => "/00000000-0000-0000-0000-000000000001/lisa/servicios/off-a/resumen",
+  ),
+  useSearchParams: vi.fn(() => ({ get: mockSearchParamsGet })),
+}));
+
+vi.mock("@clerk/nextjs", () => ({
+  useAuth: vi.fn(() => ({
+    getToken: vi.fn(async () => "tkn"),
+    isLoaded: true,
+    isSignedIn: true,
+  })),
+}));
+
+const mockToggleMutate = vi.fn();
+const mockUseServicioDetail = vi.fn();
+const mockUseServicioPickerSearchFn = vi.fn(() => vi.fn());
+const mockUseActivateServicio = vi.fn(() => ({
+  mutate: mockToggleMutate,
+  isPending: false,
+}));
+
+vi.mock("../../../api/servicios", () => ({
+  useServicioDetail: () => mockUseServicioDetail(),
+  useServicioPickerSearchFn: () => mockUseServicioPickerSearchFn(),
+  useActivateServicio: () => mockUseActivateServicio(),
+}));
+
+vi.mock("../../../../../hooks/useTenantId", () => ({
+  useTenantId: vi.fn(() => "00000000-0000-0000-0000-000000000001"),
+}));
+
+// Mock ServiceStatusBar to a thin passthrough so we test the wiring (not the bar internals)
+vi.mock("../ServiceStatusBar", () => ({
+  ServiceStatusBar: ({
+    servicio,
+    onToggleActive,
+    isToggling,
+  }: {
+    servicio: { offer_id: string; is_active: boolean };
+    onToggleActive?: (v: boolean) => void;
+    isToggling?: boolean;
+  }) => (
+    <div data-testid="service-status-bar" data-offer-id={servicio.offer_id}>
+      <button
+        data-testid="status-bar-toggle"
+        data-toggling={String(isToggling)}
+        onClick={() => onToggleActive?.(!servicio.is_active)}
+      >
+        toggle
+      </button>
+    </div>
+  ),
+}));
+
+// Mock KnowledgeSourcesPanel to a thin passthrough (isolates the shell test from the
+// panel's extraction form + useProcessDocument hook — same pattern as ServiceStatusBar).
+vi.mock("../KnowledgeSourcesPanel", () => ({
+  KnowledgeSourcesPanel: ({ offerId }: { offerId: string | null }) => (
+    <div data-testid="knowledge-sources-panel" data-offer-id={offerId ?? ""} />
+  ),
+}));
+
+import { ServicioWorkspaceShell } from "../workspace/ServicioWorkspaceShell";
+
+function makeDetail(over: Partial<ServiceDetail> = {}): ServiceDetail {
+  return {
+    offer_id: "off-a",
+    public_name: "Diseño de sonrisa",
+    category: "Odontología",
+    modality: "unica",
+    is_active: true,
+    status: "active",
+    canonical_service_ref: null,
+    price: 1200,
+    currency: "PEN",
+    value_level: "transformacion",
+    sales_brief: null,
+    specialists: [],
+    cases: [],
+    testimonials: [],
+    ...over,
+  };
+}
+
+describe("ServicioWorkspaceShell", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockUseServicioDetail.mockReturnValue({
+      data: makeDetail(),
+      isLoading: false,
+      isError: false,
+    });
+    mockUseActivateServicio.mockReturnValue({
+      mutate: mockToggleMutate,
+      isPending: false,
+    });
+  });
+
+  function renderShell(initialServicio?: ServiceDetail) {
+    return render(
+      <ServicioWorkspaceShell
+        tenantId="00000000-0000-0000-0000-000000000001"
+        offerId="off-a"
+        initialServicio={initialServicio}
+        activeLeaf="resumen"
+      >
+        <div data-testid="leaf-content">contenido</div>
+      </ServicioWorkspaceShell>,
+    );
+  }
+
+  it("G2-F10: back-pill defaults to Catálogo (from absent) → catalogo href", () => {
+    mockSearchParamsGet.mockReturnValue(null);
+    renderShell();
+    expect(screen.getByTestId("entity-workspace-layout")).toBeInTheDocument();
+    expect(screen.getByTestId("root-label")).toHaveTextContent("Catálogo");
+    expect(screen.getByTestId("root-href")).toHaveTextContent(
+      "/00000000-0000-0000-0000-000000000001/lisa/servicios/catalogo",
+    );
+  });
+
+  it("G2-F10: back-pill reflects origin Escalera when ?from=escalera", () => {
+    mockSearchParamsGet.mockReturnValue("escalera");
+    renderShell();
+    expect(screen.getByTestId("root-label")).toHaveTextContent("Escalera");
+    expect(screen.getByTestId("root-href")).toHaveTextContent(
+      "/00000000-0000-0000-0000-000000000001/lisa/servicios/escalera",
+    );
+    mockSearchParamsGet.mockReturnValue(null);
+  });
+
+  it("renders the 5 workspace leaves in order", () => {
+    renderShell();
+    const items = screen.getAllByRole("listitem");
+    expect(items.map((el) => el.textContent)).toEqual([
+      "Resumen",
+      "Para Adrián",
+      "Especialistas",
+      "Plan de pago",
+      "Prueba social",
+    ]);
+  });
+
+  it("leaf hrefs use static segments under the offer-id workspace", () => {
+    renderShell();
+    const especialistas = screen
+      .getByText("Especialistas")
+      .closest("li") as HTMLElement;
+    // leaf 3 segment = "doctores" but label = "Especialistas" (RN: segment≠label)
+    expect(especialistas.getAttribute("data-leaf-href")).toBe(
+      "/00000000-0000-0000-0000-000000000001/lisa/servicios/off-a/doctores",
+    );
+  });
+
+  it("surfaces the servicio public_name as the entity name", () => {
+    renderShell();
+    expect(screen.getByTestId("entity-name")).toHaveTextContent(
+      "Diseño de sonrisa",
+    );
+  });
+
+  it("passes the activeLeaf through to the layout", () => {
+    renderShell();
+    expect(screen.getByTestId("active-leaf")).toHaveTextContent("resumen");
+  });
+
+  it("renders leaf children inside the content slot", () => {
+    renderShell();
+    expect(screen.getByTestId("leaf-content")).toHaveTextContent("contenido");
+  });
+
+  it("hydrates from initialServicio without a detail fetch flash", () => {
+    mockUseServicioDetail.mockReturnValue({
+      data: makeDetail({ public_name: "Botox preventivo" }),
+      isLoading: false,
+      isError: false,
+    });
+    renderShell(makeDetail({ public_name: "Botox preventivo" }));
+    expect(screen.getByTestId("entity-name")).toHaveTextContent(
+      "Botox preventivo",
+    );
+  });
+
+  // ── T-R2: ServiceStatusBar wired inside the shell (F1 fix) ───────────────────
+
+  it("T-R2: renders ServiceStatusBar above {children} when servicio is loaded", () => {
+    renderShell();
+    const bar = screen.getByTestId("service-status-bar");
+    expect(bar).toBeInTheDocument();
+    expect(bar.getAttribute("data-offer-id")).toBe("off-a");
+    // Leaf content must also render (StatusBar is above, not instead of)
+    expect(screen.getByTestId("leaf-content")).toBeInTheDocument();
+  });
+
+  it("T-R2: does NOT render ServiceStatusBar when servicio is not yet loaded", () => {
+    mockUseServicioDetail.mockReturnValue({
+      data: undefined,
+      isLoading: true,
+      isError: false,
+    });
+    renderShell();
+    expect(screen.queryByTestId("service-status-bar")).not.toBeInTheDocument();
+  });
+
+  it("T-R2: toggle button in StatusBar calls useActivateServicio mutate with {offerId, isActive}", () => {
+    renderShell();
+    const toggleBtn = screen.getByTestId("status-bar-toggle");
+    fireEvent.click(toggleBtn);
+    // is_active defaults to true → toggle fires isActive=false
+    expect(mockToggleMutate).toHaveBeenCalledOnce();
+    expect(mockToggleMutate).toHaveBeenCalledWith({
+      offerId: "off-a",
+      isActive: false,
+    });
+  });
+
+  it("T-R2: toggle button reflects isPending=true from useActivateServicio as isToggling", () => {
+    mockUseActivateServicio.mockReturnValue({
+      mutate: mockToggleMutate,
+      isPending: true,
+    });
+    renderShell();
+    const toggleBtn = screen.getByTestId("status-bar-toggle");
+    expect(toggleBtn.getAttribute("data-toggling")).toBe("true");
+  });
+});

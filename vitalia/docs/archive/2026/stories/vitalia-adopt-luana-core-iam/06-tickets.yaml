@@ -1,0 +1,375 @@
+# 06-tickets.yaml — vitalia-adopt-luana-core-iam
+# 7 tickets canónicos heredados del platform outcome.
+# DAG en 05-guidelines.md § 7.
+# gherkin_coverage field MANDATORY post-cement-date 2026-05-18 per story-closure-gate.md.
+
+story_id: vitalia-adopt-luana-core-iam
+brand: vitalia
+state: ready
+
+tickets:
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  - id: T-be-add-engine-iam-tables
+    title: "Migration 022 vitalia — CREATE TABLE users/tenants/user_tenants (mirror engine, schema verbatim desde nicolify 001)"
+    state: ready
+    surface: backend
+    owner_eligibility: [claude-sonnet, qwen-opencode]
+    production_code: true
+    estimated_effort_minutes: 45
+    depends_on: []
+    description: |
+      Crear migration 022_vitalia_add_engine_iam_tables.py con CREATE TABLE
+      users + tenants + user_tenants matching engine luana_core_iam ORM models
+      (schema verbatim from nicolify/backend/alembic/versions/001_initial_snapshot.py:2210-2300).
+
+      CRITICAL: Migration 014_vitalia_tenants_columns.py also requires modification
+      to guard ALTER TABLE en DO $$ BEGIN IF EXISTS table tenants THEN ... ELSE
+      RAISE NOTICE 'skipped — applied by 022'; END $$;
+
+      Migration 022 incluye TODOS los 4 columns de 014 INLINE en CREATE TABLE
+      (is_onboarded, location_country, location_city, timezone) para que cualquier
+      orden de aplicación funcione idempotent.
+
+      Files:
+        - NEW: vitalia/backend/alembic/versions/022_vitalia_add_engine_iam_tables.py
+        - MODIFY: vitalia/backend/alembic/versions/014_vitalia_tenants_columns.py (guard)
+    acceptance:
+      validator_ids:
+        - be_arch_migrations_idempotent
+        - be_test_integration_migrations_022_023
+    gherkin_coverage:
+      - scenario: "SC-14 Migrations pending 002-023 aplicadas"
+        tests:
+          - "vitalia/backend/tests/integration/test_alembic_head.py::test_upgrade_001_to_023_succeeds"
+          - "vitalia/backend/tests/integration/test_alembic_head.py::test_post_upgrade_tables_exist_users"
+          - "vitalia/backend/tests/integration/test_alembic_head.py::test_post_upgrade_tables_exist_tenants"
+          - "vitalia/backend/tests/integration/test_alembic_head.py::test_post_upgrade_tables_exist_user_tenants"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  - id: T-be-apply-pending-migrations
+    title: "alembic upgrade head — apply 001→023 sobre vitalia_dev DB"
+    state: ready
+    surface: backend
+    owner_eligibility: [claude-sonnet, qwen-opencode]
+    production_code: false  # devops execution, no production code change
+    estimated_effort_minutes: 15
+    depends_on: [T-be-add-engine-iam-tables]
+    description: |
+      Ejecutar `docker exec luana-dev-vitalia_backend_dev-1 alembic upgrade head`
+      contra DB vitalia_dev. Verificar 14_vitalia_tenants_columns ahora skip
+      silenciosamente (guard funciona). Verify alembic current=023_vitalia (head).
+
+      Verify tables exist post-upgrade:
+        - users (engine)
+        - tenants (engine, 4 columns 014 INLINE en CREATE TABLE de 022)
+        - user_tenants (engine M:N)
+        - vitalia_clinics (created by T-be-clinics-extension, NOT this ticket)
+
+      Para esta ticket: vitalia_clinics may NOT exist (created later). Only verify
+      engine tables present + alembic head pointer at 022_vitalia (since 023 not yet
+      written — 023 belongs to T-be-clinics-extension).
+
+      Files:
+        - NO new files. Devops command execution + verification.
+        - Result documented in T-be-apply-pending-migrations-impl-log.md
+    acceptance:
+      validator_ids:
+        - be_test_alembic_head_upgrade
+        - be_test_integration_migrations_022_023
+    gherkin_coverage:
+      - scenario: "SC-14 Migrations pending 002-023 aplicadas"
+        tests:
+          - "vitalia/backend/tests/integration/test_alembic_head.py::test_upgrade_001_to_023_succeeds"
+          - "vitalia/backend/tests/integration/test_alembic_head.py::test_alembic_current_at_head"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  - id: T-be-admin-rewrite
+    title: "REWRITE admin/modules/{tenants,users}.py consumiendo engine repos (CERO SQL crudo)"
+    state: ready
+    surface: backend
+    owner_eligibility: [claude-sonnet, qwen-opencode]
+    production_code: true
+    estimated_effort_minutes: 60
+    depends_on: [T-be-apply-pending-migrations]
+    description: |
+      DELETE phantom code completo. REWRITE clean desde cero:
+        - admin/modules/tenants.py: CONSUME TenantRepository (create/get_all/update + toggle suspend)
+        - admin/modules/users.py: CONSUME UserRepository + UserTenantRepository (create/list with JOIN/ban toggle)
+
+      Audit log SYNC write via write_audit_log_sync helper (NEW per T-be-clinics-extension).
+      NOTE: write_audit_log_sync helper needs to exist BEFORE T-be-admin-rewrite. Builder
+      should create helper as part of this ticket OR delay rewrite until T-be-clinics-extension
+      writes the helper. Recomendación: CREATE helper as part of T-be-admin-rewrite (it's the
+      first consumer needing it).
+
+      Files:
+        - NEW: vitalia/backend/src/modules/vitalia/audit/__init__.py
+        - NEW: vitalia/backend/src/modules/vitalia/audit/audit_writer.py
+        - REWRITE: vitalia/backend/src/modules/vitalia/admin/modules/tenants.py
+        - REWRITE: vitalia/backend/src/modules/vitalia/admin/modules/users.py
+        - NEW: vitalia/backend/tests/modules/vitalia/admin/test_tenants_crud.py
+        - NEW: vitalia/backend/tests/modules/vitalia/admin/test_users_crud.py
+        - NEW: vitalia/backend/tests/modules/vitalia/admin/test_audit_log_sync.py
+        - NEW: vitalia/backend/tests/architecture/test_admin_no_raw_sql.py
+        - NEW: vitalia/backend/tests/architecture/test_admin_consumes_engine_repos.py
+    acceptance:
+      validator_ids:
+        - be_lint_ruff_check
+        - be_format_ruff
+        - be_test_unit_admin_tenants
+        - be_test_unit_admin_users
+        - be_test_audit_log_sync
+        - be_arch_no_raw_sql_in_admin
+        - be_arch_admin_consumes_engine_repos
+    gherkin_coverage:
+      - scenario: "SC-02 Admin crea tenant nuevo"
+        tests:
+          - "vitalia/backend/tests/modules/vitalia/admin/test_tenants_crud.py::test_create_tenant_calls_engine_repository"
+          - "vitalia/backend/tests/modules/vitalia/admin/test_tenants_crud.py::test_create_tenant_writes_audit_log_sync"
+      - scenario: "SC-03 Admin lista tenants"
+        tests:
+          - "vitalia/backend/tests/modules/vitalia/admin/test_tenants_crud.py::test_list_tenants_via_repository"
+          - "vitalia/backend/tests/modules/vitalia/admin/test_tenants_crud.py::test_list_tenants_no_raw_sql"
+      - scenario: "SC-04 Admin crea user + asigna a tenant"
+        tests:
+          - "vitalia/backend/tests/modules/vitalia/admin/test_users_crud.py::test_create_user_via_user_repository"
+          - "vitalia/backend/tests/modules/vitalia/admin/test_users_crud.py::test_link_user_to_tenant"
+          - "vitalia/backend/tests/modules/vitalia/admin/test_users_crud.py::test_create_and_link_writes_audit_log"
+      - scenario: "SC-05 Admin lista users con role per tenant"
+        tests:
+          - "vitalia/backend/tests/modules/vitalia/admin/test_users_crud.py::test_list_users_with_user_tenant_repository_join"
+          - "vitalia/backend/tests/modules/vitalia/admin/test_users_crud.py::test_list_users_tenant_filter_dropdown"
+      - scenario: "SC-06 Admin banea user"
+        tests:
+          - "vitalia/backend/tests/modules/vitalia/admin/test_users_crud.py::test_ban_user_toggles_is_active"
+          - "vitalia/backend/tests/modules/vitalia/admin/test_users_crud.py::test_ban_user_writes_audit_log"
+      - scenario: "SC-07 Admin suspende tenant"
+        tests:
+          - "vitalia/backend/tests/modules/vitalia/admin/test_tenants_crud.py::test_suspend_tenant_toggles_is_active"
+          - "vitalia/backend/tests/modules/vitalia/admin/test_tenants_crud.py::test_suspend_tenant_writes_audit_log"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  - id: T-be-admin-deletion
+    title: "DELETE phantom code residual (vitalia_clinics queries en admin/modules/tenants.py, imports stub, refs a tablas inexistentes)"
+    state: ready
+    surface: backend
+    owner_eligibility: [claude-sonnet, qwen-opencode]
+    production_code: true
+    estimated_effort_minutes: 30
+    depends_on: [T-be-apply-pending-migrations]
+    description: |
+      Paralelo con T-be-admin-rewrite. DELETE residual phantom imports/helpers/stubs:
+        - grep "vitalia_user_profiles" en admin/ → 0 hits post-deletion
+        - grep "vitalia_tenants" en admin/modules/ → 0 hits post-deletion
+        - Eliminar imports muertos a tablas phantom
+        - Eliminar helpers `_make_deterministic_id`, `_encode_payload` (lift `_encode_payload` a audit_writer.py)
+
+      Cero deuda técnica residual per directiva Chris 2026-05-19.
+
+      Files:
+        - MODIFY: admin/modules/tenants.py (cleanup post-rewrite)
+        - MODIFY: admin/modules/users.py (cleanup post-rewrite)
+        - NEW: vitalia/backend/tests/architecture/test_phantom_tables_zero_refs.py
+        - Verify shell command:
+            ! grep -rE "vitalia_user_profiles|vitalia_tenants" vitalia/backend/src/modules/vitalia/admin/modules/
+    acceptance:
+      validator_ids:
+        - be_arch_phantom_tables_zero_refs
+        - phantom_code_zero_grep
+    gherkin_coverage:
+      - scenario: "SC-13 Phantom tables DELETED (cero queries SQL crudo residual)"
+        tests:
+          - "vitalia/backend/tests/architecture/test_phantom_tables_zero_refs.py::test_no_phantom_table_refs_in_admin"
+          - "vitalia/backend/tests/architecture/test_phantom_tables_zero_refs.py::test_no_session_execute_select_in_admin_modules"
+          - "vitalia/backend/tests/architecture/test_phantom_tables_zero_refs.py::test_no_session_execute_insert_in_admin_modules"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  - id: T-be-clinics-extension
+    title: "Migration 023 + DDD module vitalia/clinics/ + ClinicRepository + admin page clinics.py + @require_clinic_access decorator"
+    state: ready
+    surface: backend
+    owner_eligibility: [claude-sonnet, qwen-opencode]
+    production_code: true
+    estimated_effort_minutes: 90
+    depends_on: [T-be-admin-rewrite, T-be-admin-deletion]
+    description: |
+      Scaffold completo módulo clinics DDD Inside-Out:
+        - Migration 023: CREATE TABLE vitalia_clinics + indexes + FK tenants(id)
+        - Domain: Clinic Pydantic v2 entity (tenant_id mandatory, deleted_at)
+        - Infrastructure: ClinicModel SQLA + ClinicRepository (sync, dual-filter scaffold)
+        - Application: ClinicService.create_clinic + audit_log sync write
+        - API: ClinicCreate/Update/Response DTOs + router /api/v1/vitalia/clinics + @require_clinic_access decorator
+        - Admin page: vitalia/backend/src/modules/vitalia/admin/modules/clinics.py
+        - Admin page wrapper: vitalia/backend/src/modules/vitalia/admin/pages/clinicas.py
+        - App.py PAGE_SPECS update: add Clinicas spec
+        - Admin helper endpoints: /api/v1/vitalia/admin/{db-state,audit-log} para Playwright
+
+      Files:
+        - NEW: vitalia/backend/alembic/versions/023_vitalia_clinics.py
+        - NEW: vitalia/backend/src/modules/vitalia/clinics/{domain,infrastructure,application,api}/**/*.py
+        - NEW: vitalia/backend/src/modules/vitalia/admin/modules/clinics.py
+        - NEW: vitalia/backend/src/modules/vitalia/admin/pages/clinicas.py
+        - NEW: vitalia/backend/src/modules/vitalia/admin/api/__init__.py
+        - NEW: vitalia/backend/src/modules/vitalia/admin/api/admin_helpers_router.py
+        - MODIFY: vitalia/backend/src/modules/vitalia/admin/app.py (add Clinicas PageSpec)
+        - MODIFY: vitalia/backend/src/main.py (register clinics router + admin_helpers router)
+        - NEW: vitalia/backend/tests/modules/vitalia/clinics/test_clinic_repository.py
+        - NEW: vitalia/backend/tests/modules/vitalia/clinics/test_clinic_service.py
+        - NEW: vitalia/backend/tests/modules/vitalia/clinics/test_require_clinic_access.py
+        - NEW: vitalia/backend/tests/modules/vitalia/clinics/test_admin_helpers_db_state.py
+        - NEW: vitalia/backend/tests/modules/vitalia/clinics/test_admin_helpers_audit_log.py
+        - NEW: vitalia/backend/tests/modules/vitalia/admin/test_clinics_admin.py
+        - NEW: vitalia/backend/tests/architecture/test_clinics_domain_no_engine_imports.py
+        - NEW: vitalia/backend/tests/integration/test_alembic_head.py (or extend existing)
+    acceptance:
+      validator_ids:
+        - be_lint_ruff_check
+        - be_format_ruff
+        - be_test_unit_clinics_module
+        - be_test_unit_hipaa_dual_filter
+        - be_test_admin_helper_endpoints
+        - be_test_integration_migrations_022_023
+        - be_arch_clinics_domain_no_engine_imports
+        - be_arch_dual_filter_phi
+        - be_arch_migrations_idempotent
+    gherkin_coverage:
+      - scenario: "SC-08 Admin crea clinic asociada a tenant"
+        tests:
+          - "vitalia/backend/tests/modules/vitalia/clinics/test_clinic_service.py::test_create_clinic_calls_repository"
+          - "vitalia/backend/tests/modules/vitalia/clinics/test_clinic_service.py::test_create_clinic_writes_audit_log_sync"
+          - "vitalia/backend/tests/modules/vitalia/clinics/test_clinic_repository.py::test_create_clinic_persists_with_tenant_id"
+          - "vitalia/backend/tests/modules/vitalia/admin/test_clinics_admin.py::test_render_create_clinic_page"
+      - scenario: "SC-09 User-tenant dropdown switch → re-fetch data filtrada"
+        tests:
+          - "vitalia/backend/tests/modules/vitalia/clinics/test_require_clinic_access.py::test_tenant_scope_filter"
+          - "vitalia/backend/tests/modules/vitalia/admin/test_users_crud.py::test_list_users_tenant_filter_dropdown"
+      - scenario: "SC-10 HIPAA cross-clinic query bloqueada"
+        tests:
+          - "vitalia/backend/tests/modules/vitalia/clinics/test_require_clinic_access.py::test_cross_tenant_access_denied_403"
+          - "vitalia/backend/tests/modules/vitalia/clinics/test_require_clinic_access.py::test_access_denied_writes_audit_log"
+      - scenario: "SC-11 HIPAA dual filter query PHI"
+        tests:
+          - "vitalia/backend/tests/modules/vitalia/clinics/test_clinic_repository.py::test_get_by_id_requires_tenant_id"
+          - "vitalia/backend/tests/modules/vitalia/clinics/test_clinic_repository.py::test_list_for_tenant_filters_correctly"
+          - "vitalia/backend/tests/architecture/test_phi_dual_filter.py"
+      - scenario: "SC-14 Migrations pending 002-023 aplicadas"
+        tests:
+          - "vitalia/backend/tests/integration/test_alembic_head.py::test_post_upgrade_tables_exist_vitalia_clinics"
+          - "vitalia/backend/tests/integration/test_alembic_head.py::test_vitalia_clinics_fk_to_tenants"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  - id: T-infra-admin-service
+    title: "Service vitalia-admin en docker-compose.dev.yml port 8502 + Makefile dev-vitalia-admin target + Playwright admin-smoke setup"
+    state: ready
+    surface: backend  # infra category (no FE feature)
+    owner_eligibility: [claude-sonnet, qwen-opencode]
+    production_code: false  # infra config, NOT runtime production code
+    estimated_effort_minutes: 45
+    depends_on: [T-be-clinics-extension]
+    description: |
+      Setup completo infra admin Streamlit:
+        - Add service `vitalia_admin_dev` en vitalia/docker-compose.dev.yml (port 8502, shared venv)
+        - Add Makefile target `dev-vitalia-admin` + `dev-vitalia-admin-down`
+        - playwright.config.ts add admin-smoke project (testMatch e2e/admin/**)
+        - Create Playwright admin fixture (admin_auth.fixture.ts) + utilities (db_verify.ts + types.ts)
+        - Create 5 Playwright spec files for SC-01..SC-14 coverage:
+            - admin-login.spec.ts (SC-01 + SC-12)
+            - admin-tenants-crud.spec.ts (SC-02 + SC-03 + SC-07)
+            - admin-users-crud.spec.ts (SC-04 + SC-05 + SC-06)
+            - admin-clinics-extension.spec.ts (SC-08 + SC-13)
+            - admin-hipaa-dual-filter.spec.ts (SC-09 + SC-10 + SC-11)
+
+      Cada spec ASSERT (no solo screenshot):
+        - DOM elements visibles (getByText/getByRole — no CSS selectors)
+        - Network requests via page.route si needed
+        - DB state count via getDbState(request)
+        - Audit log row via getAuditLog(request, {action, sinceMsAgo})
+
+      Files:
+        - MODIFY: vitalia/docker-compose.dev.yml (add vitalia_admin_dev service)
+        - MODIFY: Makefile (add dev-vitalia-admin target)
+        - MODIFY: vitalia/frontend/playwright.config.ts (add admin-smoke project)
+        - NEW: vitalia/frontend/e2e/admin/admin_auth.fixture.ts
+        - NEW: vitalia/frontend/e2e/admin/utils/db_verify.ts
+        - NEW: vitalia/frontend/e2e/admin/utils/types.ts
+        - NEW: vitalia/frontend/e2e/admin/admin-login.spec.ts
+        - NEW: vitalia/frontend/e2e/admin/admin-tenants-crud.spec.ts
+        - NEW: vitalia/frontend/e2e/admin/admin-users-crud.spec.ts
+        - NEW: vitalia/frontend/e2e/admin/admin-clinics-extension.spec.ts
+        - NEW: vitalia/frontend/e2e/admin/admin-hipaa-dual-filter.spec.ts
+    acceptance:
+      validator_ids:
+        - fe_typecheck_e2e_admin
+        - visual_playwright_admin_smoke
+        - visual_playwright_admin_login
+        - visual_playwright_admin_tenants_crud
+        - visual_playwright_admin_users_crud
+        - visual_playwright_admin_clinics_extension
+        - visual_playwright_admin_hipaa_dual_filter
+    gherkin_coverage:
+      - scenario: "SC-01 Admin login con bcrypt password OK → dashboard"
+        tests:
+          - "vitalia/frontend/e2e/admin/admin-login.spec.ts::SC-01"
+      - scenario: "SC-02 Admin crea tenant nuevo"
+        tests:
+          - "vitalia/frontend/e2e/admin/admin-tenants-crud.spec.ts::SC-02"
+      - scenario: "SC-03 Admin lista tenants"
+        tests:
+          - "vitalia/frontend/e2e/admin/admin-tenants-crud.spec.ts::SC-03"
+      - scenario: "SC-04 Admin crea user + asigna a tenant"
+        tests:
+          - "vitalia/frontend/e2e/admin/admin-users-crud.spec.ts::SC-04"
+      - scenario: "SC-05 Admin lista users con role per tenant"
+        tests:
+          - "vitalia/frontend/e2e/admin/admin-users-crud.spec.ts::SC-05"
+      - scenario: "SC-06 Admin banea user"
+        tests:
+          - "vitalia/frontend/e2e/admin/admin-users-crud.spec.ts::SC-06"
+      - scenario: "SC-07 Admin suspende tenant"
+        tests:
+          - "vitalia/frontend/e2e/admin/admin-tenants-crud.spec.ts::SC-07"
+      - scenario: "SC-08 Admin crea clinic asociada a tenant"
+        tests:
+          - "vitalia/frontend/e2e/admin/admin-clinics-extension.spec.ts::SC-08"
+      - scenario: "SC-09 User-tenant dropdown switch → re-fetch data filtrada"
+        tests:
+          - "vitalia/frontend/e2e/admin/admin-hipaa-dual-filter.spec.ts::SC-09"
+      - scenario: "SC-10 HIPAA cross-clinic query bloqueada"
+        tests:
+          - "vitalia/frontend/e2e/admin/admin-hipaa-dual-filter.spec.ts::SC-10"
+      - scenario: "SC-11 HIPAA dual filter query PHI"
+        tests:
+          - "vitalia/frontend/e2e/admin/admin-hipaa-dual-filter.spec.ts::SC-11"
+      - scenario: "SC-12 Admin logout → session destroyed → redirect login"
+        tests:
+          - "vitalia/frontend/e2e/admin/admin-login.spec.ts::SC-12"
+      - scenario: "SC-13 Phantom tables DELETED"
+        tests:
+          - "vitalia/frontend/e2e/admin/admin-clinics-extension.spec.ts::SC-13"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  - id: T-doc-env-template
+    title: "Comment en vitalia/.env.dev.template re single-quote requirement para valores con $/!/espacios + VITALIA_INTERNAL_API_TOKEN var"
+    state: ready
+    surface: backend  # docs/config category
+    owner_eligibility: [claude-sonnet, qwen-opencode]
+    production_code: false
+    estimated_effort_minutes: 15
+    depends_on: []
+    description: |
+      Agregar comment block en vitalia/.env.dev.template explicando single-quote
+      requirement para valores con caracteres especiales ($, !, espacios). Caso
+      paradigma: bcrypt hashes VITALIA_ADMIN_PASSWORD_HASH='$2b$12$...'
+
+      Agregar nueva env var VITALIA_INTERNAL_API_TOKEN para Playwright admin-smoke
+      DB verification helpers.
+
+      Files:
+        - MODIFY: vitalia/.env.dev.template (add comment block + new env var)
+    acceptance:
+      validator_ids: []  # docs-only ticket, no automated validator
+    gherkin_coverage: []  # no Gherkin scenario directly impacted
+    notes: |
+      Independent ticket — can run paralelo a otros. No depends_on. Auditor
+      verifies via diff inspection of vitalia/.env.dev.template diff vs base.

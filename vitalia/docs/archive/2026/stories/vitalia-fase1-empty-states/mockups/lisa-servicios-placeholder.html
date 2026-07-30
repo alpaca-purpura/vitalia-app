@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es-LA" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<title>F1-S10 · Lisa/Servicios placeholder</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="_shared.css">
+</head>
+<body>
+<div class="mockup-frame">
+  <div class="mockup-header">
+    <div>
+      <div class="mockup-title">Lisa · Servicios — placeholder Fase 1</div>
+      <div class="mockup-subtitle">F1-S10 mockup standalone · toggle Catálogo|Escalera funcional</div>
+    </div>
+    <button class="theme-btn" onclick="document.documentElement.dataset.theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'">🌓 Tema</button>
+  </div>
+
+  <article class="panel rounded-lg p-5">
+    <div class="flex items-start justify-between mb-4">
+      <div>
+        <h2 class="text-base font-semibold">Servicios</h2>
+        <p class="text-xs muted">Catálogo de tratamientos y escalera de valor (placeholder Fase 1).</p>
+      </div>
+      <div class="toggle-pill" data-toggle="t1">
+        <div class="toggle-pill-option active" data-state="catalogo">Catálogo</div>
+        <div class="toggle-pill-option" data-state="escalera">Escalera</div>
+      </div>
+    </div>
+
+    <div data-pane="t1-catalogo" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+      <div class="ph-card"><div class="text-2xl mb-1">🦷</div><div class="text-sm font-medium">Limpieza dental</div><div class="text-xs muted">S/ 120 · 30 min</div><div class="mt-2 flex items-center gap-1.5"><span class="status-dot" style="background:#10b981"></span><span class="text-xs muted">activo</span></div></div>
+      <div class="ph-card"><div class="text-2xl mb-1">✨</div><div class="text-sm font-medium">Blanqueamiento</div><div class="text-xs muted">S/ 380 · 60 min</div><div class="mt-2 flex items-center gap-1.5"><span class="status-dot" style="background:#10b981"></span><span class="text-xs muted">activo</span></div></div>
+      <div class="ph-card"><div class="text-2xl mb-1">🦴</div><div class="text-sm font-medium">Implante</div><div class="text-xs muted">S/ 2,400 · 90 min</div><div class="mt-2 flex items-center gap-1.5"><span class="status-dot" style="background:#f59e0b"></span><span class="text-xs muted">borrador</span></div></div>
+      <div class="ph-card"><div class="text-2xl mb-1">🪥</div><div class="text-sm font-medium">Mantenimiento periodontal</div><div class="text-xs muted">S/ 180 · 45 min</div><div class="mt-2 flex items-center gap-1.5"><span class="status-dot" style="background:#10b981"></span><span class="text-xs muted">activo</span></div></div>
+      <div class="ph-card" style="border-style: dashed; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-muted); text-align: center;"><div class="text-2xl mb-1">+</div><div class="text-sm">Nuevo tratamiento</div></div>
+    </div>
+
+    <div data-pane="t1-escalera" class="hidden text-center py-16">
+      <div class="text-5xl opacity-50 mb-3">📈</div>
+      <div class="text-base font-medium">Escalera de valor — próximamente</div>
+      <p class="text-xs muted mt-2 max-w-md mx-auto">Aquí vivirán los niveles de la escalera de valor del paciente (lead magnet → consulta → tratamiento core → upsell).</p>
+    </div>
+  </article>
+</div>
+
+<script>
+document.querySelectorAll('.toggle-pill').forEach((pill) => {
+  const key = pill.dataset.toggle;
+  pill.querySelectorAll('.toggle-pill-option').forEach((opt) => {
+    opt.addEventListener('click', () => {
+      pill.querySelectorAll('.toggle-pill-option').forEach((o) => o.classList.remove('active'));
+      opt.classList.add('active');
+      document.querySelectorAll(`[data-pane^="${key}-"]`).forEach((p) => p.classList.add('hidden'));
+      document.querySelector(`[data-pane="${key}-${opt.dataset.state}"]`)?.classList.remove('hidden');
+    });
+  });
+});
+</script>
+</body>
+</html>

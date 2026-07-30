@@ -1,0 +1,20 @@
+# Vitalia Adrián eval persona — paciente ausente que se dio de baja (opt-out guard)
+# voseo-allowed: persona simula paciente AR. Adrián NO envía — ComplianceService bloquea.
+persona_id: reengagement_absence_opted_out
+archetype: opted_out_absent_patient
+dialect: es-AR
+vertical: dental
+voice_constraints:
+  formality: informal
+  opening: "(no responde — paciente silencioso)"
+  common_objections: []
+  red_flags:
+    - "opt_out_previous_campaign"
+profile:
+  intent: none
+  urgency: none
+  budget_hint: none
+  emotional_state: opted_out
+  tech_savvy: unknown
+  opt_out: true
+  days_since_last_visit: 120

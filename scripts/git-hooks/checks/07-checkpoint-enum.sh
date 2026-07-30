@@ -1,0 +1,1 @@
+../../../core-harness/hooks/checks/07-checkpoint-enum.sh

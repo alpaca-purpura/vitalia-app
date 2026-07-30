@@ -1,0 +1,102 @@
+---
+capability_id: vitalia-clinics-brand-extension
+module: clinics
+slug: clinics-brand-extension
+status: deprecated
+date_introduced: 2026-05-19
+story_introduced: vitalia-adopt-luana-core-iam
+package_version: 0.1.0
+package_path: vitalia/backend/src/modules/vitalia/clinics/ + vitalia/backend/alembic/versions/023_vitalia_clinics.py
+license: MIT
+
+# v3 cement 2026-05-27 · 4 dimensiones + dev_preview (ADR-vitalia-005)
+tech_module: clinics
+agent_owner: configuracion
+functional_area: configuracion.clinics
+user_visible: true
+nature: feature
+ui_paradigm: slice-1-superseded  # T-3 reconcile 2026-05-29
+replaced_by_story: vitalia-fase2-lisa-doctores  # T-3: story F2 que reconstruye esta cap
+
+user_facing_name: "Clínicas · extensión brand"
+user_facing_description: >
+  Entidad Clínica específica de Vitalia que extiende el modelo base de la plataforma
+  con campos del vertical médico: número fiscal (RUC, RUT o CUIT según el país),
+  certificación médica y lista de especialidades. Cada tenant puede tener múltiples
+  clínicas, y el acceso a datos de pacientes siempre está filtrado por clínica.
+
+dev_preview:
+  route: "/configurar/clinicas"
+  how_to_navigate: "Login como admin_clinic → menú Configurar → Clínicas"
+  main_component: null
+  api_endpoints:
+    - "GET /api/v1/vitalia/clinics"
+    - "POST /api/v1/vitalia/clinics"
+  e2e_test: null
+  fixtures_required: []
+  storybook_url: null
+  loom_demo: null
+
+summary: |
+  Brand-extension vitalia module `clinics` con tabla `vitalia_clinic_branches`
+  (FK a `tenants.id` engine). Per D2 platform outcome: clinic concept es
+  brand-local (vitalia salud + bienestar), NO engine. Cuando 2da brand replique
+  patrón → promotion proposal EP-19 `TenantSubUnit`.
+
+  Layers DDD Inside-Out: domain (Clinic entity pure) → infrastructure (ClinicModel
+  SQLAlchemy + ClinicRepository) → application (ClinicService business logic) →
+  api (router + DTOs + decorators).
+
+  Soft deletes: deleted_at column. Idempotent migration (CREATE TABLE IF NOT
+  EXISTS). Unique constraint (tenant_id, slug). Cascade FK ON DELETE.
+
+surfaces:
+  backend:
+    - vitalia/backend/alembic/versions/023_vitalia_clinics.py
+    - vitalia/backend/src/modules/vitalia/clinics/domain/clinic.py
+    - vitalia/backend/src/modules/vitalia/clinics/infrastructure/models/clinic_model.py
+    - vitalia/backend/src/modules/vitalia/clinics/infrastructure/repositories/clinic_repository.py (asumed in builder run)
+    - vitalia/backend/src/modules/vitalia/clinics/application/clinic_service.py
+    - vitalia/backend/src/modules/vitalia/clinics/api/router.py
+    - vitalia/backend/src/modules/vitalia/clinics/api/dtos.py
+    - vitalia/backend/src/modules/vitalia/clinics/api/decorators.py
+  tests:
+    - vitalia/backend/tests/modules/vitalia/clinics/test_clinic_repository.py
+    - vitalia/backend/tests/modules/vitalia/clinics/test_clinic_service.py
+    - vitalia/backend/tests/architecture/test_clinics_domain_no_engine_imports.py (arch fitness)
+
+dependencies:
+  - engine_table_fk: tenants (via vitalia_clinic_branches.tenant_id REFERENCES tenants.id ON DELETE CASCADE)
+
+verification:
+  commands:
+    - "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/clinics/ -v"
+    - "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/architecture/test_clinics_domain_no_engine_imports.py -v"
+    - "docker exec luana-dev-luana_postgres_dev-1 psql -U postgres -d vitalia_dev -c \"\\dt vitalia_clinic_branches\""
+  gherkin_evidence:
+    - SC-08 Admin crea clinic asociada a tenant → INSERT vitalia_clinic_branches FK válida
+
+# Capability ledger v2 (cement 2026-05-27)
+created_in_story: vitalia-adopt-luana-core-iam   # v2 cement · mirror of story_introduced
+created_date: 2026-05-19   # v2 cement · mirror of date_introduced
+last_modified: 2026-05-29   # T-3 reconcile 2026-05-29
+parent_cap: null   # v2 cement · mirror of extends_capability
+derives_capabilities: []   # v2 cement · initial empty list
+
+# Capability ledger v2 (cement 2026-05-27)
+
+# Capability change log v2 (cement 2026-05-27)
+change_log:
+  - story_id: vitalia-adopt-luana-core-iam
+    date: 2026-05-19
+    type: new
+    summary: "Implementación inicial · migración legacy a schema v2"
+    merge_sha: null
+    status: done
+map_box: configuracion
+
+---
+
+# Clínicas · extensión brand
+
+Entidad Clínica brand-local de Vitalia que extiende el modelo base con campos del vertical médico (número fiscal RUC/RUT/CUIT, certificación, especialidades). Tabla `vitalia_clinic_branches` con FK a `tenants.id` engine; acceso a datos de pacientes siempre filtrado por clínica.

@@ -1,0 +1,359 @@
+# 04-validators.yaml — F1-S0 vitalia-fase1-stack-stability
+# Owner: /architect (single-shot full-stack — FE-only story)
+# Schema v4.1 cement 2026-05-19
+#
+# Story type: infra-only FE bootstrap (NO BE, NO AGENTIC).
+# Categories: non_functional (FE quality + arch fitness), visual (6 goldens light+dark),
+#             architectural_validation (FSD boundaries + no-vt-classes new arch test + no-cross-brand).
+# Functional category: minimal — no user flows; verificación de install + tokens + build.
+
+---
+story_id: vitalia-fase1-stack-stability
+brand: vitalia
+schema_version: v4.1
+
+validators:
+  # ═══════════════════════════════════════════════════════════════
+  # NON-FUNCTIONAL — FE code quality (lint, format, type-check, arch fitness, build, regression)
+  # ═══════════════════════════════════════════════════════════════
+
+  - id: fe_typecheck
+    category: non_functional
+    type: shell
+    cmd: "cd vitalia/frontend && npx tsc --noEmit"
+    must_pass: true
+    timeout_sec: 120
+    description: "TypeScript strict, 0 errors (utils.ts, test pages, arch test, ADR-002 referencias)"
+
+  - id: fe_lint
+    category: non_functional
+    type: shell
+    cmd: "cd vitalia/frontend && npx eslint src/ --cache --cache-location .eslintcache --max-warnings 0"
+    must_pass: true
+    timeout_sec: 60
+    description: "ESLint 60+ rules, 0 errors over src/ (incluye lib/utils.ts, test pages, arch test)"
+
+  - id: fe_format
+    category: non_functional
+    type: shell
+    cmd: "cd vitalia/frontend && npx prettier --check src/"
+    must_pass: true
+    timeout_sec: 30
+    description: "Prettier format check"
+
+  - id: fe_build_production
+    category: non_functional
+    type: shell
+    cmd: "cd vitalia/frontend && npm run build"
+    must_pass: true
+    timeout_sec: 300
+    description: "Production build PASS — catches CSS var faltantes + Turbopack/PostCSS issues. Scenario 6"
+
+  - id: fe_vitest_existing_regression
+    category: non_functional
+    type: shell
+    cmd: "cd vitalia/frontend && npx vitest run --reporter=default"
+    must_pass: true
+    timeout_sec: 180
+    description: "Tests existentes Vitalia shipped + arch test NEW PASS. NO regression"
+
+  # ═══════════════════════════════════════════════════════════════
+  # VISUAL — 6 goldens baseline (light + dark cada uno)
+  # maxDiffPixelRatio: 0.001 (0.1% tolerance per Design Contract § 9.4)
+  # ═══════════════════════════════════════════════════════════════
+
+  - id: visual_dashboard_legacy_light
+    category: visual
+    type: playwright
+    cmd: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test --project=visual --grep 'stack-stability.*dashboard-legacy-light'"
+    capture: screenshots
+    must_pass: true
+    timeout_sec: 240
+    description: "CRITICAL regression — (dashboard)/ legacy NO se rompe post-install. Confirma D2 plan deprecación progresiva"
+
+  - id: visual_dashboard_legacy_dark
+    category: visual
+    type: playwright
+    cmd: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test --project=visual --grep 'stack-stability.*dashboard-legacy-dark'"
+    capture: screenshots
+    must_pass: true
+    timeout_sec: 240
+    description: "Idem dark mode legacy"
+
+  - id: visual_shadcn_primitives_light
+    category: visual
+    type: playwright
+    cmd: "cd vitalia/frontend && npx playwright test --project=visual --grep 'stack-stability.*shadcn-primitives-light'"
+    capture: screenshots
+    must_pass: true
+    timeout_sec: 240
+    description: "BASELINE 8 primitivos × todas variantes — contrato visual F1-S1+ que reusan"
+
+  - id: visual_shadcn_primitives_dark
+    category: visual
+    type: playwright
+    cmd: "cd vitalia/frontend && npx playwright test --project=visual --grep 'stack-stability.*shadcn-primitives-dark'"
+    capture: screenshots
+    must_pass: true
+    timeout_sec: 240
+    description: "Idem dark mode primitives"
+
+  - id: visual_agent_tokens_swatch_light
+    category: visual
+    type: playwright
+    cmd: "cd vitalia/frontend && npx playwright test --project=visual --grep 'stack-stability.*agent-tokens-swatch-light'"
+    capture: screenshots
+    must_pass: true
+    timeout_sec: 240
+    description: "BASELINE 7 swatches color + label hex esperado (lisa #00D084, lucas #111111, adrian #01b2f8, valeria #7b2d91, camila #180d95, mateo #fee209, config gray)"
+
+  - id: visual_agent_tokens_swatch_dark
+    category: visual
+    type: playwright
+    cmd: "cd vitalia/frontend && npx playwright test --project=visual --grep 'stack-stability.*agent-tokens-swatch-dark'"
+    capture: screenshots
+    must_pass: true
+    timeout_sec: 240
+    description: "Idem dark soft variants — verifica .dark block aplica correctamente"
+
+  # ═══════════════════════════════════════════════════════════════
+  # ARCHITECTURAL VALIDATION (★ v4.1 cement 2026-05-19)
+  # ═══════════════════════════════════════════════════════════════
+
+  - id: fe_fsd_boundaries
+    category: architectural_validation
+    type: shell
+    cmd: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/ --reporter=default"
+    must_pass: true
+    timeout_sec: 60
+    description: "FSD-Lite boundaries existentes — feature → feature own / shared / lib only. Ratchet shrink-only"
+
+  - id: test_no_vt_classes_in_new_features
+    category: architectural_validation
+    type: shell
+    cmd: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test-no-vt-classes-in-new-features.test.ts --reporter=default"
+    must_pass: true
+    timeout_sec: 30
+    description: "NEW arch test — falla si código bajo (shell-organism)/ o components/shared/shell-organism/ usa .vt-* class. Initial GREEN by emptiness (paths no existen aún)"
+
+  - id: fe_no_cross_brand_imports_grep
+    category: architectural_validation
+    type: shell
+    cmd: "! grep -rn 'from .*nicolify\\|from .*comunify\\|from .*lupulo' vitalia/frontend/src/ 2>/dev/null"
+    must_pass: true
+    timeout_sec: 10
+    description: "Cross-brand import detection (HARD ban — F1-S0 NO importa otros brands)"
+
+  - id: fe_components_json_present
+    category: architectural_validation
+    type: shell
+    cmd: "test -f vitalia/frontend/components.json && cat vitalia/frontend/components.json | python3 -c 'import json,sys; c=json.load(sys.stdin); assert c[\"style\"]==\"new-york\" and c[\"tailwind\"][\"baseColor\"]==\"slate\" and c[\"tailwind\"][\"cssVariables\"] is True'"
+    must_pass: true
+    timeout_sec: 10
+    description: "components.json existe + config Shadcn correcta (style=new-york, baseColor=slate, cssVariables=true)"
+
+  - id: fe_8_primitives_present_ls
+    category: architectural_validation
+    type: shell
+    cmd: "cd vitalia/frontend && test -f src/components/ui/button.tsx && test -f src/components/ui/avatar.tsx && test -f src/components/ui/dropdown-menu.tsx && test -f src/components/ui/input.tsx && test -f src/components/ui/badge.tsx && test -f src/components/ui/textarea.tsx && test -f src/components/ui/tabs.tsx && test -f src/components/ui/tooltip.tsx"
+    must_pass: true
+    timeout_sec: 10
+    description: "8 primitivos Shadcn presentes en src/components/ui/ (Scenario 5 install partial failure check)"
+
+  - id: fe_agent_tokens_css_vars_grep
+    category: architectural_validation
+    type: shell
+    cmd: "test $(grep -cE '^\\s*--agent-' vitalia/frontend/src/app/globals.css) -ge 12"
+    must_pass: true
+    timeout_sec: 10
+    description: "globals.css contiene ≥12 lines de --agent-* CSS vars (7 base en :root + 5+ soft variants en .dark)"
+
+  - id: fe_tailwind_agent_colors_resolvable_introspection
+    category: architectural_validation
+    type: shell
+    cmd: "cd vitalia/frontend && node -e \"const c = require('./tailwind.config.ts'); const cfg = c.default || c; const agent = cfg.theme.extend.colors.agent; if (!agent.lisa || !agent.lucas || !agent.adrian || !agent.valeria || !agent.camila || !agent.mateo || !agent.config) { process.exit(1); }\""
+    must_pass: true
+    timeout_sec: 10
+    description: "tailwind.config.ts colors.agent.{lisa,lucas,adrian,valeria,camila,mateo,config} todos resolvables"
+
+  - id: docs_adr_002_present
+    category: architectural_validation
+    type: shell
+    cmd: "test -f vitalia/docs/architecture/ADR-vitalia-002-vt-deprecation-plan.md"
+    must_pass: true
+    timeout_sec: 5
+    description: "ADR-vitalia-002 escrito (file existence)"
+
+  - id: docs_adr_002_8_sections
+    category: architectural_validation
+    type: shell
+    cmd: "test $(grep -cE '^## § [1-8]' vitalia/docs/architecture/ADR-vitalia-002-vt-deprecation-plan.md) -ge 8"
+    must_pass: true
+    timeout_sec: 5
+    description: "ADR-vitalia-002 contiene 8 secciones (§ 1-8 obligatorias)"
+
+# ═══════════════════════════════════════════════════════════════
+# Scenario coverage matrix — 8 scenarios (01-spec.md § 6)
+# 6 funcionales activos + 1 adversarial-declared + 1 bloque N/A (9 sub-categorías)
+# ═══════════════════════════════════════════════════════════════
+
+scenario_coverage:
+  - scenario_id: happy
+    description: "Scenario 1 happy-path — full pipeline OK"
+    validators:
+      - fe_typecheck
+      - fe_lint
+      - fe_vitest_existing_regression
+      - visual_shadcn_primitives_light
+      - visual_shadcn_primitives_dark
+      - visual_agent_tokens_swatch_light
+      - visual_agent_tokens_swatch_dark
+  - scenario_id: negative_tailwind_v4_roto
+    description: "Scenario 2 negative — Tailwind v4 roto runtime"
+    validators:
+      - fe_build_production
+      - visual_dashboard_legacy_light
+      - visual_dashboard_legacy_dark
+  - scenario_id: edge_shadcn_render
+    description: "Scenario 3 edge — Shadcn primitive render correcto post-install"
+    validators:
+      - visual_shadcn_primitives_light
+      - visual_shadcn_primitives_dark
+  - scenario_id: edge_agent_tokens
+    description: "Scenario 4 edge — agent tokens accesibles + dark structural check"
+    validators:
+      - visual_agent_tokens_swatch_light
+      - visual_agent_tokens_swatch_dark
+      - fe_agent_tokens_css_vars_grep
+      - fe_tailwind_agent_colors_resolvable_introspection
+  - scenario_id: shadcn_install_failure
+    description: "Scenario 5 edge — Shadcn install partial failure"
+    validators:
+      - fe_components_json_present
+      - fe_8_primitives_present_ls
+  - scenario_id: build_error_post_install
+    description: "Scenario 6 error-state — production build catch CSS var faltante"
+    validators:
+      - fe_build_production
+  - scenario_id: adversarial
+    description: "Scenario 7 adversarial-declared (supply-chain)"
+    not_applicable_reason: "supply-chain mitigated by ADR-vitalia-002 § 7 post-install audit checklist (diff review line-by-line los 8 primitives .tsx contra registry oficial Shadcn) + /auditor review PR examina diff manualmente. Si /pm-luana scan-promotables detecta cross-brand → lift a .claude/rules/supply-chain-policy.md raíz"
+  - scenario_id: not_applicable_batch
+    description: "Scenario 8 batch — 9 sub-categorías genuinamente no aplican"
+    not_applicable_sub_categories:
+      - sub_category: race_condition
+        reason: "F1-S0 no introduce endpoints create/update ni unique constraints DB. 100% infra FE local"
+      - sub_category: concurrent_users
+        reason: "F1-S0 no introduce list/detail filterable user-facing. Primitivos Shadcn stateless"
+      - sub_category: network_failure
+        reason: "F1-S0 no introduce fetch FE runtime. Único fetch es build-time al registry Shadcn (cubierto en § 5 build-time note + Scenario 5)"
+      - sub_category: empty_state
+        reason: "F1-S0 no introduce list/dashboard con 0 items. Empty states son F1-S10"
+      - sub_category: large_dataset
+        reason: "F1-S0 no introduce pagination ni list rendering"
+      - sub_category: accessibility_keyboard
+        reason: "F1-S0 no introduce UI user-facing nueva (test pages son fixtures Playwright). A11y per-organismo es F1-S1..S10"
+      - sub_category: mobile_responsive
+        reason: "F1-S0 no introduce UI nueva. Mobile responsive verificación per-organismo es F1-S1..S10"
+      - sub_category: loading_state
+        reason: "F1-S0 no introduce async UI ni data fetching. Install Shadcn es comando shell síncrono"
+      - sub_category: i18n
+        reason: "F1-S0 no introduce copy user-facing nuevo. ADR-vitalia-002 es doc interno (voseo-allowed magic comment). Test pages no son user-facing"
+
+# ═══════════════════════════════════════════════════════════════
+# ★ Test Construction Plan (v4.1 cement 2026-05-19)
+# Architect dicta CÓMO construir tests visuales. Dev-team CONSTRUYE siguiendo.
+# Story FE infra-only — NO behavior E2E, NO POMs, NO fixtures con auth/seed.
+# ═══════════════════════════════════════════════════════════════
+
+test_construction_plan:
+  playwright_required: true                      # visual baselines (NO behavior E2E)
+  base_path: "vitalia/frontend/e2e/{__test-pages__,visual,__screenshots__}/stack-stability/"
+
+  # Orden de creación (11 steps dependencias numeradas)
+  creation_order:
+    - step: 1
+      file: "components.json + npx shadcn@latest init + 8 primitivos copy-paste"
+      content: "npx shadcn@latest init (style=new-york, baseColor=slate, cssVariables=true) + npx shadcn@latest add button avatar dropdown-menu input badge textarea tabs tooltip"
+      depends_on: []
+    - step: 2
+      file: "src/app/globals.css (:root + .dark blocks)"
+      content: "Agregar 2 bloques CSS vars (Shadcn standard + 7 agent tokens) + preservar bloque .vt-* legacy intacto"
+      depends_on: [1]
+    - step: 3
+      file: "tailwind.config.ts extend theme.colors"
+      content: "Extend theme.extend.colors con background/foreground/primary/.../agent.{lisa,lucas,adrian,valeria,camila,mateo,config}"
+      depends_on: [2]
+    - step: 4
+      file: "playwright.config.ts @project=visual block"
+      content: "Agregar entry visual con viewport 1440×900 + maxDiffPixelRatio 0.001 + animations disabled + caret hide"
+      depends_on: [1]
+    - step: 5
+      file: "e2e/__test-pages__/stack-stability/primitives-showcase.tsx"
+      content: "Renderiza 8 primitivos × todas variantes (Button × 5 variants × 4 sizes, Input, Avatar fallback, Badge × 4, Textarea, Tabs, Tooltip, DropdownMenu open)"
+      depends_on: [1, 3]
+    - step: 6
+      file: "e2e/__test-pages__/stack-stability/agent-tokens-swatch.tsx"
+      content: "Renderiza 7 swatches color (bg-agent-{lisa,lucas,adrian,valeria,camila,mateo,config}) con label hex esperado"
+      depends_on: [3]
+    - step: 7
+      file: "e2e/visual/stack-stability/dev-stack-baseline.spec.ts"
+      content: "Spec Playwright que monta las 2 test pages + (dashboard)/ legacy en light+dark → genera 6 goldens"
+      depends_on: [4, 5, 6]
+    - step: 8
+      file: "src/__tests__/architecture/test-no-vt-classes-in-new-features.test.ts"
+      content: "Arch fitness test — recursive scan SHELL_PATHS, VT_PATTERN /\\bvt-[a-z]/. GREEN by emptiness inicial"
+      depends_on: [1]
+    - step: 9
+      file: "vitalia/docs/architecture/ADR-vitalia-002-vt-deprecation-plan.md"
+      content: "ADR 8 secciones obligatorias. Magic comment voseo-allowed"
+      depends_on: [1]
+    - step: 10
+      file: "Tailwind v4 empirical check (Scenario 2)"
+      content: "make dev-vitalia + browser http://localhost:3002 visual check. Si roto → diagnose + fallback ADR-002 § 8"
+      depends_on: [3, 7]
+    - step: 11
+      file: "6 goldens generation + Chris ratify visual"
+      content: "npx playwright test --project=visual --grep 'stack-stability' --update-snapshots → Chris ratifica diff humano vs Design Contract § 5.1"
+      depends_on: [10]
+
+  # Mapping Gherkin scenario → spec function
+  scenario_to_test:
+    - scenario: "Scenario 1 happy-path"
+      file: "e2e/visual/stack-stability/dev-stack-baseline.spec.ts"
+      function: "test('happy path — full stack OK light+dark goldens generated'"
+    - scenario: "Scenario 2 negative Tailwind v4 roto"
+      file: "e2e/visual/stack-stability/dev-stack-baseline.spec.ts"
+      function: "test('Tailwind class resuelve a color esperado'"
+    - scenario: "Scenario 3 edge Shadcn render"
+      file: "e2e/visual/stack-stability/dev-stack-baseline.spec.ts"
+      function: "test('8 primitives render con todas sus variantes'"
+    - scenario: "Scenario 4 happy-tokens"
+      file: "e2e/visual/stack-stability/dev-stack-baseline.spec.ts"
+      function: "test('7 agent tokens renderizan colores hex esperados light+dark'"
+    - scenario: "Scenario 5 Shadcn install partial failure"
+      file: "ls + cat components.json (state check, not Playwright)"
+      function: "fe_components_json_present + fe_8_primitives_present_ls validators"
+    - scenario: "Scenario 6 error-state build post-install"
+      file: "npm run build (state check)"
+      function: "fe_build_production validator"
+    - scenario: "Scenario 7 adversarial"
+      file: "N/A — declared not_applicable with reason"
+      function: "ADR-vitalia-002 § 7 + /auditor PR review diff"
+    - scenario: "Scenario 8 not_applicable_batch (9 sub-categorías)"
+      file: "N/A — declared per sub_category reason"
+      function: "scenario_coverage matrix above"
+
+  poms_required: []   # NO behavior E2E — only visual goldens
+
+  fixtures_required: []   # NO auth/seed/data setup (story infra-only)
+
+# ═══════════════════════════════════════════════════════════════
+# Iteration policy — autonomous build behavior
+# ═══════════════════════════════════════════════════════════════
+
+iteration:
+  max_iterations: 10
+  on_fail: "fix targeted file based on test output, re-run failing validator only. NO scope creep"
+  on_all_pass: "set state=developing→developed, append iteration_log to T-{n}-impl-log.md, AUTO-HANDOFF /auditor (story-closure-gate)"
+  on_cap_reached: "set state=developing→blocked, escalate to Chris with last error trace + ADR-002 § 8 fallback decision"

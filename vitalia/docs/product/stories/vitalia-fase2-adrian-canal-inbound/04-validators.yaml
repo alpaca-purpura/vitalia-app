@@ -1,0 +1,207 @@
+story_id: vitalia-fase2-adrian-canal-inbound
+brand: vitalia
+arch_version: 1
+schema_version: v4.1
+
+# ★ verification_nature (top-level · D-X4): funcional → demo + anti-burbuja + live-verify
+verification_nature: funcional
+demo_required: true
+
+dev_app_verified:
+  required: true
+  channel: telegram             # live = enviar mensaje real por Telegram (bot dev, tenant ≠ Chris)
+  evidence_required:
+    - "reply real en Telegram"
+    - "fila conversación (crm/inbox) tenant+clinic scoped"
+    - "scheduling_appointment origin=proactivo_adrian (post-lift)"
+    - "availability_slot has_confirmed_appointment=True (post-lift)"
+    - "sales_agent_trace_event turn_start/turn_end + sales_agent_llm_call costo"
+    - "activity event sanitizado en el inbox glass-box"
+
+# ─────────────────────────────────────────────────────────────
+# Categoría 1 — non_functional
+# ─────────────────────────────────────────────────────────────
+non_functional:
+  - id: V-NF-1
+    rule: "Webhook secret + idempotencia: secret inválido → 0 dispatch; update_id repetido → 1 proceso"
+    must_pass: true
+    test: vitalia/backend/tests/modules/vitalia/connections/test_telegram_webhook_security.py
+  - id: V-NF-2
+    rule: "Tenant+clinic dual-filter en toda query (booking/slots/conversación) — hipaa-lite"
+    must_pass: true
+    test: vitalia/backend/tests/architecture/test_phi_dual_filter.py
+  - id: V-NF-3
+    rule: "Audit log sync write pre-response en booking + set-instruction + PHI block"
+    must_pass: true
+    test: vitalia/backend/tests/architecture/test_audit_log_sync_write.py
+  - id: V-NF-4
+    rule: "response_model= en cada route nueva (webhook + set-instruction)"
+    must_pass: true
+    test: vitalia/backend/tests/architecture/test_response_model_required.py
+  - id: V-NF-5
+    rule: "Migrations idempotentes (hold columns + dedup table) — IF NOT EXISTS, sin sa.Enum/create_table"
+    must_pass: true
+    test: vitalia/backend/tests/architecture/  # migration smoke
+  - id: V-NF-6
+    rule: "Engine arch tests verdes sin tocarse (core/luana-core-sales-agent read-only)"
+    must_pass: true
+    test: "core/luana-core-sales-agent/tests/architecture/ (run, must stay green)"
+
+# ─────────────────────────────────────────────────────────────
+# Categoría 2 — functional (gherkin SC)
+# ─────────────────────────────────────────────────────────────
+functional:
+  - id: V-FN-1   # SC-1 happy decide
+    rule: "Inbound Telegram en decide → califica + responde (sin PHI) + activity + costo"
+    must_pass: true
+    scenario: SC-1
+    note: "★ 2026-06-22 audit: responde+costo = LIVE; el sub-clause '+ activity' NO está cableado (GAP-3: el loop escribe solo audit_log, no emite vitalia_activity_events). RED hasta GAP-3. NO false-green el activity. Ver RECONCILE-2026-06-22."
+  - id: V-FN-2   # SC-2 consulta
+    rule: "Consulta → borrador, 0 outbound Telegram hasta firma humana"
+    must_pass: true
+    scenario: SC-2
+    note: "★ 2026-06-22 audit: NO cableado en el loop inbound (GAP-2: HonorModeBridge solo gate del endpoint operator-instruction; sin pre-send interceptor). decide+pausa(human) sí; consulta NO. RED hasta GAP-2 (/architect: ¿EP pre-send brand o seam engine?). Ver RECONCILE-2026-06-22."
+  - id: V-FN-3   # SC-3a/3b pausa + ráfaga
+    rule: "Pausa → 0 reply · ráfaga 3 msgs <6s → exactamente 1 reply (debounce)"
+    must_pass: true
+    scenario: SC-3
+  - id: V-FN-4   # SC-4a/4b PHI + injection
+    rule: "PHI → deriva portal + audit · injection → rechaza + escala, sin fuga"
+    must_pass: true
+    scenario: SC-4
+  - id: V-FN-5   # SC-5 webhook
+    rule: "Secret inválido → descarta · update_id repetido → idempotente"
+    must_pass: true
+    scenario: SC-5
+  - id: V-FN-6   # SC-6 tenant isolation
+    rule: "Bot A → solo data A (dual-filter)"
+    must_pass: true
+    scenario: SC-6
+  - id: V-FN-7   # SC-8 operator instruction
+    rule: "Instrucción persiste + lead no la ve + el siguiente reply la refleja · pausa→directo"
+    must_pass: true
+    scenario: SC-8
+  # ── lift-gated (book/match) — must_pass:false hasta merge del lift /pm-luana (HB-79: deferred) ──
+  - id: V-FN-8   # SC-7 tools acción (payment/reschedule)
+    rule: "decide → payment_link/reschedule enviado + idempotente · consulta → borrador"
+    must_pass: false
+    deferred: "★ ACTUALIZADO 2026-06-22 (post GAP-1, commit 0fd45f31): ESC-17 + autonomous-dispatch + GAP-1 (resolvers) RESUELTOS → payment_link y reschedule ahora RECHAN sus services live. payment_link = end-to-end (pendiente live-verify full en G). reschedule = reacha service pero degrada en GAP-5 (lane scheduling `update_slot` stub, dominio scheduling). Subir a must_pass:true tras live-verify de payment en G + cierre de GAP-5. Ver RECONCILE-2026-06-22-doc-vs-reality.md."
+    scenario: SC-7
+  - id: V-FN-9   # SC-9 book happy
+    rule: "decide → match → slots reales → book hold proactivo_adrian + slot marcado + seña"
+    must_pass: false
+    deferred: "ESC-17/Tier-2.4b — seam ESC-1/2/3 ya live; book_appointment requiere el handler ABI fix (2.4a) + el VitaliaSchedulerProvider/match/book (2.4b)"
+    scenario: SC-9
+  - id: V-FN-10  # SC-10 hold expira
+    rule: "Hold sin-pago vence (TTL) → liberado + slot reaparece + evento inbox"
+    must_pass: true   # ★ la PLOMERÍA (sweep + slot) es brand-local — testeable SIN lift (job + DB)
+    scenario: SC-10
+    note: "El sweep+slot-marking es BE brand-local (buildable). El trigger desde el grafo (book) es lift-gated."
+  - id: V-FN-11  # SC-11 consulta book
+    rule: "Consulta → propuesta de slot en borrador, 0 fila booking, 0 outbound"
+    must_pass: false
+    deferred: "ESC-17/Tier-2.4b — depende del book agentic (handler ABI 2.4a + book 2.4b)"
+    scenario: SC-11
+  - id: V-FN-12  # SC-12 carrera slot
+    rule: "Slot tomado en carrera → 409 → re-propone, sin doble-booking ni error al lead"
+    must_pass: false
+    deferred: "ESC-17/Tier-2.4b — race-handling del book agentic (2.4a+2.4b); el advisory-lock/409 BE sí es testeable brand-local"
+    scenario: SC-12
+
+# ─────────────────────────────────────────────────────────────
+# Categoría 3 — visual (FE composer)
+# ─────────────────────────────────────────────────────────────
+visual:
+  - id: V-VIS-1
+    rule: "Composer modo-instrucción: label '🤖 Instrucción a Adrián' + chip instrucción activa"
+    must_pass: true
+    test: vitalia/frontend/e2e/specs/smoke/  # composer instruction smoke
+
+playwright_visual_scope:
+  routes:
+    - "/{tenantId}/adrian/inbox"        # composer extendido (no ruta nueva)
+  components_touchable:
+    - vitalia/frontend/src/features/adrian/components/inbox/composer/
+  components_forbidden:
+    - "vitalia/frontend/src/features/**/* (otras sub-tabs del inbox)"
+    - "vitalia/frontend/src/components/shared/shell-organism/* (shell wrapper)"
+  golden_policy: shrink-only
+
+# ─────────────────────────────────────────────────────────────
+# Categoría 4 — agentic_eval (pass^k) — lift-gated parcial
+# ─────────────────────────────────────────────────────────────
+agentic_eval:
+  trial_policy:
+    trials_per_scenario: 3
+    per_trial_pass_threshold: 0.66
+    pass_k_threshold: 0.5
+  rubrics:
+    - voice-fidelity
+    - vertical-medical-fidelity
+    - no-hallucination
+    - no-overpromise
+    - tool-trajectory
+    - ethical-persuasion   # no-dark-patterns
+  goldens:
+    # buildable hoy (cero engine):
+    - id: G-honor-mode      ; must_pass: true  ; desc: "decide→envía · consulta→borrador · pausa→silencio"
+    - id: G-screening-gate  ; must_pass: true  ; desc: "DERIVAR_EMERGENCIA → NO bookea, deriva + escala"
+    - id: G-objection-trust ; must_pass: true  ; desc: "'¿quién me atiende?' → bio, sin overpromise"
+    - id: G-ethical         ; must_pass: true  ; desc: "NUNCA urgencia falsa / dark pattern"
+    - id: G-operator-instr  ; must_pass: true  ; desc: "instrucción steerea el siguiente turno (SC-8)"
+    # lift-gated (book/match/share):
+    - id: G-book-happy      ; must_pass: false ; deferred: "ESC-17/2.4b" ; desc: "'el jueves 10' → mapea slot (razonamiento, NO parser) + book lane vivo + seña"
+    - id: G-book-no-isla    ; must_pass: false ; deferred: "ESC-17/2.4b" ; desc: "turno aparece en agenda Mateo (origin=proactivo_adrian) + marca slot"
+    - id: G-book-consulta   ; must_pass: false ; deferred: "ESC-17/2.4b" ; desc: "consulta → borrador, 0 turno, 0 slot marcado"
+    - id: G-book-race       ; must_pass: false ; deferred: "ESC-17/2.4b" ; desc: "slot ocupado → re-propone, sin error técnico"
+    - id: G-book-hold-exp   ; must_pass: false ; deferred: "ESC-17/2.4b" ; desc: "no paga → liberado + ofrece re-agendar"
+
+# ─────────────────────────────────────────────────────────────
+# Categoría 5 — architectural_validation
+# ─────────────────────────────────────────────────────────────
+architectural_validation:
+  - id: V-ARCH-1
+    rule: "CERO edición de core/luana-core-*/src/ en los tickets BUILDABLE (lift = /pm-luana separado)"
+    must_pass: true
+  - id: V-ARCH-2
+    rule: "NO usar BookingService/vitalia_bookings (deprecated) — turno solo en lane vivo scheduling"
+    must_pass: true
+  - id: V-ARCH-3
+    rule: "Anti-mirror cross-brand (Telegram adapter + scheduler provider brand-local, no replica)"
+    must_pass: true
+    test: vitalia/backend/tests/architecture/  # anti-mirror
+  - id: V-ARCH-4
+    rule: "No PHI en URL params (FE) — searchParams whitelist"
+    must_pass: true
+    test: vitalia/frontend/src/__tests__/architecture/test_no_phi_in_url_params.test.ts
+  - id: V-ARCH-5
+    rule: "Dedup reschedule: una sola ruta viva (book base portado, EP-3 duplicado deprecado) — post-lift"
+    must_pass: false
+    deferred: "ESC-17/Tier-2.4b — dedup se concreta al cablear el book (handler ABI 2.4a primero)"
+
+# ─────────────────────────────────────────────────────────────
+# regression_guard — el inbox shipped NO se rompe
+# ─────────────────────────────────────────────────────────────
+regression_guard:
+  rule: "Las SC del inbox shipped (cap adrian-inbox) corren verdes SIN modificar sus tests"
+  must_pass: true
+  excepcion_coordinada: "composer en decide EXTENDIDO a modo-instrucción (RN-14/15) — cambio intencional sobre superficie firmada; NO es break"
+  suites:
+    - vitalia/backend/tests/modules/vitalia/inbox/           # set-mode + OCC, pausa, send humano, nudge, activity, PHI policy
+    - vitalia/backend/tests/modules/vitalia/crm/             # conversación repo
+    - vitalia/frontend/src/features/adrian/                  # composer, modo toggle, deep-link ?conv=
+    - "scenarios inbox: cambiar-modo-2-modos-persiste, pausar-adrian-y-escribir, composer-dock-envia, glassbox-activity-deeplink, nudge-conv-viva, phi-firewall-canal-no-encriptado, cross-tenant-bloqueado"
+
+technical_gates:
+  mutation:
+    # HARD en superficies mutation-críticas; advisory el resto (degrade si tool falta)
+    hard_surfaces:
+      - vitalia/backend/src/modules/vitalia/scheduling/application/services/create_appointment_service.py  # slot marking + hold commit
+      - vitalia/backend/src/modules/vitalia/scheduling/application/services/scheduling_hold_service.py       # hold-TTL state machine
+      - vitalia/backend/src/modules/vitalia/scheduling/application/services/hold_expiry_sweep_service.py      # sweep
+      - vitalia/backend/src/modules/vitalia/connections/telegram/api/router.py                               # secret gate + dedup
+      - vitalia/backend/src/modules/vitalia/sales_agent/application/services/operator_instruction_service.py  # audit/glass-box
+    advisory_surfaces:
+      - vitalia/frontend/src/features/adrian/   # FE composer
+    degrade_advisory_if_tool_missing: true
+  schemathesis: { enabled: true, targets: ["telegram webhook", "set-instruction endpoint"] }

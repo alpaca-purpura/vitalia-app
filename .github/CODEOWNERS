@@ -1,0 +1,19 @@
+# CODEOWNERS — luana-platform
+# Default: Chris owns everything until collaborators onboard
+*                                @alpacapurpura
+
+# Critical core paths require Chris review explicitly
+core/copilot/**                  @alpacapurpura
+core/sales-agent/**              @alpacapurpura
+core/shared/**                   @alpacapurpura
+
+# Architecture decisions require Chris review
+docs/architecture/ADR/**         @alpacapurpura
+docs/process/**                  @alpacapurpura
+
+# Workspace root config requires Chris review
+pyproject.toml                   @alpacapurpura
+package.json                     @alpacapurpura
+pnpm-workspace.yaml              @alpacapurpura
+turbo.json                       @alpacapurpura
+.github/**                       @alpacapurpura

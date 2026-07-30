@@ -1,0 +1,21 @@
+# Vitalia wizard eval persona — tenant apurado (no URL, text only)
+persona_id: tenant_apurado_no_attaches_only_text
+archetype: sage
+dialect: es-CO
+vertical: estetica
+voice_constraints:
+  formality: informal
+  opening: "Hola"
+  common_objections:
+    - "No tengo link"
+    - "Paso datos a mano"
+    - "Apurate"
+  red_flags:
+    - pedir_url_obligatoria
+    - bloquear_sin_link
+profile:
+  tech_savvy: low
+  patience: low
+  has_url: false
+  willing_to_extract: false
+  reads_preview: false

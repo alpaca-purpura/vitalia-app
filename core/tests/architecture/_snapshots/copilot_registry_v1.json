@@ -1,0 +1,236 @@
+{
+  "rationale": "D-T1 registry contracts FROZEN at Story 6 lift moment. Story 8 EP-1..EP-5 SDK introduction is the next allowed bump occasion.",
+  "registries": {
+    "extraction_domain": {
+      "classes": {
+        "ExtractionDomainConfig": {
+          "bases": [
+            "object"
+          ],
+          "dataclass_fields": [
+            "domain",
+            "persister_key",
+            "response_value_kind",
+            "template_name"
+          ],
+          "methods": [
+            "domain",
+            "persister_key",
+            "response_value_kind",
+            "template_name"
+          ],
+          "name": "ExtractionDomainConfig"
+        }
+      },
+      "functions": {
+        "get_extraction_config": "(domain: 'str') -> 'ExtractionDomainConfig | None'",
+        "supported_domains": "() -> 'tuple[str, ...]'"
+      },
+      "module": "luana_core_copilot.domain.extraction_domain_registry",
+      "public_names": [
+        "ExtractionDomainConfig",
+        "annotations",
+        "get_extraction_config",
+        "supported_domains"
+      ],
+      "top_level_constants_types": {
+        "annotations": "_Feature"
+      }
+    },
+    "module": {
+      "classes": {
+        "ModuleDescriptor": {
+          "bases": [
+            "object"
+          ],
+          "dataclass_fields": [
+            "description",
+            "keywords",
+            "label",
+            "model_class",
+            "module_id",
+            "read_fn",
+            "repo_factory",
+            "route_prefix"
+          ],
+          "methods": [
+            "model_class",
+            "read_fn",
+            "repo_factory"
+          ],
+          "name": "ModuleDescriptor"
+        }
+      },
+      "functions": {
+        "get_module_registry": "() -> 'dict[str, ModuleDescriptor]'",
+        "reset_module_registry_cache": "() -> 'None'"
+      },
+      "module": "luana_core_copilot.domain.module_registry",
+      "public_names": [
+        "ModuleDescriptor",
+        "annotations",
+        "functools",
+        "get_module_registry",
+        "reset_module_registry_cache"
+      ],
+      "top_level_constants_types": {
+        "annotations": "_Feature",
+        "functools": "module"
+      }
+    },
+    "suggestions": {
+      "classes": {},
+      "functions": {
+        "get_default_engine": "() -> 'SuggestionEngine'",
+        "register_provider": "(provider: 'SuggestionProvider') -> 'None'"
+      },
+      "module": "luana_core_copilot.application.suggestions.registry",
+      "public_names": [
+        "TYPE_CHECKING",
+        "annotations",
+        "get_default_engine",
+        "register_provider"
+      ],
+      "top_level_constants_types": {
+        "TYPE_CHECKING": "bool",
+        "annotations": "_Feature"
+      }
+    },
+    "tools": {
+      "classes": {
+        "ToolGroupMeta": {
+          "bases": [
+            "object"
+          ],
+          "dataclass_fields": [
+            "available_channels",
+            "name"
+          ],
+          "methods": [
+            "available_channels",
+            "name"
+          ],
+          "name": "ToolGroupMeta"
+        },
+        "ToolNameCollisionError": {
+          "bases": [
+            "RuntimeError"
+          ],
+          "methods": [
+            "add_note",
+            "args",
+            "with_traceback"
+          ],
+          "name": "ToolNameCollisionError"
+        }
+      },
+      "functions": {
+        "get_all_tools": "() -> list",
+        "get_tool_names_for_route": "(route: str | None) -> list[str]",
+        "get_tools_for_context": "(context: dict | None, channel: str = 'web') -> list",
+        "get_tools_for_route": "(route: str | None) -> list",
+        "is_group_available_in_channel": "(group_name: str, channel: str) -> bool"
+      },
+      "module": "luana_core_copilot.application.tools.registry",
+      "public_names": [
+        "ALWAYS_AVAILABLE_GROUPS",
+        "ANALYTICS_TOOLS",
+        "ASSETS_TOOLS",
+        "AWARENESS_TOOLS",
+        "CONNECTIONS_TOOLS",
+        "CRM_TOOLS",
+        "DOCUMENT_TOOLS",
+        "EXTRACTION_TOOLS",
+        "GUIDED_TOOLS",
+        "KNOWLEDGE_TOOLS",
+        "LANDING_TOOLS",
+        "MODULE_TOOLS",
+        "MUTATION_TOOLS",
+        "NAVIGATION_TOOLS",
+        "OFFER_LADDER_TOOLS",
+        "OFFER_SECTION_TOOLS",
+        "PROCEDURE_TOOLS",
+        "ROUTE_TOOL_MAP",
+        "SALES_AGENT_TOOLS",
+        "SHARED_TOOLS",
+        "TOOL_GROUPS",
+        "TOOL_GROUP_META",
+        "ToolGroupMeta",
+        "ToolNameCollisionError",
+        "ask_tenant_data",
+        "fetch_url",
+        "format_for_channel",
+        "get_all_tools",
+        "get_tool_names_for_route",
+        "get_tools_for_context",
+        "get_tools_for_route",
+        "is_group_available_in_channel",
+        "pin_to_memory"
+      ],
+      "top_level_constants_types": {
+        "ALWAYS_AVAILABLE_GROUPS": "tuple",
+        "ANALYTICS_TOOLS": "list",
+        "ASSETS_TOOLS": "list",
+        "AWARENESS_TOOLS": "list",
+        "CONNECTIONS_TOOLS": "list",
+        "CRM_TOOLS": "list",
+        "DOCUMENT_TOOLS": "list",
+        "EXTRACTION_TOOLS": "list",
+        "GUIDED_TOOLS": "list",
+        "KNOWLEDGE_TOOLS": "list",
+        "LANDING_TOOLS": "list",
+        "MODULE_TOOLS": "list",
+        "MUTATION_TOOLS": "list",
+        "NAVIGATION_TOOLS": "list",
+        "OFFER_LADDER_TOOLS": "list",
+        "OFFER_SECTION_TOOLS": "list",
+        "PROCEDURE_TOOLS": "list",
+        "ROUTE_TOOL_MAP": "dict",
+        "SALES_AGENT_TOOLS": "list",
+        "SHARED_TOOLS": "list",
+        "TOOL_GROUPS": "dict",
+        "TOOL_GROUP_META": "dict",
+        "ask_tenant_data": "StructuredTool",
+        "fetch_url": "StructuredTool",
+        "format_for_channel": "StructuredTool",
+        "pin_to_memory": "StructuredTool"
+      }
+    },
+    "workflows": {
+      "classes": {
+        "WorkflowRegistryError": {
+          "bases": [
+            "RuntimeError"
+          ],
+          "methods": [
+            "add_note",
+            "args",
+            "with_traceback"
+          ],
+          "name": "WorkflowRegistryError"
+        }
+      },
+      "functions": {
+        "collect_workflows": "(providers: 'Mapping[str, CopilotProvider]') -> 'dict[str, Workflow]'"
+      },
+      "module": "luana_core_copilot.application.workflows.registry",
+      "public_names": [
+        "TYPE_CHECKING",
+        "WorkflowRegistryError",
+        "annotations",
+        "collect_workflows",
+        "logger",
+        "structlog"
+      ],
+      "top_level_constants_types": {
+        "TYPE_CHECKING": "bool",
+        "annotations": "_Feature",
+        "logger": "BoundLoggerLazyProxy",
+        "structlog": "module"
+      }
+    }
+  },
+  "schema_version": 1,
+  "story": "luana-copilot-engine",
+  "ticket": "T-20"
+}

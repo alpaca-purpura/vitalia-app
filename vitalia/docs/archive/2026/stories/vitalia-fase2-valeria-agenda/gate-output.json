@@ -1,0 +1,47 @@
+{
+  "schema_version": "1.0",
+  "pr_folder": "/home/chalreme/Proyectos/luana-vitalia/vitalia/docs/product/stories/vitalia-fase2-valeria-agenda/",
+  "brand": "vitalia",
+  "story_id": "vitalia-fase2-valeria-agenda",
+  "ticket": null,
+  "iter": 3,
+  "command": "test-vitalia",
+  "command_alias": "test-vitalia",
+  "started_at": "2026-05-27T01:15:00Z",
+  "finished_at": "2026-05-27T01:25:00Z",
+  "duration_ms": 600000,
+  "exit_code": 0,
+  "raw_log_path": "/home/chalreme/Proyectos/luana-vitalia/vitalia/docs/product/stories/vitalia-fase2-valeria-agenda/gate-logs/iter-3-test-vitalia-20260527T011500Z.log",
+  "gates": [
+    {
+      "name": "fe_typecheck_vitalia",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": []
+    },
+    {
+      "name": "fe_eslint_valeria",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": []
+    },
+    {
+      "name": "fe_vitest_valeria",
+      "status": "PASS",
+      "errors_count": 273,
+      "first_5_errors": []
+    },
+    {
+      "name": "be_arch_fitness",
+      "status": "PASS",
+      "errors_count": 324,
+      "first_5_errors": []
+    }
+  ],
+  "overall": {
+    "any_fail": false,
+    "fail_gate_names": [],
+    "summary": "All 4 gates PASSED: fe_typecheck, fe_eslint_valeria, fe_vitest_valeria (273 tests GREEN), be_arch_fitness (324 tests GREEN). Post-commit 2d5a2b23 (W4 fix) audit iteration 3 completed successfully."
+  },
+  "notes": "vitalia-fase2-valeria-agenda iter 3 final audit: FE typecheck clean, FE eslint clean, FE vitest 19 test files / 273 tests GREEN (warnings logged: telemetry fire-and-forget, Dialog Description hints, react-window key warnings — non-blocking), BE arch fitness 324 tests GREEN. Ready for merge-stage auditor handoff."
+}

@@ -1,0 +1,190 @@
+# F1-S3 vitalia-fase1-tenant-switcher — validators (5 categorías ★ v4.1)
+#
+# Cada validator: must_pass=true. Comando shell EJECUTABLE (cd + comando exacto).
+# ZERO Opus en build (FE no-agentic puro).
+#
+# Categorías v4.1:
+#   1. non_functional  — typecheck, lint, unit tests
+#   2. functional      — E2E Playwright specs (1 per scenario)
+#   3. visual          — Playwright visual goldens (snapshot diff)
+#   4. agentic_eval    — N/A (declarar razón explícita)
+#   5. architectural   — FSD boundaries + no-Clerk-Orgs + no-cross-brand ratchet
+
+story_id: vitalia-fase1-tenant-switcher
+brand: vitalia
+phase: fase-1
+last_modified: 2026-05-22
+architect_iter: 1
+
+validators:
+
+  # ──────────────────────────────────────────────────────────────
+  # § 1 — NON-FUNCTIONAL
+  # ──────────────────────────────────────────────────────────────
+  non_functional:
+
+    - id: val-fe-tsc
+      description: "TypeScript strict check (no any, no implicit, FSD boundaries respect)"
+      command: "cd vitalia/frontend && npx tsc --noEmit"
+      must_pass: true
+
+    - id: val-fe-lint
+      description: "ESLint cache scoped a archivos F1-S3 + base shell-organism"
+      command: "cd vitalia/frontend && npx eslint src/components/shared/shell-organism src/stores src/hooks src/lib/tenant-palette.ts src/lib/__tests__/tenant-palette.test.ts --cache --cache-location .eslintcache"
+      must_pass: true
+
+    - id: val-fe-vitest-unit
+      description: "Vitest unit tests: palette + badge + option + switcher + store"
+      command: "cd vitalia/frontend && npx vitest run src/components/shared/shell-organism src/stores/__tests__/tenant-store.test.ts src/lib/__tests__/tenant-palette.test.ts --reporter=default --coverage"
+      must_pass: true
+
+  # ──────────────────────────────────────────────────────────────
+  # § 2 — FUNCTIONAL (E2E Playwright scenarios)
+  # ──────────────────────────────────────────────────────────────
+  functional:
+
+    - id: val-fe-e2e-happy
+      description: "Scenario 1 — happy switch + hard redirect path preservation"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test regression/vitalia-fase1-tenant-switcher/happy-switch.spec.ts"
+      must_pass: true
+
+    - id: val-fe-e2e-concurrent-clicks
+      description: "Scenario 3 — concurrent double-click <150ms produces single navigation"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test regression/vitalia-fase1-tenant-switcher/concurrent-clicks.spec.ts"
+      must_pass: true
+
+    - id: val-fe-e2e-adversarial
+      description: "Scenario 4 — adversarial cross-tenant URL manipulation → 403 + rollback"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test regression/vitalia-fase1-tenant-switcher/adversarial-cross-tenant.spec.ts"
+      must_pass: true
+
+    - id: val-fe-e2e-race-multi-tab
+      description: "Scenario 5 — race localStorage multi-tab last-write-wins no corruption"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test regression/vitalia-fase1-tenant-switcher/race-multi-tab.spec.ts"
+      must_pass: true
+
+    - id: val-fe-e2e-concurrent-users
+      description: "Scenario 6 — user A signOut → user B sees only own tenants (store cleared)"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test regression/vitalia-fase1-tenant-switcher/concurrent-users.spec.ts"
+      must_pass: true
+
+    - id: val-fe-e2e-network-failure
+      description: "Scenario 7 — /api/tenants 504 → Alert + Reintentar refetches"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test regression/vitalia-fase1-tenant-switcher/network-failure.spec.ts"
+      must_pass: true
+
+    - id: val-fe-e2e-empty-state
+      description: "Scenario 8 — 0 tenants → trigger absent + banner visible"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test regression/vitalia-fase1-tenant-switcher/empty-state.spec.ts"
+      must_pass: true
+
+    - id: val-fe-e2e-large-dataset
+      description: "Scenario 9 — 12 tenants scroll vertical + scroll-into-view + <100ms render"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test regression/vitalia-fase1-tenant-switcher/large-dataset.spec.ts"
+      must_pass: true
+
+    - id: val-fe-e2e-a11y-keyboard
+      description: "Scenario 10 — keyboard nav + axe wcag2aa pass"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test regression/vitalia-fase1-tenant-switcher/a11y-keyboard.spec.ts"
+      must_pass: true
+
+    - id: val-fe-e2e-i18n-spanish-neutro
+      description: "Scenario 11 — no voseo regex match across all rendered strings"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test regression/vitalia-fase1-tenant-switcher/i18n-spanish-neutro.spec.ts"
+      must_pass: true
+
+    - id: val-fe-e2e-single-tenant
+      description: "Scenario 12 — single tenant edge: 1 row + 2 footer actions + click no-op"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test regression/vitalia-fase1-tenant-switcher/single-tenant.spec.ts"
+      must_pass: true
+
+  # ──────────────────────────────────────────────────────────────
+  # § 3 — VISUAL GOLDENS (Playwright snapshot)
+  # ──────────────────────────────────────────────────────────────
+  visual:
+
+    - id: val-visual-closed-light
+      description: "Visual golden: TenantSwitcher closed state, light theme"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test regression/vitalia-fase1-tenant-switcher/visual-closed-light.spec.ts --update-snapshots=missing"
+      must_pass: true
+
+    - id: val-visual-closed-dark
+      description: "Visual golden: TenantSwitcher closed state, dark theme"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test regression/vitalia-fase1-tenant-switcher/visual-closed-dark.spec.ts --update-snapshots=missing"
+      must_pass: true
+
+    - id: val-visual-open-light
+      description: "Visual golden: TenantSwitcher open w/ 3 tenants, light theme"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test regression/vitalia-fase1-tenant-switcher/visual-open-light.spec.ts --update-snapshots=missing"
+      must_pass: true
+
+    - id: val-visual-open-dark
+      description: "Visual golden: TenantSwitcher open w/ 3 tenants, dark theme"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test regression/vitalia-fase1-tenant-switcher/visual-open-dark.spec.ts --update-snapshots=missing"
+      must_pass: true
+
+    - id: val-visual-open-loading
+      description: "Visual golden: open state with loading skeleton (3 rows)"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test regression/vitalia-fase1-tenant-switcher/visual-open-loading.spec.ts --update-snapshots=missing"
+      must_pass: true
+
+    - id: val-visual-open-error
+      description: "Visual golden: open state with Alert error + Reintentar button"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test regression/vitalia-fase1-tenant-switcher/visual-open-error.spec.ts --update-snapshots=missing"
+      must_pass: true
+
+    - id: val-visual-open-single
+      description: "Visual golden: open state single-tenant edge (1 row + Separator + 2 actions)"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test regression/vitalia-fase1-tenant-switcher/visual-open-single-tenant.spec.ts --update-snapshots=missing"
+      must_pass: true
+
+    - id: val-visual-open-12
+      description: "Visual golden: open state with 12 tenants (large_dataset Scenario 9)"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test regression/vitalia-fase1-tenant-switcher/visual-open-12-tenants.spec.ts --update-snapshots=missing"
+      must_pass: true
+
+  # ──────────────────────────────────────────────────────────────
+  # § 4 — AGENTIC EVALS
+  # ──────────────────────────────────────────────────────────────
+  agentic_eval:
+    not_applicable_reason: |
+      F1-S3 es FE shell chrome puro. NO LangGraph, NO LangChain, NO LLM call, NO copilot tool,
+      NO sales_agent tool, NO prompt cache, NO eval goldens. Toda interacción es DOM event +
+      Zustand mutation + window.location.href hard redirect. No requiere agentic_eval.
+
+  # ──────────────────────────────────────────────────────────────
+  # § 5 — ARCHITECTURAL VALIDATION (ratchet shrink-only)
+  # ──────────────────────────────────────────────────────────────
+  architectural_validation:
+
+    - id: val-arch-fsd
+      description: "FSD-Lite boundaries: shell-organism imports válidos (no features/, no cross-brand)"
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/ --reporter=default"
+      must_pass: true
+
+    - id: val-arch-no-clerk-orgs
+      description: "MEMORY no-clerk-organizations enforce: NO useOrganization, NO orgId, NO OrganizationSwitcher en src/ (delegated to arch test with allowlist)"
+      command: 'cd vitalia/frontend && npx vitest run src/__tests__/architecture/test-no-clerk-organizations.test.ts --reporter=default'
+      must_pass: true
+
+    - id: val-arch-no-cross-brand
+      description: "Cross-brand mirror prevention: NO imports from nicolify|comunify|lupulo en shell-organism"
+      command: 'cd vitalia/frontend && if grep -rE "from [''\""]\.\./\.\./\.\./\.\./(nicolify|comunify|lupulo)|from [''\""].*?(nicolify|comunify|lupulo)/" src/components/shared/shell-organism/ src/stores/tenant-store.ts src/hooks/useTenants.ts src/lib/tenant-palette.ts; then echo "FOUND cross-brand import - PROHIBIDO per anti-duplication.md" && exit 1; else exit 0; fi'
+      must_pass: true
+
+    - id: val-arch-no-phi-leak
+      description: "HIPAA-lite scope declaration check: NO PHI fields references en F1-S3 surfaces (chrome UI puro)"
+      command: 'cd vitalia/frontend && if grep -rE "patient_name|patient\.dni|diagnosis|treatment|medication|lab_results|medical_notes|vital_signs" src/components/shared/shell-organism/ src/stores/tenant-store.ts src/hooks/useTenants.ts src/lib/tenant-palette.ts; then echo "FOUND PHI field reference - F1-S3 declarado no-PHI-scope" && exit 1; else exit 0; fi'
+      must_pass: true
+
+    - id: val-arch-spanish-neutro
+      description: "Spanish neutro: no voseo en strings UI (excluye magic-comment files)"
+      command: 'cd vitalia/frontend && if grep -rE "(^|[^a-zA-Z])(vos|sos|ten[eé]s|pod[eé]s|quer[eé]s|hac[eé]s|dec[ií]s|mir[aá]|dej[aá]|dale|che|fijate)([^a-zA-Z]|$)" src/components/shared/shell-organism/ src/stores/tenant-store.ts src/hooks/useTenants.ts src/lib/tenant-palette.ts --include="*.tsx" --include="*.ts" | grep -v "voseo-allowed"; then echo "FOUND voseo en strings UI - PROHIBIDO per spanish-text.md" && exit 1; else exit 0; fi'
+      must_pass: true
+
+# ──────────────────────────────────────────────────────────────────
+# Summary
+# ──────────────────────────────────────────────────────────────────
+# Total: 3 non_functional + 11 functional E2E + 8 visual goldens + 5 architectural = 27 validators
+# agentic_eval: declared N/A with explicit reason
+# Coverage: 22 ACs (01-spec § 15) → 27 validators · 12 scenarios (01-spec § 4) → 12 test surfaces (11 E2E + 1 unit-only Scenario 2)

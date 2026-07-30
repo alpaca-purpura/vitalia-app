@@ -1,0 +1,216 @@
+story_id: vitalia-shell-core-hardening
+brand: vitalia
+arch_version: 1
+architecture_pattern: ADR-vitalia-004
+
+# ── DoD #37 — naturaleza de verificación (top-level, keyea los gates) ──
+verification_nature: funcional          # chrome user-reachable → anti-burbuja + business-rule coverage + live-verify
+demo_required: true                     # G chris_verify.signoff (autonomous: corre sin pausa pero demo Chris sigue obligatorio post-build)
+
+dev_app_verified:
+  required: true                        # gate #37 HARD — ninguna parte llega a done sin ejercer LIVE + dod_evidence
+  env: "make dev-app-vitalia → dev-app.vitalialat.com (Chrome DevTools MCP) | localhost:3002 fallback"
+  surfaces_to_exercise:
+    - "toggle dark en CADA sub-tab shipped → observar computed colors oscuros (no mitad clara)"
+    - "soft-nav board→recuperar + loop cross-tab ×15 → montaje + consola limpia"
+    - "colapsar Valeria → tira-avatar → clic avatar reabre (write a localStorage observado)"
+    - "abrir historial → empuja 260 → cerrar revierte; '+' archiva conv (write store observado)"
+    - "N3 staff: directorio→workspace→back (EntityWorkspaceLayout de @luana/ui-kit montado)"
+    - "resize splitter + reload → preferencia persiste (no clobber SSR)"
+
+runtime_error_gate:
+  fixture: "vitalia/frontend/e2e/fixtures/base.ts"   # pageerror/console-error/api≥400/Next overlay
+  enforce: "TODOS los specs importan base.ts; NUNCA @playwright/test directo"
+
+# ─────────────────────────────────────────────────────────────────────
+# 5 categorías de validación
+# ─────────────────────────────────────────────────────────────────────
+categories:
+
+  # 1 ── Static / type / lint (técnica) ──────────────────────────────
+  static:
+    cmds:
+      - "cd vitalia/frontend && npx tsc --noEmit"
+      - "cd vitalia/frontend && npx eslint src/ --cache"
+      - "cd vitalia/frontend && npx eslint src/ --cache --rule 'no-arbitrary-value: error' || true"  # advisory si la regla no está activa
+    must_pass: true
+    native_only: true
+
+  # 2 ── Architecture fitness (técnica) ──────────────────────────────
+  architecture:
+    cmds:
+      - "cd vitalia/frontend && npx vitest run src/__tests__/architecture/"
+    checks:
+      - "test-no-cross-brand-shell-mirror: allowlist ENCOGE al retirar EntitySubNavBar brand-local (shrink-only OK; NO crecer)"
+      - "test-no-clerk-organizations: verde (shell no introduce org)"
+      - "FSD boundaries: import de @luana/ui-kit permitido (cross-brand vía @luana/*)"
+      - "grep shellMode / ShellModeToggle = 0 en vitalia/frontend/src (AC-1)"
+      - "grep color hardcodeado (#hex/rgb()/bg-white/bg-[#]) en superficies shipped = 0 (AC-12, post token-audit)"
+      - "frozen-kpi-badge usa next/link, NO <a href> hard-nav (AC-13)"
+    ui_kit_if_touched:
+      - "cd core/@luana/ui-kit && pnpm --filter @luana/ui-kit typecheck"
+      - "cd core/@luana/ui-kit && pnpm --filter @luana/ui-kit test"
+      - "downstream R3: re-correr vitest+e2e vitalia tras tocar ui-kit (auditor-downstream)"
+    must_pass: true
+    native_only: true
+
+  # 3 ── Unit / component (Vitest) ───────────────────────────────────
+  unit:
+    cmds:
+      - "cd vitalia/frontend && npx vitest run src/components/shared/shell-organism/ src/stores/"
+    coverage_threshold: 20            # per-brand FE
+    must_pass: true
+    native_only: true
+
+  # 4 ── Functional E2E (Playwright, real-backend, base.ts) ──────────
+  e2e_functional:
+    project: smoke + regression
+    base_url: "http://localhost:3002"
+    cmds:
+      - "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/vitalia-fase1-shell-layout-5050/ --project=smoke"
+      - "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/shell-core-hardening/ --project=smoke"
+    must_pass: true
+    native_only: true
+    notes: "NUNCA make e2e* (Docker OOM). Specs importan base.ts. SC-20/21/22 + regression cross-tab = real-backend (no mockear el surface bajo prueba)."
+
+  # 5 ── Accessibility (axe, AMBOS temas) ────────────────────────────
+  a11y:
+    cmds:
+      - "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test --project=a11y --grep shell"
+    ruleset: wcag2aa
+    checks:
+      - "0 violations en light Y dark (SC-16 + SC-20 contraste dark ≥4.5:1)"
+      - "tira-avatar / '+' / historial / colapsar focusables con aria-label"
+      - "EntitySubNavBar tablist roving tabindex + flechas"
+    must_pass: true
+    native_only: true
+
+# ─────────────────────────────────────────────────────────────────────
+# technical_gates (opt-in por naturaleza — DoD §2)
+# ─────────────────────────────────────────────────────────────────────
+technical_gates:
+  schemathesis: { enabled: false, reason: "sin endpoints nuevos (FE-only)" }
+  hypothesis: { enabled: false, reason: "sin invariantes BE" }
+  mutation_gate:
+    enabled: true
+    tool: stryker                     # FE
+    scope: "líneas NUEVAS del shell-store máquina nueva + ValeriaCollapsedStrip"
+    rule: "100% mutantes muertos sobre líneas nuevas; survivor heredado → CIL L4; DEGRADA advisory si Stryker falta (no rompe ci-parity)"
+
+# ─────────────────────────────────────────────────────────────────────
+# business_rules — gherkin @rule coverage matrix (funcional)
+# ─────────────────────────────────────────────────────────────────────
+business_rules:
+  # backbone (heredadas verbatim, firmadas)
+  - { id: RN-1,  rule: "shell siempre agéntico, sin modo web", covered_by: [SC-2] }
+  - { id: RN-2,  rule: "switcher al extremo derecho del topbar", covered_by: [SC-3] }
+  - { id: RN-3,  rule: "default fresh = chat 30/70 historial cerrado", covered_by: [SC-1] }
+  - { id: RN-4,  rule: "split resizable; default 30/70 no pisa preferencia", covered_by: [SC-4, SC-18] }
+  - { id: RN-5,  rule: "colapsar cierra historial; reabrir no restaura", covered_by: [SC-5] }
+  - { id: RN-6,  rule: "abrir historial desde A abre Valeria", covered_by: [SC-7] }
+  - { id: RN-7,  rule: "historial empuja 260px fijo, chat resizable", covered_by: [SC-6, SC-14] }
+  - { id: RN-8,  rule: "clamp 320 en [1024,1280); sin rail 60", covered_by: [SC-9] }
+  - { id: RN-9,  rule: "botón colapsar propio visible", covered_by: [SC-5] }
+  - { id: RN-10, rule: "N3 = EntityWorkspaceLayout (consume @luana/ui-kit)", covered_by: [SC-11, SC-12] }
+  - { id: RN-11, rule: "persist SSR-safe; historial no persiste abierto", covered_by: [SC-18] }
+  - { id: RN-12, rule: "reabrir por avatar atractivo", covered_by: [SC-5, SC-16] }
+  - { id: RN-13, rule: "+ nueva conversación archiva la actual", covered_by: [SC-8, SC-13] }
+  # ★ umbrella
+  - { id: RN-14, rule: "toda nav blanda interna monta sin colgar; band-aid hard-nav revertido", covered_by: [SC-21] }
+  - { id: RN-15, rule: "todo color user-facing del shell+features tiene dark (token, no hardcoded)", covered_by: [SC-20] }
+  - { id: RN-16, rule: "drag inmediato post-carga respeta clamps + persistencia", covered_by: [SC-22] }
+
+# ─────────────────────────────────────────────────────────────────────
+# test_construction_plan (TDD RED-first · creation_order)
+# ─────────────────────────────────────────────────────────────────────
+test_construction_plan:
+  playwright_required: true
+
+  creation_order:
+    - "1. Vitest RED: shell-store máquina nueva (transiciones closed↔chat, historyOpen aditivo, migrate legacy, no-clobber)"
+    - "2. Vitest RED: ValeriaCollapsedStrip (avatar clickable reabre) + ValeriaHistory (260 empuja) + TopBarGlobal (orden cluster derecho) + useViewportGuard (clamp/drawer)"
+    - "3. Implement máquina + componentes (GREEN)"
+    - "4. Playwright RED→GREEN: SC-1..19 backbone (real-backend, base.ts)"
+    - "5. Playwright RED→GREEN: SC-20 dark per-subtab (computed + axe dark)"
+    - "6. Playwright RED→GREEN: SC-21 soft-nav loop ×15 + board→recuperar (post revertir band-aid)"
+    - "7. Playwright RED→GREEN: SC-22 race drag inmediato (REACTIVAR resize-and-state.spec.ts test omitido)"
+    - "8. N3 migración: migrar staff+embudo a EntityWorkspaceLayout core → retirar EntitySubNavBar brand-local → SC-11/12 verde"
+    - "9. Dark token-audit: hardcoded→token en shipped subtabs → SC-20 verde + arch grep 0 hardcoded"
+
+  scenario_to_test:
+    SC-1:  "e2e/regression/shell-core-hardening/default-30-70.spec.ts (fresh load mide anchos)"
+    SC-2:  "e2e/regression/shell-core-hardening/no-web-toggle.spec.ts (+ arch grep shellMode=0)"
+    SC-3:  "e2e/regression/shell-core-hardening/topbar-order.spec.ts (DOM order theme<switcher)"
+    SC-4:  "e2e/regression/vitalia-fase1-shell-layout-5050/resize-and-state.spec.ts (drag+reload persiste)"
+    SC-5:  "e2e/regression/shell-core-hardening/collapse-strip-reopen.spec.ts (colapsar→avatar→reabrir)"
+    SC-6:  "e2e/regression/shell-core-hardening/history-push.spec.ts (260 empuja, agente angosta)"
+    SC-7:  "e2e/regression/shell-core-hardening/history-from-closed.spec.ts (A→C)"
+    SC-8:  "e2e/regression/shell-core-hardening/new-conversation.spec.ts (+ archiva)"
+    SC-9:  "e2e/regression/shell-core-hardening/clamp-320.spec.ts (viewport 1100)"
+    SC-10: "e2e/regression/shell-core-hardening/drawer-tablet.spec.ts (viewport 800)"
+    SC-11: "e2e/regression/shell-core-hardening/n3-list-detail.spec.ts (staff+embudo EntityWorkspaceLayout core) + arch: importan @luana/ui-kit, brand-local retirado"
+    SC-12: "e2e/regression/shell-core-hardening/n3-directory-disabled.spec.ts (leafs disabled sin entidad)"
+    SC-13: "e2e/regression/shell-core-hardening/empty-states.spec.ts"
+    SC-14: "e2e/regression/shell-core-hardening/large-dataset.spec.ts (1000 entidades + historial scroll)"
+    SC-15: "e2e/regression/shell-core-hardening/network-failure.spec.ts (5xx → error-state + retry, sin burbuja)"
+    SC-16: "e2e/regression/shell-core-hardening/a11y-keyboard.spec.ts (axe wcag2aa + tab order)"
+    SC-17: "e2e/regression/shell-core-hardening/i18n-neutro.spec.ts (strings sin voseo)"
+    SC-18: "e2e/regression/shell-core-hardening/persist-invalid-noclobber.spec.ts (estado inválido→fallback; reload no clobber)"
+    SC-19: "e2e/regression/shell-core-hardening/regression-cross-tab.spec.ts (lisa/marca+inbox OK con wrapper nuevo EN AMBOS TEMAS — enmienda umbrella)"
+    SC-20: "e2e/regression/shell-core-hardening/dark-per-subtab.spec.ts (toggle dark cada subtab shipped → computed colors + axe dark)"
+    SC-21: "e2e/regression/shell-core-hardening/soft-nav-loop.spec.ts (board→recuperar + loop ×15 cross-tab + chip=next/link)"
+    SC-22: "e2e/regression/vitalia-fase1-shell-layout-5050/resize-and-state.spec.ts (REACTIVAR test omitido + drag inmediato clamps)"
+
+  poms:
+    - "vitalia/frontend/e2e/pages/ShellLayoutPage.ts (existe — extender con: getValeriaOpen, getHistoryOpen, toggleDark, getComputedBg, softNavTo, clickCollapsedAvatar, clickNewConversation)"
+    - "crear EntityWorkspacePage.ts si no existe (staff/embudo N3)"
+
+  fixtures:
+    - "vitalia/frontend/e2e/fixtures/base.ts (anti-burbuja — OBLIGATORIO en todos los specs)"
+    - "auth fixture (Clerk testing token) para specs autenticados"
+    - "tenant seed con ≥1 doctor (staff N3) + ≥1 lead (embudo N3) + conversaciones (historial)"
+
+# ─────────────────────────────────────────────────────────────────────
+# playwright_visual_scope (scope discipline)
+# ─────────────────────────────────────────────────────────────────────
+playwright_visual_scope:
+  story_scope_routes:
+    - "/{tenantId}/lisa/marca"
+    - "/{tenantId}/adrian/inbox"
+    - "/{tenantId}/adrian/embudo"
+    - "/{tenantId}/adrian/embudo/[leadId]/*"
+    - "/{tenantId}/lisa/staff"
+    - "/{tenantId}/lisa/staff/[doctor-id]/*"
+    - "/{tenantId}/mateo/agenda"
+  story_scope_components:
+    - "vitalia/frontend/src/components/shared/shell-organism/**"
+    - "vitalia/frontend/src/stores/shell-store.ts"
+    - "vitalia/frontend/src/app/globals.css"
+    - "vitalia/frontend/src/proxy.ts"
+    - "vitalia/frontend/src/features/lisa/components/staff/workspace/**"
+    - "vitalia/frontend/src/features/adrian/components/embudo/EmbudoMetrics.tsx"
+    - "vitalia/frontend/src/app/[tenantId]/(shell-organism)/{lisa/staff,adrian/embudo}/[entityId]/layout.tsx"
+    - "core/@luana/ui-kit/src/**  (SOLO additivo-mínimo si falta pieza N3; default = consumir)"
+  forbidden_visual_changes:
+    paths:
+      - "vitalia/frontend/src/components/ui/        # Shadcn primitives — re-estilizar impacta TODA la app"
+      - "vitalia/frontend/src/features/*/components/**  EXCEPTO los listados en story_scope (embudo EmbudoMetrics, staff workspace) — el CONTENIDO de sub-tabs NO se re-estiliza (solo color hardcoded→token para dark)"
+      - "nicolify/  (cross-brand — read-only)"
+      - "core/luana-core-*/src/  (Python engine)"
+    reasons:
+      - "Re-estilizar primitives Shadcn rompe toda la app (behavior-fi: estilo del design system, no del mockup)"
+      - "El contenido de las sub-tabs de agente se CONSUME, no se construye (AC-10 regresión cero). Solo color hardcoded→token para dark."
+      - "ui-kit edit no-additivo = lift de chrome = /pm-luana (1-2 sem), NO esta story"
+  if_visual_change_needed_outside_scope:
+    action: "STOP. Documentar en T-{n}-impl-log § Cross-story observed bugs. Escalate /pm-vitalia (scope extension) o /pm-luana (si toca ui-kit no-additivo)."
+  non_egoismo_clause: "Bug REAL en otro feature/ruta no tocada → reportar en T-{n}-impl-log, NO arreglar inline (rompe scope discipline)."
+
+# ─────────────────────────────────────────────────────────────────────
+# regression_guard
+# ─────────────────────────────────────────────────────────────────────
+regression_guard:
+  - "AC-10: sub-tabs done (lisa/marca, adrian/inbox) renderizan OK con wrapper nuevo EN AMBOS TEMAS (SC-19)"
+  - "Embudo board+writes live-verified (developed) NO se rompen por rebase chrome crm (defer_audit: true — auditor post-hardening)"
+  - "agent-colors + logo gradient intactos"
+  - "react-resizable-panels split persiste (no regresión vs baseline 614bfbd5)"
+  - "Sonner Toaster sigue montado (no re-orfanar — fix 29451ef6)"

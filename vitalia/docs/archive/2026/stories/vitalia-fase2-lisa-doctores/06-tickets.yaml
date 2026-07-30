@@ -1,0 +1,643 @@
+# 06-tickets.yaml · vitalia-fase2-lisa-doctores
+# Architect Opus 4.8 · 2026-05-31 · architecture_pattern: ADR-vitalia-004 (full)
+# 11 tickets · 3 groups (doctor CRUD+bio · horarios+scheduling · assets+public) · DAG no cycles
+# Split decision (03-arch D-6): NO split — keep as one story, cohesive DAG.
+story_id: vitalia-fase2-lisa-doctores
+schema_version: v4.1
+total_tickets: 11
+estimated_dev_days: 7-9
+
+tickets:
+
+  - id: T-BE-1
+    title: "Doctor domain + model + migration 036 + DoctorRepository (pgcrypto dual-filter) + CRUD endpoints + main.py wiring"
+    state: pushed
+    group: "G1-doctor-crud"
+    surface: backend
+    deliverables:
+      - "clinics/domain/{doctor.py, bio.py, credential_country.py}"
+      - "clinics/infrastructure/models/doctor_model.py (vitalia_doctors, pgcrypto BYTEA + dni_hash)"
+      - "clinics/infrastructure/repositories/doctor_repository.py (PhiRepositoryBase)"
+      - "clinics/application/ports/doctor_repo_port.py"
+      - "clinics/application/doctor_service.py (create/update/deactivate/list/get + audit sync + telemetry)"
+      - "clinics/application/credential_validator.py (PE/AR/MX/CL)"
+      - "clinics/api/doctors_router.py (GET list masked, POST, GET id, PATCH) + dtos.py MODIFY"
+      - "alembic/versions/036_f2_s8_vitalia_lisa_staff.py (down_revision=035, idempotent — all 3 tables)"
+      - "main.py: include_router(doctors_router, prefix=/api/v1/vitalia/clinics/doctors)"
+      - "tests: test_doctor_repository.py, test_credential_validator.py, test_doctors_api.py, test_doctor_cross_tenant.py, test_doctor_dni_race.py, migration idempotency test"
+    gherkin_coverage: [SC-2, SC-4, SC-5, SC-6, SC-9, SC-3]
+    acceptance:
+      validator_ids: [V-FN-5, V-FN-6, V-NF-1, V-NF-2, V-NF-3, V-NF-5, V-NF-6, V-NF-7, V-ARCH-1, V-ARCH-2, V-ARCH-3, V-ARCH-4, V-ARCH-6]
+    depends_on: []
+    assignment:
+      primary_agent: builder-backend
+      model_preference: sonnet
+      must_load_skills: [backend-expert, tessl__fastapi, tessl__pytest-api-testing]
+      must_load_rules: ["vitalia/.claude/rules/hipaa-lite.md", ".claude/rules/backend-migrations.md", ".claude/rules/tenant-isolation.md", ".claude/rules/backend-ddd.md"]
+      must_load_artifacts: [03-arch.md, 03-arch-be.md, 05-guidelines.md]
+      forbidden_to_touch: ["core/luana-core-*/src/**", "infrastructure/models/doctor_extension_model.py", "scheduling/**"]
+      rationale: "BE CRUD foundation, no agentic, no engine edit — Sonnet. pgcrypto + dual-filter + audit consume shared infra (PhiRepositoryBase, AuditLogRepository, KEKClient, phi_masking)."
+
+  - id: T-BE-2
+    title: "AvailabilityBlock domain + models + AvailabilityProjectionService (dateutil.rrule) + AvailabilityBlockRepository"
+    state: pushed
+    group: "G2-horarios"
+    surface: backend
+    deliverables:
+      - "clinics/domain/availability_block.py (validation recurrence-end-condition-required)"
+      - "clinics/infrastructure/models/{availability_block_model.py, availability_slot_model.py}"
+      - "clinics/infrastructure/repositories/availability_block_repository.py (PhiRepositoryBase)"
+      - "clinics/application/ports/availability_repo_port.py"
+      - "clinics/application/availability_projection_service.py (rrule weekly/biweekly/end_date/occurrences/one-off/open-ended-90d)"
+      - "tests: test_availability_projection.py, test_availability_block_mutable.py (domain + service RED-first)"
+    gherkin_coverage: [SC-1, SC-1b, SC-1d, SC-3b]
+    acceptance:
+      validator_ids: [V-FN-1, V-FN-2, V-FN-4, V-FN-7, V-ARCH-1, V-ARCH-4]
+    depends_on: [T-BE-1]
+    assignment:
+      primary_agent: builder-backend
+      model_preference: sonnet
+      must_load_skills: [backend-expert, tessl__pytest-api-testing]
+      must_load_rules: ["vitalia/.claude/rules/hipaa-lite.md", ".claude/rules/tenant-isolation.md"]
+      must_load_artifacts: [03-arch.md, 03-arch-be.md, 05-guidelines.md]
+      forbidden_to_touch: ["core/luana-core-*/src/**", "core/luana-core-commercial-calendar/**"]
+      rationale: "Recurrence via dateutil.rrule (NOT commercial-calendar — premise corrected D-2). Brand-local projection service, no engine edit — Sonnet."
+
+  - id: T-BE-3
+    title: "Availability blocks endpoints (GET/POST/PATCH/DELETE) + scheduling slot materialization + audit"
+    state: pushed
+    group: "G2-horarios"
+    surface: backend
+    deliverables:
+      - "clinics/api/doctors_router.py: availability-blocks sub-routes (GET/POST/PATCH/DELETE) + DTOs (discriminated by kind)"
+      - "DELETE returns {deleted, preserved_appointments}; reproject future only; preserve confirmed"
+      - "audit doctor.availability_block_created/deleted (preserved_appointments=N)"
+      - "tests: test_availability_blocks_api.py (response_model, RBAC, materialize -> scheduling, delete-preserve)"
+    gherkin_coverage: [SC-1, SC-1b, SC-1c, SC-1d, SC-3b]
+    acceptance:
+      validator_ids: [V-FN-1, V-FN-2, V-FN-3, V-FN-4, V-FN-7, V-ARCH-2, V-NF-7]
+    depends_on: [T-BE-2]
+    assignment:
+      primary_agent: builder-backend
+      model_preference: sonnet
+      must_load_skills: [backend-expert, tessl__fastapi, tessl__pytest-api-testing]
+      must_load_artifacts: [03-arch.md, 03-arch-be.md, 05-guidelines.md]
+      forbidden_to_touch: ["core/luana-core-*/src/**", "scheduling/**"]
+      rationale: "Block endpoints + slot materialization to brand-local table read by scheduling. No engine edit — Sonnet."
+
+  - id: T-BE-4
+    title: "BioGenerationService (extractive, NOT agentic) + generate-bio endpoint"
+    state: pushed
+    group: "G1-doctor-crud"
+    surface: backend
+    deliverables:
+      - "clinics/application/bio_generation_service.py (single-shot LLM via luana_core_llm.router, no-invent guardrail, timeout+fallback)"
+      - "clinics/api/doctors_router.py: POST /{id}/generate-bio -> GenerateBioResponse"
+      - "tests: test_bio_generation_service.py (no-invent from material, fallback empty on LLM fail)"
+    gherkin_coverage: []
+    acceptance:
+      validator_ids: [V-FN-9]
+    depends_on: [T-BE-1]
+    assignment:
+      primary_agent: builder-backend
+      model_preference: sonnet
+      must_load_skills: [backend-expert, brand-expert, tessl__graceful-degradation]
+      must_load_artifacts: [03-arch.md, "03-arch.md § D-4", 05-guidelines.md]
+      forbidden_to_touch: ["core/luana-core-*/src/**", "copilot/**", "sales_agent/**"]
+      rationale: "R23 CONFIRMED N/A (03-arch D-4): deterministic single-shot extractive service in clinics/application, NOT LangGraph/copilot/sales_agent runtime. Sonnet-eligible. Consults brand-expert for voice anchor only."
+
+  - id: T-BE-5
+    title: "Public doctors endpoint (allow-list channel guard) + masking + new arch test"
+    state: pushed
+    group: "G3-public-assets"
+    surface: backend
+    deliverables:
+      - "clinics/application/public_doctor_serializer.py (to_public_dto — allow-list 7 fields)"
+      - "clinics/api/public_doctors_router.py: GET /api/public/clinic/{tenant_slug}/doctors (no auth, visible+active filter)"
+      - "main.py: include_router(public_doctors_router, prefix=/api/public/clinic)"
+      - "tests/architecture/test_public_doctors_allowlist.py (NEW — no PHI fields serializable)"
+      - "tests: test_public_doctors_endpoint.py (visible+active filter, allow-list, masking)"
+    gherkin_coverage: []
+    acceptance:
+      validator_ids: [V-FN-11, V-ARCH-7]
+    depends_on: [T-BE-1]
+    assignment:
+      primary_agent: builder-backend
+      model_preference: sonnet
+      must_load_skills: [backend-expert, tessl__fastapi]
+      must_load_rules: ["vitalia/.claude/rules/hipaa-lite.md"]
+      must_load_artifacts: [03-arch.md, 03-arch-be.md, "01-spec.md § Endpoint publico", 05-guidelines.md]
+      forbidden_to_touch: ["core/luana-core-*/src/**"]
+      rationale: "Public channel-guarded endpoint. Allow-list (not deny-list) + new arch test. No engine edit — Sonnet."
+
+  - id: T-BE-6
+    title: "Assets proxy upload router (consume luana-core-assets, copy nicolify wiring)"
+    state: pushed
+    group: "G3-public-assets"
+    surface: backend
+    deliverables:
+      - "clinics/api/assets_proxy_router.py: POST /api/v1/vitalia/assets/upload (multipart, kind, 10MB + content-type allow-list -> AssetsService.upload_asset)"
+      - "main.py: include_router(assets_proxy_router, prefix=/api/v1/vitalia/assets)"
+      - "tests: test_assets_upload.py (10MB+image/* enforce, returns {key,url}, LocalStorageStrategy swap)"
+    gherkin_coverage: []
+    acceptance:
+      validator_ids: [V-FN-10]
+    depends_on: [T-BE-1]
+    assignment:
+      primary_agent: builder-backend
+      model_preference: sonnet
+      must_load_skills: [backend-expert, tessl__fastapi]
+      must_load_artifacts: [03-arch.md, "03-arch.md § D-3", 05-guidelines.md]
+      forbidden_to_touch: ["core/luana-core-*/src/**", "core/luana-core-assets/**"]
+      rationale: "CONSUME proxy upload (presign doesn't exist in engine, D-3). Copy nicolify main.py wiring. No engine edit — Sonnet. Tests use LocalStorageStrategy (live R2 = Chris manual in T-BE-7)."
+
+  - id: T-BE-7   # state: pushed (doc-only · chris_manual_action pending) 
+    title: "R2 provisioning prep (Chris manual action gate) + env wiring doc"
+    group: "G3-public-assets"
+    surface: backend-ops
+    deliverables:
+      - "Document .env.dev R2_* vars needed (gitignored) in story handoff"
+      - "chris_manual_action: generate R2 S3 creds (Cloudflare R2 -> Manage R2 API Tokens -> S3 credentials) + create bucket vitalia-assets + CORS for FE origin + rotate cfat_ token"
+      - "Code/tests of T-BE-6 proceed mocked; this ticket unblocks live E2E avatar"
+    gherkin_coverage: []
+    acceptance:
+      validator_ids: [V-FN-10]
+    depends_on: [T-BE-6]
+    chris_manual_action: true
+    assignment:
+      primary_agent: builder-backend
+      model_preference: sonnet
+      must_load_skills: [backend-expert]
+      must_load_artifacts: ["03-arch.md § D-3", "05-guidelines.md § R2 provisioning"]
+      forbidden_to_touch: ["core/luana-core-*/src/**", ".env* (committed)"]
+      rationale: "Ops-prep ticket. Real S3 creds = Chris manual (cfat_ is CF API not S3 key). Builder documents env contract; does NOT commit secrets."
+
+  - id: T-FE-1
+    title: "Staff directory: routes + LisaStaffView + StaffDirectoryView + StaffCard + filters + pagination + empty/error/loading + NuevoIntegranteModal + React Query hooks + MSW"
+    state: pushed
+    group: "G1-doctor-crud"
+    surface: frontend
+    deliverables:
+      - "app/.../lisa/staff/page.tsx MODIFY (Server-First, getStaffInitialState) + replace placeholder + ensure staff in AGENT_SUBTABS[lisa]"
+      - "features/lisa/components/staff/{LisaStaffView, StaffDirectoryView, StaffCard, StaffDirectoryHeader, NuevoIntegranteModal, StaffEmptyState, StaffErrorBanner}.tsx"
+      - "features/lisa/api/{staff.ts (RQ hooks), staff-server.ts (SSR)}"
+      - "features/lisa/hooks/use-staff-filters.ts + store/staff-ui-store.ts"
+      - "features/lisa/types/{staff.types.ts, staff-schema.ts (Zod)}"
+      - "mocks/handlers/staff.ts (MSW incl 503 for SC-7)"
+      - "vitest co-located + POM StaffDirectoryPage.ts"
+    gherkin_coverage: [SC-2, SC-7, SC-8, SC-9, SC-3]
+    acceptance:
+      validator_ids: [V-FN-5, V-FN-6, V-FN-8, V-NF-4, V-NF-5, V-VIS-1, V-ARCH-8, V-ARCH-10, V-ARCH-11]
+    depends_on: [T-BE-1]
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: sonnet
+      must_load_skills: [frontend-expert, vitalia-design-system, tessl__react-patterns, tessl__zod, tessl__shadcn-ui, tessl__tailwind, tessl__vitest, tessl__nextjs-app-router-modularization]
+      must_load_rules: [".claude/rules/frontend-fsd.md", ".claude/rules/frontend-visual-fidelity.md", ".claude/rules/spanish-text.md"]
+      must_load_artifacts: [03-arch.md, 03-arch-fe.md, 05-guidelines.md, "mockups/doctores.html"]
+      forbidden_to_touch: ["components/shared/shell-organism/{SubSubTabsBar,Ribbon,SubTabsBar,ValeriaSidebar}.tsx", "app/.../lisa/marca/**", "features/{valeria,adrian,lucas,camila,mateo}/**"]
+      rationale: "FE directory + CRUD, no agentic — Sonnet. Server-First page + RQ/Zustand split per ADR-004. Visual fidelity to mockups/doctores.html."
+
+  - id: T-FE-2
+    state: pushed
+    title: "EntitySubNavBar (N3-dynamic shell-organism component) + StaffWorkspaceShell layout + [doctor-id] routes (perfil/horarios/servicios) + DoctorPerfilView autosave + BioRepoInputs + GeneratedBioSections + AvatarUploader + Dropzone install"
+    group: "G1-doctor-crud"
+    surface: frontend
+    deliverables:
+      - "components/shared/shell-organism/EntitySubNavBar.tsx (+ .test.tsx — a11y roving, enabled/disabled leaves)"
+      - "components/ui/dropzone.tsx (INSTALL diragb/shadcn-dropzone)"
+      - "app/.../lisa/staff/[doctor-id]/{layout.tsx, page.tsx (redirect->perfil), perfil/page.tsx, servicios/page.tsx}"
+      - "features/lisa/components/staff/workspace/{StaffWorkspaceShell, perfil/DoctorPerfilView, perfil/BioRepoInputs, perfil/GeneratedBioSections, servicios/DoctorServiciosView, AvatarUploader}.tsx"
+      - "features/lisa/api/staff.ts: useDoctor, usePatchDoctor (autosave), useGenerateBio, useAvatarUpload"
+      - "hooks/use-autosave.ts (debounce 600ms) + vitest + POM DoctorWorkspacePage.ts"
+    gherkin_coverage: [SC-10]
+    acceptance:
+      validator_ids: [V-FN-9, V-FN-10, V-VIS-2, V-VIS-4, V-ARCH-8, V-ARCH-9, V-ARCH-10, V-ARCH-11]
+    depends_on: [T-FE-1, T-BE-4, T-BE-5, T-BE-6]
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: sonnet
+      must_load_skills: [frontend-expert, vitalia-design-system, tessl__react-patterns, tessl__zod, tessl__shadcn-ui, tessl__tailwind, tessl__vitest]
+      must_load_rules: [".claude/rules/frontend-fsd.md", ".claude/rules/form-runtime-array.md", ".claude/rules/spanish-text.md", "vitalia/.claude/rules/shell-mockup-per-component.md"]
+      must_load_artifacts: [03-arch.md, "03-arch.md § D-1", 03-arch-fe.md, 05-guidelines.md, "mockups/doctores.html"]
+      forbidden_to_touch: ["components/shared/shell-organism/SubSubTabsBar.tsx", "app/.../lisa/marca/**"]
+      rationale: "EntitySubNavBar = NEW sibling of SubSubTabsBar (D-1), NOT a modification. Workspace + autosave perfil + bio repo. Rutas-hoja reales (no Shadcn Tabs). Sonnet."
+
+  - id: T-FE-3
+    title: "Horarios calendar: DoctorHorariosView + AvailabilityCalendar (week grid, drag-to-create, 24h toggle, week nav) + BloquePopover (recurrence) + useAvailabilityBlocks"
+    state: pushed
+    group: "G2-horarios"
+    surface: frontend
+    deliverables:
+      - "app/.../lisa/staff/[doctor-id]/horarios/page.tsx (Server -> client)"
+      - "features/lisa/components/staff/workspace/horarios/{DoctorHorariosView, AvailabilityCalendar, BloquePopover}.tsx"
+      - "Install @dnd-kit/core (drag-to-create) — custom week grid (NOT FullCalendar, see 03-arch-fe Calendar decision)"
+      - "features/lisa/api/staff.ts: useAvailabilityBlocks, useCreateBlock, useUpdateBlock, useDeleteBlock"
+      - "store/staff-ui-store.ts: calendar week state + drag draft"
+      - "vitest + POM AvailabilityCalendarPage.ts"
+    gherkin_coverage: [SC-1, SC-1b, SC-1c, SC-1d, SC-3b]
+    acceptance:
+      validator_ids: [V-FN-1, V-FN-2, V-FN-3, V-FN-4, V-FN-7, V-VIS-3, V-ARCH-8, V-ARCH-9, V-ARCH-11]
+    depends_on: [T-FE-2, T-BE-3]
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: sonnet
+      must_load_skills: [frontend-expert, vitalia-design-system, tessl__react-patterns, tessl__tailwind, tessl__vitest]
+      must_load_rules: [".claude/rules/frontend-fsd.md", ".claude/rules/spanish-text.md", ".claude/rules/master-data.md"]
+      must_load_artifacts: [03-arch.md, "03-arch-fe.md § Calendar decision", 05-guidelines.md, "mockups/doctores.html"]
+      forbidden_to_touch: ["components/shared/shell-organism/SubSubTabsBar.tsx", "app/.../lisa/marca/**"]
+      rationale: "Custom week-grid calendar + @dnd-kit (columna angosta, recurrence popover custom). 24h format, UTC slots, tenant tz display. Sonnet."
+
+  - id: T-E2E
+    state: specs-written
+    title: "Playwright e2e SC-1..SC-11 (real backend writes) + axe wcag2aa (SC-10) + visual goldens (6+1) + i18n credencial multi-locale (SC-11)"
+    group: "cross-cutting"
+    surface: frontend-e2e
+    deliverables:
+      - "vitalia/frontend/e2e/regression/vitalia-fase2-lisa-doctores/{staff-crear-happy, staff-week-nav-oneoff, staff-credencial-invalida, staff-network-failure, staff-i18n-credencial}.spec.ts"
+      - "vitalia/frontend/e2e/shell-organism/staff-*.spec.ts (cross-tenant adversarial, deactivate, delete-block-preserve, empty, large-dataset)"
+      - "axe wcag2aa embedded per screen state (SC-10 keyboard nav + focus trap)"
+      - "visual goldens: __screenshots__/staff/{directorio,perfil,horarios}-{light,dark}.png + servicios-pendiente-light.png"
+      - "Real verification: happy-path writes hit BE:8002 (no backend mock); state_check DB queries from spec"
+    gherkin_coverage: [SC-1, SC-1b, SC-1c, SC-1d, SC-2, SC-3, SC-3b, SC-4, SC-6, SC-7, SC-8, SC-9, SC-10, SC-11]
+    acceptance:
+      validator_ids: [V-FN-1, V-FN-3, V-FN-4, V-FN-5, V-FN-6, V-FN-7, V-FN-8, V-FN-12, V-NF-1, V-NF-3, V-NF-4, V-NF-5, V-VIS-1, V-VIS-2, V-VIS-3, V-VIS-4]
+    depends_on: [T-FE-1, T-FE-2, T-FE-3, T-BE-3, T-BE-5, T-BE-6]
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: sonnet
+      must_load_skills: [playwright-expert, frontend-expert, vitalia-design-system]
+      must_load_rules: [".claude/rules/e2e-testing.md", ".claude/rules/test-design-doctrine.md"]
+      must_load_artifacts: [01-spec.md, 04-validators.yaml, "mockups/doctores.html"]
+      forbidden_to_touch: ["app/.../lisa/marca/**"]
+      rationale: "E2E + visual goldens + a11y. REAL verification (writes ejercidos contra BE real, state_check DB) — no falso verde mockeado. Sonnet."
+
+dag:
+  # G1 doctor-crud foundation
+  T-BE-1: []
+  T-BE-4: [T-BE-1]            # bio-gen
+  T-BE-5: [T-BE-1]            # public endpoint
+  T-BE-6: [T-BE-1]            # assets proxy
+  T-BE-7: [T-BE-6]            # R2 provisioning (Chris manual)
+  T-FE-1: [T-BE-1]            # directory
+  # G2 horarios
+  T-BE-2: [T-BE-1]            # availability domain+service
+  T-BE-3: [T-BE-2]            # availability endpoints
+  T-FE-2: [T-FE-1, T-BE-4, T-BE-5, T-BE-6]   # workspace + EntitySubNavBar + perfil/bio/avatar
+  T-FE-3: [T-FE-2, T-BE-3]   # horarios calendar
+  # cross-cutting
+  T-E2E: [T-FE-1, T-FE-2, T-FE-3, T-BE-3, T-BE-5, T-BE-6]
+  # no cycles. critical path: T-BE-1 -> T-BE-2 -> T-BE-3 -> (T-FE-2 needs T-FE-1+T-BE-4/5/6) -> T-FE-3 -> T-E2E
+
+parallelization_notes: >-
+  After T-BE-1: T-BE-2, T-BE-4, T-BE-5, T-BE-6, T-FE-1 can run in parallel (same module bucket code:clinics
+  serializes BE tickets per M14; FE is separate bucket). Practical autonomous order:
+  T-BE-1 -> [T-BE-2, T-FE-1 parallel] -> [T-BE-3, T-BE-4, T-BE-5, T-BE-6 BE-serial / T-FE-1 done] ->
+  T-FE-2 -> T-FE-3 -> T-E2E. T-BE-7 (Chris manual) runs anytime after T-BE-6, blocks only live-R2 E2E.
+
+# ══════════════════════════════════════════════════════════════════════════════
+# DELTA v3 tickets (D3-A..D3-F) — APPEND · architect-orchestrator (Fable 5) 2026-06-12
+# Source: checkpoint § scope_extension_2026_06_11 (firma_1+firma_2 TRUE) + 03-arch-delta.md
+# NOTE on FULL units: the mandate named T-FULL-bio-docs / T-FULL-pagina-publica /
+#   T-FULL-recurrencia-google as cross-surface units. SPLIT into BE+FE sub-tickets to
+#   honor the HARD ≤8h/ticket cap + one-builder-per-ticket routing. Group label preserves
+#   the unit. Each FE ticket exit-criterion = live-verify dev-app + dod_evidence + demo-script.md
+#   (NEVER "tests verdes").
+# ══════════════════════════════════════════════════════════════════════════════
+delta_v3_total_tickets: 12
+
+delta_v3_tickets:
+
+  - id: T-CORE-picker-slot
+    title: "EXTEND @luana/ui-kit EntitySubNavBar + EntityWorkspaceLayout with optional entityIdentitySlot prop + write promotion proposal (additive, brand-agnostic, back-compat)"
+    state: ready
+    group: "D3A-switcher"
+    surface: core-ui-kit
+    requires_pm_luana_lift: true        # ★ merge GATED by /pm-luana promotion proposal acceptance
+    deliverables:
+      - "docs/promotion-protocol/proposals/2026-06-12-lift-entitysubnavbar-picker-slot.md (aditiva, brand-agnostic, back-compat — redactar como deliverable)"
+      - "core/@luana/ui-kit/src/EntitySubNavBar.tsx: add optional entityIdentitySlot?: React.ReactNode (renders in identity slot when entity!=null; absent → static identity unchanged)"
+      - "core/@luana/ui-kit/src/EntityWorkspaceLayout.tsx: forward entityIdentitySlot verbatim (mirror onAddAffordance forwarding)"
+      - "core/@luana/ui-kit/src/__tests__/{EntitySubNavBar,EntityWorkspaceLayout}.test.tsx: back-compat (absent→static), present→custom node, master→no slot"
+    gherkin_coverage: []
+    acceptance:
+      validator_ids: [V-D3A-CORE]
+    depends_on: []
+    exit_criterion: "core unit suite GREEN + back-compat ratchet (adrian/NewLeadPage + ICPs render unchanged) + promotion proposal redactada. Merge BLOQUEADO hasta /pm-luana lift accept."
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: sonnet
+      must_load_skills: [frontend-expert, vitalia-design-system]
+      must_load_rules: [".claude/rules/frontend-fsd.md", ".claude/rules/anti-duplication.md", "docs/promotion-protocol/README.md"]
+      must_load_artifacts: ["03-arch-delta.md § 2.1", "docs/architecture/luana-platform/design-system-canon.md §6.3"]
+      forbidden_to_touch: ["vitalia/**", "nicolify/**", "comunify/**", "core/luana-core-*/src/**", "core/@luana/ui-kit/src/EntityPicker.tsx (consume as-is)"]
+      rationale: "Additive optional prop on shared @luana/ui-kit (canon §6.3 already mandates EntityPicker composition; current build has static identity = gap). Brand-agnostic → lift gate. NOT a brand build — no vitalia wiring here (that is T-FE-switcher-wire). Sonnet."
+
+  - id: T-FE-switcher-wire
+    title: "D3-A: wire EntityPicker into staff workspace via entityIdentitySlot + page→cursor searchFn adapter + navigate-preserving-leaf + e2e SC-D3A-1..4"
+    state: ready
+    group: "D3A-switcher"
+    surface: frontend
+    deliverables:
+      - "features/lisa/api/staff.ts: doctorPickerSearchFn (page<->cursor adapter over GET /clinics/doctors?q=&page=&page_size=&active=true)"
+      - "features/lisa/components/staff/workspace/StaffWorkspaceShell.tsx: build <EntityPicker value searchFn onChange> + pass as entityIdentitySlot to EntityWorkspaceLayout"
+      - "onPickDoctor: derive current leaf from usePathname → router.push(/{tenantId}/lisa/staff/{newId}/{currentLeaf})"
+      - "vitest (searchFn adapter, leaf-preserve nav) + e2e SC-D3A-1..4 + POM update"
+    gherkin_coverage: [SC-D3A-1, SC-D3A-2, SC-D3A-3, SC-D3A-4]
+    acceptance:
+      validator_ids: [V-D3A-1, V-D3A-2, V-D3A-3, V-D3A-4]
+    depends_on: [T-CORE-picker-slot]
+    exit_criterion: "live-verify dev-app: cambiar doctor desde Horarios de Ana → Horarios de Carlos (hoja preservada, contenido renderiza) + dod_evidence (≥1 nav real + logs GET /doctors?q + efecto) + actualizar demo-script.md. NUNCA 'tests verdes'."
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: sonnet
+      must_load_skills: [frontend-expert, vitalia-design-system, playwright-expert, chrome-devtools-verify]
+      must_load_rules: [".claude/rules/frontend-fsd.md", ".claude/rules/frontend-visual-fidelity.md", ".claude/rules/tenant-isolation.md", ".claude/rules/spanish-text.md"]
+      must_load_artifacts: ["03-arch-delta.md § 2.2", "mockups/doctores.html (EntityPicker en doctoresN3Bar)", "design-system-canon.md §2.4"]
+      forbidden_to_touch: ["core/@luana/ui-kit/**", "components/ui/**", "app/layout.tsx", "features/adrian/**", "app/[tenantId]/(shell-organism)/lisa/marca/**"]
+      rationale: "Brand cabling of the (already-built) EntityPicker via the (T-CORE) slot. No new picker, no client-side full-collection load (RN-D3A-1). Sonnet."
+
+  - id: T-BE-bio-docs
+    title: "D3-B BE: bio_doc kind + vitalia_doctor_bio_files table (migration 040) + register/list/delete/download endpoints + audit + DoctorDetailDTO.bio_files[]"
+    state: ready
+    group: "D3B-bio-docs"
+    surface: backend
+    deliverables:
+      - "clinics/api/assets_proxy_router.py: add 'bio_doc' to _VALID_KINDS (shares PDF/JPG/PNG/DOCX allow-list, 10MB)"
+      - "alembic/versions/040_vitalia_doctor_bio_files.py (idempotent, IF NOT EXISTS, 2 indexes)"
+      - "clinics/{domain/bio_file.py, infrastructure/models/doctor_bio_file_model.py, infrastructure/repositories/doctor_bio_file_repository.py (PhiRepositoryBase dual-filter)}"
+      - "clinics/api/doctors_router.py: POST/GET/DELETE /{doctor_id}/bio-files(+/{file_id}, +/download) + DTOs (BioFileDTO, BioFileRegisterRequest, BioFilesResponse, BioFileDeleteResponse, BioFileDownloadResponse) + audit doctor.bio_file_{added,deleted,downloaded}"
+      - "DoctorDetailDTO EXTEND: bio_files: list[BioFileDTO]"
+      - "tests: test_bio_files_api.py (register/list/delete/download, dual-filter cross-tenant 404, RN-D3B-1 snapshot untouched), migration 040 idempotency"
+    gherkin_coverage: [SC-D3B-1, SC-D3B-2, SC-D3B-4]
+    acceptance:
+      validator_ids: [V-D3B-1, V-D3B-2, V-D3B-4]
+    depends_on: []
+    exit_criterion: "pytest GREEN + arch fitness (phi_dual_filter, response_model, migrations_idempotent) + migration 040 prod-clone test. (BE ticket: efecto verificado via state_check; demo live = en T-FE-bio-docs.)"
+    assignment:
+      primary_agent: builder-backend
+      model_preference: sonnet
+      must_load_skills: [backend-expert]
+      must_load_rules: ["vitalia/.claude/rules/hipaa-lite.md", ".claude/rules/backend-migrations.md", ".claude/rules/tenant-isolation.md", ".claude/rules/backend-ddd.md", ".claude/rules/pii-sanitisation.md"]
+      must_load_artifacts: ["03-arch-delta.md § 3.1", "03-arch-be.md (assets proxy reuse)"]
+      forbidden_to_touch: ["core/luana-core-*/src/**", "core/luana-core-assets/**", "scheduling/**", "infrastructure/models/doctor_extension_model.py"]
+      rationale: "EXTEND assets proxy (new kind) + NEW bio_files table (cleaner than JSONB for DELETE/audit/listing). PhiRepositoryBase dual-filter. No engine edit. Sonnet."
+
+  - id: T-FE-bio-docs
+    title: "D3-B FE: BioRepoInputs rewrite — real upload + list rows (icon/name/size/date/download/delete) + states + canon homologation (atoms, URL Zod, kill inline-emoji autosave)"
+    state: ready
+    group: "D3B-bio-docs"
+    surface: frontend
+    deliverables:
+      - "features/lisa/api/staff.ts: useBioFileUpload (mirror useAvatarUpload), useBioFiles, useDeleteBioFile, useBioFileDownload"
+      - "features/lisa/components/staff/workspace/perfil/BioRepoInputs.tsx rewrite: dropzone real onFilesChange, file rows (icon by content-type + truncated name + size + date + descargar + eliminar+confirm), states (subiendo/error/empty)"
+      - "Canon homologation: Textarea/Button atoms (kill raw <textarea>/<button>), links Zod URL-validated chips, kill inline-emoji autosave (rely on single page FloatingAutosaveIndicator §2.6), card border + agent-lisa header"
+      - "staff.types.ts: DoctorDetail.bioFiles?: BioFile[] {id, filename, sizeBytes, contentType, uploadedAt}"
+      - "vitest co-located + e2e SC-D3B-3 (reject inline), SC-D3B-5 (503 retry)"
+    gherkin_coverage: [SC-D3B-1, SC-D3B-2, SC-D3B-3, SC-D3B-5]
+    acceptance:
+      validator_ids: [V-D3B-1, V-D3B-2, V-D3B-3, V-D3B-5, V-D3B-CANON]
+    depends_on: [T-BE-bio-docs]
+    exit_criterion: "live-verify dev-app: subir PDF real → fila persiste + recargar mantiene + eliminar → desaparece + dod_evidence (≥1 upload+delete real + logs BE POST/DELETE bio-files + filas DB) + actualizar demo-script.md. NUNCA 'tests verdes'."
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: sonnet
+      must_load_skills: [frontend-expert, vitalia-design-system, playwright-expert, chrome-devtools-verify]
+      must_load_rules: [".claude/rules/frontend-fsd.md", ".claude/rules/frontend-visual-fidelity.md", ".claude/rules/spanish-text.md"]
+      must_load_artifacts: ["03-arch-delta.md § 3.2", "mockups/doctores.html", "design-system-canon.md §2.6"]
+      forbidden_to_touch: ["core/@luana/ui-kit/**", "components/ui/** (consume)", "features/adrian/**", "app/[tenantId]/(shell-organism)/lisa/marca/**"]
+      rationale: "BioRepoInputs canon homologation + real upload (mirror useAvatarUpload). Kill NO-OP dropzone + raw atoms + inline-emoji autosave. Sonnet."
+
+  - id: T-BE-occurrences-endpoint
+    title: "D3-C BE: NEW availability-occurrences range endpoint (reuse AvailabilityProjectionService) + 8-case projection battery SC-D3C-1..8 (regression RED first)"
+    state: ready
+    group: "D3C-occurrences-fix"
+    surface: backend
+    deliverables:
+      - "clinics/api/doctors_router.py: GET /{doctor_id}/availability-occurrences?from=&to= -> AvailabilityOccurrencesResponse {occurrences: list[AvailabilityOccurrenceDTO]}"
+      - "AvailabilityOccurrenceDTO {block_id, occurrence_date, start_time, end_time, kind, freq, pattern_summary} (collapse slots → block-level occurrences in range, max 62d)"
+      - "clinics/application/recurrence_summary.py: format_recurrence_summary(block) -> str (shared with D3-F; pattern_summary source SSoT, RN-D3F-1)"
+      - "tests: test_availability_occurrences.py — SC-D3C-1..8 battery (RED FIRST: weekly occurrences=2 → exactly 2 dates; biweekly×3 span 6w; end_date inclusive TZ; open_ended 90d; edit no-reset; overlap; delete-all; TZ midnight)"
+    gherkin_coverage: [SC-D3C-1, SC-D3C-2, SC-D3C-3, SC-D3C-4, SC-D3C-5, SC-D3C-6, SC-D3C-7, SC-D3C-8]
+    acceptance:
+      validator_ids: [V-D3C-1, V-D3C-2, V-D3C-3, V-D3C-4, V-D3C-5, V-D3C-6, V-D3C-7, V-D3C-8]
+    depends_on: []
+    repro_evidence:
+      repro_verified: true
+      reproduced_local: false
+      trace_evidence:
+        source: code-inspection + chris-live-dev-app
+        ref: "AvailabilityCalendar.tsx::recurrentBlockVisibleInWeek L99-115 returns true for occurrences/open_ended; BE rrule(count) CORRECT — checkpoint § scope_extension_2026_06_11 horarios-casuistica-recurrencia"
+    exit_criterion: "RED regression SC-D3C-1 reproduce el off-by-week ANTES de la consume FE → endpoint GREEN + 8-case battery GREEN. mutation HARD sobre projection range lines."
+    assignment:
+      primary_agent: builder-backend
+      model_preference: sonnet
+      must_load_skills: [backend-expert]
+      must_load_rules: ["vitalia/.claude/rules/hipaa-lite.md", ".claude/rules/tenant-isolation.md", ".claude/rules/tdd-mandatory.md", ".claude/rules/hotfix-repro-mandatory.md", ".claude/rules/master-data.md"]
+      must_load_artifacts: ["03-arch-delta.md § 4.3"]
+      forbidden_to_touch: ["core/luana-core-*/src/**", "core/luana-core-commercial-calendar/**", "scheduling/**"]
+      rationale: "Range projection endpoint REUSES AvailabilityProjectionService (no new projection logic). 8-case battery = the casuística mandate. Regression RED first (tdd + hotfix-repro). Sonnet."
+
+  - id: T-FE-occurrences-consume
+    title: "D3-C FE (the FIX): week view consumes occurrences endpoint; DELETE recurrentBlockVisibleInWeek + client-side expansion; regression e2e"
+    state: ready
+    group: "D3C-occurrences-fix"
+    surface: frontend
+    deliverables:
+      - "features/lisa/api/staff.ts: useAvailabilityOccurrences(doctorId, fromIso, toIso)"
+      - "AvailabilityCalendar.tsx: week view renders from BE occurrences (visible [monday,sunday]); DELETE recurrentBlockVisibleInWeek, oneOffBlockVisibleInWeek, blockDayOfWeek, client blocksByDay expansion"
+      - "useAvailabilityBlocks retained ONLY for edit (BloquePopover); paint = occurrences SSoT"
+      - "regression e2e SC-D3C-1 (paint EXACTLY 2 weeks, not indefinite) + SC-D3C-5/6/7 (edit/overlap/delete) + vitest"
+    gherkin_coverage: [SC-D3C-1, SC-D3C-5, SC-D3C-6, SC-D3C-7]
+    acceptance:
+      validator_ids: [V-D3C-1, V-D3C-5, V-D3C-6, V-D3C-7, V-D3C-NODUP]
+    depends_on: [T-BE-occurrences-endpoint]
+    exit_criterion: "live-verify dev-app: bloque weekly occurrences=2 → calendario pinta EXACTAMENTE 2 semanas (no indefinido) + dod_evidence (efecto visual real + logs GET occurrences) + grep recurrentBlockVisibleInWeek=0 + actualizar demo-script.md. NUNCA 'tests verdes'."
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: sonnet
+      must_load_skills: [frontend-expert, vitalia-design-system, playwright-expert, chrome-devtools-verify]
+      must_load_rules: [".claude/rules/frontend-fsd.md", ".claude/rules/tdd-mandatory.md", ".claude/rules/master-data.md", ".claude/rules/spanish-text.md"]
+      must_load_artifacts: ["03-arch-delta.md § 4.4", "01-spec.md § D3-C.1"]
+      forbidden_to_touch: ["core/@luana/ui-kit/**", "components/ui/**", "features/adrian/**", "app/[tenantId]/(shell-organism)/lisa/marca/**"]
+      rationale: "Root cause = FE client-side expansion. Kill recurrentBlockVisibleInWeek, consume BE projection SSoT (4th imagined-contract instance closed). Cero cambio visual del calendario. Sonnet."
+
+  - id: T-FE-vista-mes
+    title: "D3-E FE: month view (toggle Semana|Mes, 6x7 grid, chips '+N más', click-day→week) consuming occurrences endpoint"
+    state: ready
+    group: "D3E-vista-mes"
+    surface: frontend
+    deliverables:
+      - "features/lisa/components/staff/workspace/horarios/{DoctorHorariosView (Semana|Mes toggle), MonthCalendar.tsx (6x7 grid)}"
+      - "consume useAvailabilityOccurrences over visible month range [firstVisibleDay,lastVisibleDay]; chips per day + overflow '+N más'; click day → switch to Semana of that week"
+      - "states: skeleton grid / soft empty / error+retry; nav ‹ prev · hoy · next ›; a11y grid + aria per day"
+      - "vitest + e2e SC-D3E-1..4"
+    gherkin_coverage: [SC-D3E-1, SC-D3E-2, SC-D3E-3, SC-D3E-4]
+    acceptance:
+      validator_ids: [V-D3E-1, V-D3E-2, V-D3E-3, V-D3E-4, V-VIS-D3-3]
+    depends_on: [T-FE-occurrences-consume]
+    exit_criterion: "live-verify dev-app: occurrences=2 → vista Mes muestra chips en EXACTAMENTE 2 fechas + click día → semana + dod_evidence (efecto visual + logs GET occurrences range mes) + actualizar demo-script.md. NUNCA 'tests verdes'."
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: sonnet
+      must_load_skills: [frontend-expert, vitalia-design-system, playwright-expert, chrome-devtools-verify]
+      must_load_rules: [".claude/rules/frontend-fsd.md", ".claude/rules/frontend-visual-fidelity.md", ".claude/rules/master-data.md", ".claude/rules/spanish-text.md"]
+      must_load_artifacts: ["03-arch-delta.md § 5", "mockups/doctores.html"]
+      forbidden_to_touch: ["core/@luana/ui-kit/**", "components/ui/**", "features/adrian/**", "app/[tenantId]/(shell-organism)/lisa/marca/**"]
+      rationale: "NEW month view consumes the SAME occurrences SSoT (coherent with D3-C). Read+nav only (RN-D3E-2). Sonnet."
+
+  - id: T-BE-pagina-publica
+    title: "D3-D BE: DoctorPublicProfile structured (supersede BioPublic) + migration 041 (public_profile/bio_generated_at/public_slug compat backfill) + public per-doctor route + material-new detection + new allowlist arch test"
+    state: ready
+    group: "D3D-pagina-publica"
+    surface: backend
+    deliverables:
+      - "clinics/domain/public_profile.py: DoctorPublicProfile {sobre_mi, formacion[], experiencia[], tratamientos[], certificaciones[], idiomas[]} (supersede BioPublic, kept read-only for compat)"
+      - "alembic/versions/041_vitalia_doctor_public_profile.py (idempotent: ADD COLUMN IF NOT EXISTS public_profile JSONB, bio_generated_at TIMESTAMPTZ, public_slug TEXT + unique index + backfill from bio_public)"
+      - "clinics/application/public_doctor_serializer.py EXTEND: to_public_profile_dto (allow-list, NO stats, NO CTA, idiomas if len>1, structured) + PublicDoctorProfileDTO"
+      - "clinics/api/public_doctors_router.py: GET /{tenant_slug}/doctors/{doctor_slug} (no auth) -> PublicDoctorProfileDTO; toggle OFF / unknown / cross-tenant slug → IDENTICAL generic 404 shape (anti-enumeración RN-D3D-9, indistinguible)"
+      - "PublicDoctorProfileDTO sections nullable (RN-D3D-6 partial-profile: returns whatever exists, identity minimum guaranteed); serializer exposes og-safe fields (display_name, specialty, first line of sobre_mi, avatar_key) for FE generateMetadata (RN-D3D-7, no PHI)"
+      - "DoctorDetailDTO EXTEND: profile_state {generated_at, material_new, material_new_count} (server: max(bio_files.uploaded_at, inputs/links change) > bio_generated_at — RN-D3D-4)"
+      - "generation: reuse BioGenerationService (deterministic, NOT agentic — D-4) producing structured sections; bio_generated_at set only on generation (RN-D3B-4)"
+      - "tests/architecture/test_public_doctor_profile_allowlist.py (NEW — zero PHI) + test_public_doctor_profile_endpoint.py (slug-fuzz 404, idiomas conditional, no PHI/no stats/no CTA) + migration 041 idempotency"
+    gherkin_coverage: [SC-D3D-1, SC-D3D-2, SC-D3D-3, SC-D3D-4, SC-D3D-6]
+    acceptance:
+      validator_ids: [V-D3D-1, V-D3D-2, V-D3D-3, V-D3D-4, V-D3D-6, V-D3D-ARCH, V-D3D-ENV]
+    depends_on: [T-BE-bio-docs]
+    exit_criterion: "pytest GREEN + new allowlist arch test + migration 041 prod-clone (legacy bio_public backfills) + slug-fuzz adversarial 404 verified. mutation HARD on serializer + migration backfill."
+    assignment:
+      primary_agent: builder-backend
+      model_preference: sonnet
+      must_load_skills: [backend-expert, brand-expert]
+      must_load_rules: ["vitalia/.claude/rules/hipaa-lite.md", ".claude/rules/backend-migrations.md", ".claude/rules/tenant-isolation.md", ".claude/rules/pii-sanitisation.md", ".claude/rules/backend-ddd.md"]
+      must_load_artifacts: ["03-arch-delta.md § 6.1", "01-spec.md § D3-D + D3-D.1", "03-arch.md § D-4 (bio-gen NOT agentic)"]
+      forbidden_to_touch: ["core/luana-core-*/src/**", "copilot/**", "sales_agent/**", "scheduling/**"]
+      rationale: "Structured profile supersedes BioPublic (compat backfill). Public route EXTENDS existing public_doctors_router (no new layer). Allow-list = PHI boundary (new arch test). bio-gen deterministic (D-4 holds, R23 N/A). Sonnet."
+
+  - id: T-FE-pagina-publica
+    title: "D3-D FE: 4th leaf 'Página' + structured editor + state-driven generation + phone preview + PUBLIC Next route /d/[clinica]/[doctor] (no auth) + APP_BASE_URL env"
+    state: ready
+    group: "D3D-pagina-publica"
+    surface: frontend
+    deliverables:
+      - "app/[tenantId]/(shell-organism)/lisa/staff/[doctor-id]/pagina/page.tsx + add 'Página' to LEAF_DEFS in StaffWorkspaceShell; move bio/material block Perfil→Página (cross-link card on Perfil)"
+      - "features/lisa/components/staff/workspace/pagina/{DoctorPaginaView, StructuredProfileEditor (Sobre mí/Formación[]/Experiencia[]/Tratamientos/Certificaciones[]/Idiomas[] inline+autosave), PhonePreview, PublicLinkBar (pill estado + copiar + ver + toggle visible)}"
+      - "state-driven generation: never→single CTA Generar; quiet→Última generación+⋮(Regenerar todo); material-new (server profile_state.material_new)→banner ⚡+CTA Actualizar; overwrite manual edits→confirm modal (RN-D3B-3)"
+      - "app/d/[clinica-slug]/[doctor-slug]/page.tsx (Server Component, NO auth, NOT shell-organism group): fetch GET /api/public/clinic/{slug}/doctors/{slug}; Doctoralia mobile-first structure (D3-D.1: header→Sobre mí→Formación→Experiencia→Tratamientos→Certificaciones→Idiomas conditional→Consultorio); SIN CTA contacto, SIN stats; toggle OFF/unknown/cross-tenant slug → 'perfil no disponible' IDÉNTICO (anti-enumeración RN-D3D-9)"
+      - "D3-D.2 completeness: generateMetadata() og:title/description/image (RN-D3D-7, sin PHI, fallback marca) · partial-profile minimum render (RN-D3D-6: solo secciones con contenido, identidad garantizada, cero cajas vacías) · missing-photo → avatar iniciales (RN-D3D-8) · mobile-first 390×844 + desktop max-width centered · axe wcag2aa público + Spanish neutro · workspace 'Copiar link'/'Ver página' (SC-D3D-15)"
+      - "middleware.ts matcher EXCLUDE /d/** (public, no login wall) · NEXT_PUBLIC_APP_BASE_URL env (dev/test/prod, NEVER hardcoded)"
+      - "vitest + e2e SC-D3D-1..15 (incl público sin auth + slug-fuzz adversarial + mobile + og:tags + anti-enumeración)"
+    gherkin_coverage: [SC-D3D-1, SC-D3D-2, SC-D3D-3, SC-D3D-4, SC-D3D-5, SC-D3D-6, SC-D3D-7, SC-D3D-8, SC-D3D-9, SC-D3D-10, SC-D3D-11, SC-D3D-12, SC-D3D-13, SC-D3D-14, SC-D3D-15]
+    acceptance:
+      validator_ids: [V-D3D-1, V-D3D-2, V-D3D-3, V-D3D-4, V-D3D-5, V-D3D-6, V-D3D-7, V-D3D-8, V-D3D-9, V-D3D-10, V-D3D-11, V-D3D-12, V-D3D-13, V-D3D-14, V-D3D-15, V-D3D-ENV, V-D3D-MIDDLEWARE, V-VIS-D3-2, V-VIS-D3-5]
+    depends_on: [T-BE-pagina-publica, T-FE-bio-docs]
+    exit_criterion: "live-verify dev-app: generar perfil + ver página pública /d/{clinica}/{doctor} SIN auth (Doctoralia structure, cero PHI, cero CTA) + toggle OFF → no disponible + dod_evidence (≥1 generación real + GET público real + efecto) + actualizar demo-script.md. NUNCA 'tests verdes'."
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: sonnet
+      must_load_skills: [frontend-expert, vitalia-design-system, playwright-expert, chrome-devtools-verify]
+      must_load_rules: [".claude/rules/frontend-fsd.md", ".claude/rules/frontend-visual-fidelity.md", ".claude/rules/spanish-text.md", "vitalia/.claude/rules/hipaa-lite.md", "vitalia/.claude/rules/shell-mockup-per-component.md"]
+      must_load_artifacts: ["03-arch-delta.md § 6.2", "01-spec.md § D3-D + D3-D.1", "mockups/doctores.html (hoja Página + phone preview)"]
+      forbidden_to_touch: ["core/@luana/ui-kit/**", "components/ui/**", "features/adrian/** (esta story PROVEE la página; adrian-canal-inbound la envía)", "app/[tenantId]/(shell-organism)/lisa/marca/**", "app/layout.tsx"]
+      rationale: "NEW Página leaf + PUBLIC unauthenticated route (loop-cerrado de confianza). Doctoralia informativa (D3-D.1: sin CTA/stats). APP_BASE_URL env. middleware excludes /d/**. Sonnet."
+
+  - id: T-BE-recurrencia-domain
+    title: "D3-F BE: days_of_week[]+interval domain + migration 042 (compat backfill) + projection rrule(byweekday=list, interval) + DTOs"
+    state: ready
+    group: "D3F-recurrencia-google"
+    surface: backend
+    deliverables:
+      - "clinics/domain/availability_block.py: day_of_week → days_of_week: list[int] + interval: int (1=weekly,2=biweekly,N custom); validation len(days_of_week)>=1 + interval>=1 + one end_condition; keep day_of_week/freq derived for compat"
+      - "alembic/versions/042_vitalia_block_multi_day_interval.py (idempotent: ADD COLUMN IF NOT EXISTS days_of_week JSONB, interval INTEGER; backfill days_of_week=[day_of_week], interval=freq=='biweekly'?2:1)"
+      - "clinics/application/availability_projection_service.py: rrule(WEEKLY, interval=interval, byweekday=days_of_week, count|until) — RN-D3F-2 count=total occurrences (Google); RN-D3F-3 legacy projects identical"
+      - "extend format_recurrence_summary (shared with occurrences endpoint, RN-D3F-1) + AvailabilityBlockDTO {daysOfWeek, interval} (legacy single-day payloads coerced to list)"
+      - "tests: extend test_availability_occurrences.py — SC-D3F-1 (L+J cada 2sem ×8 → 8), SC-D3F-2 (todos los días ×7 → 7), SC-D3F-4 (legacy single-day identical — RED regression), migration 042 idempotency"
+    gherkin_coverage: [SC-D3F-1, SC-D3F-2, SC-D3F-4]
+    acceptance:
+      validator_ids: [V-D3F-1, V-D3F-2, V-D3F-4]
+    depends_on: [T-BE-occurrences-endpoint]
+    exit_criterion: "pytest GREEN + SC-D3F-4 legacy-identical regression (RED first) + migration 042 prod-clone (legacy rows backfill + project identical). mutation HARD on projection + migration backfill."
+    assignment:
+      primary_agent: builder-backend
+      model_preference: sonnet
+      must_load_skills: [backend-expert]
+      must_load_rules: ["vitalia/.claude/rules/hipaa-lite.md", ".claude/rules/backend-migrations.md", ".claude/rules/tenant-isolation.md", ".claude/rules/tdd-mandatory.md", ".claude/rules/master-data.md"]
+      must_load_artifacts: ["03-arch-delta.md § 7.1", "01-spec.md § D3-F"]
+      forbidden_to_touch: ["core/luana-core-*/src/**", "core/luana-core-commercial-calendar/**", "scheduling/**"]
+      rationale: "rrule byweekday=list + interval is NATIVE (no engine touch). Additive migration compat (RN-D3F-3). Serialize projection edits AFTER T-BE-occurrences-endpoint (same file). count=Google occurrences semantics (RN-D3F-2). Sonnet."
+
+  - id: T-FE-recurrencia-editor
+    title: "D3-F FE: BloquePopover rewrite — Select 'Repetir' canónico + custom sub-editor (interval N + day chips L-D + Termina) + human summary + display pattern"
+    state: ready
+    group: "D3F-recurrencia-google"
+    surface: frontend
+    deliverables:
+      - "features/lisa/components/staff/workspace/horarios/BloquePopover.tsx rewrite: Select 'Repetir' (canónico §2.5, NO native <select>): No se repite / Todos los días / Cada semana el {día} / Cada 2 semanas el {día} / Personalizado…"
+      - "Personalizado… sub-editor: 'Repetir cada [N] semana(s)' + day chips L M X J V S D multi-select (a11y keyboard) + Termina: Nunca/El [fecha]/Después de [N] repeticiones"
+      - "human summary always visible (formatRecurrenceSummary — shares semantics with BE format_recurrence_summary, RN-D3F-1)"
+      - "CalendarBlock display: short pattern summary (not just Semanal/Quincenal); paint = BE occurrences (D3-C)"
+      - "staff.types.ts: RecurrentBlock {daysOfWeek: number[], interval: number} (dayOfWeek/freq optional legacy)"
+      - "vitest (summary correctness SC-D3F-3) + e2e SC-D3F-5 (chips keyboard a11y)"
+    gherkin_coverage: [SC-D3F-3, SC-D3F-5]
+    acceptance:
+      validator_ids: [V-D3F-3, V-D3F-5, V-D3F-SELECT, V-VIS-D3-4]
+    depends_on: [T-BE-recurrencia-domain, T-FE-occurrences-consume]
+    exit_criterion: "live-verify dev-app: crear bloque custom (L+J cada 2 sem ×8) → resumen humano correcto + calendario pinta 8 ocurrencias reales + dod_evidence (≥1 create real + logs POST block + efecto proyección) + actualizar demo-script.md. NUNCA 'tests verdes'."
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: sonnet
+      must_load_skills: [frontend-expert, vitalia-design-system, playwright-expert, chrome-devtools-verify]
+      must_load_rules: [".claude/rules/frontend-fsd.md", ".claude/rules/frontend-visual-fidelity.md", ".claude/rules/spanish-text.md"]
+      must_load_artifacts: ["03-arch-delta.md § 7.2", "mockups/doctores.html", "design-system-canon.md §2.5"]
+      forbidden_to_touch: ["core/@luana/ui-kit/**", "components/ui/** (consume Select)", "features/adrian/**", "app/[tenantId]/(shell-organism)/lisa/marca/**"]
+      rationale: "BloquePopover rewrite as Google-clone with canon Select (no native <select> — gate test-no-native-select). Human summary single-source (RN-D3F-1). Sonnet."
+
+  - id: T-E2E-delta
+    title: "Delta e2e (SC-D3A/B/C/D/E/F real-backend) + visual goldens (switcher/pagina/mes/recurrencia/public) — ratifica Chris ADR-003 en G"
+    state: ready
+    group: "cross-cutting-delta"
+    surface: frontend-e2e
+    deliverables:
+      - "e2e/regression/vitalia-fase2-lisa-doctores/{switcher, bio-docs, occurrences, pagina-publica, vista-mes, recurrencia}.spec.ts (real backend, auth.fixture, sin mock del surface bajo prueba)"
+      - "e2e/public/doctor-page.spec.ts (sin auth + slug-fuzz adversarial SC-D3D-6)"
+      - "visual goldens: __screenshots__/staff/{switcher-open,pagina,horarios-mes,recurrencia-editor}-{light,dark}.png + __screenshots__/public/doctor-page-light.png"
+      - "runtime_error_gate: fixtures/base.ts (0 pageerror/console-error/api≥400/Next overlay) en cada spec"
+    gherkin_coverage: [SC-D3A-1, SC-D3A-2, SC-D3A-3, SC-D3A-4, SC-D3B-1, SC-D3B-2, SC-D3B-3, SC-D3B-4, SC-D3B-5, SC-D3C-1, SC-D3C-5, SC-D3C-6, SC-D3C-7, SC-D3D-1, SC-D3D-2, SC-D3D-3, SC-D3D-4, SC-D3D-5, SC-D3D-6, SC-D3D-7, SC-D3D-8, SC-D3D-9, SC-D3D-10, SC-D3D-11, SC-D3D-12, SC-D3D-13, SC-D3D-14, SC-D3D-15, SC-D3E-1, SC-D3E-2, SC-D3E-3, SC-D3E-4, SC-D3F-1, SC-D3F-3, SC-D3F-5]
+    acceptance:
+      validator_ids: [V-VIS-D3-1, V-VIS-D3-2, V-VIS-D3-3, V-VIS-D3-4, V-VIS-D3-5]
+    depends_on: [T-FE-switcher-wire, T-FE-bio-docs, T-FE-occurrences-consume, T-FE-vista-mes, T-FE-pagina-publica, T-FE-recurrencia-editor]
+    exit_criterion: "todos los specs delta verdes contra BE real (no mock del surface) + visual goldens generados + presentados a Chris para ratificación ADR-vitalia-003 en G (NO autonomous para goldens). dod_evidence consolidado."
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: sonnet
+      must_load_skills: [playwright-expert, frontend-expert, vitalia-design-system, chrome-devtools-verify]
+      must_load_rules: [".claude/rules/e2e-testing.md", ".claude/rules/test-design-doctrine.md", ".claude/rules/definition-of-done-live-verify.md"]
+      must_load_artifacts: ["01-spec.md § Gherkin Delta v3", "04-validators.yaml § delta_v3", "mockups/doctores.html"]
+      forbidden_to_touch: ["app/[tenantId]/(shell-organism)/lisa/marca/**", "core/@luana/ui-kit/**"]
+      rationale: "E2E + visual goldens delta. REAL verification (writes ejercidos contra BE real, sin falso verde mockeado). Goldens → ratificación Chris en G (ADR-003). Sonnet."
+
+delta_dag:
+  T-CORE-picker-slot: []                 # requires_pm_luana_lift — merge gated
+  T-FE-switcher-wire: [T-CORE-picker-slot]
+  T-BE-bio-docs: []
+  T-FE-bio-docs: [T-BE-bio-docs]
+  T-BE-occurrences-endpoint: []          # regression RED first
+  T-FE-occurrences-consume: [T-BE-occurrences-endpoint]
+  T-FE-vista-mes: [T-FE-occurrences-consume]
+  T-BE-pagina-publica: [T-BE-bio-docs]   # material-new detection uses bio_files.uploaded_at
+  T-FE-pagina-publica: [T-BE-pagina-publica, T-FE-bio-docs]
+  T-BE-recurrencia-domain: [T-BE-occurrences-endpoint]   # serialize projection-service edits (same file)
+  T-FE-recurrencia-editor: [T-BE-recurrencia-domain, T-FE-occurrences-consume]
+  T-E2E-delta: [T-FE-switcher-wire, T-FE-bio-docs, T-FE-occurrences-consume, T-FE-vista-mes, T-FE-pagina-publica, T-FE-recurrencia-editor]
+  # No cycles. Critical path: T-BE-occurrences-endpoint -> T-BE-recurrencia-domain -> T-FE-recurrencia-editor -> T-E2E-delta.
+  # ORDER DECISION (mandate "decidí orden"): T-BE-occurrences-endpoint (D3-C) BEFORE T-BE-recurrencia-domain (D3-F)
+  #   — both edit availability_projection_service.py (serialize code:clinics bucket M14); the SSoT-consume fix lands
+  #   first, then the recurrence semantics extend it. Migrations 041/042 are additive (no shared-row conflict with the
+  #   D3-C endpoint, which reads only). T-FE-vista-mes AFTER T-FE-occurrences-consume (month consumes same endpoint).
+
+delta_parallelization_notes: >-
+  Three independent BE roots can start in parallel-ish (code:clinics serializes per M14):
+  T-CORE-picker-slot (core bucket, independent), T-BE-bio-docs, T-BE-occurrences-endpoint.
+  Then: T-BE-pagina-publica after bio-docs; T-BE-recurrencia-domain after occurrences-endpoint.
+  FE fans out after its BE dep + (for pagina) T-FE-bio-docs. T-E2E-delta last. T-CORE merge BLOCKED on
+  /pm-luana lift accept — but T-FE-switcher-wire can build against the local core branch and merge after the lift.

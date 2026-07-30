@@ -1,0 +1,127 @@
+# medical_kb_psychology_v1 — KB pack manifest
+# Story 11 T-kb-2 (R23 Opus 4.7) — Vitalia psychology vertical reference content.
+#
+# tenant_scope=brand → cross-tenant medical reference (NOT per-tenant PHI).
+# Chunks are clinical/educational content + therapy boundaries + crisis lines.
+# No patient PII is stored here. Per-tenant clinic-specific protocols (if added
+# later) would carry tenant_id payload field and live in same collection.
+
+pack_id: medical_kb_psychology_v1
+qdrant_collection: vitalia_medical_kb_psychology_v1
+embedding_model: text-embedding-3-large
+embedding_dim: 1536          # text-embedding-3-large with `dimensions=1536` parameter
+tenant_scope: brand          # cross-tenant share (D7 hipaa_lite OK — no PHI)
+similarity_threshold: 0.72   # baseline RAG retrieval contract (03-arch § 7.5)
+top_k: 5                     # baseline RAG retrieval contract (03-arch § 7.5)
+schema_version: 1
+compliance_level: hipaa_lite
+
+# Chunk source files (alphabetical) — every .md scanned + chunked at H2 boundaries.
+chunk_sources:
+  - therapy_approaches_cbt.md
+  - therapy_approaches_systemic.md
+  - therapy_approaches_gestalt.md
+  - therapy_approaches_psychoanalysis.md
+  - condition_descriptions_anxiety.md
+  - condition_descriptions_depression.md
+  - condition_descriptions_grief.md
+  - condition_descriptions_relationship.md
+  - boundaries_setting.md
+  - boundaries_crisis.md
+  - boundaries_referral.md
+  - common_questions.md
+
+# ─── Crisis keyword detection (Spanish neutro + voseo coverage) ──────────────
+# Patient INPUT detection — INPUT may be voseo (AR Aurora tenant) per
+# `.claude/rules/spanish-text.md` exception (sales_agent OUTPUT respects voice;
+# INPUT detection MUST accept voseo so AR patients still trigger boundary).
+crisis_keywords:
+  - suicidio
+  - matarme
+  - matarse
+  - me quiero matar
+  - me quiero morir
+  - quitarme la vida
+  - quitarse la vida
+  - no quiero vivir
+  - ya no quiero vivir
+  - autolesión
+  - autolesionarme
+  - autolesionarse
+  - cortarme
+  - lastimarme
+  - lastimar
+  - hacerme daño
+  - hacerse daño
+  - tirarme
+  - voy a hacerme algo
+  - no quiero seguir
+  - emergencia psiquiátrica
+  - crisis        # standalone crisis trigger — common patient phrasing
+  - en crisis
+  - estoy en crisis
+  - ayuda urgente
+
+# ─── Boundary chunks (forced retrieval bypasses similarity threshold) ────────
+# Forced retrieval: when crisis_keyword present in patient input, these chunks
+# enter results regardless of similarity score. boundary_refer_out_general is
+# always included; per-country crisis_line is included based on tenant_country.
+boundary_chunks:
+  - chunk_id: boundary_refer_out_general
+    source: boundaries_referral.md
+    forced_retrieval: true
+    triggers: crisis_keywords
+    priority: 1
+    applies_to_countries: ["*"]   # always returned on crisis trigger
+
+  - chunk_id: crisis_line_AR
+    source: boundaries_crisis.md
+    forced_retrieval: true
+    triggers: crisis_keywords
+    priority: 1
+    applies_to_countries: ["AR"]
+
+  - chunk_id: crisis_line_CL
+    source: boundaries_crisis.md
+    forced_retrieval: true
+    triggers: crisis_keywords
+    priority: 1
+    applies_to_countries: ["CL"]
+
+  - chunk_id: crisis_line_MX
+    source: boundaries_crisis.md
+    forced_retrieval: true
+    triggers: crisis_keywords
+    priority: 1
+    applies_to_countries: ["MX"]
+
+  - chunk_id: crisis_line_CO
+    source: boundaries_crisis.md
+    forced_retrieval: true
+    triggers: crisis_keywords
+    priority: 1
+    applies_to_countries: ["CO"]
+
+  - chunk_id: crisis_line_PE
+    source: boundaries_crisis.md
+    forced_retrieval: true
+    triggers: crisis_keywords
+    priority: 1
+    applies_to_countries: ["PE"]
+
+  - chunk_id: crisis_line_BR
+    source: boundaries_crisis.md
+    forced_retrieval: true
+    triggers: crisis_keywords
+    priority: 1
+    applies_to_countries: ["BR"]
+
+# ─── Topic tag taxonomy (chunk metadata) ─────────────────────────────────────
+topic_tags:
+  - therapy_approach
+  - condition_description
+  - boundary
+  - crisis_line
+  - common_question
+  - ethics
+  - referral

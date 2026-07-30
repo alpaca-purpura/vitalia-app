@@ -1,0 +1,164 @@
+---
+capability_id: vitalia.shell-organism.layout-5050
+module: shell-organism
+slug: layout-5050
+status: live
+date_introduced: 2026-05-23
+story_introduced: vitalia-fase1-shell-layout-5050
+package_version: vitalia-frontend@0.1.0
+package_path: vitalia/frontend/src/components/shared/shell-organism/
+license: proprietary
+
+# v3 cement 2026-05-27 · SUPERSEDED por ADR-vitalia-005 (merged en shell-vitalia)
+superseded_by: shell-vitalia
+tech_module: shell-organism
+agent_owner: valeria
+functional_area: plataforma-tecnica.shell
+user_visible: false
+nature: feature
+dev_preview:
+  route: null
+  how_to_navigate: "Ver shell-organism/shell-vitalia.yaml · este cap fue absorbido en el merge ADR-vitalia-005."
+  main_component: null
+  api_endpoints: []
+  e2e_test: null
+  fixtures_required: []
+  storybook_url: null
+  loom_demo: null
+
+# Capability ledger v2 (cement 2026-05-27)
+created_in_story: vitalia-fase1-shell-layout-5050   # v2 cement · mirror of story_introduced
+created_date: 2026-05-23   # v2 cement · mirror of date_introduced
+last_modified: 2026-05-23   # v2 cement · mirror of date_updated or date_introduced
+parent_cap: null   # v2 cement · mirror of extends_capability
+derives_capabilities: []   # v2 cement · initial empty list
+
+# Capability ledger v2 (cement 2026-05-27)
+atomics: []   # v2 cement · empty initial · Chris populate manually
+
+# Capability change log v2 (cement 2026-05-27)
+change_log:
+  - story_id: vitalia-fase1-shell-layout-5050
+    date: 2026-05-23
+    type: new
+    summary: "Implementación inicial · migración legacy a schema v2"
+    atomics_added: []
+    atomics_modified: []
+    merge_sha: null
+    status: done
+---
+
+# Shell Organism Layout 50/50 — Vitalia FE Fase 1
+
+Layout root del route group `(shell-organism)/` con split 50/50 (modo agentic default): TopBarGlobal arriba + Grid `[ValeriaPanel 50%] [AppPanel 50%]` debajo. Soporta modo web alternativo (Valeria collapsed a rail + App 100%). Mobile responsive con triple-main pattern (3 `<main>` mutually-exclusive via CSS).
+
+## Surfaces
+
+- **Config:** `vitalia/frontend/playwright.config.ts` (visual project + smoke testMatch), `vitalia/docker-compose.dev.yml` (memory 4G post Fase 7B)
+- **Backend:** n/a (FE only · UI shell chrome)
+- **Frontend:**
+  - `vitalia/frontend/src/components/shared/shell-organism/ShellOrganismLayout.tsx` — wrapper Client Component con `next/dynamic({ssr:false})`
+  - `vitalia/frontend/src/components/shared/shell-organism/ShellOrganismLayoutClient.tsx` — implementation real (PanelGroup + Panel + Separator + useDefaultLayout + useGroupRef snap-up Fix A)
+  - `vitalia/frontend/src/components/shared/shell-organism/ValeriaSidebarSlot.tsx` — placeholder Server Component (rail + history + chat skeleton siluetas)
+  - `vitalia/frontend/src/components/shared/shell-organism/AppPanelSlot.tsx` — placeholder Server Component (ribbon 5 agentes + sub-tabs + cards skeleton)
+  - `vitalia/frontend/src/components/shared/shell-organism/TopBarGlobal.tsx` — Server Component (LogoMark + TenantSwitcher + ThemeToggle)
+  - `vitalia/frontend/src/components/shared/shell-organism/ShellModeToggle.tsx` — disabled chip overlay
+  - `vitalia/frontend/src/components/shared/shell-organism/useViewportGuard.ts` — hook one-way 'full'→'rail' en viewport [768, 1104)
+  - `vitalia/frontend/src/stores/shell-store.ts` — Zustand persist (shellMode + valeriaState) + `vitalia-shell-state` storage key
+  - `vitalia/frontend/src/app/test-stack/shell-layout/page.tsx` — public dev-only route (no Clerk auth)
+- **Tests:**
+  - Functional E2E: `vitalia/frontend/e2e/regression/vitalia-fase1-shell-layout-5050/{render-agentic-default,mobile-collapse,resize-and-state,a11y-keyboard}.spec.ts`
+  - Visual goldens: `vitalia/frontend/e2e/regression/vitalia-fase1-shell-layout-5050/visual-goldens.spec.ts` (6 PNGs locked en `__screenshots__/regression/.../visual-goldens.spec.ts/`)
+  - POM: `vitalia/frontend/e2e/pages/ShellLayoutPage.ts`
+  - Fixture: `vitalia/frontend/e2e/fixtures/shell-theme.fixture.ts`
+  - Unit tests: `vitalia/frontend/src/components/shared/shell-organism/{ValeriaSidebarSlot,ShellOrganismLayout}.test.tsx`
+  - Arch fitness: `vitalia/frontend/src/__tests__/architecture/{skip-link-target,shell-store-schema,no-cross-brand-mirror,test_server_first,no-default-export}.test.ts`
+- **Docs:**
+  - `vitalia/docs/architecture/SHELL-DESIGN-CONTRACT.md` (atomic design SSoT)
+  - Story archived snapshot: `vitalia/docs/archive/2026/stories/vitalia-fase1-shell-layout-5050/`
+  - Learning: `vitalia/docs/learnings/2026-05-23-shell-layout-race-condition-defer.md` (promotable candidate)
+
+## Scenarios (verbatim 01-spec.md)
+
+### SC-1 happy — render 50/50 default modo agentic
+
+```gherkin
+Given el usuario navega a /test-stack/shell-layout en viewport 1280×800
+When la página hidrata client-side
+Then TopBarGlobal renderiza (h-12=48px) con LogoMark + TenantSwitcher + ThemeToggle
+  And el split inicial es 50/50 (ValeriaPanel + AppPanel)
+  And el Separator (Redimensionar paneles) está visible entre paneles
+  And ShellModeToggle "Agéntico" chip disabled sobre TopBar
+  And el skip-link "Saltar al contenido principal" → #main-content focusable
+```
+
+### SC-2 negative — viewport < md (375x667) colapsa a 1 columna
+
+```gherkin
+Given el viewport es 375x667 (mobile)
+When la página hidrata
+Then solo el <main md:hidden> renderiza (mobile fallback)
+  And AppPanelSlot visible 100% width (no split)
+  And ValeriaSidebarSlot oculto via CSS (md:flex hidden → visibleCount = 0)
+  And hint "Valeria — abrir desde menú" presente en DOM (CSS-hidden)
+```
+
+### SC-3 edge — resize boundary clamp + persistencia + snap-up (DEFERRED last assertion)
+
+```gherkin
+Given el usuario en shell agentic con valeriaState='full' (min Valeria 620px)
+When arrastra el resize handle hacia la izquierda hasta posición < 620px
+Then el handle clamp en min calculated (ResizeObserver-driven percentage)
+  And localStorage[vitalia-shell-split-agentic] persiste el ratio post-drag
+
+Given el usuario en estado anterior (Valeria=620, state='full')
+When cambia valeriaState a 'rail'
+Then el min Valeria baja a 360px
+  And el width actual (620) se mantiene (más espacio para chat, no auto-shrink)
+```
+
+> **DEFERRED 2026-05-23:** última assertion (`400 < min 620 → snap-up automático a 620` después de transition rail→full + drag inmediato) requiere refactor del lifecycle hydration race condition. Tracking: story `vitalia-fase1-shell-layout-5050-race-fix` state=parked. F1-S5/S6 lifecycle work podrá resolverlo cuando refactor Panel hydration.
+
+### SC-4 adversarial — a11y keyboard nav + axe wcag2aa
+
+```gherkin
+Given el usuario navega con keyboard (Tab + Enter + Esc)
+When pulsa Tab desde inicio
+Then primer tab focus → skip-link visible (clic envía focus a #main-content)
+  And ResizeHandle es focusable + Arrow keys cambian width 1% per press
+  And axe-core scan retorna 0 violations wcag2aa
+```
+
+## KPIs
+
+- Playwright pass rate: 33/34 (97%) + 1 DEFERRED documented
+- Visual goldens locked: 6/6 (maxDiffPixelRatio 0.001)
+- Vitest pass: 980/980 + arch fitness 64/64
+- Coverage: 65.05% (threshold 20% met)
+- a11y axe: 0 violations wcag2aa
+- Bundle size: TBD (Lighthouse pending Fase 7C+ optimization)
+
+## Dependencies cross-package
+
+- `react-resizable-panels@^4.11.1` — Group/Panel/Separator/useDefaultLayout/useGroupRef
+- `zustand@^5.0.0` + zustand/middleware (persist)
+- `next/dynamic({ssr:false})` workaround para `useDefaultLayout` bare-name `localStorage` default param crash
+- `@clerk/nextjs` — TenantSwitcher hook `useAuth` (no Clerk Organizations per memoria `no-clerk-organizations`)
+
+## Verification
+
+```bash
+cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/vitalia-fase1-shell-layout-5050/
+# expected: 27 passed + 1 skipped (DEFERRED)
+
+cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test --project=visual e2e/regression/vitalia-fase1-shell-layout-5050/visual-goldens.spec.ts
+# expected: 6 PASS
+
+cd vitalia/frontend && npx vitest run --coverage
+# expected: 980 passed, coverage > 20% threshold
+```
+
+## Open issues / Follow-up
+
+- **F1-S4b:** `vitalia-fase1-shell-layout-5050-race-fix` (state=parked) — refactor lifecycle Panel hydration timing race. Pickup post F1-S5/S6 cuando refactor conversational shell tocará el área natural.
+- **Lighthouse Fase 7C:** bundle optimization pending (no es bloqueador para Fase 1).

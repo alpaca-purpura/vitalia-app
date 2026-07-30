@@ -1,0 +1,49 @@
+:root {
+  --bg-app:#f8fafc; --bg-panel:#fff; --bg-elevated:#fff; --bg-hover:#f1f5f9;
+  --text-primary:#0f172a; --text-secondary:#475569; --text-muted:#94a3b8;
+  --border:#e2e8f0; --border-strong:#cbd5e1;
+  --c-lisa:#00D084; --c-lucas:#111; --c-adrian:#01b2f8; --c-valeria:#7b2d91; --c-camila:#180d95; --c-config:#64748b;
+  --c-lisa-soft:#d1fae8; --c-lucas-soft:#e5e7eb; --c-adrian-soft:#cef0fb; --c-valeria-soft:#ebd6f4; --c-camila-soft:#d4d0f5; --c-config-soft:#f1f5f9;
+  --shadow-sm:0 1px 2px rgba(0,0,0,.04); --shadow-md:0 4px 12px rgba(0,0,0,.08);
+}
+[data-theme="dark"] {
+  --bg-app:#0a0e1a; --bg-panel:#131927; --bg-elevated:#1c2333; --bg-hover:#1f2937;
+  --text-primary:#f1f5f9; --text-secondary:#cbd5e1; --text-muted:#64748b;
+  --border:#2a3344; --border-strong:#3b4659;
+  --c-lisa-soft:#064e3b; --c-lucas-soft:#374151; --c-adrian-soft:#075985; --c-valeria-soft:#581c87; --c-camila-soft:#312e81; --c-config-soft:#1f2937;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg-app); color: var(--text-primary); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 14px; line-height: 1.5; }
+.panel { background: var(--bg-panel); border: 1px solid var(--border); }
+.muted { color: var(--text-muted); }
+.border-app { border-color: var(--border); }
+.shadow-sm-app { box-shadow: var(--shadow-sm); }
+.shadow-md-app { box-shadow: var(--shadow-md); }
+.text-lisa { color: var(--c-lisa); } .bg-lisa-soft { background: var(--c-lisa-soft); }
+.text-lucas { color: var(--c-lucas); } .bg-lucas-soft { background: var(--c-lucas-soft); }
+.text-adrian { color: var(--c-adrian); } .bg-adrian-soft { background: var(--c-adrian-soft); }
+.text-valeria { color: var(--c-valeria); } .bg-valeria-soft { background: var(--c-valeria-soft); }
+.text-camila { color: var(--c-camila); } .bg-camila-soft { background: var(--c-camila-soft); }
+.text-config { color: var(--c-config); } .bg-config-soft { background: var(--c-config-soft); }
+.toggle-pill { display:inline-flex; background: var(--bg-hover); border-radius: 9999px; padding: 4px; gap: 4px; font-size: 13px; font-weight: 500; }
+.toggle-pill-option { padding: 6px 14px; border-radius: 9999px; cursor: pointer; color: var(--text-secondary); transition: all .15s; user-select: none; }
+.toggle-pill-option:hover { color: var(--text-primary); }
+.toggle-pill-option.active { background: var(--bg-panel); color: var(--text-primary); box-shadow: var(--shadow-sm); }
+[data-theme="dark"] .toggle-pill-option.active { background: var(--bg-elevated); }
+.status-dot { width: 8px; height: 8px; border-radius: 9999px; display: inline-block; }
+.ph-card { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 10px; padding: 14px; transition: all .15s; }
+.ph-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+.lead-card { background: var(--bg-app); border: 1px solid var(--border); border-radius: 8px; padding: 10px; font-size: 12px; }
+[data-theme="dark"] .lead-card { background: var(--bg-elevated); }
+.agenda-slot { border-left: 3px solid var(--border); padding: 4px 6px; font-size: 11px; min-height: 28px; background: var(--bg-app); }
+[data-theme="dark"] .agenda-slot { background: var(--bg-elevated); }
+.agenda-slot.paid { border-left-color: #10b981; }
+.agenda-slot.deposit { border-left-color: #f59e0b; }
+.agenda-slot.unpaid { border-left-color: #ef4444; }
+.agenda-slot.noshow { border-left-color: #94a3b8; color: var(--text-muted); text-decoration: line-through; }
+.theme-btn { padding: 6px 12px; border: 1px solid var(--border); border-radius: 6px; background: transparent; color: var(--text-primary); cursor: pointer; font-size: 13px; }
+.theme-btn:hover { background: var(--bg-hover); }
+.mockup-frame { max-width: 1100px; margin: 30px auto; padding: 0 20px; }
+.mockup-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.mockup-title { font-size: 16px; font-weight: 600; }
+.mockup-subtitle { font-size: 12px; color: var(--text-muted); }

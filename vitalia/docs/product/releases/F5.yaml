@@ -1,0 +1,33 @@
+---
+# Release schema (v2 cement 2026-05-27)
+# Doc: docs/process/release-protocol.md
+# Path canónico: vitalia/docs/product/releases/F5.yaml
+
+release_id: F5
+brand: vitalia
+name: "Lisa marca completa + onboarding clínica"
+description: "Lisa marca completa · doctores + servicios + compliance + onboarding clínica funcional."
+status: planning
+target_date: null
+shipped_date: null
+order: 5
+created_at: 2026-05-27T18:25:23-05:00
+created_by: scripts/migrate_to_release_schema.py
+
+stories:
+  - vitalia-fase2-lisa-compliance
+  - vitalia-fase2-lisa-doctores
+  - vitalia-fase2-lisa-servicios
+---
+
+# F5 · Lisa marca completa + onboarding clínica
+
+> Lisa marca completa · doctores + servicios + compliance + onboarding clínica funcional.
+
+## Stories incluidas
+
+<!-- Auto-poblado durante migración Phase 3 desde checkpoints reales -->
+
+## Notas del release
+
+(libre · Chris escribe aquí contexto adicional · decisiones · gotchas)

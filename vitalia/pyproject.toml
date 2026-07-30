@@ -1,0 +1,44 @@
+[project]
+name = "luana-vitalia"
+version = "0.1.0"
+requires-python = ">=3.12"
+# Workspace member stub para vitalia. Runtime deps consumidas por vitalia/backend/
+# pero declaradas aquí porque vitalia/backend/ no es workspace member (S-DOCKER-DEV-MULTIBRAND gap).
+# Cuando vitalia/backend/ se promueva a workspace member, mover estas deps allí.
+dependencies = [
+    # ASGI server (dev compose llama `uv run uvicorn`)
+    "uvicorn[standard]>=0.34.0",
+    # FastAPI runtime
+    "fastapi>=0.115",
+    "python-multipart>=0.0.20",
+    "starlette>=0.46",
+    "structlog>=25.1",
+    # Persistence (vitalia/backend/src importa SQLAlchemy)
+    "sqlalchemy>=2.0",
+    "asyncpg>=0.29",
+    "alembic>=1.13",
+    # Engine core packages (vitalia/backend/src importa luana_core_*)
+    "luana-core-platform",
+    "luana-core-observability",
+    "luana-core-extension-sdk",
+    "luana-core-channels",
+    "luana-core-extraction",
+    "luana-core-iam",
+    # Durable flows engine (checkpointer durable compartido) — proposal 2026-06-02
+    "luana-core-flows",
+    "apscheduler>=3.10",
+    # Admin Streamlit panel (vitalia/backend/src/modules/vitalia/admin/)
+    "streamlit>=1.40",
+    "passlib[bcrypt]>=1.7.4",
+    "bcrypt>=4.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+# vitalia/src/ no existe — solo declaramos packages para satisfacer hatchling build.
+# El "build" de luana-vitalia no se hace en runtime; solo se instala editable para
+# arrastrar dependencies. Hatchling acepta force-include vacío.
+[tool.hatch.build.targets.wheel]
+bypass-selection = true

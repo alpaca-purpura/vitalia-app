@@ -1,0 +1,539 @@
+# 06-tickets.yaml — F1-S0 vitalia-fase1-stack-stability
+# Owner: /architect (single-shot full-stack — FE-only story)
+# Schema v4.1 cement 2026-05-19 (must_load_skills enforceable per ticket)
+#
+# 7 tickets atómicos, DAG acyclic.
+# owner_eligibility: [qwen-opencode, claude-sonnet] — story FE no-agentic (NO Opus required per R23).
+# production_code flags: true para T-1..T-4 (production runtime: src/components/ui/, globals.css,
+# tailwind.config.ts, playwright config, e2e specs y screenshots ejecutables); false para T-5 (tests
+# arquitectónicos), T-6 (docs ADR), T-7 (verify-only).
+# gherkin_coverage MANDATORY post 2026-05-18 (todos los tickets lo declaran explícito).
+# Suma estimated_hours: 8.5h (~1-1.5 días dev autonomous).
+
+---
+story_id: vitalia-fase1-stack-stability
+brand: vitalia
+sprint: F1-S0
+generated_at: 2026-05-22T18:00:00-05:00
+generated_by: /architect (single-shot full-stack)
+schema_version: v4.1
+total_tickets: 7
+estimated_total_hours: 8.5
+
+# ── Resumen pila (alto nivel) ────────────────
+summary:
+  - id: T-1
+    title: "fe-shadcn-install — components.json + 8 primitivos + utils.ts + deps"
+    surface: frontend
+    owner_pool: [qwen-opencode, claude-sonnet]
+    state: pushed
+    commit_sha: c1690216
+    blocks: [T-2, T-3, T-5, T-6]
+    depends_on: []
+  - id: T-2
+    title: "fe-agent-tokens — globals.css (:root + .dark) + tailwind extend"
+    surface: frontend
+    owner_pool: [qwen-opencode, claude-sonnet]
+    state: pushed
+    commit_sha: 7fa38b41
+    blocks: [T-3, T-4]
+    depends_on: [T-1]
+  - id: T-3
+    title: "fe-playwright-visual-config — playwright.config.ts + 2 test pages"
+    surface: frontend
+    owner_pool: [qwen-opencode, claude-sonnet]
+    state: pushed
+    commit_sha: 52bbc3f6
+    blocks: [T-4]
+    depends_on: [T-2]
+  - id: T-4
+    title: "fe-visual-goldens-baseline — spec + 6 goldens generation + Chris ratify"
+    surface: frontend
+    owner_pool: [qwen-opencode, claude-sonnet]
+    state: pushed
+    commit_sha: 2d105e7e
+    chris_ratify_at: 2026-05-23T01:30:00-05:00
+    notes: "Generación deferida hasta auditor in-loop session 2026-05-23. Stack levantado + 6 goldens generados con Tailwind v4 funcional + avatares ring color del agente + hover defensive. Chris ratify visual."
+    blocks: [T-7]
+    depends_on: [T-3]
+  - id: T-5
+    title: "fe-arch-fitness-vt-classes — test-no-vt-classes arch fitness"
+    surface: frontend
+    owner_pool: [qwen-opencode, claude-sonnet]
+    state: pushed
+    commit_sha: 72592a2d
+    blocks: [T-7]
+    depends_on: [T-1]
+  - id: T-6
+    title: "docs-adr-vt-deprecation — ADR-vitalia-002 8 secciones"
+    surface: docs
+    owner_pool: [qwen-opencode, claude-sonnet]
+    state: pushed
+    commit_sha: 9a9a8165
+    blocks: [T-7]
+    depends_on: [T-1]
+  - id: T-7
+    title: "verify-tailwind-build-regression — Tailwind v4 empirical + build + existing"
+    surface: frontend
+    owner_pool: [qwen-opencode, claude-sonnet]
+    state: pushed
+    commit_sha: d6cc6592
+    notes: "fe_build_production BLOCKED pre-existing marketing nuqs SSR bug (commit ac7b3e91, pre-F1-S0). All other validators GREEN. See T-7-result.md."
+    blocks: []
+    depends_on: [T-1, T-2, T-3, T-4, T-5, T-6]
+
+# ── Detalle por ticket ─────────────────
+tickets:
+
+  - id: T-1
+    title: "fe-shadcn-install — Shadcn UI init + 8 primitives + utils.ts + package.json deps"
+    type: frontend
+    surface: frontend
+    production_code: true                            # touches src/components/ui/, src/lib/utils.ts, package.json
+    state: ready
+    owner_eligibility:
+      qwen_opencode: true
+      claude_sonnet: true
+      claude_opus_required: false                    # R23 — story FE no-agentic
+    priority: 1
+    estimate_hours: 1
+    decisions_applicable: [D1, D5, D6]               # D1 Shadcn install + D5 atomic design strict + D6 cero deuda
+    inputs:
+      spec: "../01-spec.md"
+      arch_doc: "../03-arch.md"
+      guidelines: "../05-guidelines.md"
+      rules:
+        - ".claude/rules/frontend-fsd.md"
+        - ".claude/rules/anti-duplication.md"
+        - ".claude/rules/tdd-mandatory.md"
+        - "vitalia/.claude/rules/shell-mockup-per-component.md"
+        - "vitalia/.claude/rules/hipaa-lite.md"
+      tessl_skills: ["tessl__shadcn-ui", "tessl__tailwind"]
+      domain_skills: ["frontend-expert"]
+    must_load_skills:
+      - frontend-expert
+      - tessl__shadcn-ui
+      - tessl__tailwind
+      - .claude/rules/frontend-fsd.md
+      - .claude/rules/anti-duplication.md
+      - .claude/rules/tdd-mandatory.md
+      - vitalia/.claude/rules/shell-mockup-per-component.md
+      - vitalia/.claude/rules/hipaa-lite.md
+    deliverables:
+      - "vitalia/frontend/components.json (output npx shadcn@latest init)"
+      - "vitalia/frontend/src/components/ui/{button,avatar,dropdown-menu,input,badge,textarea,tabs,tooltip}.tsx (8 primitivos)"
+      - "vitalia/frontend/src/lib/utils.ts (cn() helper Shadcn estándar — twMerge(clsx(inputs)))"
+      - "vitalia/frontend/package.json (Shadcn CLI agrega Radix + cva + clsx + tailwind-merge + lucide-react)"
+      - "vitalia/frontend/package-lock.json (lockfile pin nuevas deps committed)"
+      - "T-1-result.md sección 'Skills consulted (must_load enforcement v4.1)' obligatoria"
+    out_of_scope:
+      - "globals.css edits (T-2)"
+      - "tailwind.config.ts edits (T-2)"
+      - "playwright.config.ts edits (T-3)"
+    notes_for_downstream: |
+      Components.json config verbatim: style=new-york, baseColor=slate, cssVariables=true, importAlias=@/, tailwindConfig=existing.
+      Si Shadcn CLI falla peer-dep React 19 → ADR-vitalia-002 § 8 workaround pin override (package.json overrides.react).
+      Si utils.ts ya existe (Vitalia shipped), agregar cn() named export sin sobreescribir helpers existentes.
+    acceptance:
+      validator_ids:
+        - fe_typecheck
+        - fe_lint
+        - fe_components_json_present
+        - fe_8_primitives_present_ls
+    gherkin_coverage:
+      - scenario: "Scenario 5 — Shadcn install partial failure"
+        tests:
+          - "fe_components_json_present validator (components.json valid JSON)"
+          - "fe_8_primitives_present_ls validator (ls src/components/ui/ = 8 files)"
+    quality_gates:
+      - "fe_typecheck + fe_lint GREEN"
+      - "fe_components_json_present GREEN"
+      - "fe_8_primitives_present_ls GREEN"
+      - "package-lock.json committed (verify git status pre-commit)"
+    depends_on: []
+    blocks: [T-2, T-3, T-5, T-6]
+
+  - id: T-2
+    title: "fe-agent-tokens — globals.css agent tokens (:root + .dark) + tailwind extend colors.agent.*"
+    type: frontend
+    surface: frontend
+    production_code: true                            # touches globals.css + tailwind.config.ts (runtime CSS + Tailwind theme)
+    state: ready
+    owner_eligibility:
+      qwen_opencode: true
+      claude_sonnet: true
+      claude_opus_required: false
+    priority: 1
+    estimate_hours: 1
+    decisions_applicable: [D1, D2, D5]
+    inputs:
+      spec: "../01-spec.md"
+      arch_doc: "../03-arch.md § 2.2 + § 2.3"
+      design_contract: "vitalia/docs/architecture/SHELL-DESIGN-CONTRACT.md § 5.1 + § 5.2"
+      rules: [".claude/rules/frontend-fsd.md", ".claude/rules/tdd-mandatory.md"]
+      tessl_skills: ["tessl__tailwind"]
+      domain_skills: ["frontend-expert"]
+    must_load_skills:
+      - frontend-expert
+      - tessl__tailwind
+      - .claude/rules/frontend-fsd.md
+      - .claude/rules/tdd-mandatory.md
+    deliverables:
+      - "vitalia/frontend/src/app/globals.css (MODIFY — agregar :root block + .dark block con CSS vars Shadcn standard + 7 agent tokens base + 6 dark soft variants; preservar bloque .vt-* legacy intacto)"
+      - "vitalia/frontend/tailwind.config.ts (MODIFY — extend theme.extend.colors con background/foreground/primary/.../agent.{lisa,lucas,adrian,valeria,camila,mateo,config})"
+      - "T-2-result.md sección 'Skills consulted' obligatoria"
+    out_of_scope:
+      - "Shadcn install (T-1)"
+      - "Playwright config (T-3)"
+      - "Goldens generation (T-4)"
+    notes_for_downstream: |
+      PRESERVAR bloque .vt-* legacy intacto (apunta a nuevas CSS vars Shadcn-style — D2 plan deprecación progresiva).
+      7 agent tokens HSL formato verbatim Design Contract § 5.1:
+        --agent-lisa: 156 100% 41%; (#00D084 NEW)
+        --agent-lucas: 0 0% 7%; (#111111 NEW)
+        --agent-adrian: 198 99% 49%; (#01b2f8 = primary)
+        --agent-valeria: 287 53% 37%; (#7b2d91)
+        --agent-camila: 244 84% 32%; (#180d95)
+        --agent-mateo: 53 99% 51%; (#fee209)
+        --agent-config: 240 4% 46%; (neutral gray)
+      Dark soft variants en .dark block (lisa-soft, lucas-soft, adrian-soft, valeria-soft, camila-soft).
+    acceptance:
+      validator_ids:
+        - fe_typecheck
+        - fe_lint
+        - fe_agent_tokens_css_vars_grep
+        - fe_tailwind_agent_colors_resolvable_introspection
+    gherkin_coverage:
+      - scenario: "Scenario 4 — happy-tokens + theme-switch structural"
+        tests:
+          - "fe_agent_tokens_css_vars_grep validator (≥12 lines --agent-* en globals.css)"
+          - "fe_tailwind_agent_colors_resolvable_introspection validator (7 agents resolvables en tailwind.config.ts)"
+          - "visual_agent_tokens_swatch_light validator (T-4 dependiente)"
+          - "visual_agent_tokens_swatch_dark validator (T-4 dependiente)"
+    quality_gates:
+      - "fe_typecheck + fe_lint GREEN"
+      - "fe_agent_tokens_css_vars_grep GREEN"
+      - "fe_tailwind_agent_colors_resolvable_introspection GREEN"
+    depends_on: [T-1]
+    blocks: [T-3, T-4]
+
+  - id: T-3
+    title: "fe-playwright-visual-config — playwright.config.ts @project=visual block + 2 test pages auxiliares"
+    type: frontend
+    surface: frontend
+    production_code: true                            # touches playwright.config.ts + e2e/ runtime fixtures
+    state: ready
+    owner_eligibility:
+      qwen_opencode: true
+      claude_sonnet: true
+      claude_opus_required: false
+    priority: 2
+    estimate_hours: 1
+    decisions_applicable: [D5, D6]                   # atomic design strict + cero deuda
+    inputs:
+      spec: "../01-spec.md § 7"
+      arch_doc: "../03-arch.md § 2.5 + § 2.6"
+      design_contract: "vitalia/docs/architecture/SHELL-DESIGN-CONTRACT.md § 9.4"
+      rules: [".claude/rules/frontend-fsd.md", ".claude/rules/spanish-text.md", "vitalia/.claude/rules/hipaa-lite.md"]
+      tessl_skills: ["tessl__nextjs-app-router-modularization"]
+      domain_skills: ["frontend-expert", "playwright-expert"]
+    must_load_skills:
+      - frontend-expert
+      - playwright-expert
+      - tessl__nextjs-app-router-modularization
+      - .claude/rules/frontend-fsd.md
+      - .claude/rules/spanish-text.md
+      - vitalia/.claude/rules/hipaa-lite.md
+    deliverables:
+      - "vitalia/frontend/playwright.config.ts (MODIFY — agregar @project=visual block con viewport 1440×900 + maxDiffPixelRatio 0.001 + animations disabled + caret hide; preserve smoke/a11y/mobile existentes)"
+      - "vitalia/frontend/e2e/__test-pages__/stack-stability/primitives-showcase.tsx (NEW — renderiza 8 primitivos × todas variantes)"
+      - "vitalia/frontend/e2e/__test-pages__/stack-stability/agent-tokens-swatch.tsx (NEW — renderiza 7 swatches color con label hex esperado)"
+      - "T-3-result.md sección 'Skills consulted' obligatoria"
+    out_of_scope:
+      - "Spec Playwright + goldens generation (T-4)"
+      - "Arch fitness vt-classes (T-5)"
+    notes_for_downstream: |
+      Verbatim Design Contract § 9.4 config:
+        projects.push({
+          name: 'visual',
+          use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 }, colorScheme: 'light' },
+          snapshotPathTemplate: 'e2e/__screenshots__/{testFilePath}/{arg}{ext}',
+          expect: { toHaveScreenshot: { maxDiffPixelRatio: 0.001, animations: 'disabled', caret: 'hide' } },
+        })
+      Test pages paths exactos:
+        e2e/__test-pages__/stack-stability/primitives-showcase.tsx
+        e2e/__test-pages__/stack-stability/agent-tokens-swatch.tsx
+      Test pages renderizan named exports (FSD-Lite — NO default export). Use bg-agent-* classes (NO hex hardcoded).
+      Data realistic LatAm en showcase (clínicas AR/MX nombres, NO Lorem ipsum).
+    acceptance:
+      validator_ids:
+        - fe_typecheck
+        - fe_lint
+    gherkin_coverage:
+      - scenario: "Scenario 1 — happy-path (infra setup ready for goldens)"
+        tests:
+          - "fe_typecheck validator (test pages TS strict OK)"
+          - "fe_lint validator (test pages ESLint OK)"
+    quality_gates:
+      - "fe_typecheck + fe_lint GREEN"
+      - "playwright.config.ts smoke/a11y/mobile preserved (regression visual)"
+    depends_on: [T-2]
+    blocks: [T-4]
+
+  - id: T-4
+    title: "fe-visual-goldens-baseline — spec Playwright visual + generate 6 goldens (Chris ratify visual)"
+    type: frontend
+    surface: frontend
+    production_code: true                            # touches e2e specs + commits __screenshots__/ PNGs (artifact baseline)
+    state: pushed
+    push_commit_sha: 2d105e7e
+    chris_ratify_at: 2026-05-23T01:30:00-05:00
+    owner_eligibility:
+      qwen_opencode: true
+      claude_sonnet: true
+      claude_opus_required: false
+    priority: 2
+    estimate_hours: 2
+    decisions_applicable: [D4, D6]                   # D4 verificar Tailwind v4 empíricamente + D6 cero deuda
+    inputs:
+      spec: "../01-spec.md § 7"
+      arch_doc: "../03-arch.md § 2.5 + § 2.6"
+      design_contract: "vitalia/docs/architecture/SHELL-DESIGN-CONTRACT.md § 9.4"
+      rules: [".claude/rules/frontend-fsd.md", "vitalia/.claude/rules/hipaa-lite.md"]
+      tessl_skills: []
+      domain_skills: ["frontend-expert", "playwright-expert"]
+    must_load_skills:
+      - frontend-expert
+      - playwright-expert
+      - .claude/rules/frontend-fsd.md
+      - vitalia/.claude/rules/hipaa-lite.md
+    deliverables:
+      - "vitalia/frontend/e2e/visual/stack-stability/dev-stack-baseline.spec.ts (NEW — spec Playwright @project=visual genera 6 goldens)"
+      - "vitalia/frontend/e2e/__screenshots__/stack-stability/dashboard-legacy-light.png (NEW golden — regression (dashboard)/ light)"
+      - "vitalia/frontend/e2e/__screenshots__/stack-stability/dashboard-legacy-dark.png (NEW golden — regression (dashboard)/ dark)"
+      - "vitalia/frontend/e2e/__screenshots__/stack-stability/shadcn-primitives-light.png (NEW golden — 8 primitives light)"
+      - "vitalia/frontend/e2e/__screenshots__/stack-stability/shadcn-primitives-dark.png (NEW golden — 8 primitives dark)"
+      - "vitalia/frontend/e2e/__screenshots__/stack-stability/agent-tokens-swatch-light.png (NEW golden — 7 swatches light)"
+      - "vitalia/frontend/e2e/__screenshots__/stack-stability/agent-tokens-swatch-dark.png (NEW golden — 7 swatches dark)"
+      - "T-4-result.md sección 'Skills consulted' obligatoria + 'Chris ratify visual' record"
+    out_of_scope:
+      - "Arch fitness vt-classes (T-5)"
+      - "ADR-002 docs (T-6)"
+    notes_for_downstream: |
+      Generation inicial: `npx playwright test --project=visual --grep "stack-stability" --update-snapshots`.
+      Chris ratify diff humano vs Design Contract § 5.1 + dual-mode-shell.html mockup ANTES commit.
+      NUNCA commit goldens sin ratify (auditor REJECT — story closure gate).
+      6 goldens viewport: dashboard 1440×900 · primitives 1280×800 · swatch 800×600.
+      Si goldens crecen >5MB cumulative → considerar .gitattributes LFS (no aplica baseline F1-S0 ~500KB total estimate).
+    acceptance:
+      validator_ids:
+        - visual_dashboard_legacy_light
+        - visual_dashboard_legacy_dark
+        - visual_shadcn_primitives_light
+        - visual_shadcn_primitives_dark
+        - visual_agent_tokens_swatch_light
+        - visual_agent_tokens_swatch_dark
+    gherkin_coverage:
+      - scenario: "Scenario 3 — Shadcn primitive render correcto post-install"
+        tests:
+          - "visual_shadcn_primitives_light validator"
+          - "visual_shadcn_primitives_dark validator"
+      - scenario: "Scenario 4 — agent tokens accesibles + dark structural"
+        tests:
+          - "visual_agent_tokens_swatch_light validator"
+          - "visual_agent_tokens_swatch_dark validator"
+    quality_gates:
+      - "6 goldens generated + Chris ratify (file existence + manual ratification recorded)"
+      - "visual_* validators GREEN cuando re-run sin --update-snapshots"
+      - "maxDiffPixelRatio < 0.001 per Design Contract § 9.4"
+    depends_on: [T-3]
+    blocks: [T-7]
+
+  - id: T-5
+    title: "fe-arch-fitness-vt-classes — test-no-vt-classes-in-new-features.test.ts arch fitness (GREEN by emptiness)"
+    type: tests
+    surface: frontend
+    production_code: false                           # test-only (arch fitness, no runtime code)
+    state: ready
+    owner_eligibility:
+      qwen_opencode: true
+      claude_sonnet: true
+      claude_opus_required: false
+    priority: 3
+    estimate_hours: 1
+    decisions_applicable: [D2, D6]                   # D2 deprecar .vt-* + D6 cero deuda
+    inputs:
+      spec: "../01-spec.md AC-9"
+      arch_doc: "../03-arch.md § 2.7"
+      rules: [".claude/rules/frontend-fsd.md", ".claude/rules/tdd-mandatory.md"]
+      tessl_skills: ["tessl__vitest"]
+      domain_skills: ["frontend-expert"]
+    must_load_skills:
+      - frontend-expert
+      - tessl__vitest
+      - .claude/rules/frontend-fsd.md
+      - .claude/rules/tdd-mandatory.md
+    deliverables:
+      - "vitalia/frontend/src/__tests__/architecture/test-no-vt-classes-in-new-features.test.ts (NEW — arch fitness recursive scan + GREEN by emptiness)"
+      - "T-5-result.md sección 'Skills consulted' obligatoria"
+    out_of_scope:
+      - "Migración real .vt-* (eso es vitalia-fase2-vt-deprecation-final)"
+      - "ADR-002 docs (T-6)"
+    notes_for_downstream: |
+      Recursive scan SHELL_PATHS = ['src/app/[tenantId]/(shell-organism)', 'src/components/shared/shell-organism'].
+      VT_PATTERN = /\bvt-[a-z]/.
+      Initial GREEN by emptiness (esos paths no existen aún F1-S0 — los crea F1-S4).
+      Test usa `readdirSync` + `statSync` + `readFileSync` Node native (no globby dep extra).
+      Try/catch sobre statSync para path doesnt exist → skip iteration (GREEN by emptiness).
+      Extensions cubiertas: .ts .tsx .css.
+    acceptance:
+      validator_ids:
+        - test_no_vt_classes_in_new_features
+        - fe_fsd_boundaries
+    gherkin_coverage:
+      - scenario: "Scenario 1 — happy-path (arch fitness GREEN by emptiness)"
+        tests:
+          - "test_no_vt_classes_in_new_features validator (Vitest run pass)"
+    quality_gates:
+      - "test_no_vt_classes_in_new_features GREEN"
+      - "fe_fsd_boundaries GREEN (existing arch tests no regression)"
+    depends_on: [T-1]
+    blocks: [T-7]
+
+  - id: T-6
+    title: "docs-adr-vt-deprecation — ADR-vitalia-002-vt-deprecation-plan.md (8 secciones)"
+    type: docs
+    surface: docs
+    production_code: false                           # docs-only (ADR markdown, no runtime code)
+    state: ready
+    owner_eligibility:
+      qwen_opencode: true
+      claude_sonnet: true
+      claude_opus_required: false
+    priority: 3
+    estimate_hours: 1.5
+    decisions_applicable: [D2, D6]                   # D2 deprecar .vt-* COMPLETO + D6 cero deuda
+    inputs:
+      spec: "../01-spec.md AC-8 + § 11 Riesgos"
+      arch_doc: "../03-arch.md § 2.8 + § 3"
+      design_contract: "vitalia/docs/architecture/SHELL-DESIGN-CONTRACT.md § 5.3"
+      rules: [".claude/rules/spanish-text.md", ".claude/rules/brand-docs-schema.md"]
+      tessl_skills: []
+      domain_skills: []
+    must_load_skills:
+      - .claude/rules/spanish-text.md
+      - .claude/rules/brand-docs-schema.md
+    deliverables:
+      - "vitalia/docs/architecture/ADR-vitalia-002-vt-deprecation-plan.md (NEW — 8 secciones obligatorias + magic comment voseo-allowed header)"
+      - "T-6-result.md sección 'Skills consulted' obligatoria"
+    out_of_scope:
+      - "Implementar deprecación real (eso es vitalia-fase2-vt-deprecation-final)"
+      - "Arch fitness test (T-5)"
+    notes_for_downstream: |
+      8 secciones obligatorias:
+        § 1 Contexto (por qué .vt-* existen, problema deuda técnica, alineación Shadcn)
+        § 2 Inventario .vt-* (scan globals.css, listar 150+ classes con counts)
+        § 3 Estrategia compatibility temporal (bloque .vt-* apunta a nuevas CSS vars Shadcn-style)
+        § 4 Migration policy progresiva (cada feature shipped que migra al shell-organism refactoriza a Tailwind directo)
+        § 5 Final drop (story dedicada fin Fase 2: vitalia-fase2-vt-deprecation-final)
+        § 6 Arch fitness test enforcement (referencia test-no-vt-classes-in-new-features.test.ts)
+        § 7 Post-install audit checklist supply-chain (diff review line-by-line los 8 primitives .tsx contra registry oficial https://ui.shadcn.com/r/, lockfile pin review, version pinning Shadcn CLI, no auto-upgrades sin re-review)
+        § 8 Riesgos + mitigaciones (Tailwind v4 React 19 compat, Shadcn React 19 peer-dep, .vt-* deprecation rompe shipped dashboard, registry supply-chain, CSS vars colisión, Playwright flaky, goldens commit weight)
+      Magic comment header obligatorio línea 1:
+        <!-- voseo-allowed: internal architecture documentation -->
+    acceptance:
+      validator_ids:
+        - docs_adr_002_present
+        - docs_adr_002_8_sections
+    gherkin_coverage:
+      - scenario: "AC-8 ADR escrito + ratificado Chris"
+        tests:
+          - "docs_adr_002_present validator (file existence)"
+          - "docs_adr_002_8_sections validator (≥8 secciones § 1-8)"
+    quality_gates:
+      - "docs_adr_002_present GREEN"
+      - "docs_adr_002_8_sections GREEN"
+      - "Chris ratificación explícita (manual gate)"
+    depends_on: [T-1]
+    blocks: [T-7]
+
+  - id: T-7
+    title: "verify-tailwind-build-regression — Tailwind v4 empirical check + production build + existing regression"
+    type: tests
+    surface: frontend
+    production_code: false                           # verify-only (no code changes, runs all validators)
+    state: pushed
+    push_commit_sha: 2d105e7e
+    closure_notes: "Pre-existing build blocker marketing-nuqs-ssr-fix RESUELTO Fix #4 (use client directive). fe_build_production exit 0. Tailwind v4 setup completado Fix #5. Todos validators GREEN post in-loop fix session 2026-05-23."
+    owner_eligibility:
+      qwen_opencode: true
+      claude_sonnet: true
+      claude_opus_required: false
+    priority: 4
+    estimate_hours: 1
+    decisions_applicable: [D4, D6]                   # D4 verificar Tailwind v4 empíricamente + D6 cero deuda
+    inputs:
+      spec: "../01-spec.md AC-1 + AC-2 + AC-12 + AC-13 + § 11 Riesgos"
+      arch_doc: "../03-arch.md § 3.2 + § 3.3"
+      adr_002: "vitalia/docs/architecture/ADR-vitalia-002-vt-deprecation-plan.md § 8"
+      rules: [".claude/rules/debugging.md"]
+      tessl_skills: []
+      domain_skills: ["frontend-expert"]
+    must_load_skills:
+      - frontend-expert
+      - .claude/rules/debugging.md
+    deliverables:
+      - "T-7-result.md con verbatim outputs:"
+      - "  - `make dev-vitalia` arranca sin errors"
+      - "  - http://localhost:3002 manual browser visual check (Tailwind classes resuelven)"
+      - "  - `cd vitalia/frontend && npm run build` exit 0"
+      - "  - `cd vitalia/frontend && npx vitest run` GREEN existing regression"
+      - "  - Si Tailwind v4 roto → diagnose + decisión: fix in-place OR fallback ADR-002 § 8 downgrade temporal v3"
+      - "T-7-result.md sección 'Skills consulted' obligatoria"
+    out_of_scope:
+      - "Cualquier code changes (solo verify)"
+    notes_for_downstream: |
+      Pasos verify (orden estricto):
+      1. `make dev-vitalia` desde workspace root (post merge T-1..T-6).
+      2. Abrir browser http://localhost:3002 — verificar página default (dashboard)/ legacy carga sin errors visual ni console.
+      3. DevTools Console: NO "Failed to fetch CSS" ni "Tailwind plugin failed".
+      4. Manual class check: inspeccionar elemento → confirma `bg-blue-500` resuelve a azul Tailwind, `bg-agent-lisa` resuelve a #00D084.
+      5. `npm run build` production exit 0 (catch CSS var faltantes).
+      6. `npx vitest run` GREEN sobre suite Vitalia shipped (NO regression).
+      7. `npx playwright test --project=visual --grep 'stack-stability'` re-run GREEN (verify goldens stable, no flaky).
+      Si Scenario 2 negative reproduce (Tailwind v4 roto) → diagnose estructurado:
+        - postcss.config.{js,mjs,ts} presente y correcto
+        - globals.css contiene @tailwind directives (v3) o equivalente v4
+        - Turbopack vs Webpack: next dev usando bundler esperado
+        - Tailwind v4 plugin React 19 compat (peer-deps satisfechos)
+      Fallback ADR-002 § 8: downgrade temporal Tailwind v3 hasta v4 stabilize Q1 2026.
+    acceptance:
+      validator_ids:
+        - fe_build_production
+        - fe_vitest_existing_regression
+        - fe_typecheck
+        - fe_lint
+        - fe_format
+        - visual_dashboard_legacy_light
+        - visual_dashboard_legacy_dark
+    gherkin_coverage:
+      - scenario: "Scenario 1 — happy-path full verification"
+        tests:
+          - "fe_build_production validator"
+          - "fe_vitest_existing_regression validator"
+          - "fe_typecheck validator"
+      - scenario: "Scenario 2 — negative Tailwind v4 roto (catch + fallback)"
+        tests:
+          - "fe_build_production validator"
+          - "visual_dashboard_legacy_light validator"
+      - scenario: "Scenario 6 — error-state build post-install CSS var faltante"
+        tests:
+          - "fe_build_production validator"
+    quality_gates:
+      - "fe_build_production exit 0"
+      - "fe_vitest_existing_regression GREEN"
+      - "fe_typecheck + fe_lint + fe_format GREEN"
+      - "visual_dashboard_legacy_{light,dark} GREEN (no regression)"
+      - "make dev-vitalia browser manual check ratified"
+    depends_on: [T-1, T-2, T-3, T-4, T-5, T-6]
+    blocks: []

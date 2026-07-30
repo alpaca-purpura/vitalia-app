@@ -1,0 +1,190 @@
+---
+# ============================================================================
+# Capability YAML template · schema v3.2 (cement 2026-05-28)
+# SSoT: docs/process/capability-protocol.md § Sec 7-13
+# ADR: vitalia/docs/architecture/ADR-vitalia-005-capability-model-4-dimensions.md
+# ============================================================================
+# Copiá este file a {tech_module}/{slug}.yaml + llenarás los placeholders.
+# Pre-commit hook valida los campos obligatorios.
+# v3.2 agrega 4 bloques aditivos: access + scenarios + business_rules + related_capabilities
+# ============================================================================
+
+# ----------------------------------------------------------------------------
+# IDENTIDAD
+# ----------------------------------------------------------------------------
+capability_id: vitalia.{tech_module}.{slug}    # único · convención brand.module.slug
+slug: {slug}                                    # kebab-case · único dentro del tech_module
+status: live                                    # live | beta | deprecated | sunset
+license: brand-local                            # brand-local | core-shared | proprietary
+
+# ----------------------------------------------------------------------------
+# DIMENSIÓN 1 · TÉCNICA (DDD backend / FSD frontend)
+# ----------------------------------------------------------------------------
+tech_module: {tech_module}                      # path canónico · kebab
+                                                # ej: scheduling, crm, brand_studio, sales_agent
+# Backward compat (deprecation 2026-Q3):
+module: {tech_module}                           # alias de tech_module · mantener durante 1 release
+
+# ----------------------------------------------------------------------------
+# DIMENSIÓN 2 · USER-FACING (cockpit grouping)
+# ----------------------------------------------------------------------------
+agent_owner: {agent}                            # lisa | valeria | adrian | lucas | camila | config | infra
+functional_area: {agent}.{area-kebab}           # <agent>.<area-kebab>
+                                                # ej: valeria.agenda, lisa.identidad-marca
+
+# ----------------------------------------------------------------------------
+# DIMENSIÓN 3 · VISIBILIDAD
+# ----------------------------------------------------------------------------
+user_visible: true                              # true · aparece en mapa principal
+                                                # false · infra cross-cutting (filter toggle)
+
+# ----------------------------------------------------------------------------
+# DIMENSIÓN 4 · NATURALEZA
+# ----------------------------------------------------------------------------
+nature: feature                                 # feature | scaffold | extension-point
+
+# ----------------------------------------------------------------------------
+# DESCRIPCIÓN HUMANA (obligatorio si user_visible: true)
+# ----------------------------------------------------------------------------
+user_facing_name: "{Nombre human-readable de la capacidad}"
+# Máx 80 chars · Spanish neutro · sin jerga técnica
+
+user_facing_description: >
+  {2-5 líneas describiendo qué hace la capacidad desde el punto de vista del
+  usuario · Spanish neutro · sin jerga técnica · lo que un médico-clínica
+  entendería leyendo}
+
+# ----------------------------------------------------------------------------
+# DEV_PREVIEW (obligatorio si user_visible: true · opcional si false)
+# ----------------------------------------------------------------------------
+dev_preview:
+  route: "/{path-next-router}"                  # ej: "/valeria/agenda" · null si BE-only
+  how_to_navigate: "{Pasos verbatim para llegar al cap en sesión local dev}"
+  # ej: "Login → ribbon clic en avatar Valeria → sub-tab Agenda"
+
+  main_component: "vitalia/frontend/src/features/{module}/components/{Component}.tsx"
+  # path absoluto desde repo root · null si BE-only
+
+  api_endpoints:                                # endpoints que el cap consume
+    - "GET /api/v1/{path}"
+    - "POST /api/v1/{path}"
+
+  e2e_test: "vitalia/frontend/e2e/specs/{spec-name}.spec.ts"
+  # null si cap no tiene E2E aún
+
+  fixtures_required:                            # fixtures pre-cargadas
+    - "{fixture-slug}"
+
+  storybook_url: null                           # opcional
+  loom_demo: null                               # opcional · link demo 30s
+
+# ----------------------------------------------------------------------------
+# LEDGER v2 (cement 2026-05-27 · sigue siendo SSoT trazabilidad)
+# ----------------------------------------------------------------------------
+created_in_story: {story-id-que-creo}
+created_date: 2026-MM-DD
+last_modified: 2026-MM-DD
+package_version: {brand-package-version}        # ej: vitalia-fase2-v1.0.0
+package_path: vitalia/backend/src/modules/vitalia/{tech_module}/   # primary code path
+
+# Architecture
+architecture_pattern: ADR-vitalia-{NNN}         # ADR slug si aplica · null si N/A
+hipaa_lite_overlay: false                       # true si toca PHI (Vitalia-specific)
+
+# Lineage
+parent_cap: null                                # null si root · slug si derive
+derives_capabilities: []                        # caps hijas spawned via derive
+superseded_by: null                             # slug del cap que reemplaza a este (post-merge)
+
+# Atomics como objects (atomic schema v3.1 cement 2026-05-28)
+change_log:
+  - story_id: {story-id-que-creo}
+    date: 2026-MM-DD
+    type: new                                   # new | fix | extend | derive
+    summary: "{Implementación inicial · qué hace en 1-2 líneas}"
+    atomics_added: ["<id-del-atomic-1>"]        # IDs kebab-case (no labels)
+    atomics_modified: []
+    merge_sha: null                             # populate post-merge
+    status: done                                # in-progress | done
+
+# ============================================================================
+# v3.2 BLOQUES NUEVOS (cement 2026-05-28 · OPTIONAL en v3.2 · REQUIRED 2026-Q3 para user_visible:true)
+# ============================================================================
+
+# Bloque 1 · access (extiende dev_preview con roles + multi-entry-point)
+access:
+  entry_points:
+    - path: "/{path-next-router-o-api-endpoint}"
+      navigation: "{Pasos verbatim para acceder al cap · Spanish neutro}"
+      requires_role: [doctor, admin_clinic]    # roles canónicos vitalia
+      requires_clinic_scope: false             # true = HIPAA dual filter
+      entry_type: ui                            # ui | api | webhook | event | cli
+  forbidden_roles: []                           # roles explícitamente denegados (audit)
+  authentication: required                      # required | optional | none
+
+# Bloque 2 · scenarios (BDD user-facing capability lifecycle · híbrido P1 ratificado)
+scenarios:
+  - id: <kebab-scenario-id>                   # REQUIRED · unique dentro del cap · max 60 chars
+    name: "<Nombre user-facing Spanish neutro>"
+    actor: doctor                                # rol que actúa
+    status: live                                 # live | wip | deprecated
+    given: "{Contexto inicial · 1 línea}"
+    when: "{Acción del actor · 1 línea}"
+    then: "{Resultado esperado · 1+ líneas}"
+    e2e_test: null                               # OPTIONAL · path Playwright spec
+    story_spec_ref: null                         # OPTIONAL · vitalia/docs/archive/.../01-spec.md#anchor
+    atomic_ref: null                             # OPTIONAL · solo si scenario aplica a atomic cross-surface
+    edge_cases: []                               # OPTIONAL · lista narrativa Spanish neutro
+    added_in_story: {story-id}
+    added_date: 2026-MM-DD
+
+# Bloque 3 · business_rules (invariantes + HIPAA + retention + business logic)
+business_rules:
+  - id: <kebab-rule-id>
+    rule: "{Regla en 1-2 líneas Spanish neutro}"
+    enforcement:                                  # paths a rules/docs que enforce
+      - ".claude/rules/{rule}.md"
+    code_ref: null                                # OPTIONAL · path código que implementa
+    severity: medium                              # critical | high | medium | low
+    audit_trail: false                            # true = action genera audit_log row
+
+# Bloque 4 · related_capabilities (grafo de dependencias)
+related_capabilities:
+  depends_on: []                                  # caps que ESTE cap necesita activas
+  enables: []                                     # caps que SE habilitan por este
+  similar: []                                     # variantes/derive children
+  obsoletes: []                                   # caps marcados deprecated por este
+---
+
+# {Capability name}
+
+{Resumen markdown opcional · 2-5 párrafos describiendo arquitectura interna,
+decisiones cardinales, surface (entities/repos/services/api/components),
+test coverage, dependencies, promotion candidate analysis.}
+
+## Surface
+
+### Backend
+- `vitalia/backend/src/modules/vitalia/{module}/...`
+
+### Frontend
+- `vitalia/frontend/src/features/{module}/...`
+
+### Tests
+- `vitalia/backend/tests/modules/vitalia/{module}/`
+- `vitalia/frontend/src/features/{module}/__tests__/`
+
+## Decisiones cardinales
+
+- ...
+
+## Anti-objetivos cementados
+
+- ...
+
+## Referencias
+
+- Spec: `vitalia/docs/product/stories/{story-id}/01-spec.md`
+- Arch: `vitalia/docs/product/stories/{story-id}/03-arch.md`
+- Migrations: `vitalia/backend/alembic/versions/{...}.py`
+- ADR: `vitalia/docs/architecture/ADR-vitalia-{NNN}-{slug}.md`

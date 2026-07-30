@@ -1,0 +1,780 @@
+# 04-validators.yaml — F2-S7 vitalia-fase2-lisa-marca
+# Owner: /architect orchestrator (single-shot full-stack)
+# Schema v4.1 — 5 categories: non_functional / functional / visual / agentic_eval / architectural_validation + scenario_coverage
+# agentic_eval: N/A (NO agentic surface — Lisa.marca es sub-tab UI administrativa que CONSUMES sales-agent compiler v2 como library, no LLM runtime)
+#
+# Convención: ${WS} = workspace root = /home/chalreme/Proyectos/luana-vitalia
+# Native commands ONLY (NUNCA docker exec for lint/tests).
+# BE: cd vitalia/backend + ${WS}/.venv/bin/{ruff,pytest}
+# FE: cd vitalia/frontend + npx {tsc,eslint,vitest,playwright}
+
+---
+story_id: vitalia-fase2-lisa-marca
+brand: vitalia
+schema_version: v4.1
+generated_at: 2026-05-27T05:52:36Z
+generated_by: /architect
+hipaa_lite_overlay: true
+architecture_pattern: ADR-vitalia-004
+adr_004_compliance: full
+
+validators:
+  # ════════════════════════════════════════════════════════════════
+  # NON-FUNCTIONAL — code quality (lint, format, type-check, arch fitness)
+  # ════════════════════════════════════════════════════════════════
+
+  - id: be_arch_fitness
+    category: non_functional
+    type: pytest
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/architecture/ -x -q"
+    must_pass: true
+    timeout_sec: 180
+    description: "Vitalia arch fitness (DDD + tenant + audit + response_model + brand_studio_module_ddd + no_health_voice_validator + no_brand_voice_summary_table + growth_studio_event_no_phi EXTEND)"
+
+  - id: be_lint
+    category: non_functional
+    type: shell
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/ruff check src/modules/vitalia/brand_studio/ src/modules/vitalia/_shared/telemetry/ src/modules/vitalia/_shared/auth/ tests/modules/vitalia/brand_studio/ --no-cache"
+    must_pass: true
+    timeout_sec: 60
+    description: "Ruff 70+ rules, 0 errors, line-length 120"
+
+  - id: be_format
+    category: non_functional
+    type: shell
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/ruff format --check src/modules/vitalia/brand_studio/ tests/modules/vitalia/brand_studio/"
+    must_pass: true
+    timeout_sec: 30
+
+  - id: be_mypy
+    category: non_functional
+    type: shell
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/mypy src/modules/vitalia/brand_studio/ --ignore-missing-imports || true"
+    must_pass: false
+    timeout_sec: 90
+    description: "Advisory (mypy not part of vitalia mandatory gates today)"
+
+  - id: fe_typecheck
+    category: non_functional
+    type: shell
+    cmd: "cd vitalia/frontend && npx tsc --noEmit"
+    must_pass: true
+    timeout_sec: 120
+
+  - id: fe_lint
+    category: non_functional
+    type: shell
+    cmd: "cd vitalia/frontend && npx eslint 'src/features/lisa/**/*' 'src/app/[tenantId]/(shell-organism)/lisa/**/*' 'src/components/shared/shell-organism/SubSubTabsBar.tsx' --cache --cache-location .eslintcache"
+    must_pass: true
+    timeout_sec: 90
+
+  - id: fe_arch_fitness
+    category: non_functional
+    type: shell
+    cmd: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/ --reporter=default"
+    must_pass: true
+    timeout_sec: 90
+    description: "FSD-Lite boundaries + features/lisa no cross-imports + react-query keys convention + no PHI in url params"
+
+  - id: fe_madge_circular
+    category: non_functional
+    type: shell
+    cmd: "cd vitalia/frontend && npx madge --circular --extensions ts,tsx src/features/lisa/"
+    must_pass: true
+    timeout_sec: 30
+    description: "No circular imports lisa feature"
+
+  - id: fe_knip_unused
+    category: non_functional
+    type: shell
+    cmd: "cd vitalia/frontend && npx knip --include files --reporter compact src/features/lisa/"
+    must_pass: false
+    timeout_sec: 60
+    description: "Advisory only"
+
+  # ════════════════════════════════════════════════════════════════
+  # FUNCTIONAL — Gherkin scenarios (BE + FE coverage)
+  # ════════════════════════════════════════════════════════════════
+
+  # BE unit/integration per service
+  - id: be_unit_marca_service
+    category: functional
+    type: pytest
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/brand_studio/test_marca_service.py -v"
+    must_pass: true
+    timeout_sec: 90
+    scenario_id: happy
+    description: "MarcaService patch_identity/visuals/personality/contact + audit + telemetry"
+
+  - id: be_unit_voice_preview_service
+    category: functional
+    type: pytest
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/brand_studio/test_voice_preview_service.py -v"
+    must_pass: true
+    timeout_sec: 60
+    description: "Voice preview compile + cache hit/miss + invalidate on patch (OQ-C)"
+
+  - id: be_unit_voice_blocklist_service
+    category: functional
+    type: pytest
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/brand_studio/test_voice_blocklist_service.py -v"
+    must_pass: true
+    timeout_sec: 60
+    description: "Seed defaults PE present + override audit log"
+
+  - id: be_unit_trust_catalog_service
+    category: functional
+    type: pytest
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/brand_studio/test_trust_catalog_service.py -v"
+    must_pass: true
+    timeout_sec: 60
+    description: "Hybrid catalog per país (OQ-D) PE seed + AR/CL/CO/MX/BR empty"
+
+  - id: be_unit_prohibited_phrase_repository
+    category: functional
+    type: pytest
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/brand_studio/test_prohibited_phrase_repository.py -v"
+    must_pass: true
+    timeout_sec: 60
+
+  - id: be_unit_trust_signal_repository
+    category: functional
+    type: pytest
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/brand_studio/test_trust_signal_repository.py -v"
+    must_pass: true
+    timeout_sec: 60
+
+  - id: be_integration_marca_router_identity
+    category: functional
+    type: pytest
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/brand_studio/test_marca_router_identity.py -v"
+    must_pass: true
+    timeout_sec: 90
+    scenario_id: happy
+    description: "GET/PATCH identity end-to-end + audit row (SC-1 BE)"
+
+  - id: be_integration_marca_router_visuals
+    category: functional
+    type: pytest
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/brand_studio/test_marca_router_visuals.py -v"
+    must_pass: true
+    timeout_sec: 90
+    scenario_id: edge
+    description: "GET/PATCH visuals + logo upload 5MB server validation (SC-3 BE)"
+
+  - id: be_integration_marca_router_personality
+    category: functional
+    type: pytest
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/brand_studio/test_marca_router_personality.py -v"
+    must_pass: true
+    timeout_sec: 90
+    description: "GET/PATCH personality + voice-preview cache invalidate post-patch"
+
+  - id: be_integration_marca_router_contact
+    category: functional
+    type: pytest
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/brand_studio/test_marca_router_contact.py -v"
+    must_pass: true
+    timeout_sec: 60
+    description: "GET/PATCH contact + social media URL validation"
+
+  - id: be_integration_marca_router_voice_preview
+    category: functional
+    type: pytest
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/brand_studio/test_marca_router_voice_preview.py -v"
+    must_pass: true
+    timeout_sec: 60
+    description: "GET voice-preview compile first call (miss) + cache hit second call"
+
+  - id: be_integration_marca_router_trust_signals
+    category: functional
+    type: pytest
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/brand_studio/test_marca_router_trust_signals.py -v"
+    must_pass: true
+    timeout_sec: 60
+    description: "Trust signals CRUD + hybrid catalog per país"
+
+  - id: be_integration_cross_tenant
+    category: functional
+    type: pytest
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/brand_studio/test_marca_cross_tenant.py -v"
+    must_pass: true
+    timeout_sec: 60
+    scenario_id: adversarial
+    description: "Cross-tenant PATCH 403 + audit row cross_tenant_brand_edit_attempt (SC-4)"
+
+  - id: be_integration_prohibited_phrases_seed
+    category: functional
+    type: pytest
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/brand_studio/test_prohibited_phrases_seed.py -v"
+    must_pass: true
+    timeout_sec: 60
+    description: "Seed defaults PE present post-migration (10 phrases, tenant_id IS NULL)"
+
+  - id: be_integration_voice_warning_audit_log
+    category: functional
+    type: pytest
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/brand_studio/test_voice_warning_audit_log.py -v"
+    must_pass: true
+    timeout_sec: 60
+    description: "POST voice-warning-override creates audit row + telemetry"
+
+  # FE vitest unit per component
+  - id: fe_unit_identidad_view
+    category: functional
+    type: shell
+    cmd: "cd vitalia/frontend && npx vitest run src/features/lisa/components/marca/identidad/__tests__/IdentidadView.test.tsx"
+    must_pass: true
+    timeout_sec: 60
+
+  - id: fe_unit_voz_tono_view
+    category: functional
+    type: shell
+    cmd: "cd vitalia/frontend && npx vitest run src/features/lisa/components/marca/voz-y-tono/__tests__/VozTonoView.test.tsx"
+    must_pass: true
+    timeout_sec: 60
+
+  - id: fe_unit_presencia_view
+    category: functional
+    type: shell
+    cmd: "cd vitalia/frontend && npx vitest run src/features/lisa/components/marca/presencia/__tests__/PresenciaView.test.tsx"
+    must_pass: true
+    timeout_sec: 60
+
+  - id: fe_unit_identidad_components
+    category: functional
+    type: shell
+    cmd: "cd vitalia/frontend && npx vitest run src/features/lisa/components/marca/identidad/__tests__/"
+    must_pass: true
+    timeout_sec: 90
+    description: "IdentityCard + LogoDropZone + ColorTriadEditor + TypographyEditor + TeamPreviewRow + ClinicVerticalReadOnly"
+
+  - id: fe_unit_voz_tono_components
+    category: functional
+    type: shell
+    cmd: "cd vitalia/frontend && npx vitest run src/features/lisa/components/marca/voz-y-tono/__tests__/"
+    must_pass: true
+    timeout_sec: 90
+    description: "ArchetypeSelector + VoiceCompilerBlocks + VoiceTextareaWithWarning + BrandVoicePreview + TreatmentLanguageCard"
+
+  - id: fe_unit_presencia_components
+    category: functional
+    type: shell
+    cmd: "cd vitalia/frontend && npx vitest run src/features/lisa/components/marca/presencia/__tests__/"
+    must_pass: true
+    timeout_sec: 90
+    description: "WebsiteCard + SocialMediaLinksEditor + TrustSignalsEditor + LocationsCard"
+
+  - id: fe_unit_api_hooks
+    category: functional
+    type: shell
+    cmd: "cd vitalia/frontend && npx vitest run src/features/lisa/api/__tests__/"
+    must_pass: true
+    timeout_sec: 60
+    description: "React Query hooks + mutations + invalidations"
+
+  - id: fe_unit_marca_hooks
+    category: functional
+    type: shell
+    cmd: "cd vitalia/frontend && npx vitest run src/features/lisa/hooks/__tests__/"
+    must_pass: true
+    timeout_sec: 60
+    description: "Autosave hooks (5) + useVoicePreview + useVoiceBlocklist"
+
+  - id: fe_unit_marca_store
+    category: functional
+    type: shell
+    cmd: "cd vitalia/frontend && npx vitest run src/features/lisa/store/__tests__/"
+    must_pass: true
+    timeout_sec: 30
+
+  # E2E Playwright scenarios
+  - id: e2e_happy_autosave
+    category: functional
+    type: playwright
+    cmd: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/vitalia-fase2-lisa-marca/lisa-marca-identidad-autosave.spec.ts --project=smoke"
+    must_pass: true
+    timeout_sec: 300
+    scenario_id: happy
+    description: "SC-1 owner edits name + autosave fires + audit row + toast tiny"
+
+  - id: e2e_negative_voice_warning
+    category: functional
+    type: playwright
+    cmd: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/vitalia-fase2-lisa-marca/lisa-marca-voice-warning.spec.ts --project=smoke"
+    must_pass: true
+    timeout_sec: 240
+    scenario_id: negative
+    description: "SC-2 voice warning soft + override button + audit row voice_warning_overridden"
+
+  - id: e2e_edge_logo_oversized
+    category: functional
+    type: playwright
+    cmd: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/vitalia-fase2-lisa-marca/lisa-marca-logo-upload-size.spec.ts --project=smoke"
+    must_pass: true
+    timeout_sec: 180
+    scenario_id: edge
+    description: "SC-3 logo >5MB client-side blocked + retry compressed → upload OK"
+
+  - id: e2e_adversarial_cross_tenant
+    category: functional
+    type: playwright
+    cmd: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/vitalia-fase2-lisa-marca/lisa-marca-cross-tenant.spec.ts --project=smoke"
+    must_pass: true
+    timeout_sec: 180
+    scenario_id: adversarial
+    description: "SC-4 cross-tenant payload 403 (mostly BE; FE displays correct error toast)"
+
+  - id: e2e_race_autosave
+    category: functional
+    type: playwright
+    cmd: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/vitalia-fase2-lisa-marca/lisa-marca-race-autosave.spec.ts --project=smoke"
+    must_pass: true
+    timeout_sec: 240
+    scenario_id: race_condition
+    description: "SC-5 2 tabs autosave concurrent last-write-wins + dual audit row"
+
+  - id: e2e_concurrent_owners
+    category: functional
+    type: playwright
+    cmd: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/vitalia-fase2-lisa-marca/lisa-marca-concurrent-owners.spec.ts --project=smoke"
+    must_pass: true
+    timeout_sec: 300
+    scenario_id: concurrent_users
+    description: "SC-6 2 owners same tenant edit voice + non-blocking notification"
+
+  - id: e2e_network_failure
+    category: functional
+    type: playwright
+    cmd: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/vitalia-fase2-lisa-marca/lisa-marca-autosave-timeout.spec.ts --project=smoke"
+    must_pass: true
+    timeout_sec: 180
+    scenario_id: network_failure
+    description: "SC-7 autosave 30s timeout + retry counter (max 3) + rollback local"
+
+  - id: e2e_empty_state
+    category: functional
+    type: playwright
+    cmd: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/vitalia-fase2-lisa-marca/lisa-marca-empty-state.spec.ts --project=smoke"
+    must_pass: true
+    timeout_sec: 120
+    scenario_id: empty_state
+    description: "SC-8 tenant nuevo sin brand data + empty state hero + CTA Empezar + prellenado"
+
+  - id: e2e_large_dataset
+    category: functional
+    type: playwright
+    cmd: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/vitalia-fase2-lisa-marca/lisa-marca-large-dataset.spec.ts --project=smoke"
+    must_pass: true
+    timeout_sec: 240
+    scenario_id: large_dataset
+    description: "SC-9 50 testimonials + 30 team members + LCP ≤1500ms + scroll 60fps"
+
+  - id: e2e_keyboard_a11y
+    category: functional
+    type: playwright
+    cmd: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/vitalia-fase2-lisa-marca/lisa-marca-keyboard.spec.ts --project=smoke"
+    must_pass: true
+    timeout_sec: 240
+    scenario_id: accessibility
+    description: "SC-10 keyboard nav Tab + Arrow keys subsubtab cycle + aria-selected + NVDA-friendly"
+
+  - id: e2e_i18n_spanish_neutro
+    category: functional
+    type: playwright
+    cmd: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/vitalia-fase2-lisa-marca/lisa-marca-i18n.spec.ts --project=smoke"
+    must_pass: true
+    timeout_sec: 180
+    scenario_id: i18n
+    description: "SC-11 Spanish neutro grep 0 matches voseo (vos/sos/tenés/podés/...) + 0 léxico regional"
+
+  # ════════════════════════════════════════════════════════════════
+  # VISUAL — fidelity + a11y axe
+  # ════════════════════════════════════════════════════════════════
+
+  - id: visual_fidelity_subsubtabs
+    category: visual
+    type: playwright
+    cmd: "cd vitalia/frontend && npx playwright test e2e/visual/lisa-marca-visual.spec.ts"
+    capture: screenshots
+    must_pass: true
+    timeout_sec: 300
+    description: "3 subsubtabs × 2 themes = 6 PNG snapshots (identidad-{light,dark} + voz-y-tono-{light,dark} + presencia-{light,dark})"
+
+  - id: visual_responsive_breakpoints
+    category: visual
+    type: playwright
+    cmd: "cd vitalia/frontend && npx playwright test e2e/visual/lisa-marca-visual.spec.ts --project=mobile,tablet,desktop"
+    must_pass: true
+    timeout_sec: 300
+    description: "Mobile + tablet + desktop breakpoints coverage per subsubtab"
+
+  - id: a11y_axe
+    category: visual
+    type: playwright
+    cmd: "cd vitalia/frontend && npx playwright test e2e/a11y/lisa-marca-a11y.spec.ts --project=smoke"
+    must_pass: true
+    timeout_sec: 240
+    scenario_id: accessibility
+    description: "axe-core wcag2aa: 3 subsubtabs × idle/loading/success/error/empty states (critical/serious violations = fail)"
+
+  # ════════════════════════════════════════════════════════════════
+  # ARCHITECTURAL VALIDATION (★ v4.1 separada de non_functional)
+  # ════════════════════════════════════════════════════════════════
+
+  - id: arch_brand_studio_module_ddd
+    category: architectural_validation
+    type: pytest
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/architecture/test_brand_studio_module_ddd.py -v"
+    must_pass: true
+    timeout_sec: 60
+    description: "★ NEW — DDD layers domain→infra→app→api brand_studio brand-extension + tenant_id every query"
+
+  - id: arch_no_health_voice_validator
+    category: architectural_validation
+    type: pytest
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/architecture/test_no_health_voice_validator.py -v"
+    must_pass: true
+    timeout_sec: 30
+    description: "★ NEW — creep guard: grep 'health_voice_validator' returns 0 matches (anti-creep per sales-agent-brand-voice.md)"
+
+  - id: arch_no_brand_voice_summary_table
+    category: architectural_validation
+    type: pytest
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/architecture/test_no_brand_voice_summary_table.py -v"
+    must_pass: true
+    timeout_sec: 30
+    description: "★ NEW or EXTEND — creep guard cardinal: grep 'brand_voice_summary' returns 0 matches (table mirror forbidden)"
+
+  - id: arch_growth_studio_event_no_phi
+    category: architectural_validation
+    type: pytest
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/architecture/test_growth_studio_event_no_phi.py -v"
+    must_pass: true
+    timeout_sec: 60
+    description: "EXTEND existing — 13 new lisa_marca_* events declared + payload no PHI fields"
+
+  - id: arch_audit_log_sync_write
+    category: architectural_validation
+    type: pytest
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/architecture/test_audit_log_sync_write.py -v"
+    must_pass: true
+    timeout_sec: 30
+    description: "EXTEND existing — audit_log sync write antes response per brand mutation endpoint"
+
+  - id: arch_response_model_required
+    category: architectural_validation
+    type: pytest
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/architecture/test_response_model_required.py -v"
+    must_pass: true
+    timeout_sec: 30
+    description: "Every new endpoint declares response_model="
+
+  - id: arch_tenant_isolation_grep
+    category: architectural_validation
+    type: shell
+    cmd: "! grep -rn 'select(.*Model)' vitalia/backend/src/modules/vitalia/brand_studio/ | grep -v tenant_id | grep -v test_ | grep -v 'select(func' | grep -v 'select(VitaliaProhibitedPhraseModel).where(VitaliaProhibitedPhraseModel.tenant_id.is_(None))' | grep -v __pycache__"
+    must_pass: true
+    timeout_sec: 10
+    description: "Cada query SQLA filtra tenant_id (exception: seed defaults lookup with tenant_id IS NULL is allowed)"
+
+  - id: arch_anti_duplication_scan
+    category: architectural_validation
+    type: shell
+    cmd: |
+      for B in nicolify comunify lupulo; do
+        find vitalia/backend/src/modules/vitalia/brand_studio/ -name '*.py' -exec basename {} \; 2>/dev/null | xargs -I{} find $B/backend/src/ -name '{}' 2>/dev/null
+      done | wc -l | (read n; test "$n" -eq 0 || (echo CROSS-BRAND MIRROR DETECTED; exit 1))
+    must_pass: true
+    timeout_sec: 30
+    description: "Detecta mirrors cross-brand brand_studio brand-extension. Match → lift /pm-luana proposal"
+
+  - id: arch_no_cross_brand_imports
+    category: architectural_validation
+    type: shell
+    cmd: "! grep -rn 'from nicolify\\|from comunify\\|from lupulo' vitalia/backend/src/ vitalia/frontend/src/features/lisa/ 2>/dev/null"
+    must_pass: true
+    timeout_sec: 10
+    description: "HARD ban cross-brand BE imports (FE Zod schemas IMPORT verbatim from nicolify is in /types/ only — separately whitelisted)"
+
+  - id: arch_no_engine_modify
+    category: architectural_validation
+    type: shell
+    cmd: "git diff main --name-only -- 'core/luana-core-*/src/**' | wc -l | xargs -I{} sh -c 'test {} -eq 0 || (echo ENGINE MODIFY DETECTED — REQUIRES /pm-luana PROMOTION PROPOSAL; exit 1)'"
+    must_pass: true
+    timeout_sec: 10
+    description: "Story scope: zero edits a core/luana-core-*/src/. Modify → escalate /pm-luana"
+
+  - id: arch_fsd_boundaries
+    category: architectural_validation
+    type: shell
+    cmd: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/"
+    must_pass: true
+    timeout_sec: 60
+    description: "FSD-Lite — features/lisa → shared/ui/lib only + no cross-feature imports"
+
+  - id: arch_no_phi_in_url_params
+    category: architectural_validation
+    type: shell
+    cmd: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test_no_phi_in_url_params.test.ts"
+    must_pass: true
+    timeout_sec: 30
+    description: "searchParams whitelist — lisa-marca uses [subsubtab] static segment + body params only"
+
+  - id: arch_react_query_keys_convention
+    category: architectural_validation
+    type: shell
+    cmd: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test_react_query_keys_convention.test.ts"
+    must_pass: true
+    timeout_sec: 30
+    description: "Keys siguen [module, subtab, action, ...filtersStable] convention"
+
+  - id: arch_spanish_neutro_pre_commit
+    category: architectural_validation
+    type: shell
+    cmd: "! grep -rEn '\\b(vos|sos|tenés|podés|mirá|andá|fijate|dale|laburo|quilombo|pibe|che)\\b' vitalia/frontend/src/features/lisa/ 2>/dev/null | grep -v __tests__ | grep -v 'voseo-allowed'"
+    must_pass: true
+    timeout_sec: 10
+    description: "Spanish neutro LatAm — 0 matches voseo en UI strings"
+
+# ════════════════════════════════════════════════════════════════
+# Scenario coverage matrix — 11 SC → validators (★ v4.1 sub-categorías mandatory)
+# ════════════════════════════════════════════════════════════════
+
+scenario_coverage:
+  - scenario_id: SC-1
+    name: happy_identity_autosave
+    validators:
+      - be_unit_marca_service
+      - be_integration_marca_router_identity
+      - fe_unit_identidad_view
+      - fe_unit_identidad_components
+      - e2e_happy_autosave
+      - visual_fidelity_subsubtabs
+      - a11y_axe
+
+  - scenario_id: SC-2
+    name: negative_voice_warning_soft_override
+    validators:
+      - be_unit_voice_blocklist_service
+      - be_integration_voice_warning_audit_log
+      - fe_unit_voz_tono_components
+      - e2e_negative_voice_warning
+      - visual_fidelity_subsubtabs
+
+  - scenario_id: SC-3
+    name: edge_logo_upload_oversized
+    validators:
+      - be_integration_marca_router_visuals
+      - fe_unit_identidad_components
+      - e2e_edge_logo_oversized
+
+  - scenario_id: SC-4
+    name: adversarial_cross_tenant_brand_edit
+    validators:
+      - be_integration_cross_tenant
+      - arch_tenant_isolation_grep
+      - e2e_adversarial_cross_tenant
+
+  - scenario_id: SC-5
+    name: race_condition_concurrent_autosave
+    validators:
+      - be_unit_marca_service
+      - be_integration_marca_router_identity
+      - e2e_race_autosave
+
+  - scenario_id: SC-6
+    name: concurrent_owners_voice_edit
+    validators:
+      - be_integration_marca_router_personality
+      - e2e_concurrent_owners
+      - fe_unit_voz_tono_components
+
+  - scenario_id: SC-7
+    name: network_failure_autosave_timeout_retry
+    validators:
+      - e2e_network_failure
+      - fe_unit_marca_hooks
+
+  - scenario_id: SC-8
+    name: empty_state_tenant_new_no_brand_data
+    validators:
+      - e2e_empty_state
+      - visual_fidelity_subsubtabs
+      - fe_unit_identidad_view
+
+  - scenario_id: SC-9
+    name: large_dataset_50_testimonials_30_team
+    validators:
+      - e2e_large_dataset
+      - fe_unit_presencia_view
+
+  - scenario_id: SC-10
+    name: accessibility_keyboard_screen_reader
+    validators:
+      - e2e_keyboard_a11y
+      - a11y_axe
+      - fe_unit_voz_tono_components
+
+  - scenario_id: SC-11
+    name: i18n_spanish_neutro_no_voseo
+    validators:
+      - e2e_i18n_spanish_neutro
+      - arch_spanish_neutro_pre_commit
+
+# ════════════════════════════════════════════════════════════════
+# Test Construction Plan (★ v4.1 cement 2026-05-19)
+# Architect dicta orden + POMs + fixtures + mapping scenario→test.
+# /dev-team CONSTRUYE siguiendo este orden, NO inventa.
+# ════════════════════════════════════════════════════════════════
+
+test_construction_plan:
+  playwright_required: true                    # HARD — story es ui-story con autosave + warnings + visual goldens
+  base_path: "vitalia/frontend/e2e/regression/vitalia-fase2-lisa-marca/"
+
+  creation_order:
+    - step: 1
+      file: "fixtures/lisa-marca.fixture.ts"
+      content: "Clerk authedAsOwner + tenant PE setup + DB seed brand_identity + visuals + personality + contact + MSW worker setup"
+      depends_on: []
+    - step: 2
+      file: "fixtures/voice-preview-mock.ts"
+      content: "MSW handler GET /api/v1/lisa/marca/voice-preview variants: hit/miss/compile error + cache invalidation simulation"
+      depends_on: [1]
+    - step: 3
+      file: "fixtures/large-dataset.fixture.ts"
+      content: "DB seed 50 testimonials + 30 team members for SC-9 perf scenario"
+      depends_on: [1]
+    - step: 4
+      file: "fixtures/network-failure.ts"
+      content: "page.route abort helper for autosave timeout SC-7"
+      depends_on: [1]
+    - step: 5
+      file: "poms/lisa-marca-page.pom.ts"
+      content: "LisaMarcaPage POM: navigateToSubsubtab(name), getActiveSubsubtab, getAutosaveBadge, waitForLoaded, getSubSubTabsBar"
+      depends_on: [1]
+    - step: 6
+      file: "poms/identidad-section.pom.ts"
+      content: "IdentidadSectionPage POM: getNameInput, fillName, getLogoDropZone, uploadLogo(filePath), getColorPicker(slot), fillHexColor(slot, hex), getTeamPreviewLink, getEditConfigLink, getExtractWebsiteButton"
+      depends_on: [1]
+    - step: 7
+      file: "poms/voz-tono-section.pom.ts"
+      content: "VozTonoSectionPage POM: selectArchetype(name), getBlockTextarea(section), fillBlock(section, text), getWarningAlert, clickOverride, getBrandVoicePreview, getPreviewSamples, getTreatmentToggle"
+      depends_on: [1]
+    - step: 8
+      file: "poms/presencia-section.pom.ts"
+      content: "PresenciaSectionPage POM: fillWebsite, fillInstagram, fillTikTok, fillGoogleBusiness, selectTrustSignal(code), addCustomTrustSignal(label), removeTrustSignal(id), getLocationsList"
+      depends_on: [1]
+    - step: 9
+      file: "lisa-marca-identidad-autosave.spec.ts"
+      content: "SC-1 happy — owner edits name + 600ms debounce + autosave fires + toast tiny + audit row + input retains focus"
+      depends_on: [5, 6]
+    - step: 10
+      file: "lisa-marca-voice-warning.spec.ts"
+      content: "SC-2 negative — owner adds prohibited phrase + soft warning Alert + override button + audit row voice_warning_overridden"
+      depends_on: [5, 7]
+    - step: 11
+      file: "lisa-marca-logo-upload-size.spec.ts"
+      content: "SC-3 edge — owner uploads >5MB logo + client-side block + no request fires + retry with compressed → upload OK"
+      depends_on: [5, 6]
+    - step: 12
+      file: "lisa-marca-cross-tenant.spec.ts"
+      content: "SC-4 adversarial — tenant A JWT + tenant B tenant_id in payload + 403 + audit row cross_tenant_brand_edit_attempt + no leak"
+      depends_on: [5, 6]
+    - step: 13
+      file: "lisa-marca-race-autosave.spec.ts"
+      content: "SC-5 race — 2 tabs autosave concurrent + last-write-wins + dual audit row + tab A re-fetches correct server value"
+      depends_on: [5, 6]
+    - step: 14
+      file: "lisa-marca-concurrent-owners.spec.ts"
+      content: "SC-6 concurrent_users — 2 BrowserContexts (owner_a + owner_b same tenant) + edit voice textarea simultaneous + non-blocking notification 'Otro usuario editó'"
+      depends_on: [5, 7]
+    - step: 15
+      file: "lisa-marca-autosave-timeout.spec.ts"
+      content: "SC-7 network_failure — autosave fires + backend 30s timeout (route.abort) + spinner shown + Alert error + Reintentar button + retry counter max 3 + Cancelar cambios rollback"
+      depends_on: [5, 6]
+    - step: 16
+      file: "lisa-marca-empty-state.spec.ts"
+      content: "SC-8 empty_state — tenant nuevo MX dental + no brand_identity row + empty state hero + CTA Empezar + name prefilled from tenant.subdomain + autosave fires first edit"
+      depends_on: [5, 6]
+    - step: 17
+      file: "lisa-marca-large-dataset.spec.ts"
+      content: "SC-9 large_dataset — 50 testimonials + 30 team members preview + page renders LCP ≤1500ms + scroll 60fps + heap <50MB delta"
+      depends_on: [5, 6, 3]
+    - step: 18
+      file: "lisa-marca-keyboard.spec.ts"
+      content: "SC-10 accessibility — keyboard nav Tab from topbar → Ribbon → SubTabsBar → SubSubTabsBar Identidad → form fields → autosave Tab + Arrow keys cycle subsubtabs + NVDA announcements"
+      depends_on: [5, 6, 7]
+    - step: 19
+      file: "lisa-marca-i18n.spec.ts"
+      content: "SC-11 i18n — grep all rendered UI strings + 0 matches voseo (vos/sos/tenés/podés/mirá/andá/fijate/dale) + 0 matches léxico regional"
+      depends_on: [5]
+    - step: 20
+      file: "../a11y/lisa-marca-a11y.spec.ts"
+      content: "axe-core wcag2aa scan 3 subsubtabs × idle/loading/success/error/empty states"
+      depends_on: [9]
+    - step: 21
+      file: "../visual/lisa-marca-visual.spec.ts"
+      content: "Visual goldens: 3 subsubtabs × 2 themes = 6 PNGs (identidad-{light,dark}, voz-y-tono-{light,dark}, presencia-{light,dark})"
+      depends_on: [9, 10]
+
+  scenario_to_test:
+    - { scenario: "SC-1", file: "lisa-marca-identidad-autosave.spec.ts", function: "test('owner edits name + autosave fires + audit row', ...)", assertions: "toast tiny visible 3s + PATCH intercepted + audit_log row + input retains focus" }
+    - { scenario: "SC-2", file: "lisa-marca-voice-warning.spec.ts", function: "test('voice warning soft + override audit', ...)", assertions: "Alert variant=warning + override button + audit row voice_warning_overridden + ambar toast" }
+    - { scenario: "SC-3", file: "lisa-marca-logo-upload-size.spec.ts", function: "test('logo >5MB client blocks + retry compressed', ...)", assertions: "client-side error visible + no POST fires + retry compressed OK + preview live + brand_visuals.logo_url updated" }
+    - { scenario: "SC-4", file: "lisa-marca-cross-tenant.spec.ts", function: "test('cross-tenant PATCH 403 + audit row', ...)", assertions: "response 403 + tenant_b brand_identity unchanged + audit row cross_tenant_brand_edit_attempt + no PHI leak" }
+    - { scenario: "SC-5", file: "lisa-marca-race-autosave.spec.ts", function: "test('2 tabs autosave concurrent last-write-wins', ...)", assertions: "DB persists last write + audit_log 2 rows distinct + tab A re-fetches correct server value" }
+    - { scenario: "SC-6", file: "lisa-marca-concurrent-owners.spec.ts", function: "test('2 owners same tenant edit voice non-blocking notify', ...)", assertions: "stale banner appears + audit rows different user_ids + non-blocking notification" }
+    - { scenario: "SC-7", file: "lisa-marca-autosave-timeout.spec.ts", function: "test('autosave 30s timeout retry counter', ...)", assertions: "Alert variant=error + retry button + counter retries max 3 + Cancelar rollback local" }
+    - { scenario: "SC-8", file: "lisa-marca-empty-state.spec.ts", function: "test('tenant nuevo empty state hero + CTA', ...)", assertions: "EmptyStateHero + CTA Empezar + name prefilled + autosave fires first edit + progress bar updates" }
+    - { scenario: "SC-9", file: "lisa-marca-large-dataset.spec.ts", function: "test('50 testimonials + 30 team render LCP ≤1500ms', ...)", assertions: "LCP measurement + virtualization react-window + scroll 60fps + memory <50MB heap delta" }
+    - { scenario: "SC-10", file: "lisa-marca-keyboard.spec.ts + a11y spec", function: "test('keyboard nav subsubtab cycle + focus visible', ...)", assertions: "aria-selected correct + focus ring visible + NVDA-style live region announcements" }
+    - { scenario: "SC-11", file: "lisa-marca-i18n.spec.ts", function: "test('Spanish neutro grep 0 matches voseo', ...)", assertions: "regex grep 0 matches per glosario voseo + 0 matches léxico regional" }
+
+  poms_required:
+    - LisaMarcaPage
+    - IdentidadSectionPage
+    - VozTonoSectionPage
+    - PresenciaSectionPage
+
+  fixtures_required:
+    - authedAsOwner
+    - dbSeedBrandData
+    - dbSeedLargeDataset
+    - mockVoicePreviewMiss
+    - mockVoicePreviewHit
+    - mockVoicePreviewError
+    - networkFailure
+
+# ════════════════════════════════════════════════════════════════
+# Agentic eval — N/A (no agentic surface this story)
+# ════════════════════════════════════════════════════════════════
+
+agentic_eval:
+  applicable: false
+  reason: "F2-S7 es sub-tab UI administrativa Lisa→Marca. Endpoint /voice-preview consume sales-agent compiler v2 como library (compile pure-deterministic, NO LLM dispatch). Cero tickets surface=AGENTIC. NO modifica LangGraph runtime ni personality_profile state machine. Si emerge necesidad agentic (Lisa conversacional sobre brand voice) → escalate separadamente."
+
+# ════════════════════════════════════════════════════════════════
+# Iteration policy
+# ════════════════════════════════════════════════════════════════
+
+iteration:
+  max_iterations: 10
+  on_fail: "fix targeted (NO disable validator + NO skip + NO mockup hack)"
+  on_all_pass:
+    - "developing → developed (auto-handoff per story-closure-gate)"
+  on_cap_reached:
+    - "state: blocked"
+    - "escalate /pm-vitalia con findings + iteration log"
+
+# ════════════════════════════════════════════════════════════════
+# Service-deps gate (★ F2-S7 — none blocking, engine + brand-studio shipped)
+# ════════════════════════════════════════════════════════════════
+
+service_deps_gate:
+  blockers: []
+  notes: |
+    F2-S7 has zero service-deps. Engine core/luana-core-brand-studio shipped multi-brand.
+    Engine core/luana-core-sales-agent compiler v2 shipped (PromptFragment.BRAND_VOICE).
+    Visual extraction pipeline (D4) defaults to stub + disabled button — gating only IF /pm-luana
+    accepts proposal `2026-05-26-lift-brand-visual-extraction-to-core.md` (NOT blocker; story ships stub).

@@ -1,0 +1,135 @@
+# 06-tickets — vitalia-crm-phi-base-tables-migration
+# service-story · BE only · autonomous_mode false (PHI + cifrado + verificación live supervisada)
+story_id: vitalia-crm-phi-base-tables-migration
+architecture_pattern: ADR-vitalia-004   # n/a-with-rationale
+adr_ref: ADR-vitalia-007-phi-pgcrypto-encryption
+last_modified: 2026-05-30
+
+dag:
+  - T-1                # migración 035 + schema cifrado (base)
+  - T-1 -> T-2         # repos decrypt wiring + KEK config (depende del schema)
+  - T-2 -> T-3         # seed + integration + verificación live (depende de repos)
+
+gherkin_coverage:
+  SC-1: T-3   # doctor 200 + audit row (integration + live)
+  SC-2: T-3   # marketing 403
+  SC-3: T-1   # migración idempotente
+  SC-4: T-3   # cross-tenant 404 / cross-clinic 403 / forjado 401
+  SC-5: T-2   # round-trip cifrado (unit) ; T-3 verificación at-rest live
+
+tickets:
+  - id: T-1
+    title: "Migración 035 — crear vitalia_leads + reconcile vitalia_patients (pgcrypto BYTEA)"
+    surface: BE
+    production_code: true
+    owner_eligibility: [opencode, sonnet, opus]
+    deliverables:
+      - "vitalia/backend/alembic/versions/035_vitalia_crm_phi_base_tables.py (revision 035_vitalia, down_revision 034_vitalia)"
+      - "CREATE EXTENSION IF NOT EXISTS pgcrypto + CREATE TABLE IF NOT EXISTS vitalia_patients (esqueleto 016) + ADD COLUMN IF NOT EXISTS PHI BYTEA (name/date_of_birth/dni/phone/email/address) + marketing_opt_out_at TIMESTAMPTZ"
+      - "CREATE TABLE IF NOT EXISTS vitalia_leads (PHI/PII BYTEA name/email/phone/notes + source/status TEXT + timestamps)"
+      - "índices solo plaintext: patients (tenant_id,clinic_id) ; leads (tenant_id) + (tenant_id,status)"
+      - "downgrade: DROP vitalia_leads + DROP COLUMN PHI de patients ; NO drop vitalia_patients ni pgcrypto"
+      - "extender tests/architecture/test_pgcrypto_phi_columns.py::PHI_BYTEA_COLUMNS con patients/leads"
+      - "tests/migrations/test_035_crm_phi_base_tables_idempotency.py (RED first)"
+    tests_required:
+      - "idempotency: re-run upgrade = no-op"
+      - "BYTEA type en columnas PHI (arch gate)"
+      - "downgrade no dropea vitalia_patients ni pgcrypto"
+    assignment:
+      primary_agent: builder-backend
+      model_preference: sonnet
+      must_load_skills:
+        - backend-expert
+        - tessl__pytest-api-testing
+        - .claude/rules/backend-migrations.md
+        - vitalia/.claude/rules/hipaa-lite.md
+        - .claude/rules/tdd-mandatory.md
+      must_load_artifacts:
+        - "vitalia/docs/product/stories/vitalia-crm-phi-base-tables-migration/03-arch.md § 2-3"
+        - "vitalia/docs/architecture/ADR-vitalia-007-phi-pgcrypto-encryption.md § D3-D5"
+      forbidden_to_touch:
+        - "core/luana-core-*/src/"
+        - "nicolify/"
+        - "comunify/"
+        - "lupulo/"
+        - "vitalia/backend/src/modules/vitalia/copilot/"
+        - "vitalia/backend/src/modules/vitalia/sales_agent/"
+        - "vitalia/backend/alembic/versions/016_vitalia_patients_columns.py"
+        - "vitalia/backend/alembic/versions/0*.py (cualquier migración aplicada ≤034)"
+      rationale: "Migración idempotente raw SQL non-agentic — Sonnet sweet spot. pgcrypto pattern ya existe (025) → reuse. Forward-only, no edita 016."
+
+  - id: T-2
+    title: "Repos decrypt/encrypt wiring + KEK config (patient_repository + lead_repository + router + env)"
+    surface: BE
+    production_code: true
+    owner_eligibility: [opencode, sonnet, opus]
+    deliverables:
+      - "patient_repository.py: pgp_sym_decrypt al leer (get_by_id/list) + pgp_sym_encrypt al escribir (update SET dinámico PHI) + KEK param; date_of_birth text→datetime; NULL-safe"
+      - "lead_repository.py: pgp_sym_decrypt al leer + pgp_sym_encrypt al escribir (name/email/phone/notes) + KEK param; agregar create/update SQL si el insert vive en el repo"
+      - "router.py: inyectar KEKClient.from_env() en PatientRepository/LeadRepository (default param kek=None back-compat)"
+      - "vitalia/.env.dev.template + docker-compose.dev.yml: VITALIA_PHI_KEK (dev hex, comentario NO-prod)"
+      - "tests/modules/vitalia/crm/: round-trip encrypt→DB→decrypt + NULL-safe (RED first)"
+    tests_required:
+      - "round-trip: write con KEK → read → plaintext original"
+      - "NULL BYTEA → None"
+      - "dual filter intacto (tenant+clinic en patient get_by_id)"
+      - "KEK no aparece en structlog (grep AV-kek-not-logged verde)"
+    assignment:
+      primary_agent: builder-backend
+      model_preference: sonnet
+      must_load_skills:
+        - backend-expert
+        - tessl__fastapi
+        - tessl__pytest-api-testing
+        - .claude/rules/tenant-isolation.md
+        - .claude/rules/backend-ddd.md
+        - vitalia/.claude/rules/hipaa-lite.md
+      must_load_artifacts:
+        - "vitalia/docs/product/stories/vitalia-crm-phi-base-tables-migration/03-arch.md § 4-5"
+        - "vitalia/docs/architecture/ADR-vitalia-007-phi-pgcrypto-encryption.md § D1-D2"
+      forbidden_to_touch:
+        - "core/luana-core-*/src/"
+        - "nicolify/"
+        - "comunify/"
+        - "lupulo/"
+        - "vitalia/backend/src/modules/vitalia/copilot/"
+        - "vitalia/backend/src/modules/vitalia/sales_agent/"
+        - "vitalia/backend/src/modules/vitalia/_shared/encryption/kek_client.py (consumir, no modificar salvo bugfix trivial documentado)"
+        - "vitalia/backend/src/modules/vitalia/crm/domain/ (entidades sin cambio)"
+        - "vitalia/backend/alembic/versions/016_vitalia_patients_columns.py"
+      rationale: "Repo wiring BE non-agentic — Sonnet. EXTIENDE KEKClient existente (NO-NEW-LAYER). pgp_sym_* inline coherente con el SQL crudo actual de los repos."
+
+  - id: T-3
+    title: "Seed paciente cifrado + integration tests reales + verificación live (re-god-matrix)"
+    surface: BE
+    production_code: true
+    owner_eligibility: [opencode, sonnet, opus]
+    deliverables:
+      - "scripts/seed_test_users_link.py: + 1 paciente Sanaré (id determinístico) INSERT con pgp_sym_encrypt + datos LatAm neutros"
+      - "tests/integration/test_crm_phi_real_tables.py: test_doctor_reads_patient_200_audit, test_marketing_403, test_cross_tenant_404, test_cross_clinic_403, test_phi_encrypted_at_rest_decrypted_on_read (NO monkeypatch repo; monkeypatch SOLO verify_token_payload) — RED first"
+      - "verificación live supervisada: aplicar 035 en dev + re-god-matrix mint JWT real → /patients/{id} 200+descifrado+audit + raw=ciphertext + /leads 200 + marketing 403 + cross-tenant 404 + logs limpios (sin KEK/PHI/500)"
+      - "documentar evidencia live (status codes + logs sanitizados) en T-3-result.md — NUNCA imprimir JWT/secret/PHI plaintext"
+    tests_required:
+      - "integration sobre tablas reales (5 scenarios)"
+      - "manual_audit anti-teatro (04-validators § manual_audit) — supervisado por Chris"
+    assignment:
+      primary_agent: builder-backend
+      model_preference: sonnet
+      must_load_skills:
+        - backend-expert
+        - tessl__pytest-api-testing
+        - vitalia/.claude/rules/hipaa-lite.md
+        - .claude/rules/test-design-doctrine.md
+      must_load_artifacts:
+        - "vitalia/docs/product/stories/vitalia-crm-phi-base-tables-migration/04-validators.yaml § scenario_coverage + manual_audit"
+        - "vitalia/docs/product/stories/vitalia-crm-phi-base-tables-migration/03-arch.md § 6"
+        - "vitalia/docs/learnings/2026-05-30-clerk-godmatrix-mint-live-verification.md"
+      forbidden_to_touch:
+        - "core/luana-core-*/src/"
+        - "nicolify/"
+        - "comunify/"
+        - "lupulo/"
+        - "vitalia/backend/src/modules/vitalia/copilot/"
+        - "vitalia/backend/src/modules/vitalia/sales_agent/"
+        - "vitalia/backend/alembic/versions/016_vitalia_patients_columns.py"
+      rationale: "Seed + integration + verificación live anti-teatro. BE non-agentic — Sonnet. La verificación live es SUPERVISADA (autonomous_mode false): Chris valida el approach + revisa evidencia antes de cerrar."

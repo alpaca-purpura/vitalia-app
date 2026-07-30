@@ -1,0 +1,149 @@
+# 04-validators — vitalia-crm-phi-base-tables-migration
+# schema_version: v4.1 · service-story (BE migración + repo decrypt wiring) · NO FE NO AGENTIC
+story_id: vitalia-crm-phi-base-tables-migration
+architecture_pattern: ADR-vitalia-004   # n/a-with-rationale (ver 03-arch § 9)
+adr_ref: ADR-vitalia-007-phi-pgcrypto-encryption
+last_modified: 2026-05-30
+
+non_functional:
+  - id: NF-ruff
+    cmd: "cd ${WS}/vitalia/backend && ${WS}/.venv/bin/ruff check src/modules/vitalia/crm/ alembic/versions/035_vitalia_crm_phi_base_tables.py scripts/seed_test_users_link.py"
+    must_pass: true
+  - id: NF-ruff-format
+    cmd: "cd ${WS}/vitalia/backend && ${WS}/.venv/bin/ruff format --check src/modules/vitalia/crm/ alembic/versions/035_vitalia_crm_phi_base_tables.py"
+    must_pass: true
+  - id: NF-arch-fitness
+    cmd: "cd ${WS}/vitalia/backend && ${WS}/.venv/bin/pytest tests/architecture/ -x -q --tb=short"
+    must_pass: true
+    note: "Incluye test_pgcrypto_phi_columns.py (extendido con patients/leads BYTEA), test_phi_dual_filter, test_audit_log_sync_write, test_response_model_required. Allowlists shrink-only."
+
+functional:
+  - id: F-migration-idempotency
+    cmd: "cd ${WS}/vitalia/backend && ${WS}/.venv/bin/pytest tests/migrations/test_035_crm_phi_base_tables_idempotency.py -v"
+    must_pass: true
+    asserts:
+      - "upgrade re-run = no-op (sin error, sin DROP de columnas existentes)"
+      - "vitalia_patients tiene columnas name/date_of_birth/dni/phone/email/address como BYTEA"
+      - "vitalia_leads existe con name/email/phone/notes BYTEA + status TEXT default 'new'"
+      - "downgrade dropea vitalia_leads + columnas PHI de patients pero NO vitalia_patients ni pgcrypto"
+  - id: F-integration-real-tables
+    cmd: "cd ${WS}/vitalia/backend && ${WS}/.venv/bin/pytest tests/integration/test_crm_phi_real_tables.py -v"
+    must_pass: true
+    note: "Ejerce tablas reales (NO monkeypatch del repo). Monkeypatch SOLO verify_token_payload."
+  - id: F-repo-roundtrip
+    cmd: "cd ${WS}/vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/crm/ -k 'encrypt or decrypt or roundtrip' -v"
+    must_pass: true
+    asserts:
+      - "write paciente con KEK → leer → plaintext correcto (round-trip)"
+      - "columna BYTEA NULL → repo mapea a None (NULL-safe)"
+
+architectural_validation:
+  - id: AV-tenant-isolation
+    grep: "cd ${WS}/vitalia/backend && grep -n 'tenant_id' src/modules/vitalia/crm/infrastructure/persistence/patient_repository.py src/modules/vitalia/crm/infrastructure/persistence/lead_repository.py"
+    expect: "toda query (incl get_by_id) filtra tenant_id; patient filtra además clinic_id (dual)"
+    must_pass: true
+  - id: AV-no-engine-edit
+    grep: "git diff --name-only | grep -E '^core/luana-core-' || echo 'OK no engine edits'"
+    expect: "OK no engine edits"
+    must_pass: true
+  - id: AV-no-cross-brand
+    grep: "git diff --name-only | grep -E '^(nicolify|comunify|lupulo)/' || echo 'OK no cross-brand'"
+    expect: "OK no cross-brand"
+    must_pass: true
+  - id: AV-no-016-edit
+    grep: "git diff --name-only | grep '016_vitalia_patients_columns.py' && echo 'VIOLATION: 016 editado (forward-only)' || echo 'OK 016 intacto'"
+    expect: "OK 016 intacto"
+    must_pass: true
+  - id: AV-kek-not-logged
+    grep: "cd ${WS}/vitalia/backend && grep -nE 'logger.*kek|log.*get_key|print.*kek' src/modules/vitalia/crm/ -r || echo 'OK KEK no logueada'"
+    expect: "OK KEK no logueada"
+    must_pass: true
+  - id: AV-no-index-on-ciphertext
+    grep: "cd ${WS}/vitalia/backend && grep -nE 'CREATE INDEX.*(name|dni|email|phone|address|notes)' alembic/versions/035_vitalia_crm_phi_base_tables.py || echo 'OK sin indice sobre cifrado'"
+    expect: "OK sin indice sobre cifrado"
+    must_pass: true
+  - id: AV-pgcrypto-bytea-gate
+    cmd: "cd ${WS}/vitalia/backend && ${WS}/.venv/bin/pytest tests/architecture/test_pgcrypto_phi_columns.py -v"
+    expect: "patients + leads PHI columns son BYTEA"
+    must_pass: true
+
+scenario_coverage:
+  - scenario: SC-1
+    desc: "doctor JWT real → GET /crm/patients/{id} 200 + audit row"
+    graders:
+      - { type: integration, path: "tests/integration/test_crm_phi_real_tables.py::test_doctor_reads_patient_200_audit" }
+      - { type: state_check, target: db, query: "SELECT 1 FROM vitalia_audit_log WHERE action LIKE 'read_patient%' OR action LIKE 'phi_access%' ORDER BY occurred_at DESC LIMIT 1" }
+      - { type: manual_audit, who: claude-dev-app, expect: "JWT real → GET /crm/patients/{id} 200 + audit row + log sin 500/column-error" }
+  - scenario: SC-2
+    desc: "marketing/recepcion → 403"
+    graders:
+      - { type: integration, path: "tests/integration/test_crm_phi_real_tables.py::test_marketing_403" }
+      - { type: manual_audit, expect: "marketing JWT real → 403 + audit denied" }
+  - scenario: SC-3
+    desc: "migración idempotente (re-run = no-op)"
+    graders:
+      - { type: contract_test, path: "tests/migrations/test_035_crm_phi_base_tables_idempotency.py" }
+  - scenario: SC-4
+    desc: "cross-tenant 404 / cross-clinic 403 / forjado 401"
+    graders:
+      - { type: integration, path: "tests/integration/test_crm_phi_real_tables.py::test_cross_tenant_404" }
+      - { type: integration, path: "tests/integration/test_crm_phi_real_tables.py::test_cross_clinic_403" }
+      - { type: manual_audit, expect: "cross-tenant → 404 sin leak; forjado → 401" }
+  - scenario: SC-5
+    desc: "PHI cifrado at-rest (pgcrypto round-trip)"
+    graders:
+      - { type: integration, path: "tests/integration/test_crm_phi_real_tables.py::test_phi_encrypted_at_rest_decrypted_on_read" }
+      - { type: state_check, target: db, query: "SELECT name FROM vitalia_patients LIMIT 1  -- debe ser bytea ciphertext, no plaintext" }
+      - { type: manual_audit, expect: "raw DB = ciphertext ; API read = plaintext ; KEK no en logs" }
+
+# Test design por naturaleza del ticket (test-design-doctrine.md)
+test_construction_plan:
+  migration:   # BE migration → idempotency + upgrade/downgrade + IF NOT EXISTS + BYTEA type
+    red_first: true
+    cases:
+      - "re-run upgrade = no-op (idempotency)"
+      - "downgrade dropea solo lo que 035 creó (NO vitalia_patients, NO pgcrypto)"
+      - "columnas PHI son BYTEA (arch gate extendido)"
+  repository:  # BE repo → integration con DB test: round-trip encrypt/decrypt + dual filter + tenant isolation + no leak
+    red_first: true
+    cases:
+      - "round-trip: write(pgp_sym_encrypt) → read(pgp_sym_decrypt) = plaintext original"
+      - "NULL-safe: columna BYTEA NULL → None"
+      - "get_by_id filtra tenant_id + clinic_id (dual)"
+      - "cross-tenant: tenant_A + id de tenant_B → None (no leak)"
+  endpoint:    # BE endpoint API → integration: happy + cross-tenant 403/404 + 422 + response_model PII + audit row
+    red_first: true
+    cases:
+      - "doctor → 200 + data descifrada + audit row (SC-1)"
+      - "marketing → 403 + audit denied (SC-2)"
+      - "cross-tenant → 404 (SC-4)"
+      - "cross-clinic → 403 (SC-4)"
+      - "PatientResponse NO expone dni/dob/address (PII allowlist)"
+  security:    # encryption at-rest
+    red_first: true
+    cases:
+      - "raw SQL SELECT name → ciphertext bytea (NO plaintext) (SC-5)"
+      - "API read → plaintext descifrado al rol autorizado (SC-5)"
+
+# Verificación live anti-teatro (verification-real-not-200) — OBLIGATORIA, supervisada
+manual_audit:
+  who: claude-dev-app
+  required: true
+  autonomous: false   # Chris supervisa (PHI + cifrado)
+  preconditions:
+    - "migración 035 aplicada: docker exec luana-dev-vitalia_backend_dev-1 bash -lc 'cd /workspace/vitalia/backend && /workspace/.venv/bin/alembic upgrade head'"
+    - "VITALIA_PHI_KEK seteada en backend + seed corrido (1 paciente Sanaré cifrado)"
+  steps:
+    - "mint JWT real Clerk para doctor.demo (god-matrix pattern, learning 2026-05-30): POST /v1/sessions → POST /v1/sessions/{id}/tokens. NUNCA imprimir el JWT/secret."
+    - "GET /api/v1/crm/patients/{seed_id} con doctor JWT + X-Tenant-ID Sanaré + X-Clinic-ID → esperar 200 + body con name descifrado"
+    - "verificar audit row: docker exec ... psql -c \"SELECT action,occurred_at FROM vitalia_audit_log ORDER BY occurred_at DESC LIMIT 1\""
+    - "raw ciphertext: psql -c \"SELECT name FROM vitalia_patients LIMIT 1\" → bytea \\x... (NO plaintext)"
+    - "GET /api/v1/crm/leads con doctor JWT → 200"
+    - "GET /api/v1/crm/patients/{id} con marketing.demo JWT → 403"
+    - "GET /api/v1/crm/patients/{id} con X-Tenant-ID de otro tenant → 404 (no leak)"
+    - "leer logs: docker logs luana-dev-vitalia_backend_dev-1 --tail 80 | grep -iE '500|traceback|does not exist|column|kek' → sin 500/column-error, sin KEK/PHI plaintext en logs"
+  expect: "doctor 200+descifrado+audit ; raw=ciphertext ; leads 200 ; marketing 403 ; cross-tenant 404 ; logs limpios sin KEK/PHI"
+
+playwright_visual_scope:
+  applies: false
+  reason: "service-story BE-only, sin UI nueva"

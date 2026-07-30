@@ -1,0 +1,138 @@
+# 04-validators.yaml — vitalia-stub-caps-scenario-backfill (v2)
+# Naturaleza: technical-story (tooling + docs + test-wiring). NO feature UI.
+# Por eso los validators son los GATES OBJETIVO (compute_status + bidirectional) + correr-verde de los tests cableados + el bar deployed-visible.
+# NO aplica: POMs/visual goldens/RHF (no se construye UI nueva). Sí aplica: anti-teatro (correr-verde + relevancia + ejercicio real).
+# NOTE: paths relativos al workspace root. ${WS} = git rev-parse --show-toplevel.
+
+story_id: vitalia-stub-caps-scenario-backfill
+schema_version: v4.1
+brand: vitalia
+
+validators:
+  # ─── NON-FUNCTIONAL (lint del script T-0) ───
+  - id: t0_script_lint
+    category: non_functional
+    type: shell
+    cmd: "${WS}/.venv/bin/ruff check scripts/validate_code_cap_bidirectional.py scripts/tests/ --no-cache && ${WS}/.venv/bin/ruff format --check scripts/validate_code_cap_bidirectional.py"
+    must_pass: true
+    timeout_sec: 30
+
+  # ─── FUNCTIONAL — T-0 gate extension (tests del propio script) ───
+  - id: t0_script_tests
+    category: functional
+    type: pytest
+    cmd: "cd ${WS} && .venv/bin/pytest scripts/tests/test_validate_code_cap_bidirectional.py -v --tb=short"
+    must_pass: true
+    timeout_sec: 60
+    description: "(a) .py con 'def test_' → pass · (b) .py sin 'def test' → drift no_test_pattern · (c) .ts sigue igual (regression JS)"
+
+  # ─── FUNCTIONAL — Tests cableados corren verde (anti-teatro: existencia NO basta) ───
+  - id: wire_g1_playwright
+    category: functional
+    type: playwright
+    cmd: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/design-tokens-theme e2e/regression/topbar-global e2e/regression/shell-visual-check e2e/auth e2e/visual/design-tokens-theme"
+    must_pass: true
+    timeout_sec: 600
+    description: "G1 — specs cableados (theme/topbar/sign-in/shell/tokens) corren verde"
+
+  - id: wire_g2_playwright_admin
+    category: functional
+    type: playwright
+    cmd: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/admin"
+    must_pass: true
+    timeout_sec: 600
+    description: "G2 — admin specs (login/users/tenants/clinics/tenants-users) corren verde vs Streamlit. Si skip/quarantine → escalar (NO cablear test que no corre)."
+
+  - id: wire_g4_pytest
+    category: functional
+    type: pytest
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/architecture/test_phi_dual_filter.py tests/architecture/test_audit_log_row_per_phi_endpoint.py tests/architecture/test_audit_log_sync_write.py tests/architecture/test_migrations_idempotent.py tests/architecture/test_cron_envelope_used.py tests/workers/test_arq_settings.py -q"
+    must_pass: true
+    timeout_sec: 180
+    description: "G4 — pytest cableados corren verde (verificación honesta backend-justified)"
+
+  - id: wire_g3_health
+    category: functional
+    type: shell
+    cmd: "curl -fsS http://127.0.0.1:8002/health >/dev/null && echo OK"
+    must_pass: true
+    timeout_sec: 20
+    description: "G3 — api-health endpoint responde (deploy via dev-app en verificación final)"
+
+  # ─── ARCHITECTURAL VALIDATION — los 2 gates objetivo (SSoT de aceptación) ───
+  - id: gate_compute_status
+    category: architectural_validation
+    type: shell
+    cmd: "cd ${WS} && python3 scripts/compute_capability_status.py --brand vitalia"
+    must_pass: true
+    timeout_sec: 60
+    description: "Los 20 caps suben a verified-live (o partial justificado). verified-live total 2 → ~22."
+
+  - id: gate_bidirectional_strict
+    category: architectural_validation
+    type: shell
+    cmd: "cd ${WS} && python3 scripts/validate_code_cap_bidirectional.py --brand vitalia --strict"
+    must_pass: true
+    timeout_sec: 60
+    description: "cross_check_3 drift=0 (HARD), exit 0. Regression: sigue 0 tras T-0 para los .ts actuales."
+
+  - id: arch_no_engine_edit
+    category: architectural_validation
+    type: shell
+    cmd: "! git diff --name-only HEAD | grep -E '^core/luana-core-'"
+    must_pass: true
+    timeout_sec: 10
+    description: "Cero engine edit (core/luana-core-*). Boundary respetado."
+
+  - id: arch_no_feature_code
+    category: architectural_validation
+    type: shell
+    cmd: "! git diff --name-only HEAD | grep -E '^vitalia/(backend/src/modules/vitalia|frontend/src/(features|components|app))/' | grep -vE 'tests/|/e2e/'"
+    must_pass: true
+    timeout_sec: 10
+    description: "Cero código de feature nuevo. Solo scenarios (cap YAMLs) + tests + wiring + scripts/. (fixes inline quirúrgicos por fix-to-green son la excepción documentada en VERIFICATION-REPORT)"
+
+scenario_coverage:
+  - scenario_id: SC-1-happy
+    validators: [wire_g1_playwright, gate_compute_status, gate_bidirectional_strict]
+  - scenario_id: SC-2-negative
+    validators: [gate_bidirectional_strict]
+  - scenario_id: SC-3-edge
+    validators: [t0_script_tests, wire_g4_pytest, gate_compute_status, gate_bidirectional_strict]
+  - scenario_id: SC-4-adversarial
+    validators: [gate_bidirectional_strict]   # gate mecánico pasa; relevancia + bar = manual auditor (ver test_construction_plan)
+
+# Test construction plan — naturaleza tooling/wiring (NO POMs/fixtures de UI feature)
+test_construction_plan:
+  playwright_required: false   # NO se construyen specs Playwright nuevos — se CABLEAN existentes (G1/G2)
+  nature: tooling-docs-test-wiring
+  creation_order:
+    - step: 1
+      target: "scripts/validate_code_cap_bidirectional.py + scripts/tests/test_validate_code_cap_bidirectional.py"
+      content: "T-0: cross_check_3 path-aware (.py → pytest pattern) + tests del script (RED→GREEN)"
+    - step: 2
+      target: "vitalia/docs/product/capabilities/{module}/{cap}.yaml × 20"
+      content: "Append scenarios[] (schema golden clerk-middleware) + change_log type:extend. e2e_test apunta a test EXISTENTE confirmado."
+    - step: 3
+      target: "tests faltantes (WRITE-thin honesto): public-clinic-landing (G1), otel-sentry / vitalia-callback (G4) si no hay cobertura"
+      content: "Solo donde NO exista test que cubra. Mínimo, honesto, no feature."
+    - step: 4
+      target: "vitalia/docs/product/stories/vitalia-stub-caps-scenario-backfill/VERIFICATION-REPORT.md"
+      content: "1 fila por cap: grupo·método·qué se ejerció·evidencia·resultado·computed_status. Anti-teatro: no GET-200-a-secas para G1/G2."
+
+  # ★ Anti-teatro discipline (heredado del bar deployed-visible · ratificado Chris)
+  anti_theater_rules:
+    - "Cada e2e_test cableado: el builder CORRE el test (verde) + confirma que ejercita el given/when/then (no proxy)."
+    - "G1/G2: además del test verde, dejar evidencia de ejercicio REAL en dev-app/admin (efecto visible + log sin 4xx/5xx). El orchestrator (Claude) hace esta verificación hands-on (curl + chrome-devtools + docker logs)."
+    - "G4: pytest verde es evidencia honesta suficiente (backend-justified, sin superficie dev-app)."
+    - "Si un cap solo verifica parte honesta → computed_status=partial con rationale en el cap YAML. NUNCA verified-live falso."
+    - "Auditor: rechaza (CHANGES_REQUESTED) cualquier e2e_test no-relevante o evidencia 'GET 200 a secas' para G1/G2, aunque el gate mecánico pase (SC-4)."
+
+  # No aplica playwright_visual_scope: esta story NO modifica componentes UI (cero riesgo de romper otras pantallas).
+  # Si el fix-to-green obligara a tocar un componente → STOP + documentar en T-{n}-impl-log § Cross-story observed bugs + escalar.
+
+iteration:
+  max_iterations: 10
+  on_fail: "fix targeted (cap YAML path / script / test) based on output, re-run failing validator only"
+  on_all_pass: "set state=developing→developed, escribir VERIFICATION-REPORT.md, append iteration_log a T-{n}-impl-log.md"
+  on_cap_reached: "set state=developing→blocked, escalate Chris con last error trace"

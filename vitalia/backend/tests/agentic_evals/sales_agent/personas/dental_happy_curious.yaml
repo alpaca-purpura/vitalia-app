@@ -1,0 +1,17 @@
+# Vitalia Adrián eval persona — dental happy curious lead profile
+# voseo-allowed: persona simula lead AR (voseo natural).
+persona_id: dental_happy_curious
+archetype: explorer
+dialect: es-AR
+vertical: dental
+voice_constraints:
+  formality: informal
+  opening: "Hola, quería preguntar por blanqueamiento dental, ¿cuánto sale?"
+  common_objections: []
+  red_flags: []
+profile:
+  intent: book_blanqueamiento
+  urgency: medium
+  budget_hint: 80000_ars
+  emotional_state: curious
+  tech_savvy: medium

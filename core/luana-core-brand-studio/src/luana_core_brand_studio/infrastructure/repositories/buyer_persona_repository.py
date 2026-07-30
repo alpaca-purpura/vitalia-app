@@ -1,0 +1,145 @@
+"""Repository for BuyerPersona CRUD with tenant isolation."""
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+import structlog
+from pydantic import ValidationError
+from sqlalchemy import select
+
+if TYPE_CHECKING:
+    from uuid import UUID
+
+    from sqlalchemy.orm import Session
+
+from luana_core_platform.domain.datetime_utils import utc_now
+
+from luana_core_brand_studio.domain.buyer_persona import BuyerPersona
+from luana_core_brand_studio.infrastructure.models.buyer_persona_model import (
+    BuyerPersonaModel,
+)
+
+logger = structlog.get_logger()
+
+
+class BuyerPersonaRepository:
+    """CRUD repository for BuyerPersona with mandatory tenant isolation."""
+
+    def __init__(self, db: Session) -> None:
+        """Initialize with a database session."""
+        self.db = db
+
+    def create(self, persona: BuyerPersona) -> BuyerPersona:
+        """Persist a new BuyerPersona and return the validated entity."""
+        db_model = BuyerPersonaModel(
+            id=persona.id,
+            tenant_id=persona.tenant_id,
+            user_id=persona.user_id,
+            name=persona.name,
+            tagline=persona.tagline,
+            scope=persona.scope,
+            offer_id=persona.offer_id,
+            is_primary=persona.is_primary,
+            demographics=persona.demographics,
+            psychographics=persona.psychographics,
+            pain_points=persona.pain_points,
+            desires=persona.desires,
+            buyer_journey=persona.buyer_journey,
+            purchase_triggers=persona.purchase_triggers,
+            anti_patterns=persona.anti_patterns,
+            completeness_score=persona.completeness_score,
+            is_active=persona.is_active,
+        )
+        self.db.add(db_model)
+        self.db.commit()
+        self.db.refresh(db_model)
+        return BuyerPersona.model_validate(db_model)
+
+    def get_by_id(self, tenant_id: UUID, persona_id: UUID) -> BuyerPersona | None:
+        """Return a single persona by id, or ``None`` if not found."""
+        stmt = select(BuyerPersonaModel).where(
+            BuyerPersonaModel.tenant_id == tenant_id,
+            BuyerPersonaModel.id == persona_id,
+            BuyerPersonaModel.deleted_at.is_(None),
+        )
+        result = self.db.execute(stmt)
+        model = result.scalars().first()
+        if model:
+            try:
+                return BuyerPersona.model_validate(model)
+            except ValidationError:
+                logger.warning(
+                    "buyer_persona.corrupt_row_skipped",
+                    persona_id=str(model.id),
+                    tenant_id=str(model.tenant_id),
+                )
+                return None
+        return None
+
+    def list_by_tenant(
+        self,
+        tenant_id: UUID,
+        scope: str | None = None,
+    ) -> list[BuyerPersona]:
+        """List active personas for a tenant, optionally filtered by scope."""
+        stmt = select(BuyerPersonaModel).where(
+            BuyerPersonaModel.tenant_id == tenant_id,
+            BuyerPersonaModel.deleted_at.is_(None),
+        )
+        if scope:
+            stmt = stmt.where(BuyerPersonaModel.scope == scope)
+        result = self.db.execute(stmt)
+        models = result.scalars().all()
+        valid: list[BuyerPersona] = []
+        for m in models:
+            try:
+                valid.append(BuyerPersona.model_validate(m))
+            except ValidationError:
+                logger.warning(
+                    "buyer_persona.corrupt_row_skipped",
+                    persona_id=str(m.id),
+                    tenant_id=str(m.tenant_id),
+                )
+        return valid
+
+    def update(
+        self,
+        tenant_id: UUID,
+        persona_id: UUID,
+        updates: dict,
+    ) -> BuyerPersona | None:
+        """Apply partial updates and return the refreshed entity."""
+        stmt = select(BuyerPersonaModel).where(
+            BuyerPersonaModel.tenant_id == tenant_id,
+            BuyerPersonaModel.id == persona_id,
+            BuyerPersonaModel.deleted_at.is_(None),
+        )
+        result = self.db.execute(stmt)
+        model = result.scalars().first()
+        if not model:
+            return None
+
+        for key, value in updates.items():
+            if hasattr(model, key):
+                setattr(model, key, value)
+
+        self.db.commit()
+        self.db.refresh(model)
+        return BuyerPersona.model_validate(model)
+
+    def soft_delete(self, tenant_id: UUID, persona_id: UUID) -> bool:
+        """Soft-delete a persona by setting ``deleted_at``."""
+        stmt = select(BuyerPersonaModel).where(
+            BuyerPersonaModel.tenant_id == tenant_id,
+            BuyerPersonaModel.id == persona_id,
+            BuyerPersonaModel.deleted_at.is_(None),
+        )
+        result = self.db.execute(stmt)
+        model = result.scalars().first()
+        if not model:
+            return False
+
+        model.deleted_at = utc_now()
+        self.db.commit()
+        return True

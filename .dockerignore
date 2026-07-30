@@ -1,0 +1,10 @@
+# Build context = monorepo root (todos los Dockerfiles de brand).
+# Excluir artefactos host que NUNCA deben entrar a una imagen:
+# - node_modules: symlinks pnpm del host (rotos dentro del container; pnpm install los regenera)
+# - .next: build cache local
+# - .git: historia completa (pesada, irrelevante para builds)
+# - .venv: venv python del host (se construye dentro en imágenes BE)
+**/node_modules
+**/.next
+.git
+.venv

@@ -1,0 +1,29 @@
+{
+  "name": "vitalia_nps_post_tratamiento",
+  "category": "UTILITY",
+  "language": "es",
+  "components": [
+    {
+      "type": "BODY",
+      "text": "Hola {{1}}, gracias por confiar en {{2}}. Tu opinión es muy importante para nosotros. ¿Del 1 al 10, qué tan probable es que nos recomiendes a un amigo o familiar?",
+      "example": {
+        "body_text": [
+          ["Pedro Mendoza", "Clínica Vitalia"]
+        ]
+      }
+    },
+    {
+      "type": "FOOTER",
+      "text": "Vitalia — mejoramos gracias a ti"
+    },
+    {
+      "type": "BUTTONS",
+      "buttons": [
+        {
+          "type": "QUICK_REPLY",
+          "text": "Calificar ahora"
+        }
+      ]
+    }
+  ]
+}

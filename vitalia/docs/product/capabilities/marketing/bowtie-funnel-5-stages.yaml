@@ -1,0 +1,113 @@
+---
+capability_id: vitalia-marketing-bowtie-funnel-5-stages
+module: marketing
+slug: bowtie-funnel-5-stages
+status: deprecated
+date_introduced: 2026-05-21
+story_introduced: vitalia-slice-1-marketing
+package_version: 0.1.0
+package_path: vitalia/backend/src/modules/vitalia/marketing
+license: proprietary
+
+# v3 cement 2026-05-27 · 4 dimensiones + dev_preview (ADR-vitalia-005)
+tech_module: marketing
+agent_owner: lucas
+functional_area: lucas.bowtie
+user_visible: true
+nature: feature
+ui_paradigm: slice-1-superseded  # T-3 reconcile 2026-05-29
+replaced_by_story: vitalia-fase2-adrian-embudo  # T-3: story F2 que reconstruye esta cap
+
+user_facing_name: "Lucas · embudo bowtie de 5 etapas"
+user_facing_description: >
+  Vista unificada del funnel de captación y retención de la clínica en
+  5 etapas: Atracción, Calificación, Reserva, Adopción y Expansión.
+  El SVG pixel-invariante del bowtie muestra conteos y tasas de conversión
+  por etapa. Al seleccionar una etapa se despliega el detalle con métricas
+  por canal y las recomendaciones de Lucas para esa fase del embudo.
+
+dev_preview:
+  route: "/lucas/marketing"
+  how_to_navigate: "Login → ribbon clic en avatar Lucas → sub-tab Marketing → SVG bowtie interactivo + tabs de etapa."
+  main_component: "vitalia/frontend/src/features/marketing/components/MarketingBowtieSVG.tsx"
+  api_endpoints:
+    - "GET /api/v1/vitalia/marketing/bowtie/summary"
+    - "GET /api/v1/vitalia/marketing/stage/{stage_slug}"
+    - "GET /api/v1/vitalia/marketing/channels/{provider}"
+  e2e_test: null
+  fixtures_required: ["3-clinic-fixture-latam"]
+  storybook_url: null
+  loom_demo: null
+
+# Capability ledger v2 (cement 2026-05-27)
+created_in_story: vitalia-slice-1-marketing   # v2 cement · mirror of story_introduced
+created_date: 2026-05-21   # v2 cement · mirror of date_introduced
+last_modified: 2026-05-29   # T-3 reconcile 2026-05-29
+parent_cap: null   # v2 cement · mirror of extends_capability
+derives_capabilities: []   # v2 cement · initial empty list
+
+# Capability ledger v2 (cement 2026-05-27)
+
+# Capability change log v2 (cement 2026-05-27)
+change_log:
+  - story_id: vitalia-slice-1-marketing
+    date: 2026-05-21
+    type: new
+    summary: "Implementación inicial · migración legacy a schema v2"
+    merge_sha: null
+    status: done
+map_box: lucas
+
+---
+
+# vitalia-marketing-bowtie-funnel-5-stages
+
+5-stage Bowtie marketing funnel for health clinics: pre-revenue + post-revenue lens unified. SSoT en `BowtieStage` enum + `MarketingLayout` orchestrator FE. Pixel-invariante SVG per `02-design-ui-mockup.html`.
+
+## Surface
+
+### Domain
+- `vitalia/backend/src/modules/vitalia/marketing/domain/enums.py::BowtieStage` — 5 values: `ATTRACTION`, `QUALIFICATION`, `RESERVATION`, `ADOPTION`, `EXPANSION`
+- `BowtieSummary` / `StageDetail` / `ChannelDetail` domain entities (snapshot read by Lucas cron + channel_metrics)
+
+### Persistence (Alembic migrations 026-031)
+- `vitalia_channel_metrics` — per-stage KPIs source (synced by `channel_metrics_sync_meta/google` cron c/4h)
+- `vitalia_channel_sync_state` — per-tenant per-provider sync health
+- `vitalia_lucas_recommendations` — per-stage actionable insights
+
+### API
+- `GET /api/v1/vitalia/marketing/bowtie/summary` — 5-stage snapshot (counts + conversion rates + KPI hero)
+- `GET /api/v1/vitalia/marketing/stage/{stage_slug}` — detailed stage view + secondary widgets (Reserva: Attribution, Expansión: Referrals)
+- `GET /api/v1/vitalia/marketing/channels/{provider}` — per-channel breakdown row
+
+### FE Components
+- `vitalia/frontend/src/features/marketing/components/MarketingBowtieSVG.tsx` — pixel-invariante SVG renderer (5 stages)
+- `MarketingStageTabs.tsx` — 5 tabs + KPI hero per active stage + count badges
+- `MarketingLayout.tsx` — sticky top bowtie + tabs + StageDispatcher
+- `StageDispatcher.tsx` — URL `?tab=` SSoT dispatches to AttractionStage/QualificationStage/ReservationStage/AdoptionStage/ExpansionStage
+- 5 stage sections in `components/{Attraction,Qualification,Reservation,Adoption,Expansion}Stage.tsx`
+- `vitalia/frontend/src/app/marketing/page.tsx` Server Component reading nuqs server-side
+
+### Hooks
+- `useBowtieSummary` · `useStageDetail` (React Query, key factory)
+
+## Verification
+
+```bash
+WS=$(git rev-parse --show-toplevel)
+cd ${WS}/vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/marketing/domain/test_enums.py -v
+cd ${WS}/vitalia/frontend && npx vitest run src/features/marketing/__tests__/MarketingBowtieSVG.test.tsx src/features/marketing/__tests__/MarketingStageTabs.test.tsx src/features/marketing/__tests__/MarketingLayout.test.tsx
+```
+
+Verification gherkin evidence: SC-MK-03 (Stage tab change · Lucas re-render correctly) — see `vitalia/docs/archive/2026/stories/vitalia-slice-1-marketing/06-audit/gherkin-matrix-frontend.md`.
+
+## Dependencies
+
+- ENGINE: `core/luana-core-platform.repositories.compound_scope_repository.CompoundScopeRepositoryBase` (v0.4.0)
+- ENGINE: `core/luana-core-platform.workers.cron_envelope` (v0.4.0)
+- BRAND: `vitalia-marketing-lucas-stage-recommendations` (top 3 cards per stage)
+
+## KPIs
+
+- 5-stage SVG render time ≤ 50ms (bundle target < 30KB gzipped, deferred CI)
+- URL tab change reflects within 100ms (nuqs `replace: true` intra-route)

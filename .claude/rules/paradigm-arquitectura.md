@@ -1,0 +1,1 @@
+../../core-harness/rules/paradigm-arquitectura.md

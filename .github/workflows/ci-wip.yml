@@ -1,0 +1,148 @@
+name: CI (WIP)
+
+# Light CI gates for wip/* branches.
+# Goal: fast feedback (<5 min) for iterative work-in-progress commits.
+# Does NOT run: arch-fitness, coverage threshold, jscpd, pip-audit.
+# Full gates run on main via ci.yml when squash-merging the wip branch.
+#
+# Quota-aware (post 2026-05-19 mitigations):
+# - paths-ignore: docs-only / .claude-only commits skip CI (autosave docs no debería burn quota)
+# - concurrency: cancel in-progress runs cuando newer commit lands en mismo branch
+#   (rapid wip push sequences son comunes — cancel los obsolete)
+#
+# Ref: docs/process/learnings.md § 2026-05-19 — GH Actions quota incident
+
+on:
+  push:
+    branches:
+      - 'wip/**'
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.claude/**'
+      - '.gitignore'
+      - 'LICENSE'
+
+# Cancel in-progress runs when newer commit lands on same wip branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Minimum permissions — least-privilege (supply chain safety)
+permissions:
+  contents: read
+
+jobs:
+  python-lint-targeted:
+    name: python-lint-targeted
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+      - name: Install Python workspace dependencies
+        run: uv sync --all-packages
+      - name: Detect changed Python packages
+        id: changed
+        run: |
+          # Get list of changed Python dirs relative to repo root
+          CHANGED=$(git diff --name-only HEAD~1..HEAD 2>/dev/null \
+            | grep '\.py$' \
+            | sed 's|/.*||' \
+            | sort -u \
+            | tr '\n' ' ' \
+            || true)
+          echo "dirs=${CHANGED}" >> "$GITHUB_OUTPUT"
+      - name: Ruff lint — changed packages (targeted)
+        run: |
+          DIRS="${{ steps.changed.outputs.dirs }}"
+          if [ -z "${DIRS}" ]; then
+            echo "No changed Python packages detected — skipping targeted lint"
+            exit 0
+          fi
+          # shellcheck disable=SC2086
+          uv run ruff check ${DIRS} --no-cache \
+            || echo "::warning::Ruff violations in WIP branch — will be enforced on squash-merge to main"
+
+  python-test-targeted:
+    name: python-test-targeted
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+      - name: Install Python workspace dependencies
+        run: uv sync --all-packages
+      - name: Detect changed test paths
+        id: changed
+        run: |
+          # Map changed source files to their test directories
+          CHANGED_TESTS=$(git diff --name-only HEAD~1..HEAD 2>/dev/null \
+            | grep '\.py$' \
+            | grep -v 'tests/' \
+            | sed 's|src/modules/\([^/]*\)/.*|tests/modules/\1/|' \
+            | grep '^tests/' \
+            | sort -u \
+            | tr '\n' ' ' \
+            || true)
+          echo "test_dirs=${CHANGED_TESTS}" >> "$GITHUB_OUTPUT"
+      - name: Pytest — targeted tests (no arch-fitness, no coverage threshold)
+        run: |
+          TEST_DIRS="${{ steps.changed.outputs.test_dirs }}"
+          # Skip arch-fitness explicitly — those run only on main
+          uv run pytest -x -q --tb=short \
+            --ignore=tests/architecture/ \
+            --override-ini="addopts=" \
+            ${TEST_DIRS:-} \
+            || echo "::warning::Test failures in WIP branch — will be enforced on squash-merge to main"
+
+  ts-lint-targeted:
+    name: ts-lint-targeted
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "pnpm"
+      - name: Install Node.js workspace dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Detect changed frontend packages
+        id: changed
+        run: |
+          # Detect which frontend packages changed
+          CHANGED_FE=$(git diff --name-only HEAD~1..HEAD 2>/dev/null \
+            | grep -E '\.(ts|tsx)$' \
+            | sed 's|/.*||' \
+            | sort -u \
+            | tr '\n' ' ' \
+            || true)
+          echo "pkgs=${CHANGED_FE}" >> "$GITHUB_OUTPUT"
+      - name: ESLint — targeted frontend packages
+        run: |
+          PKGS="${{ steps.changed.outputs.pkgs }}"
+          if [ -z "${PKGS}" ]; then
+            echo "No changed TypeScript packages detected — skipping targeted lint"
+            exit 0
+          fi
+          # Run lint on changed packages via pnpm filter
+          for PKG in ${PKGS}; do
+            pnpm --filter "./${PKG}" lint 2>/dev/null \
+              || echo "::warning::ESLint issues in ${PKG} (WIP) — enforced on squash-merge to main"
+          done
+
+  # NOTE: No ts-test full suite, no arch-fitness FE, no coverage threshold in WIP.
+  # Objective: <5 min total for rapid iteration.
+  # Full TypeScript test suite runs on main via ci.yml.

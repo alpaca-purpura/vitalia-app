@@ -1,0 +1,253 @@
+---
+capability_id: vitalia-inbox-handler-mode-occ
+module: sales_agent
+slug: inbox-handler-mode-occ
+status: deprecated
+date_introduced: 2026-05-20
+story_introduced: vitalia-slice-1-inbox
+package_version: 0.1.0
+package_path: vitalia/backend/src/modules/vitalia/inbox/application/services
+license: proprietary
+
+# v3 cement 2026-05-27 · 4 dimensiones + dev_preview (ADR-vitalia-005)
+tech_module: sales_agent
+agent_owner: adrian
+functional_area: adrian.inbox
+user_visible: true
+nature: feature
+ui_paradigm: slice-1-superseded  # T-3 reconcile 2026-05-29
+replaced_by_story: vitalia-fase2-adrian-inbox  # T-3: story F2 que reconstruye esta cap
+superseded_by: inbox.adrian-inbox  # 2026-06-04: cap canónica del inbox shell-organism (2-modos). Esta queda como registro histórico slice-1.
+
+user_facing_name: "Adrián · inbox con modo handler (agente/humano/pausado) y OCC"
+user_facing_description: >
+  El inbox de conversaciones donde cada chat tiene un modo de atención: Adrián
+  responde automáticamente (agente), el operador humano toma el control (humano)
+  o la conversación queda en escucha (pausado). El control de concurrencia
+  optimista evita conflictos cuando dos operadores intentan cambiar el modo
+  al mismo tiempo, y el recibo de acción permite deshacer el último mensaje
+  de Adrián durante 5 minutos.
+
+dev_preview:
+  route: "/adrian/inbox"
+  how_to_navigate: "Login → ribbon clic en avatar Adrián → sub-tab Inbox para ver el listado de conversaciones."
+  main_component: null
+  api_endpoints:
+    - "PATCH /api/v1/inbox/conversations/{id}/mode"
+    - "POST /api/v1/inbox/conversations/{id}/pause"
+    - "POST /api/v1/inbox/messages/{id}/retract"
+  e2e_test: null
+  fixtures_required: ["3-clinic-fixture-latam"]
+  storybook_url: null
+  loom_demo: null
+
+# Capability ledger v2 (cement 2026-05-27)
+created_in_story: vitalia-slice-1-inbox   # v2 cement · mirror of story_introduced
+created_date: 2026-05-20   # v2 cement · mirror of date_introduced
+last_modified: 2026-05-29   # T-3 reconcile 2026-05-29
+parent_cap: null   # v2 cement · mirror of extends_capability
+derives_capabilities: []   # v2 cement · initial empty list
+
+# Capability ledger v2 (cement 2026-05-27)
+
+# Capability change log v2 (cement 2026-05-27)
+change_log:
+  - story_id: vitalia-slice-1-inbox
+    date: 2026-05-20
+    type: new
+    summary: "Implementación inicial · migración legacy a schema v2"
+    merge_sha: null
+    status: done
+
+access:
+  # ★ API entry_points MOVIDOS a la cap canónica inbox.adrian-inbox (2026-06-04). Esta cap
+  # slice-1 (deprecated/superseded) conserva solo la entrada UI como registro histórico;
+  # el enforcement real (_assert_phi_access / _INBOX_OPERATOR_ROLES) se valida en inbox.adrian-inbox.
+  entry_points:
+    - path: "/adrian/inbox"
+      navigation: "Login → ribbon clic en avatar Adrián → sub-tab Inbox (slice-1 · ver inbox.adrian-inbox)"
+      requires_role: [marketing, admin_clinic]
+      requires_clinic_scope: true
+      entry_type: ui
+  forbidden_roles: [patient]
+  authentication: required
+
+scenarios:
+  - id: operador-cambia-modo-agente-a-humano
+    name: "Operador toma el control de una conversación de Adrián"
+    actor: marketing
+    status: live
+    given: "Conversación en modo 'agente' con Adrián respondiendo automáticamente"
+    when: "Operador cambia el modo a 'humano' enviando expected_version correcto"
+    then: "Modo actualiza a humano · Adrián deja de actuar · versión incrementa a M+1 · operador puede responder directamente"
+    e2e_test: null
+    story_spec_ref: "vitalia/docs/archive/2026/stories/vitalia-slice-1-inbox/01-spec.md"
+    atomic_ref: null
+    edge_cases:
+      - "Dos operadores cambian modo simultáneamente → segundo recibe 409 con current_version · hace rollback de su UI"
+      - "Transición inválida (ej. human → human) → 422 Unprocessable Entity"
+    added_in_story: vitalia-slice-1-inbox
+    added_date: 2026-05-20
+  - id: operador-deshace-mensaje-de-adrian
+    name: "Operador deshace el último mensaje de Adrián dentro de los 5 minutos"
+    actor: marketing
+    status: live
+    given: "Adrián envió un mensaje hace 2 minutos · ActionReceipt en estado active con countdown visible"
+    when: "Operador hace clic en el chip de undo antes de que expire el TTL"
+    then: "ActionReceipt → status undone · Message → retracted_at = NOW · evento MessageRetracted emitido · countdown desaparece del UI"
+    e2e_test: null
+    story_spec_ref: "vitalia/docs/archive/2026/stories/vitalia-slice-1-inbox/01-spec.md"
+    atomic_ref: null
+    edge_cases:
+      - "Intento de undo después de 5 minutos → 410 Gone · UI muestra 'no se puede deshacer'"
+      - "Retract atómico: message.retracted_at y receipt.status en misma transacción"
+    added_in_story: vitalia-slice-1-inbox
+    added_date: 2026-05-20
+  - id: adriano-en-modo-pausado
+    name: "Conversación en modo pausado bloquea a Adrián y al operador"
+    actor: admin_clinic
+    status: live
+    given: "Conversación activa con paciente"
+    when: "Admin cambia el modo a 'pausado'"
+    then: "Adrián no actúa · operador no envía mensajes · modo escucha activo · EP-13 GuardrailDef bloquea herramientas de Adrián"
+    e2e_test: null
+    story_spec_ref: "vitalia/docs/archive/2026/stories/vitalia-slice-1-inbox/01-spec.md"
+    atomic_ref: null
+    edge_cases:
+      - "Cambio de paused a human → permitido (transición válida)"
+      - "Cambio de paused a paused → 422 (auto-transición inválida)"
+    added_in_story: vitalia-slice-1-inbox
+    added_date: 2026-05-20
+
+business_rules:
+  - id: occ-version-check
+    rule: "Toda actualización de handler_mode requiere expected_version coincidente · mismatch retorna 409 con current_version para que el cliente refresque su estado"
+    enforcement:
+      - ".claude/rules/backend-ddd.md"
+    code_ref: "vitalia/backend/src/modules/vitalia/inbox/application/services/set_mode_service.py"
+    severity: critical
+    audit_trail: false
+  - id: action-receipt-5min-ttl
+    rule: "ActionReceipt expira 5 minutos post-creación · undo después del TTL retorna 410 Gone · no hay extensión del TTL"
+    enforcement:
+      - "vitalia/docs/architecture/ADR-vitalia-004.md"
+    code_ref: "vitalia/backend/src/modules/vitalia/crm/domain/action_receipt.py"
+    severity: high
+    audit_trail: false
+  - id: inbox-no-phi-in-mode-endpoint
+    rule: "Los endpoints de cambio de modo y retract no exponen PHI del paciente · solo IDs y metadatos de conversación"
+    enforcement:
+      - "vitalia/.claude/rules/hipaa-lite.md"
+    code_ref: "vitalia/backend/src/modules/vitalia/inbox/api/"
+    severity: high
+    audit_trail: true
+
+related_capabilities:
+  depends_on:
+    - shell-organism.shell-vitalia
+    - auth.clerk-middleware
+    - compliance.hipaa-lite-defensive-stack
+  enables:
+    - patients.nps-tracking
+  similar: []
+  obsoletes: []
+map_box: adrian
+
+---
+
+# vitalia-inbox-handler-mode-occ
+
+Handler mode (3-state) + OCC 409 concurrency control + ActionReceipt 5min undo lifecycle. SSoT del control "quién contesta la conversación" entre Adrián (agente IA) y operador humano, con concurrencia segura cuando 2+ tabs/operadores tocan la misma conversación.
+
+## Surface
+
+### Domain — handler_mode 3-state machine (`vitalia/backend/src/modules/vitalia/crm/domain/conversation.py`)
+
+`Conversation.handler_mode`:
+- `agent` — Adrián responde automáticamente. UI muestra sugerencias antes de send (con receipt undo).
+- `human` — Operador responde sin sugerencias. Adrián observa pero no actúa.
+- `paused` — Conversation suspendida. Ni Adrián ni operador envían (modo escucha + read tools state).
+
+Transitions allowed (state machine validated):
+- `agent ↔ human`, `agent → paused`, `human → paused`, `paused → agent`, `paused → human`.
+- Invalid transitions → 422 Unprocessable Entity.
+
+### Optimistic Concurrency Control (OCC)
+
+`Conversation.version` integer monotónico bumped on every UPDATE handler_mode. Endpoint payload incluye `If-Match: <version>` o `expected_version: int` en body. Race conditions cross-tab:
+- Versión match → UPDATE (`SET version = version + 1`) + 200 OK con nueva version.
+- Mismatch → 409 Conflict + body `{"current_version": N, "expected_version": M}` para que el cliente refresque.
+
+### ActionReceipt 5-min undo lifecycle (`vitalia/backend/src/modules/vitalia/crm/domain/action_receipt.py`)
+
+Cada tool action Adrián produce un `ActionReceipt` con:
+- `status: active` post-create
+- `expires_at: NOW + 5min` (TTL business rule)
+- Frontend renderiza countdown chip inline en MessageBubble.
+
+Operator click "undo" antes de `expires_at`:
+- Recibo → status: undone
+- Message → retracted_at = NOW
+- Domain event `MessageRetracted` emitted
+
+Pasado `expires_at`:
+- Endpoint `POST /messages/{id}/retract` retorna 410 Gone (TTL expirado, no se puede revertir).
+
+Cron sweep (futuro Slice 2): marca receipts active → expired post 5min.
+
+### Application services
+
+- **`set_mode_service.py`** — transition handler_mode con OCC version check + atomic UPDATE + ActivityEvent emit.
+- **`retract_message_service.py`** — verifica ActionReceipt.expires_at > NOW + atomic UPDATE (message.retracted_at + receipt.status).
+- **`pause_adrian_service.py`** — shortcut `set_mode(paused)`.
+
+### API routes
+
+- `PATCH /api/v1/inbox/conversations/{id}/mode` — body `{mode, expected_version}` → 200 con `{version: M+1}` o 409.
+- `POST /api/v1/inbox/conversations/{id}/pause` — shortcut, OCC inside.
+- `POST /api/v1/inbox/messages/{id}/retract` — body vacío. 200 OK o 410 Gone si expirado.
+
+## Test coverage
+
+- Unit OCC (`tests/modules/vitalia/inbox/application/test_set_mode_service.py`):
+  - `test_set_mode_increments_version`
+  - `test_set_mode_409_on_version_mismatch`
+  - `test_invalid_transition_422`
+- Unit retract (`tests/modules/vitalia/inbox/application/test_retract_message_service.py`):
+  - `test_retract_within_5min_succeeds`
+  - `test_retract_after_5min_returns_410`
+  - `test_retract_atomic_message_and_receipt`
+- API integration (`tests/modules/vitalia/inbox/api/test_router_mode.py`):
+  - `test_mode_change_increments_version`
+  - `test_mode_change_409_on_stale_version`
+- Activity stream (`test_router_activity_stream.py`) — mode_changed events visible.
+
+## Dependencies
+
+- `vitalia/backend/src/modules/vitalia/crm/` — Conversation + ActionReceipt entities ([[crm-scaffold-slice-1]])
+- `vitalia/backend/src/modules/vitalia/inbox/` — application services orchestration
+- `core/luana-core-events` — outbox adapter_bus para emisión `MessageRetracted` + `ConversationModeChanged`
+- `core/luana-core-extension-sdk` — EP-13 GuardrailDef registration (modo paused bloquea Adrián tools).
+
+## Scenarios live
+
+- SC-01 happy — operador envía → ActionReceipt 5min countdown visible → undo chip renderiza.
+- SC-03 — OCC 409 rollback frontend: 2 tabs cambian mode simultáneo, segunda obtiene 409 con `current_version`, optimistic update rolls back.
+- SC-03 — retract después 5min → 410 Gone, UI muestra mensaje "no se puede deshacer".
+- Audio low confidence (SC-02) → set_mode(handler_mode → human + help_needed flag).
+
+## Verification commands
+
+```bash
+WS=$(git rev-parse --show-toplevel)
+cd ${WS}/vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/inbox/application/test_set_mode_service.py tests/modules/vitalia/inbox/application/test_retract_message_service.py -v
+cd ${WS}/vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/inbox/api/test_router_mode.py tests/modules/vitalia/inbox/api/test_router_revert.py -v
+```
+
+## Referencias
+
+- Spec: `vitalia/docs/archive/2026/stories/vitalia-slice-1-inbox/01-spec-extract.md` § SC-03 OCC
+- Arch BE: `vitalia/docs/archive/2026/stories/vitalia-slice-1-inbox/03-arch-be.md` § handler_mode state machine + OCC
+- Merge artifact: `vitalia/docs/archive/2026/stories/vitalia-slice-1-inbox/07-merge.md`
+- HIPAA-lite: [[hipaa-lite-defensive-stack]]
+- Sister caps: [[inbox-tools-extensions]] · [[crm-scaffold-slice-1]]

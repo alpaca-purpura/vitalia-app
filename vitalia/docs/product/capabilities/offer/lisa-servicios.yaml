@@ -1,0 +1,283 @@
+---
+capability_id: vitalia.offer.lisa-servicios
+module: offer
+tech_module: offer
+slug: lisa-servicios
+status: live                          # ★ F.3 merge 2026-06-19: auditor APPROVED (CHECKPOINTS) + Chris live-verify (dod_evidence) + cap-doctor 0 + ≥1 scenario + e2e file existe (cross_check_3 OK). squash a main = paso manual Chris-gated.
+license: brand-local
+
+# Dimensiones v3 (4 campos · ADR-vitalia-005)
+agent_owner: lisa                  # zona AGENTES · caja lisa (SYSTEM-MAP.yaml)
+functional_area: lisa.servicios    # <caja>.<area-kebab>
+user_visible: true
+nature: feature
+
+user_facing_name: "Catálogo de servicios de Lisa"
+user_facing_description: >
+  El lugar donde la clínica arma su catálogo de servicios: cada servicio es una ficha
+  con su descripción, modalidad, plan de pago (reserva, anticipo y financiamiento como
+  3 cobros distintos), especialistas que lo realizan, argumentario de venta y prueba
+  social. Los servicios se ordenan en una escalera de valor (peldaños fijos). Todo
+  autoguarda sin botón "Guardar". Cuando un servicio se activa, entra al conocimiento
+  del agente Adrián, que lo puede ofrecer, cotizar y derivar al especialista correcto.
+
+# DEV_PREVIEW (paths reales · live-verified 2026-06-16/19)
+dev_preview:
+  route: "/lisa/servicios"
+  how_to_navigate: "Login dev-app vitalia (dr.demo@vitalialat.com) → Ribbon: avatar Lisa → sub-tab Servicios → Catálogo / Escalera; click una card → workspace del servicio (5 leaves)."
+  main_component: "vitalia/frontend/src/features/lisa/components/servicios/LisaServiciosView.tsx"
+  api_endpoints:
+    - "GET /api/v1/offer/servicios"
+    - "GET /api/v1/offer/servicios/{offer_id}"
+    - "POST /api/v1/offer/servicios/custom"
+    - "POST /api/v1/offer/servicios/from-template"
+    - "PATCH /api/v1/offer/servicios/{offer_id}"
+    - "POST /api/v1/offer/servicios/{offer_id}/activate"
+    - "PATCH /api/v1/offer/servicios/{offer_id}/sales-brief"
+    - "GET /api/v1/offer/biblioteca/search"
+  e2e_test: "vitalia/frontend/e2e/shell-organism/lisa-servicios-crear.spec.ts"
+  fixtures_required: ["seeded-tenant (biblioteca preset pack)", "auth.fixture (admin_clinic + doctor)"]
+  storybook_url: null
+  loom_demo: null
+
+# Ledger
+created_in_story: vitalia-fase2-lisa-servicios
+created_date: 2026-06-19
+last_modified: 2026-06-19
+package_path: vitalia/backend/src/modules/vitalia/offer/
+architecture_pattern: ADR-vitalia-004
+hipaa_lite_overlay: true            # toca consentimiento (casos antes/después · RN-33) + roster especialistas
+parent_cap: null
+derives_capabilities: []
+superseded_by: null
+
+change_log:
+  - story_id: vitalia-fase2-lisa-servicios
+    date: 2026-06-19
+    type: new
+    summary: "Catálogo + escalera de valor + workspace de servicio (5 leaves: Resumen, Para Adrián, Especialistas, Plan de pago, Prueba social) sobre Offer Studio engine (EP-2, cero edit engine). Keystone del conocimiento de Adrián."
+    scenarios_added: [catalogo-activar-servicio, crear-desde-plantilla, autosave-campo-rico-fluido, faq-objeciones-par-incompleto, especialistas-muestra-nombre, plan-pago-3-cobros-persiste, keystone-agente-conoce-catalogo, cross-tenant-bloqueada]
+    merge_sha: pending-manual-squash   # story done en wip/vitalia · squash wip→main = deploy manual Chris-gated
+    status: done
+
+# v3.2
+access:
+  entry_points:
+    - path: "/lisa/servicios"
+      navigation: "Ribbon → Lisa → Servicios → Catálogo|Escalera"
+      requires_role: [admin_clinic, owner]
+      requires_clinic_scope: false
+      entry_type: ui
+    - path: "/lisa/servicios/{offer_id}/resumen"
+      navigation: "Catálogo → click card → workspace (5 leaves)"
+      requires_role: [admin_clinic, owner]
+      requires_clinic_scope: false
+      entry_type: ui
+    - path: "POST /api/v1/offer/servicios/{offer_id}/activate"
+      navigation: "Toggle Activo en la card o en el StatusBar del workspace (confirm dialog)"
+      requires_role: [admin_clinic, owner]
+      requires_clinic_scope: false
+      entry_type: api
+  forbidden_roles: [doctor, nurse, staff]   # read-only sobre catálogo; write de precio/estado → 403 (RN-7)
+  authentication: required
+
+scenarios:
+  - id: catalogo-activar-servicio
+    name: "Activar un servicio desde la card del catálogo"
+    actor: admin_clinic
+    status: live
+    given: "Un servicio en estado borrador/inactivo en el catálogo"
+    when: "Toggleo Activo en la card (confirm dialog · G2-F2a) y confirmo"
+    then: "El estado persiste solo (autosave · sin botón Guardar) · emite growth_studio_event service_activated · el servicio entra al conocimiento de Adrián"
+    e2e_test: "vitalia/frontend/e2e/shell-organism/lisa-servicios-crear.spec.ts"
+    story_spec_ref: "vitalia/docs/archive/2026/stories/vitalia-fase2-lisa-servicios/01-spec.md#§-gherkin §1"
+    edge_cases: ["e2e gated en E2E_OFFER_ID/E2E_ENABLE_WRITES (⏳ deferred un-skip · ver 04-validators reconcile)", "activar refleja en el workspace vía setQueryData(detail) — G2-F2b"]
+    added_in_story: vitalia-fase2-lisa-servicios
+    added_date: 2026-06-19
+  - id: crear-desde-plantilla
+    name: "Crear servicio desde la biblioteca estándar (picker inline)"
+    actor: admin_clinic
+    status: live
+    given: "Catálogo abierto"
+    when: "+ Nuevo servicio → picker biblioteca INLINE → elijo plantilla 'Diseño de sonrisa'"
+    then: "Se crea el borrador y aparece el workspace PRE-LLENADO con ✨ · chip origen 'Estándar' · canonical_service_ref guardado"
+    e2e_test: "vitalia/frontend/e2e/shell-organism/lisa-servicios-crear.spec.ts"
+    story_spec_ref: "01-spec.md#§-gherkin §2"
+    edge_cases: ["personalizado → workspace vacío · canonical_service_ref null", "salir sin elegir no crea borrador fantasma"]
+    added_in_story: vitalia-fase2-lisa-servicios
+    added_date: 2026-06-19
+  - id: autosave-campo-rico-fluido
+    name: "Autoguardado fluido en campos ricos del Resumen (value desde RHF local)"
+    actor: admin_clinic
+    status: live
+    given: "Workspace del servicio · leaf Resumen"
+    when: "Tipeo en un campo rico (ej. 'Descripción corta', 'Qué incluye')"
+    then: "El tecleo es fluido (no 'procesa cada letra'), debounce guarda la última versión, al recargar muestra lo guardado"
+    e2e_test: null
+    story_spec_ref: "01-spec.md#§-gherkin §12 + §17 G2-F11"
+    atomic_ref: null
+    edge_cases: ["G2-F11: el value SIEMPRE sale de RHF local, PROHIBIDO value={queryData.x} (ADR-vitalia-009) · gate arch-fitness test-autosave-value-from-local-state.test.ts", "regression sin mockear use-autosave (el mock congelaba el ciclo = falso verde)"]
+    added_in_story: vitalia-fase2-lisa-servicios
+    added_date: 2026-06-19
+  - id: faq-objeciones-par-incompleto
+    name: "FAQ/Objeciones: agregar par vacío no guarda ni rompe; par completo guarda"
+    actor: admin_clinic
+    status: live
+    given: "Leaf 'Para Adrián' · lista de FAQ (pares pregunta/respuesta)"
+    when: "Hago '+ Agregar' (par vacío) y luego completo ambos campos"
+    then: "El par vacío queda local (no schedulea autosave, no error 500) · al completar ambos campos guarda limpio al KB del agente"
+    e2e_test: null
+    story_spec_ref: "01-spec.md#§-gherkin §7 + §17 G2-F12/F12b"
+    edge_cases: ["G2-F12: BE _apply coerce faq/objections list[dict]→VOs (FaqPair/ObjectionPair)", "G2-F12b: el VO exige ambos campos no-vacíos (invariante NO se debilita) · el FE filtra pares incompletos del payload"]
+    added_in_story: vitalia-fase2-lisa-servicios
+    added_date: 2026-06-19
+  - id: especialistas-muestra-nombre
+    name: "Especialistas vinculados muestran nombre + especialidad (no UUID)"
+    actor: admin_clinic
+    status: live
+    given: "Leaf Especialistas con ≥1 especialista vinculado"
+    when: "Abro la lista de especialistas habilitados"
+    then: "Cada especialista renderiza nombre + especialidad + iniciales (no el UUID) · fallback id-corto no-UUID si el roster no resuelve"
+    e2e_test: "vitalia/frontend/e2e/shell-organism/lisa-servicios-especialistas.spec.ts"
+    story_spec_ref: "01-spec.md#§-gherkin §8 + §17 G2-F13"
+    edge_cases: ["G2-F13: SpecialistLinkDTO enriquece display_name+specialty vía DoctorRosterPort (NO-PHI, sin audit) · X-Clinic-ID opcional (degrada grácil)", "e2e gated en E2E_OFFER_ID (⏳ deferred un-skip)"]
+    added_in_story: vitalia-fase2-lisa-servicios
+    added_date: 2026-06-19
+  - id: plan-pago-3-cobros-persiste
+    name: "Plan de pago (3 cobros) persiste montos al recargar"
+    actor: admin_clinic
+    status: live
+    given: "Leaf 'Plan de pago' con precio/reserva/anticipo/financiamiento"
+    when: "Configuro los montos, guardo y recargo la página"
+    then: "Los 3 cobros (independientes) muestran sus montos · los derivados (≈equivale, ≈por mes) se calculan solos · sin crash al recargar"
+    e2e_test: null
+    story_spec_ref: "01-spec.md#§-gherkin §9 + §17 G2-F14/F14b"
+    edge_cases: ["G2-F14: defaultValues full-shape (objetos anidados reservation/advance/financing) evita crash 'reservation.enabled' al 1er render post-load", "G2-F14b: el BE serializa Decimal money como STRING JSON; el FE coerce string→number en pricingToFormValues (toNum) o el input queda vacío al recargar"]
+    added_in_story: vitalia-fase2-lisa-servicios
+    added_date: 2026-06-19
+  - id: keystone-agente-conoce-catalogo
+    name: "KEYSTONE: el servicio activo entra al conocimiento de Adrián"
+    actor: agente
+    status: live
+    given: "Un servicio activo con especialistas vinculados (tenant-scoped)"
+    when: "TenantKnowledgeBuilder.build_identity construye la identidad del agente"
+    then: "El servicio aparece en el output (data shape correcta · tabla engine products) · Adrián lo ofrece, lo cita y matchea al especialista"
+    e2e_test: null
+    story_spec_ref: "01-spec.md#§-gherkin §15 (AC-6)"
+    edge_cases: ["consume-only path unit-tested (test_keystone_offer_shape.py) + DB verificada live", "build_identity con contexto agente completo = Sub-phase B (RAG · engine-lift /pm-luana)"]
+    added_in_story: vitalia-fase2-lisa-servicios
+    added_date: 2026-06-19
+  - id: cross-tenant-bloqueada
+    name: "Query cross-tenant bloqueada (tenant-isolation)"
+    actor: admin_clinic
+    status: live
+    given: "Existe otro tenant con sus servicios"
+    when: "Intento leer un servicio de otro tenant"
+    then: "La query se bloquea (404, no leak) · toda query filtra tenant_id"
+    e2e_test: null
+    story_spec_ref: "01-spec.md#§-gherkin §16"
+    edge_cases: ["verificado en test_servicios_cross_tenant.py + arch-fitness"]
+    added_in_story: vitalia-fase2-lisa-servicios
+    added_date: 2026-06-19
+
+business_rules:
+  - id: tres-cobros-distintos
+    rule: "Reserva de cita, anticipo para iniciar y financiamiento del saldo son 3 cobros distintos e independientes (cada uno opcional); los montos derivados (≈equivale, ≈por mes) son read-only calculados."
+    enforcement: ["vitalia/docs/archive/2026/stories/vitalia-fase2-lisa-servicios/01-spec.md#RN-6"]
+    code_ref: "vitalia/backend/src/modules/vitalia/offer/domain/pricing_calc.py"
+    severity: high
+    audit_trail: false
+  - id: rbac-write-admin-owner
+    rule: "Solo admin_clinic y owner editan precio/estado; doctor/nurse/staff ven el catálogo read-only y cualquier write → 403."
+    enforcement: ["vitalia/.claude/rules/hipaa-lite.md", "vitalia/docs/archive/2026/stories/vitalia-fase2-lisa-servicios/01-spec.md#RN-7"]
+    code_ref: "vitalia/backend/src/modules/vitalia/offer/api/servicios_router.py"
+    severity: high
+    audit_trail: false
+  - id: tenant-isolation
+    rule: "Toda query del catálogo filtra tenant_id (incluye get_by_id); cross-tenant → 404 sin leak."
+    enforcement: [".claude/rules/tenant-isolation.md"]
+    code_ref: "vitalia/backend/src/modules/vitalia/offer/infrastructure/"
+    severity: critical
+    audit_trail: false
+  - id: autosave-value-from-rhf-local
+    rule: "Todo input editable con autosave toma su value de RHF local, NUNCA de value={queryData.x} (congela el ciclo y procesa cada letra)."
+    enforcement: ["vitalia/docs/architecture/ADR-vitalia-009-autosave-field-contract.md"]
+    code_ref: "vitalia/frontend/src/__tests__/architecture/test-autosave-value-from-local-state.test.ts"
+    severity: high
+    audit_trail: false
+  - id: caso-requiere-consentimiento
+    rule: "Subir un caso antes/después requiere consentimiento firmado del paciente (HIPAA-lite); sin consentimiento se bloquea + audit_log."
+    enforcement: ["vitalia/.claude/rules/hipaa-lite.md", "01-spec.md#RN-33"]
+    code_ref: "vitalia/backend/src/modules/vitalia/offer/"
+    severity: critical
+    audit_trail: true
+  - id: herencia-estandar-bloqueada
+    rule: "Un servicio estándar hereda categoría y peldaño BLOQUEADOS (no se re-categoriza); personalizado los pide editables."
+    enforcement: ["01-spec.md#RN-30"]
+    code_ref: null
+    severity: medium
+    audit_trail: false
+
+related_capabilities:
+  depends_on: []
+  enables: []
+  similar: []
+  obsoletes: []
+---
+
+# Catálogo de servicios de Lisa (`offer.lisa-servicios`)
+
+Sub-tab **Servicios** del agente Lisa. Es la **keystone del catálogo**: desbloquea
+canal-inbound, propuestas (Adrián) y landing pública. Construida sobre **Offer Studio
+engine** (`core/luana-core-offer-studio`) vía Extension SDK EP-2 — los servicios son
+`Offer`s y el peldaño es `OfferValueLevel`; **cero edit del engine**.
+
+Dos vistas (toggle): **Catálogo** (grid de cards) y **Escalera de valor** (peldaños
+fijos: lead-magnet / tripwire / core / profit-max / return-path). Cada servicio abre un
+**workspace de 5 leaves**: Resumen · Para Adrián (argumentario) · Especialistas · Plan
+de pago · Prueba social. Todo autoguarda (sin botón "Guardar"). Un panel transversal
+"Fuentes & conocimiento" permite autocompletar campos desde documentos.
+
+## Surface
+
+### Backend
+- `vitalia/backend/src/modules/vitalia/offer/` — domain (pricing_calc, completeness, vos) · application (catalog/biblioteca/link/proof/sales_brief services) · infrastructure (repos dual-tenant) · api (servicios_router)
+- Consume engine vía `luana_core_platform.links.ports.offer` (port) + `TenantKnowledgeBuilder` (keystone, consume-only)
+
+### Frontend
+- `vitalia/frontend/src/features/lisa/components/servicios/` — LisaServiciosView, CatalogoView, EscaleraView, ServicioWorkspaceShell + leaves/{ResumenView, ParaAdrianView, EspecialistasView, PlanPagoView, PruebaSocialView}
+- Route group `(shell-organism)/lisa/servicios/[offer-id]/[leaf]`
+
+## Tests (test_coverage · rutas reales)
+
+### ✅ Construido + verde (gate runs)
+- BE: `vitalia/backend/tests/modules/vitalia/offer/{test_pricing_calc,test_completeness,test_vos,test_servicios_router,test_servicios_rbac,test_servicios_cross_tenant,test_sales_brief_service,test_specialist_link_service,test_specialist_link_repository,test_keystone_offer_shape,test_case_consent_gate,test_catalog_service,test_biblioteca_service,test_proof_service,test_offer_ext_repository,test_patch_rich_fields_routing,test_detail_dto_carries_rich,test_document_autocomplete_service,test_vo_dto_to_domain_invariants}.py`
+- BE arch: `vitalia/backend/tests/architecture/test_offer_no_engine_edit.py`
+- FE unit/component: `vitalia/frontend/src/features/lisa/components/servicios/__tests__/*` + `leaves/__tests__/{ResumenView,ParaAdrianView,EspecialistasView,PlanPagoView,PruebaSocialView}.test.tsx`
+- FE arch: `vitalia/frontend/src/__tests__/architecture/test-autosave-value-from-local-state.test.ts` (ADR-009 gate)
+- **G-round regression (live findings que el verde no cazó):** ResumenView sin-mock (G2-F11) · ParaAdrianView par-incompleto (G2-F12b) · EspecialistasView nombre (G2-F13) · PlanPagoView string-amount + no-crash (G2-F14/F14b) · BE sales_brief faq/objections VO coerce (G2-F12) · BE SpecialistLink enrich (G2-F13)
+
+### ⏳ Deferred (NO green-phantom · ver `04-validators.yaml` § RECONCILE)
+- **E2E happy-path**: `e2e/shell-organism/lisa-servicios-{crear,autosave,especialistas,escalera-drag}.spec.ts` existen pero `test.skip` gated en `E2E_OFFER_ID`/`E2E_ENABLE_WRITES` → no ejercidos. Un-skip + seed offer-id = trabajo del auditor (Carril R) o follow-up.
+- **Visual goldens 8**: `e2e/__screenshots__/servicios/` vacío (baselines no generados). `e2e/visual/lisa-servicios-visual.spec.ts` listo.
+- **Contract-test FE↔BE** (HB-42): ausente. Los bugs G2-F11/F14b nacieron de contratos imaginados (camelCase / Decimal-string).
+
+## Live verification (DoD #37)
+Ejercida por Chris en dev-app vitalia (tenant Sanaré · dr.demo@vitalialat.com): crear servicio (POST 201) · autosave nombre+campo rico (PATCH 200, persiste) · activar (POST 200, products.status=active, growth_studio_event) · plan de pago 3-cobros · especialistas con nombre · FAQ par completo. Evidencia: `checkpoint.md § dod_evidence` + `.live-verify/`.
+
+## Decisiones cardinales
+- Servicio = `Offer` del engine (NO modelo nuevo) · peldaño = `OfferValueLevel` · consume EP-2.
+- Plan de pago = 3 cobros distintos (RN-6), NO mezclar reserva/anticipo/financiamiento.
+- Autosave: value SIEMPRE de RHF local (ADR-vitalia-009) — el binding al server congela el ciclo.
+- BE serializa Decimal money como string JSON (precisión) → el FE parsea en el borde wire→form.
+
+## Anti-objetivos cementados
+- NO tocar `core/luana-core-offer-studio` (lift vía /pm-luana).
+- RAG runtime (indexer Qdrant + tool retrieval) = Sub-phase B, engine-lift /pm-luana (STOP-2).
+- A/B pricing · imports bulk · AI suggested-pricing · landing pública · analítica Stats = otras stories.
+
+## Referencias
+- Spec: `vitalia/docs/archive/2026/stories/vitalia-fase2-lisa-servicios/01-spec.md`
+- Arch: `.../03-arch.md` (+ 03-arch-reconcile-delta.md)
+- ADR: `vitalia/docs/architecture/ADR-vitalia-004-shell-feature-architecture.md` · `ADR-vitalia-009-autosave-field-contract.md`
+- Engine: `core/luana-core-offer-studio/`

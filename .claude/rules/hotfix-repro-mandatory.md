@@ -1,0 +1,1 @@
+../../core-harness/rules/hotfix-repro-mandatory.md

@@ -1,0 +1,23 @@
+{
+  "name": "@luana/eslint-config",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./no-arbitrary-value": "./src/no-arbitrary-value.js"
+  },
+  "scripts": {
+    "test": "node --test src/__tests__/"
+  },
+  "peerDependencies": {
+    "eslint": ">=9"
+  },
+  "devDependencies": {
+    "eslint": ">=9"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com/"
+  }
+}

@@ -1,0 +1,352 @@
+# 06-tickets.yaml — estabilizar-harness-e2e-lisa-marca (bugfix-lite harness honesto + determinista)
+# Owner: /architect. Schema v4.1. Generated 2026-06-02.
+# Naturaleza: bugfix de harness E2E + 2 sub-bugs de auth-header. Ningún surface agentic (R23 no aplica).
+
+story_id: estabilizar-harness-e2e-lisa-marca
+brand: vitalia
+generated_at: 2026-06-02T17:30Z
+generated_by: /architect
+schema_version: v4.1
+total_tickets: 4
+estimated_total_hours: 11
+
+# ── Resumen pila ──────────────────────────────────────────────
+summary:
+  - id: T-1
+    title: "FE-tests: de-mock 11 specs lisa-marca + POMs web-first + fixture forwarding shared + des-quarantine 5 fixme"
+    surface: FE-tests
+    owner_pool: [qwen-opencode, claude-sonnet]      # tests-only → production_code:false
+    state: draft
+    blocked_by: [T-2, T-3]                          # los specs corren contra el BE con sub-bug #1 cerrado + actor real
+    blocks: [T-4]
+  - id: T-2
+    title: "FE-prod sub-bug #2: actor audit real (X-User-ID = Clerk userId real, no tenantId)"
+    surface: FE
+    owner_pool: [claude-sonnet]
+    state: pushed
+    blocked_by: [T-3]                               # depende del actor-resolver BE (#2b) para no romper PATCH
+    blocks: [T-1]
+  - id: T-3
+    title: "BE sub-bug #1 (X-User-ID opcional en GET prohibited-phrases) + #2b (actor desde clerk_sub)"
+    surface: BE
+    owner_pool: [claude-sonnet]
+    state: pushed
+    blocks: [T-1, T-2]
+  - id: T-4
+    title: "Docs: re-cablear cap lisa-marca.yaml (e2e_test → specs honestos + verified_real + change_log)"
+    surface: docs
+    owner_pool: [qwen-opencode, claude-sonnet]
+    state: pushed                                   # 2026-06-03: change_log + identidad verified_real + presencia-web→partial + 2 flaky caveat retry. bidirectional HARD 96/96
+    blocked_by: [T-1]                               # los e2e_test apuntan a specs ya de-mockeados
+  - id: T-5
+    title: "Logo R2 (decisión Chris): upload deja de ser stub → consume engine luana-core-assets (storage real)"
+    surface: BE
+    owner_pool: [claude-sonnet]                     # orchestrator direct (anti base-divergente del builder aislado)
+    state: pushed                                   # commit c67bb62d + R2 provisionado (bucket+token+público) + live-verify (upload→GET 200 image/png)
+    blocked_by: []
+
+tickets:
+  - $ref: "#/T1"
+  - $ref: "#/T2"
+  - $ref: "#/T3"
+  - $ref: "#/T4"
+
+# ════════════════════════════════════════════════════════════════
+T3:
+  id: T-3
+  title: "BE: X-User-ID opcional en GET prohibited-phrases (sub-bug #1) + actor de audit desde clerk_sub (sub-bug #2b)"
+  type: backend
+  surface: BE
+  production_code: true
+  state: pushed
+  assigned_to: claude-sonnet
+  push_commit_sha: 5ef8cdd4
+  repro_verified: true
+  repro_evidence:
+    command: "abrir voz-y-tono en browser real (make dev-vitalia) → docker logs luana-dev-vitalia_backend_dev-1 | grep prohibited-phrases"
+    output: |
+      GET /api/v1/lisa/marca/prohibited-phrases → 422 (browser real: fetchClient no inyecta X-User-ID)
+      GET /api/v1/lisa/marca/prohibited-phrases → 200 (forwarding fixture inyecta X-User-ID manual)
+    diagnosis_validates_handoff: true
+    diagnosis_correction: "Sub-bug #1 vivo (re-repro 2026-06-02 B6). Sub-bug #2 actor=tenant (B5) — el BE hace UUID(user_id), por eso plumbear Clerk userId crudo necesita resolución BE."
+  owner_eligibility:
+    qwen_opencode: false
+    claude_sonnet: true
+    claude_opus_required: false
+  priority: 1
+  estimate_hours: 3
+  decisions_applicable: [D-sub-bug-1, D2-be-resolves-actor]
+  inputs:
+    spec: "../01-spec.md"
+    arch_doc: "../03-arch.md"     # § PARTE C + § PARTE D.3
+    rules: [".claude/rules/backend-ddd.md", ".claude/rules/tenant-isolation.md", "vitalia/.claude/rules/hipaa-lite.md", ".claude/rules/pii-sanitisation.md"]
+    canonical_docs: ["FastAPI Header/Depends patterns", "pytest async testing patterns"]
+    domain_skills: ["backend-expert"]
+  must_load_skills:
+    - backend-expert
+    - .claude/rules/backend-ddd.md
+    - .claude/rules/tenant-isolation.md
+    - vitalia/.claude/rules/hipaa-lite.md
+    - .claude/rules/pii-sanitisation.md
+    - .claude/rules/tdd-mandatory.md
+    - .claude/rules/auditor-self-fix-policy.md
+  assignment:
+    primary_agent: builder-backend                  # NUNCA general-purpose
+    model_preference: sonnet
+    forbidden_to_touch:
+      - "core/luana-core-*/src/"                     # engine boundary — /pm-luana lift gate
+      - "nicolify/"
+      - "comunify/"
+      - "lupulo/"
+      - "vitalia/backend/src/modules/vitalia/copilot/"
+      - "vitalia/backend/src/modules/vitalia/sales_agent/"
+    rationale: "BE brand-config endpoint (no-PHI, no-agentic) → Sonnet. Toca un router de brand_studio + consume iam resolver. Cero engine."
+  deliverables:
+    - "MODIFY get_prohibited_phrases: user_id: str | None = Header(alias='X-User-ID', default=None); X-Tenant-ID sigue required; response_model se mantiene; user_id NO se parsea/usa"
+    - "MODIFY patch_personality (+ patch marca que auditan): resolver actor desde clerk_sub del JWT vía iam ClinicResolver._resolve_user_uuid (CONSUMIR, no recrear) → users.id UUID; X-User-ID deja de ser fuente del actor"
+    - "Tests: GET prohibited-phrases sin X-User-ID → 200 (RED contra 422 actual); X-Tenant-ID inválido → 422 (tenant-isolation); PATCH personality → audit row con users.id real (≠ tenant_id)"
+    - "T-3-result.md sección 'Skills consulted (must_load enforcement v4.1)' obligatoria"
+  out_of_scope:
+    - "FE api-layer (es T-2)"
+    - "Otros endpoints del router que no auditan"
+    - "core/ (engine boundary)"
+  acceptance:
+    - { id: A1, description: "GET prohibited-phrases sin X-User-ID → 200", verifier: { type: pytest, path: "tests/modules/vitalia/brand_studio/ -k prohibited_phrases_no_user_id" }, validator_ids: [sc7_be_unit_prohibited_phrases_optional] }
+    - { id: A2, description: "GET prohibited-phrases X-Tenant-ID inválido → 422 (tenant-isolation intacta)", verifier: { type: pytest, path: "tests/modules/vitalia/brand_studio/ -k prohibited_phrases_bad_tenant" }, validator_ids: [sc7_be_unit_prohibited_phrases_optional] }
+    - { id: A3, description: "PATCH personality → audit_log actor = users.id real (≠ tenant_id)", verifier: { type: pytest, path: "tests/modules/vitalia/brand_studio/ -k audit_actor_real" }, validator_ids: [sc6_audit_actor_real] }
+    - { id: A4, description: "be_arch_fitness verde (response_model mantenido)", verifier: { type: pytest, path: "tests/architecture/" }, validator_ids: [be_arch_fitness] }
+    - { id: A5, description: "Cero archivo de core/ tocado", verifier: { type: bash, cmd: "! git diff --name-only main...HEAD | grep '^core/'" }, validator_ids: [arch_no_core_edit] }
+  gherkin_coverage:
+    - scenario: "SC-7 prohibited-phrases responde 200 desde browser real (X-User-ID opcional)"
+      tests:
+        - "vitalia/backend/tests/modules/vitalia/brand_studio/ -k prohibited_phrases"
+    - scenario: "SC-6 audit actor real (parte BE: resolver clerk_sub → users.id)"
+      tests:
+        - "vitalia/backend/tests/modules/vitalia/brand_studio/ -k audit_actor_real"
+  quality_gates:
+    - "${WS}/.venv/bin/pytest tests/architecture/ -x -q verde"
+    - "${WS}/.venv/bin/ruff check + format + mypy --strict del router verde"
+    - "Coverage brand_studio no baja"
+  depends_on: []
+  blocks: ["T-1", "T-2"]
+  transitions:
+    - { state: draft, at: "2026-06-02T17:30Z", by: "/architect" }
+  assigned_to: null
+
+# ════════════════════════════════════════════════════════════════
+T2:
+  id: T-2
+  title: "FE-prod: actor de audit real (sub-bug #2) — X-User-ID = Clerk userId real, no tenantId"
+  type: frontend
+  surface: FE
+  production_code: true
+  state: pushed
+  assigned_to: claude-sonnet
+  push_commit_sha: 4bf94366
+  owner_eligibility:
+    qwen_opencode: false
+    claude_sonnet: true
+    claude_opus_required: false
+  priority: 2
+  estimate_hours: 2
+  decisions_applicable: [D2-be-resolves-actor]
+  inputs:
+    spec: "../01-spec.md"
+    arch_doc: "../03-arch.md"     # § PARTE D
+    rules: [".claude/rules/frontend-fsd.md", "vitalia/.claude/rules/hipaa-lite.md", ".claude/rules/tenant-isolation.md"]
+    canonical_docs: ["React Query mutation patterns", "Clerk useAuth() patterns"]
+    domain_skills: ["frontend-expert", "brand-expert"]
+  must_load_skills:
+    - frontend-expert
+    - brand-expert
+    - .claude/rules/frontend-fsd.md
+    - vitalia/.claude/rules/hipaa-lite.md
+    - .claude/rules/tenant-isolation.md
+    - .claude/rules/tdd-mandatory.md
+    - .claude/rules/auditor-self-fix-policy.md
+  assignment:
+    primary_agent: builder-frontend                 # NUNCA general-purpose
+    model_preference: sonnet
+    forbidden_to_touch:
+      - "vitalia/frontend/src/lib/api/fetchClient.ts"   # no tocar el wrapper compartido
+      - "core/luana-core-*/src/"
+      - "nicolify/"
+      - "comunify/"
+      - "lupulo/"
+    rationale: "FE api-layer fix (1 archivo) — Sonnet. Depende de T-3 (#2b) para que el BE resuelva el actor; el FE deja de mandar el tenant como actor."
+  deliverables:
+    - "MODIFY marca-voice-api.ts::updatePersonality: dejar de mandar 'X-User-ID': opts.tenantId; mandar 'X-User-ID': opts.userId (Clerk userId real, ya pasado por usePersonalityAutosave); RBAC X-User-Role intacto"
+    - "coverage_update: usePersonalityAutosave.test.ts (assert X-User-ID NO es tenantId) + VozTonoView.test.tsx si aplica (prohibited-phrases sin X-User-ID)"
+    - "T-2-result.md sección 'Skills consulted (must_load enforcement v4.1)' obligatoria"
+  out_of_scope:
+    - "BE actor resolver (es T-3 #2b)"
+    - "Specs e2e (es T-1)"
+    - "fetchClient wrapper compartido"
+  acceptance:
+    - { id: A1, description: "updatePersonality NO manda tenantId como X-User-ID (manda userId real)", verifier: { type: vitest, path: "src/features/lisa/hooks/__tests__/usePersonalityAutosave.test.ts" }, validator_ids: [fe_arch_fitness] }
+    - { id: A2, description: "PATCH personality real → audit_log actor = Clerk userId real resuelto (state_check DB)", verifier: { type: e2e, path: "state_check db vitalia_audit_log" }, validator_ids: [sc6_audit_actor_real] }
+    - { id: A3, description: "FSD boundaries + no-clerk-organizations verde", verifier: { type: vitest, path: "src/__tests__/architecture/" }, validator_ids: [fe_arch_fitness] }
+  gherkin_coverage:
+    - scenario: "SC-6 audit actor real (parte FE: mandar userId real, no tenantId)"
+      tests:
+        - "vitalia/frontend/src/features/lisa/hooks/__tests__/usePersonalityAutosave.test.ts"
+        - "state_check db (SELECT user_id FROM vitalia_audit_log WHERE resource_type='personality')"
+  quality_gates:
+    - "npx tsc --noEmit verde"
+    - "npx eslint src/features/lisa/api/ --max-warnings 0 verde"
+    - "npx vitest run src/__tests__/architecture/ verde"
+  depends_on: ["T-3"]
+  blocks: ["T-1"]
+  transitions:
+    - { state: draft, at: "2026-06-02T17:30Z", by: "/architect" }
+  assigned_to: null
+
+# ════════════════════════════════════════════════════════════════
+T1:
+  id: T-1
+  title: "FE-tests: de-mock 11 specs lisa-marca (backend real) + POMs web-first + fixture forwarding shared + des-quarantine 5 fixme + anti-burbuja"
+  type: tests
+  surface: FE-tests
+  production_code: false                            # tests-only → owner pool [qwen, sonnet]; opus NO required
+  state: draft
+  owner_eligibility:
+    qwen_opencode: true
+    claude_sonnet: true
+    claude_opus_required: false
+  priority: 3
+  estimate_hours: 5
+  decisions_applicable: [D-lift-forwarding, D-web-first, D-base-ts-adopt]
+  inputs:
+    spec: "../01-spec.md"
+    arch_doc: "../03-arch.md"     # § PARTE A
+    rules: [".claude/rules/e2e-testing.md", ".claude/rules/definition-of-done-live-verify.md", ".claude/rules/tdd-mandatory.md", ".claude/rules/anti-duplication.md"]
+    canonical_docs: ["Playwright web-first assertions (playwright.dev/docs/test-assertions accessed 2026-06-02)", "Playwright mergeTests / fixtures", "@clerk/testing playwright"]
+    domain_skills: ["playwright-expert", "frontend-expert"]
+    template_specs: ["../../arreglar-guardado-voz-y-tono/voz-arquetipo-autosave.spec.ts (forwarding template)", "../../arreglar-guardado-voz-y-tono/poms/voz-tono-section.pom.ts (web-first POM template)"]
+  must_load_skills:
+    - playwright-expert
+    - frontend-expert
+    - .claude/rules/e2e-testing.md
+    - .claude/rules/definition-of-done-live-verify.md
+    - .claude/rules/anti-duplication.md
+    - .claude/rules/tdd-mandatory.md
+    - .claude/rules/auditor-self-fix-policy.md
+  assignment:
+    primary_agent: builder-frontend                 # NUNCA general-purpose
+    model_preference: sonnet
+    forbidden_to_touch:
+      - "vitalia/frontend/src/"                       # NO toca prod (eso es T-2); solo e2e/
+      - "vitalia/frontend/e2e/regression/{valeria,camila}/"  # otras features (regression_guard)
+      - "vitalia/frontend/e2e/shell-organism/staff-*"        # vitalia-fase2-lisa-doctores
+      - "core/luana-core-*/"
+      - "nicolify/"
+      - "comunify/"
+      - "lupulo/"
+    rationale: "Tests-only (production_code:false) → Sonnet/opencode. Cohesivo: de-mock + web-first + des-quarantine + lift forwarding son una sola intervención sobre la suite lisa-marca + parent."
+  deliverables:
+    - "NEW e2e/fixtures/real-backend-forward.fixture.ts (LIFT): mergeTests(base.ts anti-burbuja, Clerk auth storageState, forwarding page.route('**/api/v1/**')→page.request.fetch(:8002)). Export test/expect/TENANT_ID/BACKEND_API_URL"
+    - "MODIFY e2e/regression/vitalia-fase2-lisa-marca/fixtures/lisa-marca.fixture.ts: REMOVE setupLisaMarcaMocks (route.fulfill backend-bajo-prueba); re-export desde real-backend-forward; mantener constants tolerantes"
+    - "MODIFY e2e/regression/vitalia-fase2-lisa-marca/poms/*.pom.ts: once-reads → web-first (getSelectedArchetype→waitForSelectedArchetype(slug,{timeout}); cualquier estado hidratado → expect(...).toHave*({timeout}))"
+    - "MODIFY 11 specs vitalia-fase2-lisa-marca/*.spec.ts: import de real-backend-forward; eliminar route.fulfill inline; round-trips reales; timeout-spec usa 503 inyectado + test.use({failOnRuntimeError:false})"
+    - "MODIFY arreglar-guardado-voz-y-tono/poms/voz-tono-section.pom.ts: + waitForSelectedArchetype(slug,{timeout})"
+    - "MODIFY arreglar-guardado-voz-y-tono/*.spec.ts: des-quarantine 5 authTest.fixme (asserts web-first); eliminar page.on void fire-and-forget (RN-4)"
+    - "T-1-result.md sección 'Skills consulted (must_load enforcement v4.1)' obligatoria"
+  out_of_scope:
+    - "FE prod marca-voice-api.ts (es T-2)"
+    - "BE endpoints (es T-3)"
+    - "Migrar transporte a proxy Next (otra story)"
+    - "Specs de otras features (regression_guard)"
+  acceptance:
+    - { id: A1, description: "Suite lisa-marca ×3 contra backend real → 0 flaky · 0 failed", verifier: { type: e2e, path: "e2e/regression/vitalia-fase2-lisa-marca/ --repeat-each=3 --workers=1" }, validator_ids: [sc1_suite_determinista] }
+    - { id: A2, description: "0 route.fulfill sobre identity/visuals/personality", verifier: { type: bash, cmd: "grep-gate SC-2" }, validator_ids: [sc2_no_mock_backend_bajo_prueba] }
+    - { id: A3, description: "0 imports @playwright/test directo + base.ts runtime gate verde", verifier: { type: bash, cmd: "grep-gate SC-3 + runtime" }, validator_ids: [sc3a_anti_burbuja_imports, sc3b_anti_burbuja_runtime] }
+    - { id: A4, description: "5 fixme des-quarantined reload-persist ×5 web-first determinista", verifier: { type: e2e, path: "e2e/regression/arreglar-guardado-voz-y-tono/ --repeat-each=5" }, validator_ids: [sc4_reload_persist_web_first] }
+    - { id: A5, description: "0 page.on void fire-and-forget + 0 'Target page closed' ×3", verifier: { type: bash, cmd: "grep-gate SC-5 + repeat-each=3" }, validator_ids: [sc5a_sin_listeners_dangling, sc5b_sin_dangling_runtime] }
+    - { id: A6, description: "Forwarding NO duplicado inline (vive en fixture compartida)", verifier: { type: bash, cmd: "arch_no_new_forwarding_duplication" }, validator_ids: [arch_no_new_forwarding_duplication] }
+    - { id: A7, description: "tsc + eslint verde sobre e2e/", verifier: { type: shell, cmd: "tsc --noEmit + eslint e2e/" }, validator_ids: [fe_typecheck, fe_lint] }
+  gherkin_coverage:
+    - scenario: "SC-1 suite determinista"
+      tests: ["e2e/regression/vitalia-fase2-lisa-marca/ --repeat-each=3 --workers=1"]
+    - scenario: "SC-2 no-mock-backend-bajo-prueba"
+      tests: ["grep_gate: route.fulfill ... identity|visuals|personality → 0"]
+    - scenario: "SC-3 anti-burbuja adoptado"
+      tests: ["grep_gate: @playwright/test → 0", "e2e/regression/vitalia-fase2-lisa-marca/lisa-marca-identidad-autosave.spec.ts (base.ts runtime)"]
+    - scenario: "SC-4 reload-persist web-first"
+      tests: ["e2e/regression/arreglar-guardado-voz-y-tono/ --repeat-each=5"]
+    - scenario: "SC-5 sin listeners dangling"
+      tests: ["grep_gate: page.on ... void → 0", "e2e/regression/arreglar-guardado-voz-y-tono/voz-arquetipo-autosave.spec.ts --repeat-each=3"]
+  quality_gates:
+    - "npx tsc --noEmit verde"
+    - "npx eslint e2e/ --max-warnings 0 verde"
+    - "suite ×3 + fixme ×5 → 0 flaky (requiere make dev-vitalia UP)"
+  depends_on: ["T-2", "T-3"]
+  blocks: ["T-4"]
+  transitions:
+    - { state: draft, at: "2026-06-02T17:30Z", by: "/architect" }
+  assigned_to: null
+
+# ════════════════════════════════════════════════════════════════
+T4:
+  id: T-4
+  title: "Docs: re-cablear cap lisa-marca.yaml (e2e_test → specs honestos + verified_real + change_log)"
+  type: docs
+  surface: docs
+  production_code: false
+  state: draft
+  owner_eligibility:
+    qwen_opencode: true
+    claude_sonnet: true
+    claude_opus_required: false
+  priority: 4
+  estimate_hours: 1
+  decisions_applicable: [D-cap-honesto]
+  inputs:
+    spec: "../01-spec.md"
+    arch_doc: "../03-arch.md"     # § PARTE B
+    rules: ["docs/process/capability-protocol.md", ".claude/rules/anti-orphan-integration.md"]
+    domain_skills: ["brand-expert"]
+  must_load_skills:
+    - brand-expert
+    - .claude/rules/anti-orphan-integration.md
+    - .claude/rules/auditor-self-fix-policy.md
+  assignment:
+    primary_agent: builder-frontend                 # NUNCA general-purpose (cap docs → FE builder owns cap surface)
+    model_preference: sonnet
+    forbidden_to_touch:
+      - "vitalia/backend/src/"
+      - "vitalia/frontend/src/"
+      - "core/luana-core-*/"
+      - "nicolify/"
+      - "comunify/"
+      - "lupulo/"
+    rationale: "Edición de cap YAML (docs) — Sonnet/opencode. Depende de T-1 (specs ya de-mockeados) para apuntar e2e_test honestos."
+  deliverables:
+    - "MODIFY lisa-marca.yaml: cada scenario status:live → e2e_test apunta a spec de-mockeado + verified_real poblado; admin-configura-presencia-web (sin spec honesto) → status: partial; agregar change_log entry de esta story"
+  out_of_scope:
+    - "Código de specs (es T-1)"
+    - "modules/brand_studio.md (sin cambio narrativo)"
+  acceptance:
+    - { id: A1, description: "Cada scenario status:live → e2e_test honesto + verified_real; ninguno cableado a spec mockeado", verifier: { type: shell, cmd: "sc8_cap_honesto cross-check" }, validator_ids: [sc8_cap_honesto] }
+    - { id: A2, description: "Bidirectional code↔cap válido", verifier: { type: shell, cmd: "python3 scripts/validate_code_cap_bidirectional.py --brand vitalia" }, validator_ids: [sc8_cap_honesto] }
+  gherkin_coverage:
+    - scenario: "SC-8 cap honesto"
+      tests: ["cross_check: cap.e2e_test → spec sin route.fulfill backend-bajo-prueba"]
+  quality_gates:
+    - "validate_code_cap_bidirectional verde"
+  depends_on: ["T-1"]
+  blocks: []
+  transitions:
+    - { state: draft, at: "2026-06-02T17:30Z", by: "/architect" }
+  assigned_to: null
+
+# ════════════════════════════════════════════════════════════════
+# DAG (orden de ejecución)
+#   T-3 (BE: header opcional + actor resolver)  ──┐
+#         │                                        ├──> T-1 (FE-tests: de-mock + web-first) ──> T-4 (docs cap)
+#   T-2 (FE-prod: actor real) <── depende T-3 ─────┘
+#
+# Racional del orden: la suite de-mockeada (T-1) corre contra el BE REAL; para que SC-6/SC-7 pasen,
+# el BE debe tener el header opcional (#1) + el actor real (#2b) y el FE debe mandar el actor real (#2).
+# Por eso T-3 y T-2 preceden a T-1. T-4 (cap) cierra apuntando a los specs ya honestos.
+#
+# autonomous_mode: false (default) — ver dispatch-plan.md. Chris ratifica al spawnear /dev-team.

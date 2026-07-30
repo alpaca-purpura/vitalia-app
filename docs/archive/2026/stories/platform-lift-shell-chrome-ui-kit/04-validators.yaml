@@ -1,0 +1,196 @@
+story_id: platform-lift-shell-chrome-ui-kit
+brand: platform
+schema_version: v4.1
+
+# ── Naturaleza de verificación (top-level · D-X4) ──────────────────────────────
+# tecnica: refactor move+parametrize sin cambio de conducta. El verde honesto =
+# suite e2e EXISTENTE de vitalia corriendo contra el chrome consumido del kit
+# (verificación-por-efecto). Live-verify #37 SIGUE obligatoria (Chris verbatim, SC-8).
+verification_nature: tecnica
+
+verification:
+  technical_gates:
+    # Gates automáticos por surface (NATIVE host, nunca docker)
+    typecheck: required          # tsc kit + vitalia + nicolify
+    lint: required               # eslint vitalia (+nicolify) — 0 errors
+    arch_fitness: required       # FSD boundaries + test-no-cross-brand-shell-mirror + no-clerk-organizations
+    unit: required               # vitest kit (organism) + vitalia + nicolify
+    e2e: required                # vitalia shell-core-hardening 68/68 + resizer-matrix 7/7
+    mutation_gate:
+      enabled: false             # refactor move (cero lógica nueva de producto); el contrato es la e2e existente
+    schemathesis:
+      enabled: false             # FE-only, sin endpoints nuevos
+    hypothesis:
+      enabled: false
+
+  runtime_error_gate: required   # FE: e2e specs componen base.ts (pageerror/console-error/api>=400/Next overlay) — vitalia shell suite YA lo hace (shell-hardening.fixture)
+
+  # ── DoD #37 live-verify (autonomous NO lo relaja — Chris verbatim) ──────────
+  dev_app_verified:
+    required: true
+    env: "make dev-vitalia → localhost:3002 (Chrome DevTools MCP o Playwright autenticado dr.demo@vitalialat.com)"
+    actions:
+      - "colapsar Valeria → strip 44px (sin gap) → reabrir por avatar"
+      - "abrir historial → push 280 (chat nunca < min legible)"
+      - "drag del seam → clamp 320 / below-min / vivo post-ciclo"
+      - "'+' nueva conversación → archiva a la lista"
+      - "container-query pill del header visible (@[24rem]) + grid implícito sin recorte (RN-4 — gate del Tailwind scan)"
+    evidence: "dod_evidence en checkpoint (writes ejercidos + efecto DOM + persistencia reload + 0 pageerror/console-error/api>=400 + 0 traceback BE)"
+
+  playwright_visual_scope:
+    story_scope_routes:
+      - "/{tenantId}/{agent}/{subtab}"      # rutas del shell (chrome)
+      - "/{tenantId}"                       # landing → shell mount
+    story_scope_components:
+      - "ShellLayout (kit, consumido por vitalia+nicolify)"
+      - "SupervisorSidebar / SupervisorCollapsedStrip / SupervisorHistory (kit)"
+      - "ChatPanel / ChatHeader / Ribbon / SubTabsBar / TopBarShell (kit)"
+    forbidden_visual_changes:
+      - "vitalia/frontend/src/features/**"   # SOLO chrome — cero feature
+      - "nicolify/frontend/src/features/**"
+      - "core/luana-core-*/src/**"            # Python engine (prohibido)
+      - "{brand}/backend/**"
+    non_egoismo: "bug visible en feature/ruta NO tocada por el lift → reportar en T-{n}-impl-log § Cross-story observed bugs, NO arreglar inline"
+
+# ── Scenario coverage SC-1..9 (100%) ──────────────────────────────────────────
+scenario_coverage:
+  SC-1: { covers: [RN-1, RN-3, RN-4, AC-1, Bif-3], validators: [v-vitalia-suite, v-vitalia-e2e, v-vitalia-arch, v-chrome-deleted] }
+  SC-2: { covers: [RN-3, RN-7, AC-2, Bif-2], validators: [v-nicolify-suite, v-nicolify-arch, v-nicolify-render] }
+  SC-3: { covers: [RN-2, RN-6, AC-3], validators: [v-kit-suite, v-kit-grep-brand, v-semver-bump] }
+  SC-4: { covers: [RN-3, RN-5, AC-4], validators: [v-mirror-arch, v-mirror-basename] }
+  SC-5: { covers: [RN-1, RN-4, AC-1], validators: [v-resizer-matrix] }
+  SC-6: { covers: [RN-8, Bif-5], validators: [v-store-legacy-hydrate, v-store-key-conserved] }
+  SC-7: { covers: [RN-2, AC-3], validators: [v-kit-grep-brand, v-props-defaults-neutral] }
+  SC-8: { covers: [RN-9, AC-5], validators: [v-live-verify] }
+  SC-9: { covers: [Bif-1], validators: [v-handoff-doc-if-parked] }
+
+# ── Validators (graders ejecutables — cmds exactos) ────────────────────────────
+validators:
+  - id: v-kit-suite
+    type: suite
+    cmd: "cd core/@luana/ui-kit && pnpm --filter @luana/ui-kit typecheck && pnpm --filter @luana/ui-kit test"
+    expect: "0 fail (organism vitest verde + tsc 0 errors)"
+    scenario: SC-3
+
+  - id: v-kit-grep-brand
+    type: grep_gate
+    cmd: "grep -riE '#01b2f8|vitalia|valeria|nicolify|luana-orquestadora' core/@luana/ui-kit/src/organism --include='*.ts' --include='*.tsx' | grep -viE 'CHANGELOG|README|// origen|/\\* origen' || true"
+    expect: "0 matches en lógica del kit (solo CHANGELOG/README/comentario-origen permitidos)"
+    scenario: [SC-3, SC-7]
+
+  - id: v-props-defaults-neutral
+    type: review
+    note: "supervisorName SIN default brand · CSS vars --shell-*/--agent-* con fallback neutro (nunca hex de marca) · skeletonSlot default neutro"
+    scenario: SC-7
+
+  - id: v-semver-bump
+    type: review
+    cmd: "git diff core/@luana/ui-kit/package.json | grep -E 'version' && head -20 core/@luana/ui-kit/CHANGELOG.md"
+    expect: "version 0.3.0 → 0.4.0 (minor) + CHANGELOG entry + deps react-resizable-panels+zustand agregadas"
+    scenario: SC-3
+
+  - id: v-vitalia-suite
+    type: suite
+    cmd: "cd vitalia/frontend && npx tsc --noEmit && npx eslint src/ --cache && npx vitest run src/"
+    expect: "0 fail (tsc 0 errors · eslint 0 errors · vitest 0 fail)"
+    scenario: SC-1
+
+  - id: v-vitalia-e2e
+    type: e2e
+    cmd: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/shell-core-hardening/ e2e/regression/vitalia-fase1-shell-layout-5050/resize-and-state.spec.ts"
+    expect: "68 passed (chrome consumido del kit, real-backend, CERO assert modificado)"
+    scenario: SC-1
+
+  - id: v-resizer-matrix
+    type: e2e
+    cmd: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/shell-core-hardening/resizer-matrix.spec.ts"
+    expect: "7/7 (strip sin gap · drag vivo post-ciclo · push real · overhang 0)"
+    scenario: SC-5
+
+  - id: v-vitalia-arch
+    type: arch_fitness
+    cmd: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/"
+    expect: "PASS (FSD boundaries + test-no-cross-brand-shell-mirror con allowlist encogida + test-no-clerk-organizations)"
+    scenario: SC-1
+
+  - id: v-chrome-deleted
+    type: grep_gate
+    cmd: "git ls-files vitalia/frontend/src/components/shared/shell-organism/ | grep -E 'ShellOrganismLayout|ValeriaSidebar|ValeriaChat|Ribbon|SubTabsBar|TopBarGlobal' || true"
+    expect: "0 (chrome lifteado BORRADO de vitalia — quedan solo LogoMark/ThemeToggle/Tenant*/AddClinic)"
+    scenario: SC-1
+
+  - id: v-mirror-arch
+    type: arch_fitness
+    cmd: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test-no-cross-brand-shell-mirror.test.ts"
+    expect: "PASS con KNOWN_SANCTIONED_SHELL_MIRROR encogido (símbolos lifteados removidos; idealmente vacío)"
+    scenario: SC-4
+
+  - id: v-mirror-basename
+    type: grep_gate
+    cmd: "comm -12 <(ls vitalia/frontend/src/components/shared/shell-organism/ 2>/dev/null | grep -iE 'Sidebar|Chat|Ribbon|SubTab|Layout|TopBar' | sort) <(ls nicolify/frontend/src/components/shared/shell-organism/ 2>/dev/null | grep -iE 'Sidebar|Chat|Ribbon|SubTab|Layout|TopBar' | sort) || true"
+    expect: "0 espejos del chrome lifteado entre vitalia y nicolify (ambos consumen el kit)"
+    scenario: SC-4
+
+  - id: v-nicolify-suite
+    type: suite
+    cmd: "cd nicolify/frontend && npx tsc --noEmit && npx vitest run src/"
+    expect: "0 fail (tests legacy actualizados a conducta del kit o retirados — RN-7)"
+    scenario: SC-2
+
+  - id: v-nicolify-arch
+    type: arch_fitness
+    cmd: "cd nicolify/frontend && npx vitest run src/__tests__/architecture/"
+    expect: "PASS"
+    scenario: SC-2
+
+  - id: v-nicolify-render
+    type: render_verify
+    note: "e2e/live :3001 si el stack levanta (Bif-2); fallback render component-level (vitest) — shell monta con supervisor sidebar/strip/historial del kit + theming nicolify"
+    scenario: SC-2
+
+  - id: v-store-legacy-hydrate
+    type: unit
+    note: "vitest del factory kit: hydrate con shape legacy (vitalia v0 collapsed/rail/full · nicolify luanaState/shellMode) → defaults sin throw + console.warn (SC-6/Bif-5)"
+    scenario: SC-6
+
+  - id: v-store-key-conserved
+    type: review
+    cmd: "grep -rn \"storageKey:|splitGroupId:\" vitalia/frontend/src/stores/shell-store.ts vitalia/frontend/src/app/'[tenantId]'/'(shell-organism)'/layout.tsx"
+    expect: "vitalia pasa storageKey='vitalia-shell-state' + splitGroupId='vitalia-shell-split-agentic' (e2e harness intacto)"
+    scenario: SC-6
+
+  - id: v-live-verify
+    type: live_verify
+    tool: "Chrome MCP | Playwright autenticado (2ª válida #37)"
+    evidence: "dod_evidence en checkpoint (acciones SC-8 ejercidas + logs limpios)"
+    scenario: SC-8
+
+  - id: v-handoff-doc-if-parked
+    type: doc_check
+    path: "docs/product/stories/platform-lift-shell-chrome-ui-kit/HANDOFF-next-session.md"
+    note: "SOLO si Bif-1/SC-9 ocurre (pieza imposible de parametrizar → parqueada + documentada). Si no ocurre: N/A."
+    scenario: SC-9
+
+# ── Test construction plan (architect dicta orden + POMs + mapping) ────────────
+test_construction_plan:
+  order: [T-K (kit), T-V (vitalia re-wire), T-N (nicolify converge), gates finales]
+  kit:
+    new_tests: "core/@luana/ui-kit/src/organism/shell/__tests__/ — migrados desde vitalia/.../*.test.tsx re-parametrizados a props genéricas (catalog mock, NO 'Valeria'/'vitalia')"
+    surfaces: ["createShellStore machine A/B/C", "migrate legacy genérico", "no-clobber hydration", "ShellLayout render con catalog mock", "extractAgentFromPath/extractSubtabFromPath", "TopBarShell slots", "_agent-tw-classes con catalog arg", "grep brand-token=0"]
+  vitalia:
+    contract: "suite EXISTENTE (tsc+eslint+vitest+e2e 68+7+arch) — CERO assert nuevo/modificado (RN-1/Bif-3)"
+    delete: "vitest de los componentes movidos (viven en el kit)"
+    pom_note: "ShellLayoutPage.ts/ValeriaSidebarPage.ts usan localStorage key 'vitalia-shell-state'+'vitalia-shell-split-agentic' (conservadas) + data-testid — NO importan source; si algún import de source path rompe, ajustar SOLO el import (harness, no conducta)"
+  nicolify:
+    update: "tests legacy de LuanaSidebar/máquina vieja → actualizados a conducta del kit o RETIRADOS (RN-7 convergencia sancionada)"
+    render: "render-verify component-level o e2e :3001 (Bif-2)"
+  no_be_tests: true
+
+# ── Regression guard ───────────────────────────────────────────────────────────
+regression_guard:
+  - "vitalia: el board/writes del embudo + las demás features NO se tocan (cero forbidden_visual_changes)"
+  - "vitalia: test-no-clerk-organizations sigue verde (chrome no introduce org)"
+  - "kit: exports existentes (atoms + N3 + archetypes) intactos (no breaking — SEMVER minor)"
+  - "kit: barrel NO re-exporta react-resizable-panels Group/Panel/Separator (colisión con form Group)"
+
+iteration: 1

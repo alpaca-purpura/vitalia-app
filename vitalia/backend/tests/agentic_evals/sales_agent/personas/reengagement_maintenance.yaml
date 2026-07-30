@@ -1,0 +1,20 @@
+# Vitalia Adrián eval persona — reengagement limpieza dental periódica (MX tuteo)
+# Tenant Sanaré MX → es-MX tuteo.
+persona_id: reengagement_maintenance
+archetype: periodic_maintenance_candidate
+dialect: es-MX
+vertical: dental
+voice_constraints:
+  formality: semi_formal
+  opening: "Hola, no recuerdo cuándo fue la última vez que fui a limpiarme los dientes."
+  common_objections:
+    - "es que tengo flojera"
+    - "¿es muy urgente?"
+  red_flags: []
+profile:
+  intent: schedule_maintenance_cleaning
+  urgency: medium
+  budget_hint: recurring_service
+  emotional_state: receptive_with_mild_resistance
+  tech_savvy: medium
+  months_since_last_cleaning: 6

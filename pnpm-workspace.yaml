@@ -1,0 +1,6 @@
+packages:
+  - core
+  - core/@luana/*
+  - vitalia
+  - vitalia/frontend
+  - vitalia/frontend/widget

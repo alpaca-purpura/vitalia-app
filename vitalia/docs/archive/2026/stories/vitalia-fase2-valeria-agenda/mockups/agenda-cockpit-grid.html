@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>F2-S1 Agenda · Cockpit índice — Vitalia</title>
+<link rel="stylesheet" href="_shared.css">
+<style>
+  .toc-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+    margin-top: 24px;
+  }
+  .toc-card-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--c-valeria-soft);
+    color: var(--c-valeria);
+    font-weight: 700;
+    font-size: 11px;
+  }
+  .toc-card-desc {
+    font-size: 11px;
+    color: var(--text-muted);
+    line-height: 1.4;
+  }
+  .mini-week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; padding: 6px; }
+  .mini-week-cell { background: var(--bg-elevated); height: 10px; border-radius: 2px; }
+  .mini-week-cell.has-slot { background: var(--c-success); }
+  .mini-week-cell.has-deposit { background: var(--c-warning); }
+  .mini-week-cell.has-unpaid { background: var(--c-destructive); }
+  .mini-day { padding: 8px; display: flex; flex-direction: column; gap: 3px; }
+  .mini-day-slot { height: 8px; background: var(--bg-elevated); border-left: 2px solid var(--c-success); border-radius: 2px; }
+  .mini-month { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; padding: 8px; }
+  .mini-month-day { background: var(--bg-elevated); height: 14px; border-radius: 2px; font-size: 7px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); }
+  .mini-month-day.has-dots::after { content: "•••"; color: var(--c-adrian); font-size: 10px; }
+  .mini-slot-matrix {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 8px;
+  }
+  .mini-slot-box { background: var(--bg-elevated); border-left: 3px solid var(--c-success); height: 14px; border-radius: 2px; }
+  .mini-slot-box.deposit { border-left-color: var(--c-warning); }
+  .mini-slot-box.unpaid { border-left-color: var(--c-destructive); }
+  .mini-slot-box.noshow { border-left-color: var(--c-muted-status); opacity: 0.5; }
+  .mini-drawer {
+    position: relative; background: var(--bg-elevated); padding: 8px; display: flex; flex-direction: column; gap: 4px;
+    border-left: 3px solid var(--c-valeria);
+  }
+  .mini-drawer-bar { background: var(--bg-hover); height: 6px; border-radius: 2px; }
+  .mini-drawer-bar.wide { width: 100%; }
+  .mini-drawer-bar.mid { width: 70%; }
+  .mini-drawer-bar.short { width: 40%; }
+  .mini-form {
+    padding: 8px; display: flex; flex-direction: column; gap: 4px;
+  }
+  .mini-form-input { background: var(--bg-elevated); border: 1px solid var(--border); height: 10px; border-radius: 2px; }
+  .mini-form-btn { background: var(--c-adrian); height: 12px; border-radius: 2px; width: 70%; }
+  .mini-chips { padding: 8px; display: flex; flex-wrap: wrap; gap: 3px; }
+  .mini-chip { background: var(--bg-elevated); border: 1px solid var(--border); padding: 2px 6px; border-radius: 9999px; font-size: 8px; color: var(--text-muted); }
+  .mini-chip.active { background: var(--c-valeria-soft); color: var(--c-valeria); border-color: var(--c-valeria); }
+  .mini-dropdown {
+    padding: 8px; display: flex; flex-direction: column; gap: 3px; background: var(--bg-elevated);
+    border: 1px solid var(--border); border-radius: 4px; margin: 8px;
+  }
+  .mini-dropdown-row { padding: 3px 4px; background: var(--bg-panel); border-radius: 2px; font-size: 8px; color: var(--text-secondary); }
+  .mini-mobile {
+    background: var(--bg-app); padding: 4px; display: flex; flex-direction: column; gap: 2px;
+    border: 1px solid var(--border-strong); border-radius: 4px; width: 60px; margin: 8px auto;
+  }
+  .mini-mobile-bar { background: var(--bg-panel); height: 6px; border-radius: 1px; }
+  .mini-mobile-slot { background: var(--bg-elevated); border-left: 2px solid var(--c-success); height: 8px; border-radius: 1px; }
+  .mini-mobile-fab { background: var(--c-adrian); border-radius: 50%; width: 16px; height: 16px; position: absolute; bottom: 6px; right: 6px; }
+
+  .navigation-banner {
+    background: var(--c-valeria-soft);
+    padding: 16px 20px;
+    border-radius: var(--r-lg);
+    border-left: 4px solid var(--c-valeria);
+    margin-bottom: 24px;
+    font-size: 13px;
+  }
+  [data-theme="dark"] .navigation-banner { color: var(--text-primary); }
+</style>
+</head>
+<body>
+
+<div class="mockup-frame">
+  <div class="mockup-header">
+    <div>
+      <div class="mockup-title">F2-S1 vitalia-fase2-valeria-agenda · Cockpit índice</div>
+      <div class="mockup-subtitle">10 mockups por-componente · Click cualquier card para abrir vista completa</div>
+    </div>
+    <button class="theme-btn" onclick="toggleTheme()">🌓 Cambiar tema</button>
+  </div>
+
+  <div class="navigation-banner">
+    <strong>Gate visual:</strong> ratificación por componente. Abrí cada vista, revisá visualmente, comentá ajustes.
+    Cuando los 10 estén ratificados → <code>checkpoint.md::ratified_visual_by_chris: true</code> → transition <code>refining→refined</code> → <code>/architect</code>.
+  </div>
+
+  <div class="toc-grid">
+
+    <!-- 1 — agenda-week.html -->
+    <a href="agenda-week.html" class="toc-card" style="text-decoration:none;color:inherit">
+      <div class="flex items-center gap-3">
+        <span class="toc-card-num">1</span>
+        <span class="toc-card-title">WeekCalendar (default)</span>
+      </div>
+      <div class="toc-card-preview">
+        <div class="mini-week">
+          <div class="mini-week-cell has-slot"></div><div class="mini-week-cell"></div><div class="mini-week-cell has-deposit"></div><div class="mini-week-cell has-unpaid"></div><div class="mini-week-cell"></div><div class="mini-week-cell"></div><div class="mini-week-cell"></div>
+          <div class="mini-week-cell"></div><div class="mini-week-cell has-slot"></div><div class="mini-week-cell"></div><div class="mini-week-cell has-slot"></div><div class="mini-week-cell"></div><div class="mini-week-cell"></div><div class="mini-week-cell"></div>
+          <div class="mini-week-cell has-slot"></div><div class="mini-week-cell has-deposit"></div><div class="mini-week-cell has-slot"></div><div class="mini-week-cell"></div><div class="mini-week-cell has-slot"></div><div class="mini-week-cell"></div><div class="mini-week-cell"></div>
+          <div class="mini-week-cell"></div><div class="mini-week-cell has-unpaid"></div><div class="mini-week-cell"></div><div class="mini-week-cell has-deposit"></div><div class="mini-week-cell"></div><div class="mini-week-cell"></div><div class="mini-week-cell"></div>
+          <div class="mini-week-cell has-slot"></div><div class="mini-week-cell"></div><div class="mini-week-cell has-slot"></div><div class="mini-week-cell"></div><div class="mini-week-cell"></div><div class="mini-week-cell"></div><div class="mini-week-cell"></div>
+        </div>
+      </div>
+      <div class="toc-card-desc">Grid 7d × 9-21h · 18 slots LatAm · view default + URL params + freshness indicator + 5 chips preset + Crear cita dropdown</div>
+    </a>
+
+    <!-- 2 — agenda-day.html -->
+    <a href="agenda-day.html" class="toc-card" style="text-decoration:none;color:inherit">
+      <div class="flex items-center gap-3">
+        <span class="toc-card-num">2</span>
+        <span class="toc-card-title">DayCalendar</span>
+      </div>
+      <div class="toc-card-preview">
+        <div class="mini-day">
+          <div class="mini-day-slot"></div><div class="mini-day-slot" style="border-left-color:var(--c-warning)"></div><div class="mini-day-slot"></div><div class="mini-day-slot" style="border-left-color:var(--c-destructive)"></div><div class="mini-day-slot"></div><div class="mini-day-slot"></div><div class="mini-day-slot" style="border-left-color:var(--c-muted-status);opacity:0.5"></div><div class="mini-day-slot"></div><div class="mini-day-slot" style="border-left-color:var(--c-warning)"></div>
+        </div>
+      </div>
+      <div class="toc-card-desc">Timeline 24h × 3 doctores columnas · 12 slots realistas LatAm · virtualización react-window indicada</div>
+    </a>
+
+    <!-- 3 — agenda-month.html -->
+    <a href="agenda-month.html" class="toc-card" style="text-decoration:none;color:inherit">
+      <div class="flex items-center gap-3">
+        <span class="toc-card-num">3</span>
+        <span class="toc-card-title">MonthCalendar (aggregates)</span>
+      </div>
+      <div class="toc-card-preview">
+        <div class="mini-month">
+          <div class="mini-month-day">1</div><div class="mini-month-day has-dots">2</div><div class="mini-month-day">3</div><div class="mini-month-day has-dots">4</div><div class="mini-month-day">5</div><div class="mini-month-day">6</div><div class="mini-month-day">7</div>
+          <div class="mini-month-day has-dots">8</div><div class="mini-month-day has-dots">9</div><div class="mini-month-day">10</div><div class="mini-month-day has-dots">11</div><div class="mini-month-day has-dots">12</div><div class="mini-month-day">13</div><div class="mini-month-day">14</div>
+          <div class="mini-month-day">15</div><div class="mini-month-day has-dots">16</div><div class="mini-month-day has-dots">17</div><div class="mini-month-day has-dots">18</div><div class="mini-month-day">19</div><div class="mini-month-day">20</div><div class="mini-month-day">21</div>
+        </div>
+      </div>
+      <div class="toc-card-desc">Grid mensual con dots agregados (counts por día) · NO bulk slots · click día → vista día · /aggregates endpoint</div>
+    </a>
+
+    <!-- 4 — slot-states-matrix.html -->
+    <a href="slot-states-matrix.html" class="toc-card" style="text-decoration:none;color:inherit">
+      <div class="flex items-center gap-3">
+        <span class="toc-card-num">4</span>
+        <span class="toc-card-title">Slot states matrix (16 cells)</span>
+      </div>
+      <div class="toc-card-preview">
+        <div class="mini-slot-matrix">
+          <div class="mini-slot-box"></div><div class="mini-slot-box"></div><div class="mini-slot-box"></div>
+          <div class="mini-slot-box deposit"></div><div class="mini-slot-box deposit"></div><div class="mini-slot-box deposit"></div>
+          <div class="mini-slot-box unpaid"></div><div class="mini-slot-box unpaid"></div><div class="mini-slot-box unpaid"></div>
+          <div class="mini-slot-box noshow"></div><div class="mini-slot-box noshow"></div><div class="mini-slot-box noshow"></div>
+        </div>
+      </div>
+      <div class="toc-card-desc">4 estados pago (pagado/depósito/sin-pago/no-show) × 3 orígenes (walk-in/teléfono/proactivo) + 4 estados interactivos (default/hover/active/selected)</div>
+    </a>
+
+    <!-- 5 — appointment-drawer.html -->
+    <a href="appointment-drawer.html" class="toc-card" style="text-decoration:none;color:inherit">
+      <div class="flex items-center gap-3">
+        <span class="toc-card-num">5</span>
+        <span class="toc-card-title">AppointmentDrawer</span>
+      </div>
+      <div class="toc-card-preview">
+        <div class="mini-drawer">
+          <div class="mini-drawer-bar wide"></div>
+          <div class="mini-drawer-bar mid"></div>
+          <div class="mini-drawer-bar short"></div>
+          <div style="height:1px;background:var(--border);margin:2px 0"></div>
+          <div class="mini-drawer-bar wide"></div>
+          <div class="mini-drawer-bar mid"></div>
+          <div style="height:1px;background:var(--border);margin:2px 0"></div>
+          <div class="mini-drawer-bar short" style="background:var(--c-warning-soft)"></div>
+          <div class="mini-drawer-bar wide" style="background:var(--c-adrian)"></div>
+        </div>
+      </div>
+      <div class="toc-card-desc">Drawer 440px resizable 440-640 localStorage · 5 acordeones (Turno+Pago expandidos · resto collapsed) · header PHI masked · footer acciones</div>
+    </a>
+
+    <!-- 6 — cobrar-saldo-subform.html (★) -->
+    <a href="cobrar-saldo-subform.html" class="toc-card" style="text-decoration:none;color:inherit;border-color:var(--c-warning)">
+      <div class="flex items-center gap-3">
+        <span class="toc-card-num" style="background:var(--c-warning-soft);color:#b45309">★</span>
+        <span class="toc-card-title">CobrarSaldoSubform</span>
+      </div>
+      <div class="toc-card-preview">
+        <div class="mini-form">
+          <div class="mini-form-input"></div>
+          <div class="mini-form-input"></div>
+          <div class="mini-form-input"></div>
+          <div class="mini-form-input"></div>
+          <div class="mini-form-btn"></div>
+        </div>
+      </div>
+      <div class="toc-card-desc">★ Corazón valor F2-S1 · 4 currency variants (PEN tenant default · ARS · USD override · MXN) + 5 states (collapsed/expanded/submitting/success/error/conflict-409)</div>
+    </a>
+
+    <!-- 7 — preset-filters.html -->
+    <a href="preset-filters.html" class="toc-card" style="text-decoration:none;color:inherit">
+      <div class="flex items-center gap-3">
+        <span class="toc-card-num">7</span>
+        <span class="toc-card-title">PresetFilters chips</span>
+      </div>
+      <div class="toc-card-preview">
+        <div class="mini-chips">
+          <div class="mini-chip active">📅 Hoy</div>
+          <div class="mini-chip">⏰ Confirmar</div>
+          <div class="mini-chip">↩️ Re-agendar</div>
+          <div class="mini-chip">🚫 No-shows</div>
+          <div class="mini-chip">💰 Saldos</div>
+        </div>
+      </div>
+      <div class="toc-card-desc">5 chips single-select · estados default/hover/active · URL params persist + DB query</div>
+    </a>
+
+    <!-- 8 — crear-cita-dropdown.html -->
+    <a href="crear-cita-dropdown.html" class="toc-card" style="text-decoration:none;color:inherit">
+      <div class="flex items-center gap-3">
+        <span class="toc-card-num">8</span>
+        <span class="toc-card-title">CrearCita dropdown</span>
+      </div>
+      <div class="toc-card-preview">
+        <div class="mini-dropdown">
+          <div class="mini-dropdown-row">👤 Walk-in nuevo</div>
+          <div class="mini-dropdown-row">📞 Teléfono nuevo</div>
+          <div class="mini-dropdown-row">🔍 Desde paciente existente</div>
+        </div>
+      </div>
+      <div class="toc-card-desc">3 opciones · paciente autocomplete crm.patient API · form unificado pre-cargado por origen</div>
+    </a>
+
+    <!-- 9 — mobile-drawer-fullscreen.html -->
+    <a href="mobile-drawer-fullscreen.html" class="toc-card" style="text-decoration:none;color:inherit">
+      <div class="flex items-center gap-3">
+        <span class="toc-card-num">9</span>
+        <span class="toc-card-title">Mobile UX</span>
+      </div>
+      <div class="toc-card-preview" style="position:relative">
+        <div class="mini-mobile">
+          <div class="mini-mobile-bar"></div>
+          <div class="mini-mobile-bar" style="height:4px"></div>
+          <div style="display:flex;gap:2px;padding:2px"><div class="mini-mobile-bar" style="background:var(--c-valeria-soft);height:6px;width:30%"></div><div class="mini-mobile-bar" style="height:6px;width:30%"></div><div class="mini-mobile-bar" style="height:6px;width:30%"></div></div>
+          <div class="mini-mobile-slot"></div>
+          <div class="mini-mobile-slot" style="border-left-color:var(--c-warning)"></div>
+          <div class="mini-mobile-slot"></div>
+          <div class="mini-mobile-slot"></div>
+        </div>
+        <div class="mini-mobile-fab"></div>
+      </div>
+      <div class="toc-card-desc">&lt;768px: Vista Día only · Drawer bottom-sheet 95vh · Chip carousel horizontal · FAB Crear cita</div>
+    </a>
+
+    <!-- 0 — esta página (índice) -->
+    <div class="toc-card" style="border-style:dashed;cursor:default">
+      <div class="flex items-center gap-3">
+        <span class="toc-card-num" style="background:var(--c-config-soft);color:var(--c-config)">0</span>
+        <span class="toc-card-title">Cockpit (estás acá)</span>
+      </div>
+      <div class="toc-card-preview" style="display:flex;align-items:center;justify-content:center">
+        <div style="font-size:32px">📋</div>
+      </div>
+      <div class="toc-card-desc">Índice navegable de los 10 mockups · patrón F1-S10 empty-states-grid.html</div>
+    </div>
+
+  </div>
+
+  <!-- Footer info -->
+  <div style="margin-top:32px;padding:16px 20px;background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--r-lg);font-size:12px;color:var(--text-secondary)">
+    <strong>Stack reference:</strong> Tailwind tokens Vitalia (--background, --primary=#01b2f8, --agent-valeria=#7b2d91) ·
+    Shadcn primitives (Sheet, Accordion, Calendar, Popover, Select, Form, Sonner — instalación pendiente F2-S1) ·
+    Spanish neutro LatAm · PHI masking visual (<code>P. Hernández</code>, DNI <code>12.***.***</code>) ·
+    Patrón F1-S10 cementado.
+  </div>
+</div>
+
+<script>
+function toggleTheme() {
+  const html = document.documentElement;
+  const current = html.getAttribute('data-theme');
+  html.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark');
+}
+</script>
+
+</body>
+</html>

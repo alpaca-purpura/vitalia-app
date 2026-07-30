@@ -1,0 +1,408 @@
+# F1-S7 vitalia-fase1-ribbon-6-tabs — validators (5 categorías ★ v4.1)
+#
+# Each validator: must_pass=true unless explicitly marked. Comando shell EJECUTABLE.
+# ZERO Opus en build (FE no-agentic puro). R23 NO aplica.
+#
+# Categorías v4.1:
+#   1. non_functional       — tsc, lint, prettier, vitest unit + coverage
+#   2. functional           — E2E Playwright (1 spec per Gherkin scenario funcional, 9 specs)
+#   3. visual               — Playwright visual goldens (11 PNGs mockup ratchet shrink-only)
+#   4. agentic_eval         — N/A (declarar razón explícita)
+#   5. architectural_validation — FSD-Lite + arch tests extend + 1 arch test NEW + spanish neutro + no-hex grep + no-Shadcn-Tabs invariant
+
+story_id: vitalia-fase1-ribbon-6-tabs
+brand: vitalia
+phase: fase-1
+last_modified: 2026-05-25
+architect_iter: 1
+playwright_required: true   # ui-story HARD per v4.1
+
+scenario_coverage:
+  total_scenarios: 9
+  mapped: 9
+  coverage_pct: 100
+  scenarios:
+    - id: SC-1
+      title: "happy · click tab agente navega a default subtab"
+      validator_ids: [val-fe-e2e-nav, val-fe-visual-active-lucas]
+    - id: SC-2
+      title: "happy · URL deep link marca active state correcto"
+      validator_ids: [val-fe-e2e-deeplink, val-fe-visual-active-camila]
+    - id: SC-3
+      title: "happy · ConfigTab navega a /{tenantId}/config/cuenta"
+      validator_ids: [val-fe-e2e-config-nav, val-fe-visual-active-config]
+    - id: SC-4
+      title: "negative · URL con agent slug inválido → idle state"
+      validator_ids: [val-fe-e2e-invalid-agent, val-fe-visual-idle]
+    - id: SC-5
+      title: "edge · viewport mobile 375px → horizontal scroll"
+      validator_ids: [val-fe-e2e-mobile, val-fe-visual-mobile-375]
+    - id: SC-6
+      title: "adversarial · prompt injection en path (XSS) → safe"
+      validator_ids: [val-fe-e2e-xss]
+    - id: SC-7
+      title: "a11y · keyboard navigation WAI-ARIA tablist completo"
+      validator_ids: [val-fe-e2e-keyboard, val-fe-axe, val-fe-visual-keyboard-focus]
+    - id: SC-8
+      title: "i18n · microcopy Spanish neutro renderizado correcto"
+      validator_ids: [val-fe-e2e-i18n]
+    - id: SC-9
+      title: "edge · avatar PNG falla → fallback initial"
+      validator_ids: [val-fe-e2e-avatar-fallback]
+
+sub_categories_coverage:
+  race_condition:
+    applies: false
+    not_applicable_reason: "Ribbon es UI nav puro: sin create/update, sin unique constraint. router.push es idempotente. Sin DB writes ni concurrent state mutation."
+  concurrent_users:
+    applies: false
+    not_applicable_reason: "Sin list/detail filterable, sin shared state cross-user. Cada user tiene su URL propia client-side derived."
+  network_failure:
+    applies: false
+    not_applicable_reason: "Ribbon NO hace fetch FE — solo router.push (next-routing local). Único network dependency es PNG avatar load, cubierto por SC-9 fallback."
+  large_dataset:
+    applies: false
+    not_applicable_reason: "5 tabs fijos + ConfigTab. Sin pagination, sin lista dinámica."
+  empty_state:
+    applies: false
+    not_applicable_reason: "Ribbon es lista estática de 5 tabs + ConfigTab — siempre populated. SC-4 cubre el edge case 'active=null' (URL inválido) que es el equivalente conceptual de 'sin tab activo'."
+  accessibility:
+    applies: true
+    covered_by: [val-fe-e2e-keyboard, val-fe-axe, val-fe-visual-keyboard-focus]
+  i18n:
+    applies: true
+    covered_by: [val-fe-e2e-i18n]
+
+iteration:
+  max_iterations: 10
+  on_fail: "fix targeted file (single file edit per iter, no scope creep beyond § 5 files_in_scope of 05-guidelines.md)"
+  cap_reached_action: "escalate Chris with T-{n}-impl-log.md cap_reached summary; do NOT auto-disable any validator"
+
+test_construction_plan:
+  playwright_required: true
+  base_path: "vitalia/frontend/e2e/regression/vitalia-fase1-ribbon-6-tabs/"
+  creation_order:
+    - "T-1: lib/__tests__/agent-catalog.test.ts EXTEND (RED) → lib/agent-catalog.ts EXTEND (GREEN). Foundation: agregar campos tabLabel + defaultSubtab a AgentDescriptor + AGENT_CATALOG entries + AGENT_RIBBON_ORDER constante + helper extractAgentFromPath."
+    - "T-2: RibbonTab.test.tsx + ConfigTab.test.tsx (RED) → RibbonTab.tsx + ConfigTab.tsx (GREEN). Moléculas low-level. Consume T-1 catalog."
+    - "T-3: Ribbon.test.tsx (RED) → Ribbon.tsx (GREEN). Organism root con roving tabindex + URL active extraction + navigateTo handler. Consume T-2."
+    - "T-4: AppPanelSlot.test.tsx extend (RED) → AppPanelSlot.tsx MODIFY (GREEN). Integration swap skeleton ribbon → <Ribbon /> real. Arch test test-ribbon-no-shadcn-tabs.test.ts NEW. Extend test-no-cross-brand-shell-mirror.test.ts (NEW names: Ribbon/RibbonTab/ConfigTab/extractAgentFromPath/AGENT_RIBBON_ORDER). Extend test_server_first.test.ts allowlist con NEW client components."
+    - "T-5: e2e/regression/vitalia-fase1-ribbon-6-tabs/poms/ribbon-page.pom.ts + 9 Playwright spec files (1 per SC funcional). Visual goldens 11 PNGs --update-snapshots iter 1 post Chris ratify side-by-side mockup ribbon.html. Axe wcag2aa + i18n regex + a11y keyboard."
+  scenario_to_test:
+    SC-1: "vitalia/frontend/e2e/regression/vitalia-fase1-ribbon-6-tabs/ribbon-nav.spec.ts"
+    SC-2: "vitalia/frontend/e2e/regression/vitalia-fase1-ribbon-6-tabs/ribbon-deeplink.spec.ts"
+    SC-3: "vitalia/frontend/e2e/regression/vitalia-fase1-ribbon-6-tabs/ribbon-config-nav.spec.ts"
+    SC-4: "vitalia/frontend/e2e/regression/vitalia-fase1-ribbon-6-tabs/ribbon-invalid-agent.spec.ts"
+    SC-5: "vitalia/frontend/e2e/regression/vitalia-fase1-ribbon-6-tabs/ribbon-mobile.spec.ts"
+    SC-6: "vitalia/frontend/e2e/regression/vitalia-fase1-ribbon-6-tabs/ribbon-xss-guard.spec.ts"
+    SC-7: "vitalia/frontend/e2e/regression/vitalia-fase1-ribbon-6-tabs/ribbon-keyboard.spec.ts"
+    SC-8: "vitalia/frontend/e2e/regression/vitalia-fase1-ribbon-6-tabs/ribbon-i18n.spec.ts"
+    SC-9: "vitalia/frontend/e2e/regression/vitalia-fase1-ribbon-6-tabs/ribbon-avatar-fallback.spec.ts"
+  poms_required:
+    - path: "vitalia/frontend/e2e/regression/vitalia-fase1-ribbon-6-tabs/poms/ribbon-page.pom.ts"
+      methods:
+        - "goto({ tenantId, agent, subtab })"
+        - "getRibbon"
+        - "getTab(slug)"
+        - "getConfigTab"
+        - "getTooltip"
+        - "clickTab(slug)"
+        - "clickConfigTab"
+        - "pressKey(key)"
+        - "getActiveSlug"
+        - "getFocusedTabSlug"
+        - "getTabAriaSelected(slug)"
+        - "expectAvatarFallback(slug)"
+        - "setViewport(width, height)"
+        - "setTheme(theme)"
+  fixtures_required:
+    - path: "vitalia/frontend/e2e/fixtures/shell-theme.fixture.ts"
+      action: "REUSE F1-S5/F1-S6 — light/dark toggle helpers via localStorage addInitScript"
+    - path: "vitalia/frontend/e2e/fixtures/clerk-auth.fixture.ts"
+      action: "REUSE F1-S3 — public route /test-stack/shell-layout bypassa Clerk gate, o page real con auth si necesario"
+
+architectural_validation:
+  sub_tests:
+    - id: arch-fsd-imports
+      description: "FSD-Lite: shell-organism + lib components NO importan de features/*. NEW files verificados."
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test_fsd_boundaries.test.ts"
+      must_pass: true
+    - id: arch-no-cross-brand-shell-mirror
+      description: "Cross-brand mirror guard — extend NEW component names (Ribbon, RibbonTab, ConfigTab, extractAgentFromPath, AGENT_RIBBON_ORDER) → 0 matches each en nicolify/comunify/lupulo"
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test-no-cross-brand-shell-mirror.test.ts"
+      must_pass: true
+      file_modify: "vitalia/frontend/src/__tests__/architecture/test-no-cross-brand-shell-mirror.test.ts"
+      extend_names:
+        - Ribbon
+        - RibbonTab
+        - ConfigTab
+        - extractAgentFromPath
+        - AGENT_RIBBON_ORDER
+    - id: arch-shell-store-readonly-heredado
+      description: "INVARIANT heredado F1-S5: shell-store.ts NO modificado por F1-S7 (Ribbon es stateless derive URL)"
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test-shell-store-schema-readonly-f1-s5.test.ts"
+      must_pass: true
+    - id: arch-agent-catalog-ssot-heredado
+      description: "INVARIANT heredado F1-S6: agent-catalog.ts es SSoT 6 agentes. F1-S7 EXTEND in-place (no hex/thumbnail nuevos)"
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test-agent-catalog-ssot.test.ts"
+      must_pass: true
+    - id: arch-ribbon-no-shadcn-tabs
+      description: "NEW invariant: Ribbon/RibbonTab/ConfigTab NO importan @/components/ui/tabs (Radix-based — incompatible con route-based nav)"
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test-ribbon-no-shadcn-tabs.test.ts"
+      must_pass: true
+      file_new: "vitalia/frontend/src/__tests__/architecture/test-ribbon-no-shadcn-tabs.test.ts"
+    - id: arch-server-first
+      description: "'use client' allowlist extend NEW client components (Ribbon, RibbonTab, ConfigTab) — shrink-only (justify in commit body)"
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test_server_first.test.ts"
+      must_pass: true
+      file_modify: "vitalia/frontend/src/__tests__/architecture/test_server_first.test.ts"
+    - id: arch-no-hex-colors
+      description: "NEW files NO contienen hex literals — tokens semánticos ONLY (agent-catalog.ts ya en KNOWN_HARDCODES allowlist heredado F1-S6)"
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test_no_hardcoded_colors.test.ts"
+      must_pass: true
+    - id: arch-no-vt-classes
+      description: "NEW files NO contienen .vt-* legacy utility classes"
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test-no-vt-classes-in-new-features.test.ts"
+      must_pass: true
+    - id: arch-no-voseo
+      description: "NEW components + microcopy validated against voseo glossary — verifica Spanish neutro verbatim (Mi Clínica, Atraer, Vender, Operar, Mantener, Configurar, Agentes, role labels)"
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test-vitalia-ui-strings-no-voseo.test.ts"
+      must_pass: true
+    - id: arch-skip-link-target
+      description: "Skip-link target invariant heredado F1-S5 — F1-S7 NO afecta <main id='main-content'>"
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test-skip-link-target.test.ts"
+      must_pass: true
+
+# ════════════════════════════════════════════════════════════════════
+# § 1 — NON-FUNCTIONAL
+# ════════════════════════════════════════════════════════════════════
+validators:
+  non_functional:
+
+    - id: val-fe-tsc
+      description: "TypeScript strict (no any, no implicit, FSD boundaries respect, React 19 types ok)"
+      command: "cd vitalia/frontend && npx tsc --noEmit"
+      must_pass: true
+
+    - id: val-fe-lint
+      description: "ESLint cache scoped a archivos F1-S7 + shell-organism + lib + arch tests"
+      command: "cd vitalia/frontend && npx eslint src/components/shared/shell-organism src/lib src/__tests__/architecture --cache --cache-location .eslintcache"
+      must_pass: true
+
+    - id: val-fe-prettier
+      description: "Prettier format check on new + modified files"
+      command: "cd vitalia/frontend && npx prettier --check 'src/components/shared/shell-organism/{Ribbon,RibbonTab,ConfigTab,AppPanelSlot}*.{ts,tsx}' 'src/lib/agent-catalog.ts' 'src/__tests__/architecture/test-ribbon-no-shadcn-tabs.test.ts'"
+      must_pass: true
+
+    - id: val-fe-vitest-unit
+      description: "Vitest unit: agent-catalog extend + Ribbon + RibbonTab + ConfigTab + AppPanelSlot integration + arch tests new + coverage threshold 20% (component-level target ≥80% logic-heavy: Ribbon.tsx + extractAgentFromPath)"
+      command: "cd vitalia/frontend && npx vitest run src/components/shared/shell-organism src/lib src/__tests__/architecture --reporter=default --coverage --coverage.thresholds.lines=20 --coverage.thresholds.functions=20"
+      must_pass: true
+
+  # ════════════════════════════════════════════════════════════════════
+  # § 2 — FUNCTIONAL (E2E Playwright per scenario, 9 specs)
+  # ════════════════════════════════════════════════════════════════════
+  functional:
+
+    - id: val-fe-e2e-nav
+      description: "SC-1 happy · click tab Lucas desde active=lisa → router.push(/{tenant}/lucas/lanzar) + active migra a Lucas con bg-agent-lucas-soft"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test regression/vitalia-fase1-ribbon-6-tabs/ribbon-nav.spec.ts"
+      must_pass: true
+      scenario_id: SC-1
+
+    - id: val-fe-e2e-deeplink
+      description: "SC-2 happy · navigate directo a /{tenant}/camila/voz → Camila tab active con bg-agent-camila-soft + aria-selected=true solo Camila"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test regression/vitalia-fase1-ribbon-6-tabs/ribbon-deeplink.spec.ts"
+      must_pass: true
+      scenario_id: SC-2
+
+    - id: val-fe-e2e-config-nav
+      description: "SC-3 happy · click ConfigTab desde active=valeria → router.push(/{tenant}/config/cuenta) + ConfigTab data-active=true + tooltip oculto"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test regression/vitalia-fase1-ribbon-6-tabs/ribbon-config-nav.spec.ts"
+      must_pass: true
+      scenario_id: SC-3
+
+    - id: val-fe-e2e-invalid-agent
+      description: "SC-4 negative · URL /{tenant}/foobar/baz → extractAgentFromPath retorna null → ningún tab active + aria-selected=false all + no console error"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test regression/vitalia-fase1-ribbon-6-tabs/ribbon-invalid-agent.spec.ts"
+      must_pass: true
+      scenario_id: SC-4
+
+    - id: val-fe-e2e-mobile
+      description: "SC-5 edge · viewport 375x667 active=lisa → overflow-x-auto + Lisa+Lucas+parte Adrián visibles + scrollbar lateral + ConfigTab al final del scroll (ml-auto preserved)"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test regression/vitalia-fase1-ribbon-6-tabs/ribbon-mobile.spec.ts"
+      must_pass: true
+      scenario_id: SC-5
+
+    - id: val-fe-e2e-xss
+      description: "SC-6 adversarial · navigate a /{tenant}/<script>alert(1)</script>/foo → extractAgentFromPath null + JSX auto-escape + page.on('dialog') no fires + document.querySelector('script[data-injected]') null"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test regression/vitalia-fase1-ribbon-6-tabs/ribbon-xss-guard.spec.ts"
+      must_pass: true
+      scenario_id: SC-6
+
+    - id: val-fe-e2e-keyboard
+      description: "SC-7 a11y · Tab → focus en active (Lisa por roving tabindex) → Arrow Right → focus Lucas → Arrow Right → Adrián → Home → Lisa → End → ConfigTab → Enter en ConfigTab focused → router.push(/{tenant}/config/cuenta). focus ring-2 visible each step."
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test regression/vitalia-fase1-ribbon-6-tabs/ribbon-keyboard.spec.ts"
+      must_pass: true
+      scenario_id: SC-7
+
+    - id: val-fe-axe
+      description: "SC-7 axe-core WCAG 2.1 AA on [data-testid=ribbon] scope · 0 critical violations · light + dark themes"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test regression/vitalia-fase1-ribbon-6-tabs/ribbon-keyboard.spec.ts --grep '@axe'"
+      must_pass: true
+      scenario_id: SC-7
+
+    - id: val-fe-e2e-i18n
+      description: "SC-8 i18n · 11 microcopy strings verbatim ratificados (Mi Clínica, Atraer, Vender, Operar, Mantener, role labels Lisa/Lucas/Adrián/Valeria/Camila, ConfigTab aria-label/tooltip 'Configurar', nav aria-label 'Agentes') + regex voseo glossary cero matches + tildes correctas"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test regression/vitalia-fase1-ribbon-6-tabs/ribbon-i18n.spec.ts"
+      must_pass: true
+      scenario_id: SC-8
+
+    - id: val-fe-e2e-avatar-fallback
+      description: "SC-9 edge · thumbnail Valeria 404 (network block /agents/valeria/thumbnail.png) → <AvatarFallback> Shadcn render letra V con bg-agent-valeria-soft + tab sigue funcional click navega a /{tenant}/valeria/agenda"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test regression/vitalia-fase1-ribbon-6-tabs/ribbon-avatar-fallback.spec.ts"
+      must_pass: true
+      scenario_id: SC-9
+
+  # ════════════════════════════════════════════════════════════════════
+  # § 3 — VISUAL (11 PNG snapshots, mockup HTML side-by-side ratchet shrink-only)
+  # ════════════════════════════════════════════════════════════════════
+  visual:
+
+    - id: val-fe-visual-active-lisa
+      description: "Visual golden vs mockup ribbon.html — active=lisa (bg-agent-lisa-soft) @ 1280x800 light · maxDiffPixelRatio 0.001"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test --project=visual regression/vitalia-fase1-ribbon-6-tabs/ribbon-visual.spec.ts --grep 'active lisa light 1280'"
+      must_pass: true
+      snapshot_path: "vitalia/frontend/e2e/__screenshots__/shell/ribbon-active-lisa.png"
+      mockup_ref: "vitalia/docs/product/stories/vitalia-fase1-ribbon-6-tabs/mockups/ribbon.html"
+
+    - id: val-fe-visual-active-lucas
+      description: "Visual golden — active=lucas @ 1280x800 light"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test --project=visual regression/vitalia-fase1-ribbon-6-tabs/ribbon-visual.spec.ts --grep 'active lucas light 1280'"
+      must_pass: true
+      snapshot_path: "vitalia/frontend/e2e/__screenshots__/shell/ribbon-active-lucas.png"
+      mockup_ref: "vitalia/docs/product/stories/vitalia-fase1-ribbon-6-tabs/mockups/ribbon.html"
+
+    - id: val-fe-visual-active-adrian
+      description: "Visual golden — active=adrian @ 1280x800 light"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test --project=visual regression/vitalia-fase1-ribbon-6-tabs/ribbon-visual.spec.ts --grep 'active adrian light 1280'"
+      must_pass: true
+      snapshot_path: "vitalia/frontend/e2e/__screenshots__/shell/ribbon-active-adrian.png"
+      mockup_ref: "vitalia/docs/product/stories/vitalia-fase1-ribbon-6-tabs/mockups/ribbon.html"
+
+    - id: val-fe-visual-active-valeria
+      description: "Visual golden — active=valeria @ 1280x800 light"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test --project=visual regression/vitalia-fase1-ribbon-6-tabs/ribbon-visual.spec.ts --grep 'active valeria light 1280'"
+      must_pass: true
+      snapshot_path: "vitalia/frontend/e2e/__screenshots__/shell/ribbon-active-valeria.png"
+      mockup_ref: "vitalia/docs/product/stories/vitalia-fase1-ribbon-6-tabs/mockups/ribbon.html"
+
+    - id: val-fe-visual-active-camila
+      description: "Visual golden — active=camila @ 1280x800 light"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test --project=visual regression/vitalia-fase1-ribbon-6-tabs/ribbon-visual.spec.ts --grep 'active camila light 1280'"
+      must_pass: true
+      snapshot_path: "vitalia/frontend/e2e/__screenshots__/shell/ribbon-active-camila.png"
+      mockup_ref: "vitalia/docs/product/stories/vitalia-fase1-ribbon-6-tabs/mockups/ribbon.html"
+
+    - id: val-fe-visual-active-config
+      description: "Visual golden — active=config (ConfigTab data-active=true + ring-1 ring-border) @ 1280x800 light"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test --project=visual regression/vitalia-fase1-ribbon-6-tabs/ribbon-visual.spec.ts --grep 'active config light 1280'"
+      must_pass: true
+      snapshot_path: "vitalia/frontend/e2e/__screenshots__/shell/ribbon-active-config.png"
+      mockup_ref: "vitalia/docs/product/stories/vitalia-fase1-ribbon-6-tabs/mockups/ribbon.html"
+
+    - id: val-fe-visual-idle
+      description: "Visual golden — URL agent=foobar inválido → ningún active (todos tabs muted-foreground) @ 1280x800 light"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test --project=visual regression/vitalia-fase1-ribbon-6-tabs/ribbon-visual.spec.ts --grep 'idle light 1280'"
+      must_pass: true
+      snapshot_path: "vitalia/frontend/e2e/__screenshots__/shell/ribbon-idle.png"
+      mockup_ref: "vitalia/docs/product/stories/vitalia-fase1-ribbon-6-tabs/mockups/ribbon.html"
+
+    - id: val-fe-visual-dark
+      description: "Visual golden — active=valeria + dark theme tokens @ 1280x800 dark"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test --project=visual regression/vitalia-fase1-ribbon-6-tabs/ribbon-visual.spec.ts --grep 'active valeria dark 1280'"
+      must_pass: true
+      snapshot_path: "vitalia/frontend/e2e/__screenshots__/shell/ribbon-dark.png"
+      mockup_ref: "vitalia/docs/product/stories/vitalia-fase1-ribbon-6-tabs/mockups/ribbon.html"
+
+    - id: val-fe-visual-mobile-375
+      description: "Visual golden — active=lisa + viewport 375x667 mobile → overflow-x-auto horizontal scroll @ 375x667 light"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test --project=visual regression/vitalia-fase1-ribbon-6-tabs/ribbon-visual.spec.ts --grep 'mobile 375'"
+      must_pass: true
+      snapshot_path: "vitalia/frontend/e2e/__screenshots__/shell/ribbon-mobile-375.png"
+      mockup_ref: "vitalia/docs/product/stories/vitalia-fase1-ribbon-6-tabs/mockups/ribbon.html"
+
+    - id: val-fe-visual-keyboard-focus
+      description: "Visual golden — active=lisa, keyboard focus en Lucas (ring-2 ring-ring visible) @ 1280x800 light"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test --project=visual regression/vitalia-fase1-ribbon-6-tabs/ribbon-visual.spec.ts --grep 'keyboard focus 1280'"
+      must_pass: true
+      snapshot_path: "vitalia/frontend/e2e/__screenshots__/shell/ribbon-keyboard-focus.png"
+      mockup_ref: "vitalia/docs/product/stories/vitalia-fase1-ribbon-6-tabs/mockups/ribbon.html"
+
+    - id: val-fe-visual-hover-inactive
+      description: "Visual golden — active=lisa, mouse hover sobre Lucas (bg-muted + text-foreground) @ 1280x800 light"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test --project=visual regression/vitalia-fase1-ribbon-6-tabs/ribbon-visual.spec.ts --grep 'hover inactive 1280'"
+      must_pass: true
+      snapshot_path: "vitalia/frontend/e2e/__screenshots__/shell/ribbon-hover-inactive.png"
+      mockup_ref: "vitalia/docs/product/stories/vitalia-fase1-ribbon-6-tabs/mockups/ribbon.html"
+
+  # ════════════════════════════════════════════════════════════════════
+  # § 4 — AGENTIC EVAL (N/A — FE only chrome UI sin LangGraph/specialist/LLM real)
+  # ════════════════════════════════════════════════════════════════════
+  agentic_eval:
+    applies: false
+    not_applicable_reason: "FE only chrome UI story (shell-organism ribbon 6 tabs). NO LangGraph state, NO specialist node, NO LLM call, NO goldens, NO sales_agent wire real. Sales_agent + Copilot brand extensions out-of-scope F1-S7 (deferred Fase 2 cuando F2-S* wire WebSocket real)."
+
+  # ════════════════════════════════════════════════════════════════════
+  # § 5 — ARCHITECTURAL VALIDATION
+  # ════════════════════════════════════════════════════════════════════
+  architectural_validation:
+
+    - id: val-fe-arch-fsd
+      description: "FSD-Lite boundaries — NEW shell-organism + lib components NO importan features/*"
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test_fsd_boundaries.test.ts"
+      must_pass: true
+
+    - id: val-fe-arch-no-cross-brand-mirror
+      description: "Cross-brand mirror guard — extend NEW component names (Ribbon, RibbonTab, ConfigTab, extractAgentFromPath, AGENT_RIBBON_ORDER)"
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test-no-cross-brand-shell-mirror.test.ts"
+      must_pass: true
+
+    - id: val-fe-arch-shell-store-readonly-heredado
+      description: "INVARIANT heredado F1-S5: shell-store.ts NO modificado por F1-S7"
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test-shell-store-schema-readonly-f1-s5.test.ts"
+      must_pass: true
+
+    - id: val-fe-arch-agent-catalog-ssot
+      description: "INVARIANT heredado F1-S6: agent-catalog.ts en KNOWN_HARDCODES allowlist hex/thumbnail. F1-S7 EXTEND no agrega hex nuevos"
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test-agent-catalog-ssot.test.ts"
+      must_pass: true
+
+    - id: val-fe-arch-ribbon-no-shadcn-tabs
+      description: "NEW invariant — Ribbon/RibbonTab/ConfigTab NO importan @/components/ui/tabs (Radix-based — incompatible con route-based nav per anti-pattern spec § Componentes)"
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test-ribbon-no-shadcn-tabs.test.ts"
+      must_pass: true
+
+    - id: val-fe-arch-server-first
+      description: "'use client' allowlist extend NEW client components (Ribbon, RibbonTab, ConfigTab) — shrink-only, justified hooks usage"
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test_server_first.test.ts"
+      must_pass: true
+
+    - id: val-fe-arch-no-hex
+      description: "NEW files NO contienen hex literals — tokens semánticos ONLY"
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test_no_hardcoded_colors.test.ts"
+      must_pass: true
+
+    - id: val-fe-arch-no-vt
+      description: "NEW files NO contienen .vt-* legacy utility classes"
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test-no-vt-classes-in-new-features.test.ts"
+      must_pass: true
+
+    - id: val-fe-arch-no-voseo
+      description: "NEW components + microcopy validated against voseo glossary — Spanish neutro 11 strings verbatim"
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test-vitalia-ui-strings-no-voseo.test.ts"
+      must_pass: true
+
+    - id: val-fe-arch-skip-link
+      description: "Skip-link target invariant heredado F1-S5 — F1-S7 NO afecta <main id='main-content'>"
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test-skip-link-target.test.ts"
+      must_pass: true

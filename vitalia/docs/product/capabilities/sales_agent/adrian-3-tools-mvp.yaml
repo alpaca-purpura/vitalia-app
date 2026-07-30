@@ -1,0 +1,133 @@
+---
+capability_id: vitalia-adrian-3-tools-mvp
+module: sales_agent
+slug: adrian-3-tools-mvp
+status: deprecated
+date_introduced: 2026-05-18
+story_introduced: vitalia-copilot-tools-impl
+package_version: 0.2.0
+package_path: vitalia/backend/src/modules/vitalia/sales_agent/{tools,prompts,personas}
+license: proprietary
+
+# v3 cement 2026-05-27 · 4 dimensiones + dev_preview (ADR-vitalia-005)
+tech_module: sales_agent
+agent_owner: adrian
+functional_area: adrian.embudo
+user_visible: true
+nature: feature
+ui_paradigm: slice-1-superseded  # T-3 reconcile 2026-05-29
+replaced_by_story: vitalia-fase2-adrian-embudo  # T-3: story F2 que reconstruye esta cap
+
+user_facing_name: "Adrián · 3 herramientas MVP del agente vendedor"
+user_facing_description: >
+  Las tres herramientas iniciales con las que Adrián atiende consultas en
+  Instagram y WhatsApp: calificar al lead con preguntas de screening, enviar
+  un enlace de pago para cerrar la reserva y reagendar una cita existente.
+  Incluye 5 perfiles de voz por vertical (dental, estética, psicología,
+  fertilidad, base) y guardrails médicos de seguridad integrados.
+
+dev_preview:
+  route: "/adrian/embudo"
+  how_to_navigate: "Login → ribbon clic en avatar Adrián → sub-tab Embudo para ver el estado de los leads que Adrián gestiona."
+  main_component: null
+  api_endpoints:
+    - "GET /api/v1/vitalia/sales-agent/conversations"
+  e2e_test: null
+  fixtures_required: ["3-clinic-fixture-latam"]
+  storybook_url: null
+  loom_demo: null
+
+# Capability ledger v2 (cement 2026-05-27)
+created_in_story: vitalia-copilot-tools-impl   # v2 cement · mirror of story_introduced
+created_date: 2026-05-18   # v2 cement · mirror of date_introduced
+last_modified: 2026-05-29   # T-3 reconcile 2026-05-29
+parent_cap: null   # v2 cement · mirror of extends_capability
+derives_capabilities: []   # v2 cement · initial empty list
+
+# Capability ledger v2 (cement 2026-05-27)
+
+# Capability change log v2 (cement 2026-05-27)
+change_log:
+  - story_id: vitalia-copilot-tools-impl
+    date: 2026-05-18
+    type: new
+    summary: "Implementación inicial · migración legacy a schema v2"
+    merge_sha: null
+    status: done
+map_box: adrian
+
+---
+
+# vitalia-adrian-3-tools-mvp
+
+Adrián sales agent MVP — 3 production tools + 5 personas YAML brand-default + 6-slot prompt architecture (incluye Slot 4 MEDICAL_SAFETY_RAILS canonical j2 + Slot 2 medical_vertical). Voz respeta tenant per sales-agent-brand-voice rule (excepción spanish-text).
+
+## Surface
+
+### Tools (`vitalia/backend/src/modules/vitalia/sales_agent/tools/`)
+
+- `screening_questions.py` — LangChain @tool async, wraps existing `screening_questions_service`
+- `payment_link.py` (exports `send_payment_link`) — wraps `payment_link_service`
+- `reschedule_appointment.py` — wraps `reschedule_appointment_service`
+
+### Prompts (`vitalia/backend/src/modules/vitalia/sales_agent/prompts/`)
+
+- `medical_safety_rails.md` — Slot 4 pointer to canonical `agentic/prompts/slot_4_medical_safety_rails.j2`
+- `medical_vertical.md` — Slot 2 medical context
+- `adrian_persona_base.md` — Slot 5 base persona (brand-default; tenant overrides via personality_profile.system_instruction)
+
+### Personas (`vitalia/backend/src/modules/vitalia/sales_agent/personas/`)
+
+- `warm_close_default.yaml` — fallback archetype
+- `warm_close_dental.yaml`
+- `warm_close_estetica.yaml`
+- `warm_close_psicologia.yaml`
+- `warm_close_fertilidad.yaml`
+
+Schema cada persona: archetype, dialect (es-AR neutro), voice_constraints (formality, opening, common_objections), red_flags.
+
+## Test coverage
+
+- Unit: `tests/unit/modules/vitalia/sales_agent/tools/test_{screening_questions,payment_link,reschedule_appointment}.py`
+- Agentic eval: `tests/agentic_evals/sales_agent/goldens/{dental,estetica,psicologia,fertilidad}/` (12 goldens × 3 trials = 36 trial-grades)
+- Voice fidelity: `tests/agentic_evals/sales_agent/test_voice_fidelity_vitalia.py` (engine grader consumed READ-ONLY)
+- pass^k runner: `tests/agentic_evals/sales_agent/test_pass_k_evaluation.py`
+
+## Dependencies
+
+- `core/luana-core-sales-agent` (engine state base — extended via `state_overlay.py`)
+- `core/luana-core-observability` (callback subclass)
+- `core/luana-core-brand-studio` (voice_fidelity grader engine READ-ONLY)
+- `core/luana-core-extension-sdk` (EP-3 ToolDef + EP-13 GuardrailDef registration)
+- LangChain `@tool` async + Pydantic v2 args_schema
+
+## KPIs
+
+- Pass^k threshold: ≥ 0.5
+- Per-trial threshold: ≥ 0.66 (≥2/3 rubric dimensions)
+- Voice fidelity min: 0.85
+- Cost budget per-tenant daily: $0.25
+
+## Scenarios live
+
+- SC-A1 Dental happy curious (screening → payment link)
+- SC-A2 Adversarial PHI via WhatsApp (derive to portal — channel guard)
+- SC-A4 Estética adversarial contraindicación (escalate doctor)
+- SC-A5 Psicología adversarial crisis (suicidal ideation handoff)
+- SC-A6 Fertilidad happy sensitive (screening before payment)
+- SC-V1 Voice fidelity per Slot 5 BRAND_VOICE ≥ 0.85
+
+## Verification commands
+
+```bash
+WS=$(git rev-parse --show-toplevel)
+${WS}/.venv/bin/pytest vitalia/backend/tests/unit/modules/vitalia/sales_agent/tools/ -v
+${WS}/.venv/bin/pytest vitalia/backend/tests/agentic_evals/sales_agent/test_pass_k_evaluation.py -v
+${WS}/.venv/bin/pytest vitalia/backend/tests/agentic_evals/sales_agent/test_voice_fidelity_vitalia.py -v
+```
+
+## Referencias
+
+- `vitalia/docs/product/stories/vitalia-copilot-tools-impl/03-arch-agentic.md` § 4.2 + § 5.3
+- `.claude/rules/sales-agent-brand-voice.md` (voseo exception sales_agent)
+- `vitalia/.claude/rules/hipaa-lite.md` (medical guardrails dependency)

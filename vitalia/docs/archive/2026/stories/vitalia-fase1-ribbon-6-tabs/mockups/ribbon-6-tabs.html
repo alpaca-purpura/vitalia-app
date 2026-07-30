@@ -1,0 +1,486 @@
+<!doctype html>
+<html lang="es" class="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>F1-S7 · Ribbon 6 tabs — mockup</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            'agent-lisa':    '#00D084',
+            'agent-lucas':   '#111111',
+            'agent-adrian':  '#01b2f8',
+            'agent-valeria': '#7b2d91',
+            'agent-camila':  '#180d95',
+          },
+        },
+      },
+    }
+  </script>
+  <style>
+    /* Soft variants via rgba (10% opacity) — production usa CSS var agent-{slug}-soft de globals.css F1-S1 */
+    .bg-agent-lisa-soft    { background-color: rgba(0,   208, 132, 0.12); }
+    .bg-agent-lucas-soft   { background-color: rgba(17,  17,  17,  0.10); }
+    .bg-agent-adrian-soft  { background-color: rgba(1,   178, 248, 0.14); }
+    .bg-agent-valeria-soft { background-color: rgba(123, 45,  145, 0.16); }
+    .bg-agent-camila-soft  { background-color: rgba(24,  13,  149, 0.14); }
+
+    .dark .bg-agent-lisa-soft    { background-color: rgba(0,   208, 132, 0.20); }
+    .dark .bg-agent-lucas-soft   { background-color: rgba(180, 180, 180, 0.16); }
+    .dark .bg-agent-adrian-soft  { background-color: rgba(1,   178, 248, 0.22); }
+    .dark .bg-agent-valeria-soft { background-color: rgba(168, 85,  200, 0.24); }
+    .dark .bg-agent-camila-soft  { background-color: rgba(120, 100, 240, 0.22); }
+
+    body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif; }
+
+    /* Light/dark theme bg + text */
+    body                                 { background: #f7f7f8; color: #0a0a0a; }
+    .dark body                           { background: #0a0a0a; color: #fafafa; }
+    .card                                { background: #ffffff; border: 1px solid #e5e5e5; }
+    .dark .card                          { background: #171717; border-color: #262626; }
+    .muted                               { color: #737373; }
+    .muted-strong                        { color: #525252; }
+    .dark .muted                         { color: #a3a3a3; }
+    .dark .muted-strong                  { color: #c4c4c4; }
+    .ribbon-bg                           { background: #ffffff; border-bottom: 1px solid #e5e5e5; }
+    .dark .ribbon-bg                     { background: #171717; border-bottom: 1px solid #262626; }
+    .placeholder-bg                      { background: #fafafa; }
+    .dark .placeholder-bg                { background: #0f0f0f; }
+
+    /* Focus visible ring */
+    .ribbon-tab:focus-visible            { outline: 2px solid #6366f1; outline-offset: 1px; border-radius: 8px; }
+    .ribbon-tab:hover                    { background-color: rgba(0,0,0,0.04); }
+    .dark .ribbon-tab:hover              { background-color: rgba(255,255,255,0.06); }
+
+    /* Q16 cement — active:hover PRESERVA tint del agente (specificity HARD via [data-active] attr selector) */
+    .ribbon-tab[data-active="true"].bg-agent-lisa-soft:hover    { background-color: rgba(0,   208, 132, 0.12); }
+    .ribbon-tab[data-active="true"].bg-agent-lucas-soft:hover   { background-color: rgba(17,  17,  17,  0.10); }
+    .ribbon-tab[data-active="true"].bg-agent-adrian-soft:hover  { background-color: rgba(1,   178, 248, 0.14); }
+    .ribbon-tab[data-active="true"].bg-agent-valeria-soft:hover { background-color: rgba(123, 45,  145, 0.16); }
+    .ribbon-tab[data-active="true"].bg-agent-camila-soft:hover  { background-color: rgba(24,  13,  149, 0.14); }
+    .dark .ribbon-tab[data-active="true"].bg-agent-lisa-soft:hover    { background-color: rgba(0,   208, 132, 0.20); }
+    .dark .ribbon-tab[data-active="true"].bg-agent-lucas-soft:hover   { background-color: rgba(180, 180, 180, 0.16); }
+    .dark .ribbon-tab[data-active="true"].bg-agent-adrian-soft:hover  { background-color: rgba(1,   178, 248, 0.22); }
+    .dark .ribbon-tab[data-active="true"].bg-agent-valeria-soft:hover { background-color: rgba(168, 85,  200, 0.24); }
+    .dark .ribbon-tab[data-active="true"].bg-agent-camila-soft:hover  { background-color: rgba(120, 100, 240, 0.22); }
+
+    /* Q15 cement — tabLabel + role spans whitespace-nowrap (ribbon h-14 uniforme en widths estrechos) */
+    .ribbon-tab .tab-label,
+    .ribbon-tab .tab-role { white-space: nowrap; }
+
+    /* Avatar circle */
+    .avatar { width: 28px; height: 28px; border-radius: 9999px; overflow: hidden; flex-shrink: 0;
+              display: inline-flex; align-items: center; justify-content: center; font-weight: 600; font-size: 12px; color: white; }
+
+    /* ConfigTab IconButton 40x40 */
+    .config-tab { width: 40px; height: 40px; border-radius: 8px; background: #f4f4f5;
+                  display: inline-flex; align-items: center; justify-content: center;
+                  color: #737373; transition: all 150ms; }
+    .config-tab:hover { background: #e5e5e5; color: #0a0a0a; }
+    .dark .config-tab { background: #262626; color: #a3a3a3; }
+    .dark .config-tab:hover { background: #3f3f46; color: #fafafa; }
+    .config-tab[data-active="true"] { box-shadow: inset 0 0 0 1px #d4d4d4; color: #0a0a0a; }
+    .dark .config-tab[data-active="true"] { box-shadow: inset 0 0 0 1px #525252; color: #fafafa; }
+
+    /* Tooltip */
+    .tooltip { position: relative; }
+    .tooltip-content {
+      position: absolute; top: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+      background: #0a0a0a; color: #fafafa; font-size: 12px; padding: 4px 8px; border-radius: 4px;
+      white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 100ms;
+      z-index: 50;
+    }
+    .tooltip:hover .tooltip-content { opacity: 1; }
+    .dark .tooltip-content { background: #fafafa; color: #0a0a0a; }
+
+    /* Layout sims */
+    .shell-grid-agentic { display: grid; grid-template-columns: 1fr 1fr; height: 320px; }
+    .shell-grid-web     { display: grid; grid-template-columns: 60px 1fr; height: 320px; }
+    .shell-grid-mobile  { display: grid; grid-template-columns: 1fr; height: 360px; width: 375px; margin: 0 auto; }
+    .valeria-panel      { background: #fafafa; border-right: 1px solid #e5e5e5; padding: 8px; font-size: 11px; color: #737373; }
+    .dark .valeria-panel{ background: #0f0f0f; border-right-color: #262626; }
+    .valeria-rail       { background: #fafafa; border-right: 1px solid #e5e5e5; padding: 6px 0;
+                          display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 10px; color: #737373; }
+    .dark .valeria-rail { background: #0f0f0f; border-right-color: #262626; }
+
+    /* Mode segmented toggle */
+    .seg-btn { padding: 6px 14px; font-size: 13px; font-weight: 500; border: 1px solid #d4d4d4; background: white; color: #525252; cursor: pointer; }
+    .seg-btn:first-child { border-radius: 8px 0 0 8px; border-right: 0; }
+    .seg-btn:last-child  { border-radius: 0 8px 8px 0; }
+    .seg-btn[aria-pressed="true"] { background: #0a0a0a; color: white; border-color: #0a0a0a; }
+    .dark .seg-btn { background: #171717; color: #a3a3a3; border-color: #262626; }
+    .dark .seg-btn[aria-pressed="true"] { background: #fafafa; color: #0a0a0a; border-color: #fafafa; }
+  </style>
+</head>
+<body class="min-h-screen">
+
+  <!-- Header del mockup -->
+  <header class="border-b border-neutral-200 dark:border-neutral-800">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div>
+        <div class="text-xs muted">F1-S7 · vitalia-fase1-ribbon-6-tabs · mockup spec.md v1</div>
+        <h1 class="text-lg font-semibold">Ribbon 6 tabs — preview interactivo</h1>
+      </div>
+      <div class="flex items-center gap-2">
+        <button onclick="toggleTheme()" class="px-3 py-1.5 rounded-md text-sm border border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800">
+          <span id="theme-label">🌙 Dark</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-6 py-8 space-y-12">
+
+    <!-- ─────────────────────────────────────────────────────────────────────── -->
+    <!-- BLOCK 1 — Ribbon in CONTEXT: modo agentic split 50/50 -->
+    <!-- ─────────────────────────────────────────────────────────────────────── -->
+    <section>
+      <div class="flex items-baseline justify-between mb-3">
+        <h2 class="text-base font-semibold">1 · Ribbon en contexto · modo agentic (split 50/50)</h2>
+        <span class="text-xs muted">Active = <strong id="ctx-agentic-active">lisa</strong></span>
+      </div>
+      <div class="card rounded-xl overflow-hidden">
+        <div class="shell-grid-agentic">
+          <!-- Left half: Valeria chat -->
+          <div class="valeria-panel">
+            <div class="font-semibold text-neutral-700 dark:text-neutral-300">ValeriaSidebar (50%)</div>
+            <div class="muted text-[10px] mt-1">ChatHeader · ChatMessages · ChatComposer · placeholder F1-S6</div>
+          </div>
+          <!-- Right half: AppPanel with Ribbon -->
+          <div class="grid grid-rows-[auto_auto_1fr] overflow-hidden">
+            <!-- ★ THE RIBBON ★ -->
+            <nav role="tablist" aria-label="Agentes"
+                 class="ribbon-bg flex items-stretch px-3 gap-1 h-14 overflow-x-auto"
+                 id="ctx-agentic-ribbon">
+              <!-- tabs renderizados via JS para reuso -->
+            </nav>
+            <div class="placeholder-bg border-b border-neutral-200 dark:border-neutral-800 px-4 py-2 text-xs muted">
+              Sub-tabs línea 2 · F1-S8 placeholder
+            </div>
+            <div class="placeholder-bg p-4 text-xs muted">Content area · F1-S10 empty states</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─────────────────────────────────────────────────────────────────────── -->
+    <!-- BLOCK 2 — Ribbon in CONTEXT: modo web -->
+    <!-- ─────────────────────────────────────────────────────────────────────── -->
+    <section>
+      <div class="flex items-baseline justify-between mb-3">
+        <h2 class="text-base font-semibold">2 · Ribbon en contexto · modo web (Valeria rail 60px)</h2>
+        <span class="text-xs muted">Mismo ribbon, AppPanel más ancho · Active = <strong id="ctx-web-active">valeria</strong></span>
+      </div>
+      <div class="card rounded-xl overflow-hidden">
+        <div class="shell-grid-web">
+          <div class="valeria-rail">
+            <div class="avatar" style="background:#7b2d91">V</div>
+            <div class="avatar" style="background:#e5e5e5;color:#737373">↕</div>
+            <div class="text-[9px] muted text-center">rail</div>
+          </div>
+          <div class="grid grid-rows-[auto_auto_1fr] overflow-hidden">
+            <nav role="tablist" aria-label="Agentes"
+                 class="ribbon-bg flex items-stretch px-3 gap-1 h-14 overflow-x-auto"
+                 id="ctx-web-ribbon">
+            </nav>
+            <div class="placeholder-bg border-b border-neutral-200 dark:border-neutral-800 px-4 py-2 text-xs muted">
+              Sub-tabs línea 2 · F1-S8 placeholder
+            </div>
+            <div class="placeholder-bg p-4 text-xs muted">Content area más espacioso</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─────────────────────────────────────────────────────────────────────── -->
+    <!-- BLOCK 3 — 5 active states showcase -->
+    <!-- ─────────────────────────────────────────────────────────────────────── -->
+    <section>
+      <h2 class="text-base font-semibold mb-3">3 · 5 active states (cycle entre tabs)</h2>
+      <div class="card rounded-xl overflow-hidden">
+        <div class="px-3 py-2 border-b border-neutral-200 dark:border-neutral-800 flex items-center gap-2 text-xs">
+          <span class="muted">Cliqueá un tab para ver active state:</span>
+          <span id="showcase-state" class="font-mono muted-strong"></span>
+        </div>
+        <nav role="tablist" aria-label="Agentes (showcase)"
+             class="ribbon-bg flex items-stretch px-3 gap-1 h-14 overflow-x-auto"
+             id="showcase-ribbon">
+        </nav>
+        <div class="px-4 py-3 placeholder-bg border-t border-neutral-200 dark:border-neutral-800">
+          <div class="text-[11px] muted">router.push target:</div>
+          <code id="showcase-target" class="text-xs">/sonrisa-plena/lisa/marca</code>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─────────────────────────────────────────────────────────────────────── -->
+    <!-- BLOCK 4 — States anatomy (single tab inactive/hover/focus/active) -->
+    <!-- ─────────────────────────────────────────────────────────────────────── -->
+    <section>
+      <h2 class="text-base font-semibold mb-3">4 · Anatomy de un RibbonTab (Lisa)</h2>
+      <div class="card rounded-xl p-6 grid grid-cols-2 md:grid-cols-4 gap-6">
+        <div class="space-y-2">
+          <div class="text-[11px] muted uppercase tracking-wide">inactive</div>
+          <div class="ribbon-bg rounded-lg p-2 border border-neutral-200 dark:border-neutral-800">
+            <button class="ribbon-tab w-full flex items-center gap-2 px-3 py-2 rounded-md">
+              <span class="avatar" style="background:#00D084">L</span>
+              <span class="flex flex-col items-start leading-tight">
+                <span class="text-sm font-medium muted-strong">Mi Clínica</span>
+                <span class="text-[10px] muted">Lisa</span>
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <div class="space-y-2">
+          <div class="text-[11px] muted uppercase tracking-wide">inactive:hover</div>
+          <div class="ribbon-bg rounded-lg p-2 border border-neutral-200 dark:border-neutral-800">
+            <button class="ribbon-tab w-full flex items-center gap-2 px-3 py-2 rounded-md" style="background-color:rgba(0,0,0,0.05)">
+              <span class="avatar" style="background:#00D084">L</span>
+              <span class="flex flex-col items-start leading-tight">
+                <span class="text-sm font-medium">Mi Clínica</span>
+                <span class="text-[10px] muted">Lisa</span>
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <div class="space-y-2">
+          <div class="text-[11px] muted uppercase tracking-wide">inactive:focus</div>
+          <div class="ribbon-bg rounded-lg p-2 border border-neutral-200 dark:border-neutral-800">
+            <button class="ribbon-tab w-full flex items-center gap-2 px-3 py-2 rounded-md" style="outline:2px solid #6366f1; outline-offset:1px">
+              <span class="avatar" style="background:#00D084">L</span>
+              <span class="flex flex-col items-start leading-tight">
+                <span class="text-sm font-medium">Mi Clínica</span>
+                <span class="text-[10px] muted">Lisa</span>
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <div class="space-y-2">
+          <div class="text-[11px] muted uppercase tracking-wide">active</div>
+          <div class="ribbon-bg rounded-lg p-2 border border-neutral-200 dark:border-neutral-800">
+            <button class="ribbon-tab bg-agent-lisa-soft w-full flex items-center gap-2 px-3 py-2 rounded-md" data-active="true">
+              <span class="avatar" style="background:#00D084">L</span>
+              <span class="flex flex-col items-start leading-tight">
+                <span class="text-sm font-semibold">Mi Clínica</span>
+                <span class="text-[10px] muted">Lisa</span>
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─────────────────────────────────────────────────────────────────────── -->
+    <!-- BLOCK 5 — ConfigTab states + avatar fallback -->
+    <!-- ─────────────────────────────────────────────────────────────────────── -->
+    <section>
+      <h2 class="text-base font-semibold mb-3">5 · ConfigTab states + Avatar fallback</h2>
+      <div class="card rounded-xl p-6 grid grid-cols-2 md:grid-cols-4 gap-6">
+        <div class="space-y-2">
+          <div class="text-[11px] muted uppercase tracking-wide">ConfigTab inactive</div>
+          <div class="tooltip">
+            <button class="config-tab" aria-label="Configurar"><i data-lucide="settings" class="w-5 h-5"></i></button>
+            <span class="tooltip-content">Configurar</span>
+          </div>
+        </div>
+        <div class="space-y-2">
+          <div class="text-[11px] muted uppercase tracking-wide">ConfigTab hover</div>
+          <button class="config-tab" aria-label="Configurar" style="background:#e5e5e5;color:#0a0a0a">
+            <i data-lucide="settings" class="w-5 h-5"></i>
+          </button>
+        </div>
+        <div class="space-y-2">
+          <div class="text-[11px] muted uppercase tracking-wide">ConfigTab active</div>
+          <button class="config-tab" aria-label="Configurar" data-active="true">
+            <i data-lucide="settings" class="w-5 h-5"></i>
+          </button>
+        </div>
+        <div class="space-y-2">
+          <div class="text-[11px] muted uppercase tracking-wide">Avatar fallback (PNG 404)</div>
+          <button class="ribbon-tab flex items-center gap-2 px-3 py-2 rounded-md ribbon-bg border border-neutral-200 dark:border-neutral-800">
+            <span class="avatar bg-agent-camila-soft" style="color:#180d95">C</span>
+            <span class="flex flex-col items-start leading-tight">
+              <span class="text-sm font-medium">Mantener</span>
+              <span class="text-[10px] muted">Camila</span>
+            </span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─────────────────────────────────────────────────────────────────────── -->
+    <!-- BLOCK 6 — Mobile 375px view -->
+    <!-- ─────────────────────────────────────────────────────────────────────── -->
+    <section>
+      <h2 class="text-base font-semibold mb-3">6 · Mobile 375px · horizontal scroll</h2>
+      <p class="text-xs muted mb-3">Scrollá lateral dentro del ribbon para ver Camila + ConfigTab al final.</p>
+      <div class="card rounded-xl overflow-hidden" style="max-width:375px;margin:0 auto">
+        <div class="shell-grid-mobile">
+          <div class="valeria-panel flex items-center justify-center">
+            <div class="text-center">
+              <div class="avatar mx-auto mb-1" style="background:#7b2d91">V</div>
+              <div class="text-[10px] muted">Valeria chat (full mobile)</div>
+            </div>
+          </div>
+          <nav role="tablist" aria-label="Agentes"
+               class="ribbon-bg flex items-stretch px-3 gap-1 h-14 overflow-x-auto"
+               id="mobile-ribbon">
+          </nav>
+          <div class="placeholder-bg border-t border-neutral-200 dark:border-neutral-800 px-3 py-2 text-[10px] muted">
+            Sub-tabs F1-S8 · Content F1-S10
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─────────────────────────────────────────────────────────────────────── -->
+    <!-- BLOCK 7 — Spec recap -->
+    <!-- ─────────────────────────────────────────────────────────────────────── -->
+    <section class="card rounded-xl p-6 space-y-3">
+      <h2 class="text-base font-semibold">Spec recap (decisiones batches 1-4)</h2>
+      <ul class="list-disc list-inside text-sm space-y-1">
+        <li>Catalog SSoT: <code>vitalia/frontend/src/lib/agent-catalog.ts</code> EXTEND con <code>tabLabel</code> + <code>defaultSubtab</code></li>
+        <li>Mateo NO en ribbon (transversal, otra story)</li>
+        <li>Misma horizontal en modos <code>agentic</code> y <code>web</code></li>
+        <li>Active = <code>bg-agent-{agent}-soft</code> tint + label <code>font-semibold</code> (sin border-bottom, sin ring avatar)</li>
+        <li>Hover inactive = <code>bg-muted</code> + <code>text-foreground</code> (Shadcn default)</li>
+        <li>Mobile = horizontal scroll natural (<code>overflow-x-auto</code>)</li>
+        <li>ConfigTab = IconButton 40x40 + Tooltip <code>Configurar</code></li>
+        <li>Keyboard = WAI-ARIA tablist completo (Arrow + Home/End + Enter, roving tabindex)</li>
+        <li>Avatar fallback = <code>&lt;AvatarFallback&gt;</code> Shadcn con <code>initial</code> sobre <code>bg-agent-{slug}-soft</code></li>
+        <li>Telemetría = TODO Fase 2</li>
+        <li>Visual goldens = 11 PNGs (5 active light + 1 active config + 1 idle + 1 dark + 1 mobile-375 + 1 focus + 1 hover)</li>
+      </ul>
+    </section>
+
+  </main>
+
+  <script>
+    // Catalog client-side
+    const CATALOG = {
+      lisa:    { tabLabel: 'Mi Clínica', role: 'Lisa',    hex: '#00D084', defaultSubtab: 'marca' },
+      lucas:   { tabLabel: 'Atraer',     role: 'Lucas',   hex: '#111111', defaultSubtab: 'lanzar' },
+      adrian:  { tabLabel: 'Vender',     role: 'Adrián',  hex: '#01b2f8', defaultSubtab: 'inbox' },
+      valeria: { tabLabel: 'Operar',     role: 'Valeria', hex: '#7b2d91', defaultSubtab: 'agenda' },
+      camila:  { tabLabel: 'Mantener',   role: 'Camila',  hex: '#180d95', defaultSubtab: 'voz' },
+    };
+    const ORDER = ['lisa','lucas','adrian','valeria','camila'];
+
+    function renderRibbon(targetId, activeSlug, onClick) {
+      const nav = document.getElementById(targetId);
+      if (!nav) return;
+      nav.innerHTML = '';
+      ORDER.forEach(slug => {
+        const meta = CATALOG[slug];
+        const active = slug === activeSlug;
+        const btn = document.createElement('button');
+        btn.className = `ribbon-tab flex items-center gap-2 px-3 py-2 rounded-md ${active ? 'bg-agent-' + slug + '-soft' : ''}`;
+        btn.setAttribute('role', 'tab');
+        btn.setAttribute('aria-selected', active);
+        btn.setAttribute('tabindex', active ? '0' : '-1');
+        btn.setAttribute('data-active', active);
+        btn.setAttribute('data-testid', 'ribbon-tab-' + slug);
+        btn.innerHTML = `
+          <span class="avatar" style="background:${meta.hex}">${meta.role[0]}</span>
+          <span class="flex flex-col items-start leading-tight">
+            <span class="tab-label text-sm ${active ? 'font-semibold' : 'font-medium muted-strong'}">${meta.tabLabel}</span>
+            <span class="tab-role text-[10px] muted">${meta.role}</span>
+          </span>
+        `;
+        if (onClick) btn.addEventListener('click', () => onClick(slug));
+        nav.appendChild(btn);
+      });
+      // spacer + ConfigTab
+      const spacer = document.createElement('div');
+      spacer.className = 'ml-auto flex items-center';
+      nav.appendChild(spacer);
+
+      const configWrapper = document.createElement('div');
+      configWrapper.className = 'tooltip flex items-center';
+      const config = document.createElement('button');
+      const configActive = activeSlug === 'config';
+      config.className = 'config-tab my-2';
+      // Q13 cement — ConfigTab es peer del tablist (role=tab, aria-selected, tabindex roving)
+      config.setAttribute('role', 'tab');
+      config.setAttribute('aria-selected', configActive ? 'true' : 'false');
+      config.setAttribute('aria-label', 'Configurar');
+      config.setAttribute('tabindex', configActive ? '0' : '-1');
+      config.setAttribute('data-active', configActive);
+      config.setAttribute('data-testid', 'ribbon-tab-config');
+      config.innerHTML = '<i data-lucide="settings" class="w-5 h-5"></i>';
+      if (onClick) config.addEventListener('click', () => onClick('config'));
+      const tip = document.createElement('span');
+      tip.className = 'tooltip-content';
+      tip.textContent = 'Configurar';
+      configWrapper.appendChild(config);
+      configWrapper.appendChild(tip);
+      nav.appendChild(configWrapper);
+    }
+
+    // Block 1 — agentic context, click cycles
+    let ctxAgenticActive = 'lisa';
+    function refreshCtxAgentic() {
+      document.getElementById('ctx-agentic-active').textContent = ctxAgenticActive;
+      renderRibbon('ctx-agentic-ribbon', ctxAgenticActive, (slug) => {
+        ctxAgenticActive = slug;
+        refreshCtxAgentic();
+        lucide.createIcons();
+      });
+    }
+
+    // Block 2 — web context
+    let ctxWebActive = 'valeria';
+    function refreshCtxWeb() {
+      document.getElementById('ctx-web-active').textContent = ctxWebActive;
+      renderRibbon('ctx-web-ribbon', ctxWebActive, (slug) => {
+        ctxWebActive = slug;
+        refreshCtxWeb();
+        lucide.createIcons();
+      });
+    }
+
+    // Block 3 — showcase with state output
+    let showcaseActive = 'lisa';
+    function refreshShowcase() {
+      const target = showcaseActive === 'config'
+        ? '/sonrisa-plena/config/cuenta'
+        : `/sonrisa-plena/${showcaseActive}/${CATALOG[showcaseActive].defaultSubtab}`;
+      document.getElementById('showcase-state').textContent = `active=${showcaseActive}`;
+      document.getElementById('showcase-target').textContent = target;
+      renderRibbon('showcase-ribbon', showcaseActive, (slug) => {
+        showcaseActive = slug;
+        refreshShowcase();
+        lucide.createIcons();
+      });
+    }
+
+    // Block 6 — mobile
+    function refreshMobile() {
+      renderRibbon('mobile-ribbon', 'lisa', null);
+    }
+
+    // Theme toggle
+    function toggleTheme() {
+      const html = document.documentElement;
+      const isDark = html.classList.toggle('dark');
+      document.getElementById('theme-label').textContent = isDark ? '☀️ Light' : '🌙 Dark';
+    }
+
+    // Init
+    refreshCtxAgentic();
+    refreshCtxWeb();
+    refreshShowcase();
+    refreshMobile();
+    lucide.createIcons();
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,65 @@
+---
+# vitalia/deploy/k8s/admin-ingress.yaml
+# Ingress for Vitalia Admin Streamlit — host vitalia-admin.vitalialat.com
+#
+# Subdomain: vitalia-admin.vitalialat.com (Q1 ratified 2026-05-18 — subdomain, not subpath).
+# TLS: cert-manager + Let's Encrypt (letsencrypt-prod ClusterIssuer).
+#      If using Cloudflare Tunnel, TLS is terminated at CF edge — adjust annotations.
+#
+# Prerequisites:
+#   - ingress-nginx controller installed in cluster (matches existing vitalia-ingress pattern).
+#   - cert-manager installed with ClusterIssuer letsencrypt-prod configured.
+#   - DNS: CNAME vitalia-admin.vitalialat.com → cluster-ingress-ip OR CF tunnel hostname.
+#     Chris adds record in Cloudflare DNS: CNAME vitalia-admin → <CF_TUNNEL_ID>.cfargotunnel.com
+#
+# Apply:
+#   kubectl apply -f vitalia/deploy/k8s/admin-ingress.yaml -n vitalia
+#
+# Verify DNS:
+#   dig vitalia-admin.vitalialat.com
+#   curl -I https://vitalia-admin.vitalialat.com/healthz
+#
+# Arch ref: vitalia-auth-base-functional T-5 D7 Q1 · admin-panel.md
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: vitalia-admin-ingress
+  namespace: vitalia
+  labels:
+    app.kubernetes.io/name: vitalia-admin
+    app.kubernetes.io/component: ingress
+    app.kubernetes.io/part-of: vitalia
+    app.kubernetes.io/managed-by: kubectl
+    env: dev
+  annotations:
+    # nginx ingress controller (matches existing vitalia-ingress pattern)
+    kubernetes.io/ingress.class: "nginx"
+    # TLS redirect enforced for admin panel (security requirement — HIPAA-lite)
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    # Streamlit uses websockets for its reactive loop — websocket upgrade required.
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/websocket-services: "vitalia-admin"
+    nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection "upgrade";
+    # cert-manager: auto-provision TLS cert via Let's Encrypt
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  tls:
+    - hosts:
+        - vitalia-admin.vitalialat.com
+      # cert-manager will auto-create this secret when ClusterIssuer is ready.
+      secretName: vitalia-admin-tls
+  rules:
+    - host: vitalia-admin.vitalialat.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: vitalia-admin
+                port:
+                  number: 8501

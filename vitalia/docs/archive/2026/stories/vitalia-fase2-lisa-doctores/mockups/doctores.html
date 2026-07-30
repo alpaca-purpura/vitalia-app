@@ -1,0 +1,1886 @@
+<!DOCTYPE html>
+<html lang="es-LA" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <title>Vitalia — Shell Organism agéntico (mockup navegable)</title>
+  <meta name="description" content="Mockup interactivo shell-organism vitalia: modo agentic 50/50 con panel Valeria izquierdo (transpuesta copilot Nicolify) + panel App derecho con ribbon 6 tabs.">
+  <style>
+    /* =========================================================
+       CSS VARIABLES — light/dark theme
+       ========================================================= */
+    :root {
+      /* Surface */
+      --bg-app: #f8fafc;
+      --bg-panel: #ffffff;
+      --bg-elevated: #ffffff;
+      --bg-hover: #f1f5f9;
+      --bg-rail: #f8fafc;
+      --bg-topbar: #ffffff;
+
+      /* Text */
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --text-muted: #94a3b8;
+      --text-inverse: #ffffff;
+
+      /* Borders */
+      --border: #e2e8f0;
+      --border-strong: #cbd5e1;
+
+      /* Agent colors (oficiales) */
+      --c-lisa: #00D084;
+      --c-lucas: #111111;
+      --c-adrian: #01b2f8;
+      --c-valeria: #7b2d91;
+      --c-camila: #180d95;
+      --c-mateo: #fee209;
+      --c-config: #64748b;
+
+      /* Agent tints (background suave para chips/highlights) */
+      --c-lisa-soft: #d1fae8;
+      --c-lucas-soft: #e5e7eb;
+      --c-adrian-soft: #cef0fb;
+      --c-valeria-soft: #ebd6f4;
+      --c-camila-soft: #d4d0f5;
+
+      /* Shadows */
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+
+      /* Sizing */
+      --topbar-h: 48px;
+      --rail-w: 60px;
+      --history-w: 280px;
+      --chat-w: 420px;
+    }
+
+    [data-theme="dark"] {
+      --bg-app: #0a0e1a;
+      --bg-panel: #131927;
+      --bg-elevated: #1c2333;
+      --bg-hover: #1f2937;
+      --bg-rail: #0f1420;
+      --bg-topbar: #131927;
+
+      --text-primary: #f1f5f9;
+      --text-secondary: #cbd5e1;
+      --text-muted: #64748b;
+      --text-inverse: #0f172a;
+
+      --border: #2a3344;
+      --border-strong: #3b4659;
+
+      --c-lisa-soft: #064e3b;
+      --c-lucas-soft: #374151;
+      --c-adrian-soft: #075985;
+      --c-valeria-soft: #581c87;
+      --c-camila-soft: #312e81;
+
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.5);
+    }
+
+    /* =========================================================
+       RESET + BASE
+       ========================================================= */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--text-primary);
+      background: var(--bg-app);
+      transition: background 0.2s, color 0.2s;
+    }
+    button {
+      font-family: inherit;
+      font-size: inherit;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      color: inherit;
+    }
+    img { display: block; max-width: 100%; }
+
+    /* =========================================================
+       TOPBAR GLOBAL — thin
+       ========================================================= */
+    .topbar {
+      height: var(--topbar-h);
+      background: var(--bg-topbar);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      position: relative;
+      z-index: 100;
+    }
+    .topbar-logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      font-size: 16px;
+      color: var(--text-primary);
+    }
+    .topbar-logo-mark {
+      width: 28px; height: 28px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #7b2d91, #01b2f8);
+      display: flex; align-items: center; justify-content: center;
+      color: #fff;
+      font-weight: 700;
+      font-size: 13px;
+    }
+    .topbar-actions {
+      display: flex; align-items: center; gap: 8px;
+    }
+    .topbar-btn {
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-size: 14px;
+      color: var(--text-secondary);
+      transition: background 0.15s;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .topbar-btn:hover { background: var(--bg-hover); }
+    .tenant-switcher { position: relative; }
+    .tenant-switcher-btn {
+      padding: 6px 12px;
+      border-radius: 8px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      font-size: 13px;
+      font-weight: 500;
+      display: flex; align-items: center; gap: 8px;
+      transition: all 0.15s;
+    }
+    .tenant-switcher-btn:hover { border-color: var(--border-strong); }
+    .tenant-switcher-dropdown {
+      position: absolute;
+      top: calc(100% + 4px);
+      right: 0;
+      min-width: 260px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      box-shadow: var(--shadow-md);
+      padding: 6px;
+      display: none;
+      z-index: 200;
+    }
+    .tenant-switcher.open .tenant-switcher-dropdown { display: block; }
+    .entity-picker.open .entity-picker-panel { display: block !important; }
+    .tenant-item {
+      padding: 8px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex; align-items: center; gap: 10px;
+      font-size: 13px;
+    }
+    .tenant-item:hover { background: var(--bg-hover); }
+    .tenant-item.active { background: var(--c-valeria-soft); }
+    .tenant-item-avatar {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: var(--c-valeria); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 13px;
+    }
+    .tenant-item-meta { display: flex; flex-direction: column; gap: 2px; }
+    .tenant-item-name { font-weight: 600; color: var(--text-primary); }
+    .tenant-item-sub { font-size: 11px; color: var(--text-muted); }
+    .tenant-divider { height: 1px; background: var(--border); margin: 4px 8px; }
+    .tenant-action {
+      padding: 8px 10px; border-radius: 6px; font-size: 13px;
+      color: var(--text-secondary); cursor: pointer;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .tenant-action:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+    /* =========================================================
+       SHELL — 50/50 split
+       ========================================================= */
+    .shell {
+      height: calc(100vh - var(--topbar-h));
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      overflow: hidden;
+    }
+
+    /* =========================================================
+       PANEL VALERIA (izquierdo) — transpuesta copilot
+       Grid interno: [rail/history] [chat]
+       ========================================================= */
+    .panel-valeria {
+      background: var(--bg-panel);
+      border-right: 1px solid var(--border);
+      display: grid;
+      grid-template-rows: minmax(0, 1fr);
+      overflow: hidden;
+      transition: grid-template-columns 220ms cubic-bezier(.2,.8,.2,1);
+    }
+    .panel-valeria[data-state="rail"] { grid-template-columns: var(--rail-w) 1fr; }
+    .panel-valeria[data-state="full"] { grid-template-columns: var(--history-w) 1fr; }
+    .panel-valeria[data-state="collapsed"] { grid-template-columns: var(--rail-w) 0; }
+
+    /* Rail (60px collapsed icons) */
+    .valeria-rail {
+      background: var(--bg-rail);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 12px 0;
+      gap: 6px;
+    }
+    .panel-valeria[data-state="full"] .valeria-rail { display: none; }
+    .rail-btn {
+      width: 40px; height: 40px;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text-secondary);
+      font-size: 18px;
+      transition: all 0.15s;
+    }
+    .rail-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+    .rail-btn.active { background: var(--c-valeria); color: #fff; }
+    .rail-divider { width: 24px; height: 1px; background: var(--border); margin: 4px 0; }
+
+    /* History panel (280px expanded) */
+    .valeria-history {
+      background: var(--bg-rail);
+      border-right: 1px solid var(--border);
+      display: none;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .panel-valeria[data-state="full"] .valeria-history { display: flex; }
+    .history-header {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .history-title { font-weight: 600; font-size: 13px; }
+    .history-actions { display: flex; gap: 4px; }
+    .history-mini-btn {
+      width: 28px; height: 28px; border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text-secondary);
+      transition: background 0.15s;
+    }
+    .history-mini-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+    .history-search {
+      padding: 8px 12px;
+    }
+    .history-search input {
+      width: 100%;
+      padding: 7px 10px;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      background: var(--bg-elevated);
+      font-size: 12px;
+      color: var(--text-primary);
+    }
+    .history-search input::placeholder { color: var(--text-muted); }
+    .history-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 4px 8px 12px;
+    }
+    .history-group { margin-top: 8px; }
+    .history-group-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      padding: 6px 8px 4px;
+    }
+    .history-item {
+      padding: 8px 10px;
+      border-radius: 7px;
+      cursor: pointer;
+      font-size: 12.5px;
+      color: var(--text-secondary);
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      transition: background 0.12s;
+    }
+    .history-item:hover { background: var(--bg-hover); color: var(--text-primary); }
+    .history-item.active { background: var(--c-valeria-soft); color: var(--text-primary); }
+    .history-item-title { font-weight: 500; }
+    .history-item-meta { font-size: 11px; color: var(--text-muted); }
+
+    /* Chat Valeria */
+    .valeria-chat {
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      overflow: hidden;
+    }
+    .chat-header {
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .chat-avatar {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid var(--c-valeria-soft);
+    }
+    .chat-avatar-fallback {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: var(--c-valeria);
+      color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700;
+      font-size: 14px;
+    }
+    .chat-meta { flex: 1; }
+    .chat-name { font-weight: 600; font-size: 14px; }
+    .chat-status { font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 5px; }
+    .chat-status::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: #10b981; }
+    .chat-mode-pill {
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 500;
+      background: var(--c-valeria-soft);
+      color: var(--c-valeria);
+      border: 1px solid var(--c-valeria);
+    }
+
+    .chat-messages {
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .msg-row { display: flex; gap: 8px; max-width: 85%; }
+    .msg-row.user { align-self: flex-end; flex-direction: row-reverse; }
+    .msg-bubble {
+      padding: 9px 13px;
+      border-radius: 14px;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+    .msg-row.bot .msg-bubble {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-top-left-radius: 4px;
+    }
+    .msg-row.user .msg-bubble {
+      background: var(--c-valeria);
+      color: #fff;
+      border-top-right-radius: 4px;
+    }
+    .msg-time {
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-top: 3px;
+      padding: 0 4px;
+    }
+    .msg-row.user .msg-time { text-align: right; }
+    .msg-delegate {
+      align-self: center;
+      font-size: 11px;
+      color: var(--text-muted);
+      padding: 4px 10px;
+      background: var(--bg-hover);
+      border-radius: 10px;
+      display: flex; align-items: center; gap: 6px;
+      font-style: italic;
+    }
+    .msg-thinking {
+      align-self: flex-start;
+      padding: 9px 13px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      border-top-left-radius: 4px;
+      font-size: 12px;
+      color: var(--text-muted);
+      display: flex; align-items: center; gap: 6px;
+    }
+    .typing-dots {
+      display: inline-flex; gap: 3px;
+    }
+    .typing-dots span {
+      width: 5px; height: 5px; border-radius: 50%;
+      background: var(--text-muted);
+      animation: typing 1.4s infinite;
+    }
+    .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes typing {
+      0%, 60%, 100% { opacity: 0.3; transform: translateY(0); }
+      30% { opacity: 1; transform: translateY(-3px); }
+    }
+
+    .chat-composer {
+      border-top: 1px solid var(--border);
+      padding: 10px 14px;
+      background: var(--bg-panel);
+    }
+    .composer-input {
+      width: 100%;
+      min-height: 36px;
+      max-height: 100px;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--bg-elevated);
+      font-size: 13px;
+      color: var(--text-primary);
+      resize: none;
+      font-family: inherit;
+    }
+    .composer-input:focus {
+      outline: none;
+      border-color: var(--c-valeria);
+    }
+    .composer-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 6px;
+    }
+    .composer-hints {
+      display: flex; gap: 6px;
+    }
+    .composer-hint-btn {
+      width: 26px; height: 26px;
+      border-radius: 6px;
+      color: var(--text-muted);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px;
+    }
+    .composer-hint-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+    .composer-send {
+      padding: 6px 14px;
+      background: var(--c-valeria);
+      color: #fff;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+    .composer-send:hover { opacity: 0.9; }
+
+    /* =========================================================
+       PANEL APP (derecho) — ribbon + sub-tabs + contenido
+       ========================================================= */
+    .panel-app {
+      background: var(--bg-app);
+      display: grid;
+      grid-template-rows: auto auto 1fr;
+      overflow: hidden;
+    }
+
+    /* Ribbon 6 tabs */
+    .ribbon {
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: stretch;
+      padding: 0 12px;
+      gap: 2px;
+      height: 56px;
+      overflow-x: auto;
+    }
+    .ribbon-tab {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 0 14px;
+      border-radius: 0;
+      border-bottom: 3px solid transparent;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      transition: all 0.15s;
+      white-space: nowrap;
+      position: relative;
+    }
+    .ribbon-tab:hover { color: var(--text-primary); background: var(--bg-hover); }
+    .ribbon-tab.active { color: var(--text-primary); font-weight: 600; }
+    .ribbon-tab.active[data-color="lisa"] { border-bottom-color: var(--c-lisa); }
+    .ribbon-tab.active[data-color="lucas"] { border-bottom-color: var(--c-lucas); }
+    .ribbon-tab.active[data-color="adrian"] { border-bottom-color: var(--c-adrian); }
+    .ribbon-tab.active[data-color="valeria"] { border-bottom-color: var(--c-valeria); }
+    .ribbon-tab.active[data-color="camila"] { border-bottom-color: var(--c-camila); }
+    .ribbon-tab.active[data-color="config"] { border-bottom-color: var(--c-config); }
+    .ribbon-tab-avatar {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid transparent;
+    }
+    .ribbon-tab.active .ribbon-tab-avatar[data-color="lisa"] { border-color: var(--c-lisa); }
+    .ribbon-tab.active .ribbon-tab-avatar[data-color="lucas"] { border-color: var(--c-lucas); }
+    .ribbon-tab.active .ribbon-tab-avatar[data-color="adrian"] { border-color: var(--c-adrian); }
+    .ribbon-tab.active .ribbon-tab-avatar[data-color="valeria"] { border-color: var(--c-valeria); }
+    .ribbon-tab.active .ribbon-tab-avatar[data-color="camila"] { border-color: var(--c-camila); }
+    .ribbon-tab-config-icon {
+      width: 28px; height: 28px;
+      border-radius: 8px;
+      background: var(--bg-hover);
+      color: var(--text-secondary);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px;
+    }
+    .ribbon-tab-labels { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.2; }
+    .ribbon-tab-role { font-size: 10px; color: var(--text-muted); }
+
+    /* Línea 2 sub-tabs */
+    .sub-tabs {
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 4px;
+      min-height: 42px;
+      overflow-x: auto;
+    }
+    .sub-tab {
+      padding: 7px 12px;
+      border-radius: 8px;
+      font-size: 12.5px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      display: flex; align-items: center; gap: 6px;
+      white-space: nowrap;
+      transition: all 0.15s;
+    }
+    .sub-tab:hover { background: var(--bg-hover); color: var(--text-primary); }
+    .sub-tab.active { color: var(--text-primary); font-weight: 600; }
+    .sub-tab.active[data-color="lisa"] { background: var(--c-lisa-soft); color: var(--c-lisa); }
+    .sub-tab.active[data-color="lucas"] { background: var(--c-lucas-soft); color: var(--text-primary); }
+    .sub-tab.active[data-color="adrian"] { background: var(--c-adrian-soft); color: var(--c-adrian); }
+    .sub-tab.active[data-color="valeria"] { background: var(--c-valeria-soft); color: var(--c-valeria); }
+    .sub-tab.active[data-color="camila"] { background: var(--c-camila-soft); color: var(--c-camila); }
+    .sub-tab.active[data-color="config"] { background: var(--bg-hover); color: var(--text-primary); }
+
+    /* Content area */
+    .content {
+      overflow-y: auto;
+      padding: 24px 28px;
+    }
+    .content-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      gap: 16px;
+    }
+    .content-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+    .content-subtitle {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    .content-cta {
+      padding: 8px 16px;
+      border-radius: 8px;
+      background: var(--c-valeria);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    /* Placeholder cards */
+    .placeholder-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 14px;
+    }
+    .placeholder-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      transition: all 0.15s;
+    }
+    .placeholder-card:hover { box-shadow: var(--shadow-md); border-color: var(--border-strong); }
+    .placeholder-card-icon {
+      width: 36px; height: 36px;
+      border-radius: 9px;
+      background: var(--bg-hover);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+      margin-bottom: 10px;
+    }
+    .placeholder-card-title { font-weight: 600; margin-bottom: 4px; }
+    .placeholder-card-desc { font-size: 12px; color: var(--text-secondary); line-height: 1.5; }
+    .placeholder-card-status {
+      margin-top: 10px;
+      font-size: 11px;
+      color: var(--text-muted);
+      display: flex; align-items: center; gap: 6px;
+    }
+    .status-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+    }
+    .status-shipped { background: #10b981; }
+    .status-planned { background: #f59e0b; }
+    .status-todo { background: var(--text-muted); }
+
+    .empty-state {
+      padding: 60px 20px;
+      text-align: center;
+      color: var(--text-muted);
+    }
+    .empty-state-icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+      opacity: 0.5;
+    }
+    .empty-state-title { font-size: 16px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; }
+    .empty-state-desc { font-size: 13px; max-width: 360px; margin: 0 auto; }
+
+    /* Toggle pill (e.g., Catálogo|Escalera) */
+    .toggle-pill {
+      display: inline-flex;
+      background: var(--bg-hover);
+      border-radius: 8px;
+      padding: 3px;
+      gap: 2px;
+      margin-bottom: 16px;
+    }
+    .toggle-pill-option {
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      cursor: pointer;
+    }
+    .toggle-pill-option.active {
+      background: var(--bg-panel);
+      color: var(--text-primary);
+      box-shadow: var(--shadow-sm);
+      font-weight: 500;
+    }
+
+    /* Keyboard hints */
+    .kbd {
+      display: inline-block;
+      padding: 1px 6px;
+      border: 1px solid var(--border-strong);
+      border-bottom-width: 2px;
+      border-radius: 4px;
+      font-family: ui-monospace, monospace;
+      font-size: 10px;
+      color: var(--text-secondary);
+      background: var(--bg-elevated);
+    }
+
+    /* Scrollbars */
+    *::-webkit-scrollbar { width: 8px; height: 8px; }
+    *::-webkit-scrollbar-track { background: transparent; }
+    *::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
+    *::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+    /* Footer dev info */
+    .mockup-footer {
+      position: fixed;
+      bottom: 8px;
+      left: 8px;
+      font-size: 10px;
+      color: var(--text-muted);
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 4px 8px;
+      z-index: 1000;
+      font-family: ui-monospace, monospace;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ===========================================================
+       TOPBAR GLOBAL (thin)
+       =========================================================== -->
+  <header class="topbar">
+    <div class="topbar-logo">
+      <div class="topbar-logo-mark">V</div>
+      <span>Vitalia</span>
+    </div>
+
+    <div class="topbar-actions">
+      <button class="topbar-btn" id="theme-toggle" title="Cambiar tema (claro/oscuro)">
+        <span id="theme-icon">🌙</span>
+      </button>
+
+      <div class="tenant-switcher" id="tenant-switcher">
+        <button class="tenant-switcher-btn" id="tenant-btn">
+          <span style="width:20px;height:20px;border-radius:5px;background:var(--c-valeria);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;">SP</span>
+          <span>Sonrisa Plena</span>
+          <span style="font-size:9px;color:var(--text-muted);">▾</span>
+        </button>
+        <div class="tenant-switcher-dropdown" id="tenant-dropdown">
+          <div class="tenant-item active">
+            <div class="tenant-item-avatar">SP</div>
+            <div class="tenant-item-meta">
+              <span class="tenant-item-name">Sonrisa Plena</span>
+              <span class="tenant-item-sub">Clínica dental · Lima centro</span>
+            </div>
+          </div>
+          <div class="tenant-item">
+            <div class="tenant-item-avatar" style="background:#01b2f8;">SS</div>
+            <div class="tenant-item-meta">
+              <span class="tenant-item-name">Sonrisa Plena Sur</span>
+              <span class="tenant-item-sub">Sucursal · San Borja</span>
+            </div>
+          </div>
+          <div class="tenant-item">
+            <div class="tenant-item-avatar" style="background:#00D084;">DM</div>
+            <div class="tenant-item-meta">
+              <span class="tenant-item-name">Dermalia MX</span>
+              <span class="tenant-item-sub">Clínica estética · CDMX</span>
+            </div>
+          </div>
+          <div class="tenant-divider"></div>
+          <div class="tenant-action">➕ Agregar clínica</div>
+          <div class="tenant-action">⚙️ Administrar cuenta</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===========================================================
+       SHELL — 50/50 split (modo agentic)
+       =========================================================== -->
+  <main class="shell">
+
+    <!-- ============= PANEL VALERIA (50% izq) ================ -->
+    <aside class="panel-valeria" data-state="rail" id="panel-valeria">
+
+      <!-- Rail (60px) -->
+      <div class="valeria-rail">
+        <button class="rail-btn active" data-action="toggle-history" title="Historial (F)">📂</button>
+        <button class="rail-btn" data-action="new-conversation" title="Nueva conversación (N)">➕</button>
+        <button class="rail-btn" title="Buscar (Cmd+K)">🔍</button>
+        <div class="rail-divider"></div>
+        <button class="rail-btn" title="Anclados">📌</button>
+        <button class="rail-btn" title="Tareas">✅</button>
+        <button class="rail-btn" title="Notas">📝</button>
+        <div style="flex:1"></div>
+        <button class="rail-btn" data-action="collapse" title="Colapsar (C)">⏴</button>
+      </div>
+
+      <!-- History panel (280px) -->
+      <div class="valeria-history">
+        <div class="history-header">
+          <span class="history-title">Conversaciones</span>
+          <div class="history-actions">
+            <button class="history-mini-btn" title="Nueva (N)">➕</button>
+            <button class="history-mini-btn" data-action="toggle-history" title="Colapsar (R)">⏴</button>
+          </div>
+        </div>
+        <div class="history-search">
+          <input type="text" placeholder="Buscar conversación...">
+        </div>
+        <div class="history-list">
+          <div class="history-group">
+            <div class="history-group-label">Hoy</div>
+            <div class="history-item active">
+              <span class="history-item-title">Resumen reseñas semana</span>
+              <span class="history-item-meta">14:32 · 8 mensajes</span>
+            </div>
+            <div class="history-item">
+              <span class="history-item-title">Confirmar turnos mañana</span>
+              <span class="history-item-meta">11:08 · 3 mensajes</span>
+            </div>
+            <div class="history-item">
+              <span class="history-item-title">Reactivar dormants 90d</span>
+              <span class="history-item-meta">09:21 · 5 mensajes</span>
+            </div>
+          </div>
+          <div class="history-group">
+            <div class="history-group-label">Ayer</div>
+            <div class="history-item">
+              <span class="history-item-title">Concern Federico Ramos</span>
+              <span class="history-item-meta">18:45 · 12 mensajes</span>
+            </div>
+            <div class="history-item">
+              <span class="history-item-title">Campaña Blanqueamiento setup</span>
+              <span class="history-item-meta">16:20 · 21 mensajes</span>
+            </div>
+          </div>
+          <div class="history-group">
+            <div class="history-group-label">Esta semana</div>
+            <div class="history-item">
+              <span class="history-item-title">Pedile testimonio a Marina</span>
+              <span class="history-item-meta">Lun · 4 mensajes</span>
+            </div>
+            <div class="history-item">
+              <span class="history-item-title">Audit log compliance Q1</span>
+              <span class="history-item-meta">Lun · 7 mensajes</span>
+            </div>
+            <div class="history-item">
+              <span class="history-item-title">Bloquear Dr. García viernes</span>
+              <span class="history-item-meta">Dom · 2 mensajes</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chat Valeria -->
+      <div class="valeria-chat">
+        <div class="chat-header">
+          <img class="chat-avatar" id="valeria-avatar"
+               src="_agents/valeria.png"
+               onerror="this.outerHTML='<div class=\'chat-avatar-fallback\'>V</div>'"
+               alt="Valeria">
+          <div class="chat-meta">
+            <div class="chat-name">Valeria</div>
+            <div class="chat-status">En línea · Tu secretaria virtual</div>
+          </div>
+          <div class="chat-mode-pill">🤖 Modo agente</div>
+        </div>
+
+        <div class="chat-messages">
+          <div class="msg-row bot">
+            <div>
+              <div class="msg-bubble">¡Buenos días! Tenés 8 turnos hoy y 3 pacientes esperando confirmar mañana. ¿Por dónde arrancamos?</div>
+              <div class="msg-time">09:01</div>
+            </div>
+          </div>
+          <div class="msg-row user">
+            <div>
+              <div class="msg-bubble">¿Cómo están las reseñas Google esta semana?</div>
+              <div class="msg-time">09:02</div>
+            </div>
+          </div>
+          <div class="msg-delegate">→ delegando a 🟦 Camila (Mantener)</div>
+          <div class="msg-row bot">
+            <div>
+              <div class="msg-bubble">Esta semana ingresaron <strong>+3 reseñas Google</strong> (2× ⭐⭐⭐⭐⭐ y 1× ⭐⭐⭐⭐). El score subió de 4.6 a 4.7. Hay 1 reseña destacable de Marina Pérez sobre Dr. Juan García que sugiero pinear en landing. ¿La abro?</div>
+              <div class="msg-time">09:02</div>
+            </div>
+          </div>
+          <div class="msg-row user">
+            <div>
+              <div class="msg-bubble">Sí, abrila</div>
+              <div class="msg-time">09:03</div>
+            </div>
+          </div>
+          <div class="msg-thinking">
+            <span>Camila está abriendo Voz del paciente</span>
+            <span class="typing-dots"><span></span><span></span><span></span></span>
+          </div>
+        </div>
+
+        <div class="chat-composer">
+          <textarea class="composer-input" placeholder="Hablale a Valeria..." rows="1"></textarea>
+          <div class="composer-actions">
+            <div class="composer-hints">
+              <button class="composer-hint-btn" title="Adjuntar">📎</button>
+              <button class="composer-hint-btn" title="Voz">🎙️</button>
+              <button class="composer-hint-btn" title="Comandos">⚡</button>
+            </div>
+            <button class="composer-send">Enviar</button>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ============= PANEL APP (50% der) ================ -->
+    <section class="panel-app">
+
+      <!-- Ribbon 6 tabs -->
+      <nav class="ribbon" id="ribbon">
+        <button class="ribbon-tab active" data-tab="lisa" data-color="lisa">
+          <img class="ribbon-tab-avatar" data-color="lisa"
+               src="_agents/lisa.png"
+               onerror="this.style.display='none'"
+               alt="">
+          <span class="ribbon-tab-labels">
+            <span>Mi Clínica</span>
+            <span class="ribbon-tab-role">Lisa</span>
+          </span>
+        </button>
+        <button class="ribbon-tab" data-tab="lucas" data-color="lucas">
+          <img class="ribbon-tab-avatar" data-color="lucas"
+               src="_agents/lucas.png"
+               onerror="this.style.display='none'"
+               alt="">
+          <span class="ribbon-tab-labels">
+            <span>Atraer</span>
+            <span class="ribbon-tab-role">Lucas</span>
+          </span>
+        </button>
+        <button class="ribbon-tab" data-tab="adrian" data-color="adrian">
+          <img class="ribbon-tab-avatar" data-color="adrian"
+               src="_agents/adrian.png"
+               onerror="this.style.display='none'"
+               alt="">
+          <span class="ribbon-tab-labels">
+            <span>Vender</span>
+            <span class="ribbon-tab-role">Adrián</span>
+          </span>
+        </button>
+        <button class="ribbon-tab" data-tab="valeria" data-color="valeria">
+          <img class="ribbon-tab-avatar" data-color="valeria"
+               src="_agents/valeria.png"
+               onerror="this.style.display='none'"
+               alt="">
+          <span class="ribbon-tab-labels">
+            <span>Operar</span>
+            <span class="ribbon-tab-role">Valeria</span>
+          </span>
+        </button>
+        <button class="ribbon-tab" data-tab="camila" data-color="camila">
+          <img class="ribbon-tab-avatar" data-color="camila"
+               src="_agents/camila.png"
+               onerror="this.style.display='none'"
+               alt="">
+          <span class="ribbon-tab-labels">
+            <span>Mantener</span>
+            <span class="ribbon-tab-role">Camila</span>
+          </span>
+        </button>
+        <button class="ribbon-tab" data-tab="config" data-color="config" style="margin-left:auto;">
+          <span class="ribbon-tab-config-icon">⚙️</span>
+          <span class="ribbon-tab-labels">
+            <span>Configurar</span>
+            <span class="ribbon-tab-role">Admin</span>
+          </span>
+        </button>
+      </nav>
+
+      <!-- Sub-tabs (línea 2) -->
+      <nav class="sub-tabs" id="sub-tabs">
+        <!-- generated by JS -->
+      </nav>
+
+      <!-- Content (dinámico) -->
+      <div class="content" id="content">
+        <!-- generated by JS -->
+      </div>
+    </section>
+  </main>
+
+  <!-- Mockup dev footer -->
+  <div class="mockup-footer">
+    Mockup Shell-Organism v2 · <span class="kbd">C</span>/<span class="kbd">R</span>/<span class="kbd">F</span> rail · <span class="kbd">N</span> nueva · <span class="kbd">Esc</span> cerrar
+  </div>
+
+  <!-- ===========================================================
+       SCRIPT — state management + interactivity
+       =========================================================== -->
+  <script>
+    /* ----------------------------------------------
+       Estructura de tabs y sub-tabs (cementado baseline)
+       ---------------------------------------------- */
+    const TABS = {
+      lisa: {
+        title: 'Mi Clínica',
+        subtitle: 'Lisa · estratega de marca + escalera de valor + doctores + compliance',
+        color: 'lisa',
+        subtabs: [
+          { id: 'marca',      label: '🏥 Marca',      desc: 'Identidad · Voz y tono · Landing & presencia' },
+          { id: 'staff',      label: '👨‍⚕️ Staff',     desc: 'Equipo: perfiles, horarios y servicios' },
+          { id: 'servicios',  label: '🩺 Servicios',  desc: 'Toggle Catálogo | Escalera de valor' },
+          { id: 'compliance', label: '🛡️ Compliance', desc: 'Semáforo HIPAA-lite + política retención' }
+        ]
+      },
+      lucas: {
+        title: 'Atraer',
+        subtitle: 'Lucas · growth (paga + orgánica) + tendencias mercado',
+        color: 'lucas',
+        subtabs: [
+          { id: 'lanzar',     label: '🚀 Lanzar',     desc: 'Nueva campaña · Quick-post · Borradores · Aprobación' },
+          { id: 'envuelo',    label: '📡 En vuelo',   desc: 'Campañas activas · Posts programados · Performance live' },
+          { id: 'recursos',   label: '📚 Recursos',   desc: 'Biblioteca creatividades · Copy reusable · Generador IA' },
+          { id: 'resultados', label: '📈 Resultados', desc: 'Embudo Bowtie · Comparativa canal · Post-mortem' },
+          { id: 'mercado',    label: '🌍 Mercado',    desc: 'Tendencias rubro · Hashtags · Competencia' }
+        ]
+      },
+      adrian: {
+        title: 'Vender',
+        subtitle: 'Adrián · closer + AI orquesta funnel comercial',
+        color: 'adrian',
+        subtabs: [
+          { id: 'inbox',      label: '💬 Inbox',       desc: 'Conversaciones cross-canal · 3-modos · Activity stream' },
+          { id: 'embudo',     label: '🎯 Embudo',      desc: 'Toggle 📋 Kanban | 📑 Lista CRM · 6 stages dental' },
+          { id: 'outbound',   label: '📣 Outbound',    desc: 'Campañas a leads · 5 templates Meta-approved' },
+          { id: 'propuestas', label: '💼 Propuestas',  desc: 'Opt-in dental/estética · Planes de pago · Firma digital' }
+        ]
+      },
+      valeria: {
+        title: 'Operar',
+        subtitle: 'Valeria · recepción día-a-día + chat persistente shell',
+        color: 'valeria',
+        subtabs: [
+          { id: 'agenda',    label: '📆 Agenda',    desc: 'Calendario + drawer slot · Subform Cobrar saldo inline' },
+          { id: 'pacientes', label: '👥 Pacientes', desc: 'Directorio + ficha + Tratamientos activos' }
+        ]
+      },
+      camila: {
+        title: 'Mantener',
+        subtitle: 'Camila · agente IA post-revenue (3-modos · 12 triggers SSoT)',
+        color: 'camila',
+        subtabs: [
+          { id: 'voz',         label: '🎤 Voz del paciente', desc: 'Entrante · Curaduría · Activos vivos (UN flujo)' },
+          { id: 'reactivar',   label: '🪃 Reactivar',         desc: 'Audience PACIENTES · churn defense · 5 listas' },
+          { id: 'multiplicar', label: '🤝 Multiplicar',       desc: 'Audience PROMOTORES · referidos + advocacy' },
+          { id: 'reputacion',  label: '📊 Reputación',        desc: 'Panorama estratégico cross-canal' }
+        ]
+      },
+      config: {
+        title: 'Configurar',
+        subtitle: 'Panel admin · uso poco frecuente (Valeria hace todo conceptualmente)',
+        color: 'config',
+        subtabs: [
+          { id: 'cuenta',    label: '🏢 Mi cuenta',  desc: 'Info clínica + Plan Luana + Equipo' },
+          { id: 'conexiones',label: '🔌 Conexiones', desc: 'HUB integraciones · 6 categorías · OAuth flows' },
+          { id: 'avanzado',  label: '🔬 Avanzado',   desc: 'Reglas + Raw log + LLM keys + Flags + API' }
+        ]
+      }
+    };
+
+    /* ----------------------------------------------
+       Content por sub-tab (vacío pero navegable)
+       ---------------------------------------------- */
+    function renderContent(tabId, subtabId) {
+      const tab = TABS[tabId];
+      const subtab = tab.subtabs.find(s => s.id === subtabId) || tab.subtabs[0];
+
+      // ★ doctores owna su propio header (directorio o fila contextual N3-dyn)
+      if (tabId === 'lisa' && subtabId === 'staff') {
+        return renderSubtabBody(tabId, subtabId);
+      }
+
+      // Header común
+      let html = `
+        <div class="content-header">
+          <div>
+            <div class="content-title">${subtab.label.replace(/^[^\s]+ /, '')}</div>
+            <div class="content-subtitle">${subtab.desc}</div>
+          </div>
+        </div>
+      `;
+
+      // Body especializado per tab/sub
+      html += renderSubtabBody(tabId, subtabId);
+      return html;
+    }
+
+    function renderSubtabBody(tabId, subtabId) {
+      // ★ STORY vitalia-fase2-lisa-doctores — contenido real
+      if (tabId === 'lisa' && subtabId === 'staff') {
+        // N3-dyn SIEMPRE visible (coherente con Marca/Identidad): tira con
+        // [Staff] + nombre + Perfil/Horarios/Servicios (deshabilitados hasta seleccionar doctor).
+        return doctoresN3Bar() + (openDoctor ? doctorDetailBody() : doctorsDirectory());
+      }
+      // Casos especiales con UI placeholder más rica
+      if (tabId === 'lisa' && subtabId === 'servicios') {
+        return `
+          <div class="toggle-pill">
+            <div class="toggle-pill-option active">📋 Catálogo</div>
+            <div class="toggle-pill-option">🪜 Escalera de valor</div>
+          </div>
+          ${placeholderGrid([
+            { icon: '🦷', title: 'Limpieza dental', desc: 'Puntual · 45min · S/120 · Dr. García + Dra. López', status: 'shipped' },
+            { icon: '✨', title: 'Blanqueamiento Premium', desc: 'Puntual · 60min · S/450', status: 'shipped' },
+            { icon: '🦷', title: 'Implante completo', desc: 'Multi-sesión · 3 visitas · S/3200', status: 'shipped' },
+            { icon: '🛡️', title: 'Mantenimiento N4', desc: 'Suscripción mensual · S/80/mes', status: 'planned' },
+            { icon: '➕', title: 'Nuevo tratamiento', desc: 'Crear entrada catálogo', status: 'todo' }
+          ])}
+        `;
+      }
+      if (tabId === 'adrian' && subtabId === 'embudo') {
+        return `
+          <div class="toggle-pill">
+            <div class="toggle-pill-option active">📋 Pipeline Kanban</div>
+            <div class="toggle-pill-option">📑 Lista CRM</div>
+          </div>
+          ${pipelinePreview()}
+        `;
+      }
+      if (tabId === 'adrian' && subtabId === 'inbox') {
+        return `
+          <div class="toggle-pill">
+            <div class="toggle-pill-option active">🤖 Adrián decide</div>
+            <div class="toggle-pill-option">💬 Adrián consulta</div>
+            <div class="toggle-pill-option">✍️ Yo escribo</div>
+          </div>
+          ${inboxPreview()}
+        `;
+      }
+      if (tabId === 'camila' && subtabId === 'voz') {
+        return `
+          <div class="toggle-pill">
+            <div class="toggle-pill-option active">🤖 Camila decide</div>
+            <div class="toggle-pill-option">💬 Camila consulta</div>
+            <div class="toggle-pill-option">✍️ Yo decido</div>
+          </div>
+          ${placeholderGrid([
+            { icon: '📥', title: 'Entrante (12)', desc: 'NPS nuevos · Reseñas externas · Menciones · Concerns', status: 'shipped' },
+            { icon: '🎨', title: 'En curaduría (4)', desc: 'Testimonios pending consent · Casos pre/post foto', status: 'shipped' },
+            { icon: '🌟', title: 'Activos vivos (47)', desc: 'Galería filtrable: tratamiento · doctor · canal', status: 'planned' }
+          ])}
+        `;
+      }
+      if (tabId === 'valeria' && subtabId === 'agenda') {
+        return agendaPreview();
+      }
+      if (tabId === 'config' && subtabId === 'conexiones') {
+        return placeholderGrid([
+          { icon: '📣', title: 'Marketing y publicidad', desc: 'Meta Ads · Google Ads · TikTok Ads · GA4 · Meta Pixel', status: 'shipped' },
+          { icon: '💬', title: 'Mensajería y atención', desc: 'WhatsApp Business · IG DM · Messenger · SMTP · Twilio', status: 'shipped' },
+          { icon: '💳', title: 'Pagos y facturación', desc: 'MercadoPago · Stripe Connect · Nubefact PE · AFIP AR', status: 'shipped' },
+          { icon: '🗓', title: 'Calendarios externos', desc: 'Google Calendar · Outlook · iCloud', status: 'planned' },
+          { icon: '🌐', title: 'Presencia online', desc: 'Google My Business · Doctoralia · Yelp · Doctify', status: 'planned' },
+          { icon: '🔧', title: 'Integraciones técnicas', desc: 'Webhooks · Zapier · API REST tokens · Slack', status: 'planned' }
+        ]);
+      }
+
+      // Default: empty-state navegable
+      return `
+        <div class="empty-state">
+          <div class="empty-state-icon">${subtabId === 'staff' ? '👨‍⚕️' : subtabId === 'pacientes' ? '👥' : '📦'}</div>
+          <div class="empty-state-title">Esta vista vive acá</div>
+          <div class="empty-state-desc">
+            Mockup navegable — el contenido real se diseña por historia.
+            Esta sub-tab es <strong>${subtabId}</strong> dentro de <strong>${TABS[tabId].title}</strong>.
+          </div>
+        </div>
+      `;
+    }
+
+    /* ===== STORY vitalia-fase2-lisa-doctores ===== */
+    const DOCTORS = [
+      { id:'ana',  name:'Dra. Ana Paredes', initials:'AP', spec:'Odontología',  years:8,  nps:72, status:'activa', color:'var(--c-lisa)',    soft:'var(--c-lisa-soft)' },
+      { id:'luis', name:'Dr. Luis Rímac',   initials:'LR', spec:'Dermatología', years:5,  nps:68, status:'activo', color:'var(--c-adrian)',  soft:'var(--c-adrian-soft)' },
+      { id:'sol',  name:'Dra. Sol Carrión', initials:'SC', spec:'Nutrición',    years:12, nps:81, status:'inactiva', color:'var(--c-mateo)',  soft:'#fef3c7' }
+    ];
+
+    function doctorsDirectory() {
+      return `
+        <div class="content-header">
+          <div>
+            <div class="content-title">Staff</div>
+            <div class="content-subtitle">Equipo de la clínica · perfiles, horarios y servicios</div>
+          </div>
+          <button class="content-cta" style="background:var(--c-lisa);" onclick="alert("Nuevo integrante (mock)")">+ Nuevo integrante</button>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:16px;">
+          <input placeholder="Buscar integrante…" style="flex:1;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg-panel);font-size:13px;color:var(--text-primary);">
+          <select style="padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg-panel);font-size:13px;color:var(--text-secondary);"><option>Especialidad</option></select>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          ${DOCTORS.map(d => `
+            <div onclick="openDoctorFn('${d.id}')" style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--bg-panel);border:1px solid var(--border);border-radius:12px;cursor:pointer;transition:all .15s;${d.status==='inactiva'?'opacity:.65;':''}" onmouseover="this.style.boxShadow='var(--shadow-md)'" onmouseout="this.style.boxShadow='none'">
+              <div style="width:46px;height:46px;border-radius:50%;background:${d.soft};color:${d.color};display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;">${d.initials}</div>
+              <div style="flex:1;min-width:0;">
+                <div style="font-weight:600;color:var(--text-primary);">${d.name}</div>
+                <div style="font-size:12px;color:var(--text-muted);">${d.spec} · ${d.years} años · NPS ${d.nps}</div>
+              </div>
+              <span style="font-size:11px;padding:2px 9px;border-radius:999px;${d.status==='inactiva'?'background:var(--bg-hover);color:var(--text-muted);':'background:#d1fae5;color:#10b981;'}">${d.status[0].toUpperCase()+d.status.slice(1)}</span>
+              <span style="color:var(--text-muted);font-size:18px;">›</span>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    function doctoresN3Bar() {
+      const d = openDoctor;
+      const active = 'background:var(--bg-hover);color:var(--text-primary);font-weight:600;';
+      const idle   = 'background:transparent;color:var(--text-secondary);';
+      const off    = 'background:transparent;color:var(--text-muted);opacity:.45;cursor:not-allowed;';
+      const pill = (style, attrs, icon, label) =>
+        `<button ${attrs} style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:6px;font-size:13px;white-space:nowrap;transition:all .15s;border:none;flex-shrink:0;${style}"><span>${icon}</span><span>${label}</span></button>`;
+      const root = pill(d ? idle : active, `onclick="backToList()"`, '👨‍⚕️', 'Staff');
+      const leaf = (id, icon, label) => {
+        if (!d) return pill(off, 'disabled', icon, label);
+        return pill(doctorLeaf === id ? active : idle, `onclick="setDoctorLeaf('${id}')"`, icon, label);
+      };
+      // ★ Delta v3 2026-06-11 (FIRMA 1): chip estático → EntityPicker (canon §2.4) — selector ▾,
+      //   buscador server-side, cambia de doctor SIN volver al directorio, preserva hoja actual.
+      const pickerItem = (x) => `
+        <button onclick="event.stopPropagation();openDoctorById('${x.id}')" role="option" aria-selected="${d && x.id===d.id}" style="display:flex;align-items:center;gap:8px;width:100%;padding:7px 8px;border:none;border-radius:7px;background:${d && x.id===d.id ? 'var(--bg-hover)' : 'transparent'};cursor:pointer;text-align:left;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='${d && x.id===d.id ? 'var(--bg-hover)' : 'transparent'}'">
+          <span style="width:22px;height:22px;border-radius:50%;background:${x.soft};color:${x.color};display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:9px;flex-shrink:0;">${x.initials}</span>
+          <span style="min-width:0;flex:1;">
+            <span style="display:block;font-size:12.5px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${x.name}</span>
+            <span style="display:block;font-size:10.5px;color:var(--text-muted);">${x.spec}</span>
+          </span>
+          ${d && x.id===d.id ? '<span style="color:var(--c-lisa);font-size:12px;flex-shrink:0;">✓</span>' : ''}
+        </button>`;
+      const nameChip = d
+        ? `<div class="entity-picker" id="entity-picker" style="position:relative;flex-shrink:0;">
+             <button onclick="document.getElementById('entity-picker').classList.toggle('open')" aria-haspopup="listbox" aria-expanded="false" style="display:inline-flex;align-items:center;gap:7px;padding:4px 8px;border:none;border-radius:6px;background:transparent;cursor:pointer;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'">
+               <span style="width:24px;height:24px;border-radius:50%;background:${d.soft};color:${d.color};display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:10px;">${d.initials}</span>
+               <span style="font-size:13px;font-weight:600;color:var(--text-primary);">${d.name}</span>
+               <span style="font-size:9px;color:var(--text-muted);">▾</span>
+             </button>
+             <div class="entity-picker-panel" style="display:none;position:absolute;top:calc(100% + 6px);left:0;width:264px;background:var(--bg-panel);border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.14);z-index:30;padding:8px;">
+               <input placeholder="Buscar integrante…" aria-label="Buscar integrante" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:7px;background:var(--bg);font-size:12px;color:var(--text-primary);margin-bottom:6px;box-sizing:border-box;">
+               <div role="listbox" style="display:flex;flex-direction:column;gap:2px;max-height:220px;overflow-y:auto;">
+                 ${DOCTORS.filter(x => x.status !== 'inactiva' && x.status !== 'inactivo' || (d && x.id===d.id)).map(pickerItem).join('')}
+               </div>
+               <div style="font-size:10.5px;color:var(--text-muted);text-align:center;padding-top:6px;border-top:1px solid var(--border);margin-top:6px;">Mostrando 2 de 2 · inactivos ocultos</div>
+             </div>
+           </div>`
+        : `<span style="font-size:13px;color:var(--text-muted);font-style:italic;flex-shrink:0;">Selecciona un integrante</span>`;
+      const sep = `<span style="width:1px;height:18px;background:var(--border);flex-shrink:0;"></span>`;
+      // ★ Componente UX reusable "N3-dyn bar": pegada arriba (sticky) — rompe el padding del .content
+      // con margin negativo para ocupar TODO el ancho, igual que la barra N3 de Identidad en dev-app.
+      return `
+        <div style="position:sticky;top:-24px;z-index:5;background:var(--bg);margin:-24px -28px 18px;padding:10px 28px;display:flex;align-items:center;gap:6px;flex-wrap:nowrap;overflow:visible;min-height:44px;border-bottom:1px solid var(--border);">
+          ${root}${sep}${nameChip}${sep}${leaf('perfil','👤','Perfil')}${leaf('horarios','🗓️','Horarios')}${leaf('servicios','🩺','Servicios')}${leaf('pagina','🌐','Página')}
+        </div>
+      `;
+    }
+
+    function autosaveHint() {
+      return `<div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-muted);margin-bottom:14px;"><span style="color:#10b981;">✓</span> Los cambios se guardan automáticamente</div>`;
+    }
+
+    function doctorDetailBody() {
+      const d = openDoctor;
+      return doctorLeaf === 'perfil' ? doctorPerfil(d) : doctorLeaf === 'horarios' ? doctorHorarios(d) : doctorLeaf === 'pagina' ? doctorPagina(d) : doctorServicios(d);
+    }
+
+    function doctorPerfil(d) {
+      const field = (label, val) => `<label style="font-size:12px;color:var(--text-secondary);">${label}<input value="${val}" style="width:100%;margin-top:4px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg-panel);color:var(--text-primary);"></label>`;
+      return `
+        ${autosaveHint()}
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px;">
+          <div style="width:64px;height:64px;border-radius:14px;background:${d.soft};color:${d.color};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:24px;flex-shrink:0;">${d.initials}</div>
+          <button style="padding:8px 14px;border-radius:8px;border:1px solid var(--border);font-size:12px;color:var(--text-secondary);display:flex;align-items:center;gap:6px;cursor:pointer;">⬆ Subir foto</button>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;width:100%;">
+          ${field('Nombre', d.name.split(' ').slice(1,2))}
+          ${field('Apellido', d.name.split(' ').slice(2).join(' '))}
+          ${field('Especialidad', d.spec)}
+          ${field('Credencial (CMP · PE)', '12345')}
+          ${field('Años de experiencia', d.years)}
+          ${field('Idiomas', 'Español, Inglés')}
+        </div>
+
+        <!-- ★ Delta v3.1: bio/material/página viven ahora en la hoja "Página pública" -->
+        <div style="margin-top:22px;border:1px solid var(--border);border-radius:12px;padding:14px 16px;background:var(--bg-panel);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+          <div style="min-width:0;">
+            <div style="font-size:13.5px;font-weight:600;color:var(--text-primary);">🌐 Página pública del doctor</div>
+            <div style="font-size:12px;color:var(--text-muted);">Material, perfil generado con IA y link compartible para el lead — en su propia hoja.</div>
+          </div>
+          <button onclick="setDoctorLeaf('pagina')" style="padding:8px 14px;border-radius:8px;border:1px solid var(--c-lisa);background:transparent;color:var(--c-lisa);font-size:12.5px;font-weight:600;cursor:pointer;flex-shrink:0;">Ir a Página pública →</button>
+        </div>
+      `;
+    }
+
+    // ★ Delta v3.1 (repensado Chris 2026-06-11): hoja "Página pública" — pipeline
+    //   material privado → perfil IA ESTRUCTURADO → página mobile compartible (mini-Doctoralia).
+    //   Flujo de generación ESTADO-DRIVEN: el CTA primario solo aparece con material nuevo
+    //   posterior a la última generación (nada de "regenerar porque sí").
+    function doctorPagina(d) {
+      const fileRow = (icon, name, meta) => `
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);font-size:12px;">
+          <span style="display:flex;align-items:center;gap:8px;color:var(--text-primary);min-width:0;">
+            <span style="width:24px;height:24px;border-radius:6px;background:var(--c-lisa-soft);display:inline-flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;">${icon}</span>
+            <span style="min-width:0;"><span style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500;">${name}</span><span style="display:block;font-size:10.5px;color:var(--text-muted);">${meta}</span></span>
+          </span>
+          <span style="display:flex;align-items:center;gap:2px;flex-shrink:0;">
+            <button title="Descargar" style="border:none;background:transparent;color:var(--text-secondary);cursor:pointer;font-size:13px;padding:4px;border-radius:6px;">⬇</button>
+            <button title="Eliminar" style="border:none;background:transparent;color:var(--text-muted);cursor:pointer;font-size:13px;padding:4px;border-radius:6px;">✕</button>
+          </span>
+        </div>`;
+      return `
+        ${autosaveHint()}
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:18px;align-items:start;">
+          <div style="min-width:0;display:flex;flex-direction:column;gap:14px;">
+
+            <!-- 1 · Estado + link compartible -->
+            <div style="border:1px solid var(--border);border-radius:12px;padding:16px;background:var(--bg-panel);border-top:3px solid var(--c-lisa);">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+                <div style="font-size:14px;font-weight:600;color:var(--text-primary);">Página pública de ${d.name}</div>
+                <span style="display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;color:var(--c-lisa);background:var(--c-lisa-soft);padding:3px 10px;border-radius:999px;">● Publicada</span>
+              </div>
+              <div style="font-size:12px;color:var(--text-muted);margin-top:3px;">El lead la abre desde WhatsApp para conocer a quien lo va a atender — Adrián la envía cuando preguntan por el doctor.</div>
+              <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;align-items:center;">
+                <code style="flex:1;min-width:180px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);font-size:12px;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">dev-app.vitalialat.com/d/sonrisas-lima/dra-ana-paredes</code>
+                <button style="padding:8px 13px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text-secondary);font-size:12px;cursor:pointer;flex-shrink:0;">📋 Copiar link</button>
+                <button style="padding:8px 13px;border-radius:8px;border:1px solid var(--c-lisa);background:transparent;color:var(--c-lisa);font-size:12px;font-weight:600;cursor:pointer;flex-shrink:0;">👁 Ver página</button>
+              </div>
+              <div style="font-size:10.5px;color:var(--text-muted);margin-top:6px;">Dominio según entorno: <code>dev-app</code> · <code>test-app</code> · <code>app</code>.vitalialat.com (variable de entorno, nunca hardcodeado)</div>
+              <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;margin-top:12px;color:var(--text-secondary);"><input type="checkbox" checked> Visible públicamente <span style="color:var(--text-muted);font-size:11.5px;">· al apagarla, el link muestra "perfil no disponible"</span></label>
+            </div>
+
+            <!-- 2 · Material privado (insumos) -->
+            <div style="border:1px solid var(--border);border-radius:12px;padding:16px;background:var(--bg-panel);">
+              <div style="font-size:13.5px;font-weight:600;color:var(--text-primary);">Material del doctor <span style="font-size:11px;font-weight:500;color:var(--text-muted);">· privado, nunca se publica tal cual</span></div>
+              <div style="font-size:11.5px;color:var(--text-muted);margin:2px 0 12px;">Notas, diplomas, CV, links. Con esto la IA arma el perfil — solo usa este material, no inventa.</div>
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px;">
+                <label style="display:block;font-size:12px;color:var(--text-secondary);">Notas / datos
+                  <textarea rows="3" placeholder="Formación, certificaciones, logros, premios, publicaciones, enfoque…" style="width:100%;margin-top:4px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text-primary);resize:vertical;box-sizing:border-box;"></textarea>
+                </label>
+                <div>
+                  <div style="font-size:12px;color:var(--text-secondary);margin-bottom:4px;">Archivos</div>
+                  <div style="border:1.5px dashed var(--border);border-radius:10px;padding:10px;text-align:center;background:var(--bg);cursor:pointer;font-size:12px;color:var(--text-primary);">☁️ Arrastra o haz clic <span style="display:block;font-size:10.5px;color:var(--text-muted);">PDF, JPG, PNG, DOCX · hasta 10 MB</span></div>
+                  <div style="display:flex;flex-direction:column;gap:5px;margin-top:7px;">
+                    ${fileRow('📄','Diploma_UPCH.pdf','240 KB · 11 jun 2026')}
+                    ${fileRow('🖼️','Certificado_Invisalign.jpg','1.1 MB · 11 jun 2026')}
+                  </div>
+                </div>
+              </div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center;">
+                <input placeholder="https://… (Doctoralia, LinkedIn, publicaciones)" style="flex:1;min-width:200px;padding:7px 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text-primary);font-size:12px;">
+                <button style="padding:7px 13px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text-secondary);font-size:12px;cursor:pointer;">+ Agregar link</button>
+                <span style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:var(--bg);border:1px solid var(--border);font-size:11px;color:var(--text-secondary);">🔗 doctoralia.pe/ana-paredes <button style="border:none;background:transparent;color:var(--text-muted);cursor:pointer;">✕</button></span>
+              </div>
+            </div>
+
+            <!-- 3 · Perfil generado con IA (estado-driven) -->
+            <div style="border:1px solid var(--border);border-radius:12px;padding:16px;background:var(--bg-panel);">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+                <div style="font-size:13.5px;font-weight:600;color:var(--text-primary);">Perfil generado con IA</div>
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span style="font-size:11px;color:var(--text-muted);">Última generación: 11 jun 2026, 14:32</span>
+                  <button title="Más opciones (Regenerar todo)" style="border:none;background:transparent;color:var(--text-muted);cursor:pointer;font-size:16px;padding:2px 6px;border-radius:6px;">⋮</button>
+                </div>
+              </div>
+              <!-- banner CONTEXTUAL: solo si hay material posterior a la última generación -->
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px;padding:10px 12px;border:1px solid var(--c-lisa);border-radius:10px;background:var(--c-lisa-soft);">
+                <span style="font-size:12.5px;color:var(--text-primary);">⚡ Agregaste <strong>1 archivo</strong> después de la última generación.</span>
+                <button style="padding:7px 14px;border-radius:8px;border:none;background:var(--c-lisa);color:#fff;font-size:12.5px;font-weight:600;cursor:pointer;flex-shrink:0;">✨ Actualizar perfil</button>
+              </div>
+              <div style="font-size:11px;color:var(--text-muted);margin-top:8px;">Actualizar reescribe las secciones con TODO el material (pide confirmación si editaste a mano). Sin material nuevo, no hay nada que actualizar.</div>
+
+              <!-- perfil ESTRUCTURADO (mejora vs 3 blobs) -->
+              <div style="display:flex;flex-direction:column;gap:10px;margin-top:12px;">
+                <div style="border:1px solid var(--border);border-radius:8px;padding:11px 12px;background:var(--bg);">
+                  <div style="font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--c-lisa);margin-bottom:3px;">Sobre mí</div>
+                  <div style="font-size:13px;color:var(--text-primary);line-height:1.5;" contenteditable="true">Especialista en ortodoncia invisible, certificada Invisalign, con foco en resultados estéticos naturales y planes de tratamiento claros desde la primera consulta.</div>
+                </div>
+                <div style="border:1px solid var(--border);border-radius:8px;padding:11px 12px;background:var(--bg);">
+                  <div style="font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--c-lisa);margin-bottom:6px;">Formación</div>
+                  <div style="display:flex;flex-direction:column;gap:5px;font-size:12.5px;color:var(--text-primary);">
+                    <div contenteditable="true">🎓 Cirujano Dentista — Universidad Peruana Cayetano Heredia · 2016</div>
+                    <div contenteditable="true">🎓 Diplomado en Ortodoncia Invisible — Invisalign · 2019</div>
+                    <div contenteditable="true">🎓 Miembro — Sociedad Peruana de Ortodoncia · desde 2020</div>
+                  </div>
+                </div>
+                <div style="border:1px solid var(--border);border-radius:8px;padding:11px 12px;background:var(--bg);">
+                  <div style="font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--c-lisa);margin-bottom:6px;">Experiencia profesional</div>
+                  <div style="display:flex;flex-direction:column;gap:5px;font-size:12.5px;color:var(--text-primary);">
+                    <div contenteditable="true">💼 Ortodoncista — Clínica Sonrisas Lima · 2019 – actualidad</div>
+                    <div contenteditable="true">💼 Odontóloga general — Centro Dental San Borja · 2016 – 2019</div>
+                  </div>
+                </div>
+                <div style="border:1px solid var(--border);border-radius:8px;padding:11px 12px;background:var(--bg);">
+                  <div style="font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--c-lisa);margin-bottom:6px;">Certificaciones y membresías</div>
+                  <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                    <span style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;background:var(--c-lisa-soft);color:var(--text-primary);font-size:11.5px;font-weight:500;">✓ CMP 12345</span>
+                    <span style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;background:var(--c-lisa-soft);color:var(--text-primary);font-size:11.5px;font-weight:500;">✓ Invisalign certified</span>
+                    <span style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;background:var(--c-lisa-soft);color:var(--text-primary);font-size:11.5px;font-weight:500;">✓ Sociedad Peruana de Ortodoncia</span>
+                  </div>
+                </div>
+                <div style="border:1px solid var(--border);border-radius:8px;padding:11px 12px;background:var(--bg);">
+                  <div style="font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--c-lisa);margin-bottom:6px;">Tratamientos y enfoque</div>
+                  <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
+                    <span style="padding:4px 10px;border-radius:999px;background:var(--bg-hover);font-size:11.5px;color:var(--text-secondary);">Ortodoncia invisible</span>
+                    <span style="padding:4px 10px;border-radius:999px;background:var(--bg-hover);font-size:11.5px;color:var(--text-secondary);">Brackets estéticos</span>
+                    <span style="padding:4px 10px;border-radius:999px;background:var(--bg-hover);font-size:11.5px;color:var(--text-secondary);">Retenedores</span>
+                  </div>
+                  <div style="font-size:13px;color:var(--text-primary);line-height:1.5;" contenteditable="true">Trato cercano, explicación clara de cada etapa y seguimiento del caso de principio a fin.</div>
+                </div>
+                <div style="border:1px solid var(--border);border-radius:8px;padding:11px 12px;background:var(--bg);">
+                  <div style="font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--c-lisa);margin-bottom:6px;">Idiomas</div>
+                  <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                    <span style="padding:4px 10px;border-radius:999px;background:var(--bg-hover);font-size:11.5px;color:var(--text-secondary);">Español</span>
+                    <span style="padding:4px 10px;border-radius:999px;background:var(--bg-hover);font-size:11.5px;color:var(--text-secondary);">Inglés</span>
+                    <span style="font-size:10.5px;color:var(--text-muted);">· en la página solo aparece si habla más de un idioma</span>
+                  </div>
+                </div>
+              </div>
+              <div style="font-size:11px;color:var(--text-muted);margin-top:10px;">Generado solo desde tu material — no inventa. Puedes editar cualquier sección; tus ediciones se conservan hasta que decidas actualizar.</div>
+            </div>
+          </div>
+
+          <!-- Vista previa mobile — página informativa estilo Doctoralia (v3.2: SIN CTA, SIN stats — solo carrera profesional) -->
+          <div style="position:sticky;top:60px;">
+            <div style="font-size:11px;color:var(--text-muted);text-align:center;margin-bottom:8px;">Vista previa mobile — lo que ve el lead</div>
+            <div style="width:262px;margin:0 auto;border:7px solid #18181b;border-radius:30px;overflow:hidden;background:var(--bg);box-shadow:0 12px 32px rgba(0,0,0,.18);">
+              <div style="max-height:480px;overflow-y:auto;">
+                <!-- header sobrio -->
+                <div style="padding:18px 16px 14px;text-align:center;border-bottom:1px solid var(--border);">
+                  <div style="width:74px;height:74px;border-radius:50%;background:${d.soft};color:${d.color};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:26px;margin:0 auto 9px;">${d.initials}</div>
+                  <div style="font-size:15.5px;font-weight:700;color:var(--text-primary);">${d.name}</div>
+                  <div style="font-size:12px;color:var(--text-secondary);margin-top:1px;">${d.spec}</div>
+                  <div style="display:inline-flex;align-items:center;gap:4px;margin-top:7px;font-size:10.5px;font-weight:600;color:var(--c-lisa);background:var(--c-lisa-soft);padding:3px 10px;border-radius:999px;">✓ Nro. de colegiatura CMP 12345 — verificado</div>
+                </div>
+                <!-- sobre mí -->
+                <div style="padding:13px 15px;border-bottom:1px solid var(--border);">
+                  <div style="font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text-muted);margin-bottom:5px;">Sobre mí</div>
+                  <div style="font-size:11.5px;color:var(--text-primary);line-height:1.55;">Especialista en ortodoncia invisible, certificada Invisalign, con foco en resultados estéticos naturales y planes de tratamiento claros desde la primera consulta.</div>
+                </div>
+                <!-- formación -->
+                <div style="padding:13px 15px;border-bottom:1px solid var(--border);">
+                  <div style="font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;">Formación</div>
+                  <div style="display:flex;flex-direction:column;gap:6px;font-size:11px;color:var(--text-primary);line-height:1.4;">
+                    <div>🎓 Cirujano Dentista<br><span style="color:var(--text-muted);font-size:10.5px;">Universidad Peruana Cayetano Heredia · 2016</span></div>
+                    <div>🎓 Diplomado en Ortodoncia Invisible<br><span style="color:var(--text-muted);font-size:10.5px;">Invisalign · 2019</span></div>
+                  </div>
+                </div>
+                <!-- experiencia profesional -->
+                <div style="padding:13px 15px;border-bottom:1px solid var(--border);">
+                  <div style="font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;">Experiencia profesional</div>
+                  <div style="display:flex;flex-direction:column;gap:6px;font-size:11px;color:var(--text-primary);line-height:1.4;">
+                    <div>💼 Ortodoncista<br><span style="color:var(--text-muted);font-size:10.5px;">Clínica Sonrisas Lima · 2019 – actualidad</span></div>
+                    <div>💼 Odontóloga general<br><span style="color:var(--text-muted);font-size:10.5px;">Centro Dental San Borja · 2016 – 2019</span></div>
+                  </div>
+                </div>
+                <!-- tratamientos -->
+                <div style="padding:13px 15px;border-bottom:1px solid var(--border);">
+                  <div style="font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;">Tratamientos</div>
+                  <div style="display:flex;flex-wrap:wrap;gap:5px;">
+                    <span style="padding:3px 9px;border-radius:999px;background:var(--bg-hover);font-size:10.5px;color:var(--text-secondary);">Ortodoncia invisible</span>
+                    <span style="padding:3px 9px;border-radius:999px;background:var(--bg-hover);font-size:10.5px;color:var(--text-secondary);">Brackets estéticos</span>
+                    <span style="padding:3px 9px;border-radius:999px;background:var(--bg-hover);font-size:10.5px;color:var(--text-secondary);">Retenedores</span>
+                  </div>
+                </div>
+                <!-- certificaciones -->
+                <div style="padding:13px 15px;border-bottom:1px solid var(--border);">
+                  <div style="font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;">Certificaciones y membresías</div>
+                  <div style="display:flex;flex-direction:column;gap:4px;font-size:11px;color:var(--text-primary);">
+                    <div>✓ Invisalign certified</div>
+                    <div>✓ Sociedad Peruana de Ortodoncia</div>
+                  </div>
+                </div>
+                <!-- idiomas (discreto · SOLO si habla más de un idioma; español-only → no se renderiza) -->
+                <div style="padding:13px 15px;border-bottom:1px solid var(--border);">
+                  <div style="font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text-muted);margin-bottom:5px;">Idiomas</div>
+                  <div style="font-size:11px;color:var(--text-primary);">Español · Inglés</div>
+                </div>
+                <!-- consultorio (informativo, sin CTA) -->
+                <div style="padding:13px 15px 16px;">
+                  <div style="font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text-muted);margin-bottom:5px;">Consultorio</div>
+                  <div style="font-size:11px;color:var(--text-primary);">📍 Sonrisas Lima — Av. Larco 345, Miraflores</div>
+                  <div style="font-size:9.5px;color:var(--text-muted);margin-top:10px;text-align:center;">Perfil profesional verificado por la clínica</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function doctorHorarios(d) {
+      const base = []; for (let i = 7; i <= 21; i++) base.push(i);
+      const full = []; for (let i = 0; i <= 23; i++) full.push(i);
+      const hours = doctorShow24 ? full : base;
+      const days = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+      const recur = { 'Lun':[9,10,11], 'Mié':[9,10,11], 'Vie':[9,10,11] };
+      const punt  = { 'Sáb':[9,10] };
+      const hh = h => String(h).padStart(2,'0') + ':00';
+      return `
+        ${autosaveHint()}
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <button style="width:28px;height:28px;border-radius:7px;background:var(--bg-hover);">‹</button>
+            <strong style="font-size:13px;">7 – 13 jul 2026</strong>
+            <button style="width:28px;height:28px;border-radius:7px;background:var(--bg-hover);">›</button>
+            <div class="toggle-pill" style="margin:0 0 0 6px;"><div class="toggle-pill-option active">Semana</div><div class="toggle-pill-option">Mes</div></div>
+          </div>
+          <button class="content-cta" style="background:var(--c-lisa);" onclick="alert('Arrastrá en la grilla o + Bloque (mock)')">+ Bloque</button>
+        </div>
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-secondary);margin-bottom:12px;">
+          <input type="checkbox" onchange="toggleShow24()" ${doctorShow24?'checked':''}> Mostrar 24 horas ${doctorShow24?'':'<span style="color:var(--text-muted);">(base 07:00 – 21:00)</span>'}
+        </label>
+        <div style="display:grid;grid-template-columns:46px repeat(7,1fr);gap:2px;background:var(--bg-panel);border:1px solid var(--border);border-radius:10px;padding:8px;max-height:460px;overflow-y:auto;">
+          <div></div>
+          ${days.map(dn => `<div style="text-align:center;font-size:10px;font-weight:600;color:${dn==='Dom'?'var(--text-muted)':'var(--text-secondary)'};padding:4px 0;">${dn}</div>`).join('')}
+          ${hours.flatMap(hr => [
+            `<div style="font-size:9px;color:var(--text-muted);text-align:right;padding:6px 4px;">${hh(hr)}</div>`,
+            ...days.map(dn => {
+              const isR = recur[dn]?.includes(hr);
+              const isP = punt[dn]?.includes(hr);
+              if (isR) return `<div style="min-height:30px;background:var(--c-lisa);border-radius:4px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:9px;font-weight:600;">${hr===9?'B1':''}</div>`;
+              if (isP) return `<div style="min-height:30px;background:#f59e0b;border-radius:4px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:9px;font-weight:600;">${hr===9?'P':''}</div>`;
+              return `<div style="min-height:30px;border:1px dashed var(--border);border-radius:4px;"></div>`;
+            })
+          ]).join('')}
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:14px;margin-top:10px;font-size:11px;color:var(--text-secondary);">
+          <span style="display:flex;align-items:center;gap:5px;"><span style="width:11px;height:11px;border-radius:3px;background:var(--c-lisa);"></span> B1 · Lun·Mié·Vie 09:00–12:00 · semanal · hasta 30 jul</span>
+          <span style="display:flex;align-items:center;gap:5px;"><span style="width:11px;height:11px;border-radius:3px;background:#f59e0b;"></span> P · Sáb 09:00–11:00 · solo esta semana</span>
+        </div>
+      `;
+    }
+
+    function doctorServicios(d) {
+      return `
+        ${autosaveHint()}
+        <div style="width:100%;border:1px dashed var(--border);border-radius:12px;padding:32px 24px;text-align:center;background:var(--bg-panel);">
+          <div style="font-size:30px;margin-bottom:8px;">🩺</div>
+          <div style="font-size:14px;font-weight:600;color:var(--text-primary);margin-bottom:6px;">Servicios del doctor — pendiente</div>
+          <div style="font-size:12.5px;color:var(--text-secondary);line-height:1.5;">
+            Acá vas a poder elegir, del catálogo de <strong>Mi Clínica → Servicios</strong>, los tratamientos que ofrece este doctor (con precio propio opcional).
+            <br><br>
+            Depende de la historia <strong>Mi Clínica · Servicios</strong>, que se creará al final de esta. Cuando exista el catálogo, esta hoja se conecta a él.
+          </div>
+          <div style="display:inline-flex;align-items:center;gap:6px;margin-top:14px;font-size:11px;padding:3px 10px;border-radius:999px;background:var(--bg-hover);color:var(--text-muted);">⏳ Planned · depende de Servicios</div>
+        </div>
+      `;
+    }
+
+    function syncDoctorHash() {
+      const h = openDoctor
+        ? `#/${TENANT}/lisa/staff/${openDoctor.id}/${doctorLeaf}`
+        : `#/${TENANT}/lisa/staff`;
+      if (location.hash !== h) history.replaceState(null, '', h);
+    }
+    function applyDoctorHash() {
+      const m = location.hash.match(/#\/[^/]+\/lisa\/staff(?:\/([^/]+)(?:\/([^/]+))?)?/);
+      if (!m) return false;
+      currentTab = 'lisa'; currentSubtab = 'staff';
+      if (m[1]) {
+        openDoctor = DOCTORS.find(x => x.id === m[1]) || null;
+        doctorLeaf = (openDoctor && ['perfil','horarios','servicios','pagina'].includes(m[2])) ? m[2] : 'perfil';
+      } else {
+        openDoctor = null;
+      }
+      return true;
+    }
+    function openDoctorFn(id) {
+      openDoctor = DOCTORS.find(x => x.id === id);
+      doctorLeaf = 'perfil';
+      syncDoctorHash();
+      renderContentArea();
+    }
+    function backToList() { openDoctor = null; syncDoctorHash(); renderContentArea(); }
+    function setDoctorLeaf(l) { doctorLeaf = l; syncDoctorHash(); renderContentArea(); }
+    // ★ Delta v3: EntityPicker — cambia de doctor PRESERVANDO la hoja actual (FIRMA 1 Chris 2026-06-11)
+    function openDoctorById(id) {
+      openDoctor = DOCTORS.find(x => x.id === id);
+      // doctorLeaf se mantiene (si estabas en horarios de Ana → horarios del nuevo doctor)
+      syncDoctorHash();
+      renderContentArea();
+    }
+    document.addEventListener('click', (e) => {
+      const ep = document.getElementById('entity-picker');
+      if (ep && !ep.contains(e.target)) ep.classList.remove('open');
+    });
+
+    function placeholderGrid(items) {
+      return `
+        <div class="placeholder-grid">
+          ${items.map(it => `
+            <div class="placeholder-card">
+              <div class="placeholder-card-icon">${it.icon}</div>
+              <div class="placeholder-card-title">${it.title}</div>
+              <div class="placeholder-card-desc">${it.desc}</div>
+              <div class="placeholder-card-status">
+                <span class="status-dot status-${it.status}"></span>
+                ${it.status === 'shipped' ? 'BE shipped · FE pendiente' : it.status === 'planned' ? 'Planned' : 'TBD'}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    function pipelinePreview() {
+      const cols = [
+        { label: '⚪ Interesado', count: 12, val: '$84k' },
+        { label: '🟢 Calificando', count: 8, val: '$62k' },
+        { label: '🟣 Considerando', count: 6, val: '$58k' },
+        { label: '🔵 Listo', count: 4, val: '$42k' },
+        { label: '✅ Reservado', count: 3, val: '$34k' },
+        { label: '⚫ Decidió no', count: 5, val: '$44k' }
+      ];
+      return `
+        <div style="display:flex;gap:10px;overflow-x:auto;padding-bottom:6px;">
+          ${cols.map(c => `
+            <div style="min-width:180px;background:var(--bg-panel);border:1px solid var(--border);border-radius:10px;padding:10px;">
+              <div style="font-size:11px;font-weight:600;color:var(--text-primary);">${c.label}</div>
+              <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">${c.count} leads · ${c.val}</div>
+              <div style="margin-top:10px;display:flex;flex-direction:column;gap:6px;">
+                ${Array.from({length: Math.min(c.count, 3)}).map((_, i) => `
+                  <div style="background:var(--bg-hover);border-radius:6px;padding:6px 8px;font-size:11px;">
+                    <div style="font-weight:500;color:var(--text-primary);">Lead #${i+1}</div>
+                    <div style="font-size:10px;color:var(--text-muted);">Hace 2h · WhatsApp</div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    function inboxPreview() {
+      return `
+        <div style="display:grid;grid-template-columns:240px 1fr 220px;gap:12px;height:380px;">
+          <div style="background:var(--bg-panel);border:1px solid var(--border);border-radius:10px;padding:8px;overflow-y:auto;">
+            <div style="font-size:11px;font-weight:600;padding:4px 8px;color:var(--text-muted);">Activas (8)</div>
+            ${['Marina Pérez · WA','Federico R. · IG','Carla M. · Email','Diego L. · WA','+ 4 más'].map((n,i) => `
+              <div style="padding:8px;border-radius:6px;${i===0?'background:var(--c-adrian-soft);':''}cursor:pointer;font-size:12px;margin-bottom:2px;">
+                ${n}
+              </div>
+            `).join('')}
+          </div>
+          <div style="background:var(--bg-panel);border:1px solid var(--border);border-radius:10px;padding:16px;display:flex;flex-direction:column;justify-content:space-between;">
+            <div style="font-size:12px;color:var(--text-muted);">Conversación con Marina · Blanqueamiento</div>
+            <div style="text-align:center;color:var(--text-muted);font-size:13px;padding:40px 0;">
+              <div style="font-size:32px;margin-bottom:8px;">💬</div>
+              Hilo de mensajes con Adrián AI
+            </div>
+            <div style="font-size:11px;color:var(--text-muted);border-top:1px solid var(--border);padding-top:8px;">
+              ⚡ Activity stream Adrián: 3 tools usadas hace 4 min
+            </div>
+          </div>
+          <div style="background:var(--bg-panel);border:1px solid var(--border);border-radius:10px;padding:12px;font-size:11px;">
+            <div style="font-weight:600;margin-bottom:8px;">Ficha paciente</div>
+            <div style="color:var(--text-muted);line-height:1.6;">
+              Nombre: Marina P.<br>
+              Stage: Considerando<br>
+              Oferta: Blanqueam. $24k<br>
+              Próximo turno: —<br>
+              NPS previo: —
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function agendaPreview() {
+      const hours = ['09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00'];
+      const days = ['Lun','Mar','Mié','Jue','Vie'];
+      const slots = {
+        '09:00-Lun': { status: 'paid', name: 'Marina P.', svc: 'Limpieza', origin: '✉' },
+        '10:00-Lun': { status: 'deposit', name: 'Diego L.', svc: 'Implante', origin: '📞' },
+        '11:00-Mar': { status: 'unpaid', name: 'Carla M.', svc: 'Blanq.', origin: '🚶' },
+        '14:00-Mié': { status: 'paid', name: 'Federico R.', svc: 'Control', origin: '✉' },
+        '15:00-Jue': { status: 'noshow', name: 'Ana S.', svc: 'Limpieza', origin: '📞' },
+        '16:00-Vie': { status: 'paid', name: 'Luis V.', svc: 'Endodoncia', origin: '🚶' }
+      };
+      const statusColor = { paid: '#10b981', deposit: '#f59e0b', unpaid: '#94a3b8', noshow: '#ef4444' };
+      const statusLabel = { paid: 'PAGADO', deposit: '30%', unpaid: 'SIN PAGO', noshow: 'NO-SHOW' };
+
+      return `
+        <div style="display:flex;justify-content:space-between;margin-bottom:12px;">
+          <div style="display:flex;gap:6px;">
+            <button class="content-cta" style="background:var(--c-valeria);">➕ Crear cita</button>
+            <button style="padding:8px 14px;border-radius:8px;background:var(--bg-hover);font-size:13px;">Hoy · Semana · Mes</button>
+          </div>
+          <div style="font-size:12px;color:var(--text-muted);display:flex;gap:14px;align-items:center;">
+            <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#10b981;"></span> Pagado</span>
+            <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#f59e0b;"></span> Depósito</span>
+            <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#94a3b8;"></span> Sin pago</span>
+            <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#ef4444;"></span> No-show</span>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:60px repeat(5,1fr);gap:2px;background:var(--bg-panel);border:1px solid var(--border);border-radius:10px;padding:10px;">
+          <div></div>
+          ${days.map(d => `<div style="text-align:center;font-size:11px;font-weight:600;color:var(--text-secondary);padding:6px 0;">${d}</div>`).join('')}
+          ${hours.flatMap(h => [
+            `<div style="font-size:10px;color:var(--text-muted);padding:6px 4px;text-align:right;">${h}</div>`,
+            ...days.map(d => {
+              const s = slots[`${h}-${d}`];
+              if (!s) return `<div style="min-height:42px;border:1px dashed var(--border);border-radius:5px;"></div>`;
+              return `
+                <div style="min-height:42px;border-left:3px solid ${statusColor[s.status]};background:var(--bg-hover);border-radius:5px;padding:4px 6px;font-size:10px;cursor:pointer;">
+                  <div style="font-weight:600;">${s.origin} ${s.name}</div>
+                  <div style="color:var(--text-muted);">${s.svc} · <span style="color:${statusColor[s.status]};font-weight:600;">${statusLabel[s.status]}</span></div>
+                </div>
+              `;
+            })
+          ]).join('')}
+        </div>
+      `;
+    }
+
+    /* ----------------------------------------------
+       State management
+       ---------------------------------------------- */
+    let currentTab = 'lisa';
+    let currentSubtab = 'staff';
+    // N3-dyn: doctor abierto (null = lista). Solo aplica a lisa/doctores.
+    let openDoctor = null;
+    let doctorLeaf = 'perfil';
+    let doctorShow24 = false;
+    const TENANT = 'e69a691d-070e-5caf-a053-6e74642ec100';
+    function toggleShow24() { doctorShow24 = !doctorShow24; renderContentArea(); }
+
+    function selectTab(tabId) {
+      currentTab = tabId;
+      currentSubtab = TABS[tabId].subtabs[0].id;
+      openDoctor = null;
+
+      // Update ribbon
+      document.querySelectorAll('.ribbon-tab').forEach(el => {
+        el.classList.toggle('active', el.dataset.tab === tabId);
+      });
+
+      renderSubTabs();
+      renderContentArea();
+    }
+
+    function selectSubtab(subtabId) {
+      currentSubtab = subtabId;
+      openDoctor = null;
+      document.querySelectorAll('.sub-tab').forEach(el => {
+        el.classList.toggle('active', el.dataset.subtab === subtabId);
+      });
+      renderContentArea();
+    }
+
+    function renderSubTabs() {
+      const container = document.getElementById('sub-tabs');
+      const tab = TABS[currentTab];
+      container.innerHTML = tab.subtabs.map(st => `
+        <button class="sub-tab ${st.id === currentSubtab ? 'active' : ''}"
+                data-subtab="${st.id}" data-color="${tab.color}">
+          ${st.label}
+        </button>
+      `).join('');
+
+      container.querySelectorAll('.sub-tab').forEach(el => {
+        el.addEventListener('click', () => selectSubtab(el.dataset.subtab));
+      });
+    }
+
+    function renderContentArea() {
+      document.getElementById('content').innerHTML = renderContent(currentTab, currentSubtab);
+    }
+
+    /* ----------------------------------------------
+       Tab clicks
+       ---------------------------------------------- */
+    document.querySelectorAll('.ribbon-tab').forEach(el => {
+      el.addEventListener('click', () => selectTab(el.dataset.tab));
+    });
+
+    /* ----------------------------------------------
+       Valeria rail/history toggle
+       ---------------------------------------------- */
+    const panelValeria = document.getElementById('panel-valeria');
+    function setValeriaState(state) {
+      panelValeria.dataset.state = state;
+    }
+    function cycleValeriaHistory() {
+      const cur = panelValeria.dataset.state;
+      setValeriaState(cur === 'full' ? 'rail' : 'full');
+    }
+
+    document.querySelectorAll('[data-action="toggle-history"]').forEach(el => {
+      el.addEventListener('click', cycleValeriaHistory);
+    });
+    document.querySelectorAll('[data-action="collapse"]').forEach(el => {
+      el.addEventListener('click', () => setValeriaState('collapsed'));
+    });
+
+    /* ----------------------------------------------
+       Keyboard shortcuts (copilot Nicolify parity)
+       ---------------------------------------------- */
+    document.addEventListener('keydown', e => {
+      const t = e.target;
+      const inInput = t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable;
+
+      if (e.ctrlKey || e.metaKey) {
+        if (e.key === 'k') {
+          e.preventDefault();
+          document.querySelector('.composer-input').focus();
+        }
+        return;
+      }
+      if (inInput) return;
+
+      switch (e.key) {
+        case 'Escape': setValeriaState('collapsed'); break;
+        case 'c': case 'C': setValeriaState('collapsed'); break;
+        case 'r': case 'R': setValeriaState('rail'); break;
+        case 'f': case 'F': setValeriaState('full'); break;
+        case 'n': case 'N': alert('Nueva conversación (mock)'); break;
+      }
+    });
+
+    /* ----------------------------------------------
+       Tenant switcher dropdown
+       ---------------------------------------------- */
+    const tenantSwitcher = document.getElementById('tenant-switcher');
+    document.getElementById('tenant-btn').addEventListener('click', e => {
+      e.stopPropagation();
+      tenantSwitcher.classList.toggle('open');
+    });
+    document.addEventListener('click', e => {
+      if (!tenantSwitcher.contains(e.target)) tenantSwitcher.classList.remove('open');
+    });
+
+    /* ----------------------------------------------
+       Theme toggle
+       ---------------------------------------------- */
+    const themeToggle = document.getElementById('theme-toggle');
+    const themeIcon = document.getElementById('theme-icon');
+
+    function applyTheme(theme) {
+      document.documentElement.dataset.theme = theme;
+      themeIcon.textContent = theme === 'dark' ? '☀️' : '🌙';
+      try { localStorage.setItem('vitalia-mockup-theme', theme); } catch {}
+    }
+    themeToggle.addEventListener('click', () => {
+      const cur = document.documentElement.dataset.theme;
+      applyTheme(cur === 'dark' ? 'light' : 'dark');
+    });
+    try {
+      const saved = localStorage.getItem('vitalia-mockup-theme');
+      if (saved) applyTheme(saved);
+    } catch {}
+
+    /* ----------------------------------------------
+       Toggle pill demo (Servicios, Embudo, Inbox)
+       ---------------------------------------------- */
+    document.addEventListener('click', e => {
+      if (e.target.classList.contains('toggle-pill-option')) {
+        e.target.parentElement.querySelectorAll('.toggle-pill-option').forEach(o => o.classList.remove('active'));
+        e.target.classList.add('active');
+      }
+    });
+
+    /* ----------------------------------------------
+       History item click → simulate switching conv
+       ---------------------------------------------- */
+    document.addEventListener('click', e => {
+      const item = e.target.closest('.history-item');
+      if (item) {
+        document.querySelectorAll('.history-item').forEach(i => i.classList.remove('active'));
+        item.classList.add('active');
+      }
+    });
+
+    /* ----------------------------------------------
+       Init — cada hoja tiene su URL (deep-link + back/forward)
+       ---------------------------------------------- */
+    // Si la URL trae #/.../lisa/staff[/{id}/{leaf}] → restaura ese estado.
+    if (location.hash) applyDoctorHash();
+    if (currentTab === 'lisa' && currentSubtab === 'staff' && !location.hash) syncDoctorHash();
+    // back/forward del navegador respeta el N3-dyn por hoja
+    window.addEventListener('hashchange', () => {
+      if (applyDoctorHash()) {
+        document.querySelectorAll('.ribbon-tab').forEach(el => el.classList.toggle('active', el.dataset.tab === 'lisa'));
+        renderSubTabs();
+        renderContentArea();
+      }
+    });
+    renderSubTabs();
+    renderContentArea();
+  </script>
+</body>
+</html>

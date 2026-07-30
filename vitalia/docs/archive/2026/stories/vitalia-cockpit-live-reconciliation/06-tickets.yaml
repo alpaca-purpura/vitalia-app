@@ -1,0 +1,83 @@
+# 06-tickets.yaml — vitalia-cockpit-live-reconciliation
+# Technical-story two-stage: T-1/T-2 concretos; T-3 iterativo findings-driven; mapeo → backlog F2 (no tickets aquí).
+
+tickets:
+  - id: T-1
+    title: "Fase 0 — Reparar boot del dev-stack (remount core/ en compose)"
+    surface: INFRA
+    production_code: true   # toca docker-compose dev (runtime env)
+    owner_eligibility: [opencode, sonnet, opus]
+    depends_on: []
+    blocks: [T-2, T-3]
+    estimate_hours: 1.5
+    deliverables:
+      - "vitalia/docker-compose.dev.yml: agregar bind mount './core:/app/core:rw' + anonymous volume node_modules de core en servicio vitalia_frontend_dev"
+      - "docker exec ... pnpm install --prefer-offline (resuelve workspace @luana/*) + alembic upgrade head (reconciliar migraciones) + docker restart vitalia_frontend_dev"
+      - "Verificar :3002/sign-in 200 + logs sin 'Module not found' + valeria-chat-happy PASS"
+    acceptance:
+      - validator_ids: [boot_frontend_200, boot_no_module_not_found, boot_valeria_chat_happy, fe_typecheck]
+    gherkin_coverage: [boot-restored]
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: sonnet
+      must_load_skills: [playwright-expert, frontend-expert, ".claude/rules/debugging.md"]
+      forbidden_to_touch: ["core/luana-core-*/src/", "{other_brand}/", "vitalia/frontend/src/components/ui/"]
+      rationale: "Fix de infra dev-stack acotado (edita compose + ops container). Builder-frontend conoce el stack Next/pnpm. Si remount regresa otros @luana/* → fallback rebuild imagen (plan B documentado en 03-arch)."
+
+  - id: T-2
+    title: "Fase 1 — Sweep harness Playwright + matriz viva v1"
+    surface: FE
+    production_code: true   # harness e2e + script generador
+    owner_eligibility: [opencode, sonnet, opus]
+    depends_on: [T-1]
+    blocks: [T-3]
+    estimate_hours: 4
+    deliverables:
+      - "e2e/regression/live-reconciliation/surface-catalog.ts: enumera superficies navegables desde shell-routes.ts + rutas app/"
+      - "e2e/regression/live-reconciliation/sweep.spec.ts: recorre cada superficie (status+console+screenshot+a11y básico) → emite findings JSON; anota admin/landing/onboarding sin barrido profundo (Q2)"
+      - "scripts/build_live_reconciliation_matrix.py: findings JSON + _status-computed.json → vitalia/docs/domains/ops/live-reconciliation.md"
+      - "playwright.config.ts: registrar el spec del sweep si hace falta (anti-isla CONN)"
+      - "vitalia/docs/domains/ops/live-reconciliation.md v1 generada"
+    acceptance:
+      - validator_ids: [sweep_executes, matrix_artifact_exists, ledger_computed_status, fe_lint, arch_fe_fsd]
+    gherkin_coverage: [surface-broken-flagged, network-failure, accessibility]
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: sonnet
+      must_load_skills: [playwright-expert, frontend-expert, vitalia-design-system, ".claude/rules/anti-orphan-integration.md", "vitalia/.claude/rules/hipaa-lite.md"]
+      forbidden_to_touch: ["core/luana-core-*/src/", "vitalia/frontend/src/components/shared/shell-organism/", "vitalia/frontend/src/components/ui/"]
+      rationale: "Harness de diagnóstico read-only sobre la UI; Playwright + script Python. No toca prod FE salvo registrar el spec."
+
+  - id: T-3
+    title: "Fase 2+3 — Review técnico per-cap + reparar inline (gates verdes) + reconciliar ledger"
+    surface: FE+BE+DOCS
+    production_code: true
+    owner_eligibility: [sonnet, opus]   # iterativo, multi-surface; Sonnet default, Opus si findings complejos
+    depends_on: [T-2]
+    blocks: []
+    estimate_hours: 8   # iterativo findings-driven — cap por iteraciones, no por horas fijas
+    iterative: true
+    deliverables:
+      - "Por cada cap navegable + las que el sweep tope: review técnico (FSD/DDD, tenant isolation, visual fidelity, a11y, reglas de negocio del spec original, español neutro) → clasificar cumple|easy-fix|map"
+      - "Reparar inline lo acotado (agresivo, multi-archivo+lógica simple OK MIENTRAS gates verdes); cada fix con regression test cuando aplique (TDD)"
+      - "Mapear lo grande → entradas de backlog F2 con evidencia (NO tickets de esta story; emitir a checkpoint/observed-bugs)"
+      - "Reconciliar frontmatter de caps: status real (compute_capability_status) + replaced_by para superseded; correr reconcile --validate-ledger + validate_code_cap_bidirectional"
+      - "Actualizar live-reconciliation.md columnas technical_verdict + acción + story_mapeada"
+      - "Crear cap YAML ops.live-reconciliation-sweep (new) con scenario + e2e del harness"
+    acceptance:
+      - validator_ids: [ledger_validate, ledger_no_inflated_live, yaml_caps_parse, arch_be_fitness, arch_fe_fsd, arch_no_engine_edit, no_slice1_rebuild]
+    gherkin_coverage: [superseded-cap-detected, false-green-resisted, ledger-honest-after]
+    assignment:
+      primary_agent: builder-frontend   # multi-surface; escala a builder-backend para fixes BE puntuales
+      model_preference: sonnet
+      must_load_skills: [frontend-expert, backend-expert, playwright-expert, vitalia-design-system, ".claude/rules/tenant-isolation.md", ".claude/rules/frontend-visual-fidelity.md", "vitalia/.claude/rules/hipaa-lite.md", ".claude/rules/spanish-text.md", ".claude/rules/tdd-mandatory.md", ".claude/rules/anti-duplication.md"]
+      forbidden_to_touch: ["core/luana-core-*/src/", "{other_brand}/", "vitalia/frontend/src/components/ui/", "vitalia/frontend/src/components/shared/shell-organism/", "vitalia/frontend/src/app/layout.tsx"]
+      rationale: "Iterativo: review + fixes acotados + reconcile ledger. NO reconstruye slice-1 (mapea). NO toca shell compartido (mapea). Cualquier fix que rompa gate → revertir+mapear."
+
+# ── NOTA two-stage ──
+# Los fixes de reparación que NO sean inline (reconstruir cap slice-1, feature nueva, test nuevo de
+# comportamiento que rompe gates) NO son tickets de esta story: se MAPEAN como entradas de backlog F2
+# (F2-S2..S22 ya existen como stories idea; los findings las priorizan con evidencia). El entregable de
+# T-3 incluye esa lista priorizada dentro de live-reconciliation.md § "Backlog mapeado".
+
+dag: "T-1 → T-2 → T-3 (secuencial)"

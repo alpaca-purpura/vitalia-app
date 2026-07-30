@@ -1,0 +1,1 @@
+../../core-harness/rules/test-design-doctrine.md

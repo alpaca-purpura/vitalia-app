@@ -1,0 +1,45 @@
+{
+  "schema_version": "1.0",
+  "pr_folder": "/home/chalreme/Proyectos/luana-vitalia/vitalia/docs/product/stories/vitalia-shell-core-hardening",
+  "ticket": "audit-2",
+  "iter": 2,
+  "command": "cd ${WS}/vitalia/frontend && npx tsc --noEmit && npx eslint src/ --cache && npx vitest run",
+  "command_alias": "test-frontend",
+  "started_at": "2026-06-10T00:00:00Z",
+  "finished_at": "2026-06-11T04:39:59Z",
+  "duration_ms": null,
+  "exit_code": 1,
+  "raw_log_path": "/home/chalreme/Proyectos/luana-vitalia/vitalia/docs/product/stories/vitalia-shell-core-hardening/gate-logs/iter-2-test-frontend-20260611-043911.log",
+  "gates": [
+    {
+      "name": "tsc",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": []
+    },
+    {
+      "name": "eslint",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": []
+    },
+    {
+      "name": "vitest",
+      "status": "FAIL",
+      "errors_count": 3,
+      "first_5_errors": [
+        "src/lib/__tests__/agent-catalog.test.ts > RIBBON_SUBTABS — total count and distribution (F1-S8) > total sub-tabs across 5 ribbon agents + config equals 22 (4+2+5+4+4+3): expected 23 to be 22",
+        "src/lib/__tests__/agent-catalog.test.ts > RIBBON_SUBTABS — total count and distribution (F1-S8) > adrian has 4 sub-tabs in order: inbox, embudo, outbound, propuestas: expected [ { id: 'inbox', …(4) } ] to have a length of 4 but got 5",
+        "src/components/shared/__tests__/audited-section.test.tsx > AuditedSection — T-2 fix: uses useTenantId() instead of useOrganization() > renders children even when audit fetch fails (silent fail — non-blocking per hipaa-lite.md): expected spy to be called at least once",
+        "Test Files 2 failed | 253 passed",
+        "Tests 3 failed | 2661 passed"
+      ]
+    }
+  ],
+  "overall": {
+    "any_fail": true,
+    "fail_gate_names": ["vitest"],
+    "summary": "tsc PASS · eslint PASS · vitest FAIL (3 failures / 2664 tests; RIBBON_SUBTABS count mismatch + audited-section spy not called)"
+  },
+  "notes": "iter-2 post-fix: allowlists arch actualizadas; adrian subtabs 5 não 4; audited-section test expects spy call on failed fetch"
+}

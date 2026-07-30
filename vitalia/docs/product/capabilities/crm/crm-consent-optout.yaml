@@ -1,0 +1,138 @@
+---
+capability_id: vitalia-crm-consent-optout
+module: crm
+slug: crm-consent-optout
+status: deprecated
+date_introduced: 2026-05-20
+story_introduced: vitalia-slice-1-fidelizacion
+package_version: 0.1.0
+package_path: vitalia/backend/src/modules/vitalia/crm/{application/services,api}
+license: proprietary
+
+# v3 cement 2026-05-27 · 4 dimensiones + dev_preview (ADR-vitalia-005)
+tech_module: crm
+agent_owner: adrian
+functional_area: adrian.crm
+user_visible: true
+nature: feature
+ui_paradigm: slice-1-superseded  # T-3 reconcile 2026-05-29
+replaced_by_story: vitalia-fase2-valeria-pacientes  # T-3: story F2 que reconstruye esta cap
+
+user_facing_name: "CRM · consentimiento y opt-out de marketing"
+user_facing_description: >
+  Gestión del consentimiento de marketing del paciente dentro del CRM.
+  El paciente puede solicitar el opt-out de comunicaciones de marketing y
+  el cambio queda registrado con audit log obligatorio. También gestiona
+  consentimientos granulares (procesamiento de datos, grabación de voz,
+  fotografías). Cumple regulaciones LatAm de privacidad sanitaria de los
+  6 países: AR, MX, CO, PE, CL y BR.
+
+dev_preview:
+  route: "/adrian/crm/consentimiento"
+  how_to_navigate: "Login → ribbon clic en avatar Adrián → sub-tab CRM → seleccionar paciente → sección Consentimientos."
+  main_component: null
+  api_endpoints:
+    - "POST /api/v1/crm/patients/{id}/consents"
+    - "GET /api/v1/crm/patients/{id}/consents"
+    - "POST /api/v1/crm/patients/{id}/opt-out"
+  e2e_test: null
+  fixtures_required: []
+  storybook_url: null
+  loom_demo: null
+
+# Capability ledger v2 (cement 2026-05-27)
+created_in_story: vitalia-slice-1-fidelizacion   # v2 cement · mirror of story_introduced
+created_date: 2026-05-20   # v2 cement · mirror of date_introduced
+last_modified: 2026-05-29   # T-3 reconcile 2026-05-29
+parent_cap: null   # v2 cement · mirror of extends_capability
+derives_capabilities: []   # v2 cement · initial empty list
+
+# Capability ledger v2 (cement 2026-05-27)
+
+# Capability change log v2 (cement 2026-05-27)
+change_log:
+  - story_id: vitalia-slice-1-fidelizacion
+    date: 2026-05-20
+    type: new
+    summary: "Implementación inicial · migración legacy a schema v2"
+    merge_sha: null
+    status: done
+map_box: adrian
+
+---
+
+# vitalia-crm-consent-optout
+
+Consent + marketing opt-out service para pacientes. Audit log obligatorio en cada cambio (HIPAA-lite + reg LatAm Ley 25.326 / 1581 / 19.628 / 29733 / LGPD). Endpoint `POST /patients/{id}/opt-out` y endpoints consent (granular consent flags) bajo RBAC `admin_clinic` only.
+
+Foundation T-2 de Ola 1 fidelización — sin esto el `ProactiveOutboundService` no puede decidir si template MARKETING está permitido (gate per [[whatsapp-template-registry]]).
+
+## Surface
+
+### Domain
+- `Patient.marketing_opt_in: bool` (existente en [[crm-scaffold-slice-1]], dual filter tenant+clinic)
+- `Patient.consent_flags: dict` — granular consent (data_processing, voice_recording, photos, etc.) — campos nullable JSONB.
+
+### Application service (`vitalia/backend/src/modules/vitalia/crm/application/services/`)
+- **`patient_consent_service.py`** — `PatientConsentService`:
+  - `grant_consent(patient_id, consent_type, granted_by, reason)` — toggle ON granular flag + audit row + return DTO.
+  - `revoke_consent(patient_id, consent_type, revoked_by, reason)` — toggle OFF + audit row.
+  - `set_marketing_opt_in(patient_id, opt_in: bool, actor, reason)` — flip patient.marketing_opt_in atomic + audit row.
+  - `get_current_consents(patient_id)` — read-only summary current consent state.
+  - `@require_phi_access(roles=["admin_clinic"])` decorator en TODOS los métodos write.
+
+### Application DTOs (`application/dto/consent_dtos.py`)
+- `GrantConsentRequest`, `RevokeConsentRequest`, `MarketingOptInRequest`, `ConsentSummaryResponse`.
+
+### API routes (`api/consent_endpoints.py`)
+- `POST /api/v1/crm/patients/{id}/consents` — grant/revoke granular consent.
+- `GET /api/v1/crm/patients/{id}/consents` — read current.
+- `POST /api/v1/crm/patients/{id}/opt-out` — flip marketing_opt_in (legacy alias).
+
+Todos endpoints:
+- `response_model=` mandatory.
+- RBAC `admin_clinic` only (per HIPAA-lite rule § RBAC).
+- Dual filter tenant + clinic enforced.
+- Audit log row SYNC write antes response (no async fire-forget).
+
+## Test coverage
+
+- Unit (`vitalia/backend/tests/modules/vitalia/crm/test_patient_consent_service.py`):
+  - `test_grant_consent_creates_audit_row`
+  - `test_revoke_consent_creates_audit_row`
+  - `test_marketing_opt_in_flip_atomic`
+  - `test_non_admin_role_403`
+  - `test_cross_tenant_404`
+- API (`vitalia/backend/tests/modules/vitalia/crm/test_crm_api.py` extensions consent endpoints).
+- Compliance integration: `tests/modules/vitalia/compliance/test_audit_log_repository.py` (cross-cutting).
+
+## Dependencies
+
+- `vitalia/backend/src/modules/vitalia/crm/domain/patient.py` — Patient entity ([[crm-scaffold-slice-1]])
+- `vitalia/backend/src/modules/vitalia/compliance/` — AuditLogRepository + `@require_phi_access` decorator + sanitize_payload ([[compliance-hipaa-lite-audit]])
+- `vitalia/backend/src/modules/vitalia/iam/` — VitaliaRole + ClinicContext
+- `core/luana-core-iam` — role enforcement engine
+
+## Scenarios live
+
+- Granular consent grant con `admin_clinic` role → audit row con actor + timestamp + reason persisted.
+- Granular consent grant con `nurse` role → 403 Forbidden (RBAC enforcement).
+- Cross-tenant consent (`tenant_A` solicita `tenant_B` patient) → 404 (no leak).
+- Marketing opt-out flip → consumido downstream por [[adrian-reengagement-tool]] vía `ProactiveOutboundService` (T-9). Sin opt-in MARKETING templates bloqueados; UTILITY templates pasan ([[whatsapp-template-registry]]).
+- SC-02 absence_optin_guard — paciente sin consent → compliance block (golden eval verificado).
+
+## Verification commands
+
+```bash
+WS=$(git rev-parse --show-toplevel)
+cd ${WS}/vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/crm/test_patient_consent_service.py -v
+cd ${WS}/vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/compliance/test_audit_log_repository.py -v
+```
+
+## Referencias
+
+- Spec: `vitalia/docs/archive/2026/stories/vitalia-slice-1-fidelizacion/01-spec-extract.md` § T-2 consent service
+- Arch BE: `vitalia/docs/archive/2026/stories/vitalia-slice-1-fidelizacion/03-arch-be.md` § consent + opt-out endpoints
+- Merge artifact: `vitalia/docs/archive/2026/stories/vitalia-slice-1-fidelizacion/07-merge.md` § 3
+- HIPAA-lite: `vitalia/.claude/rules/hipaa-lite.md` § audit log + RBAC
+- Sister caps: [[crm-scaffold-slice-1]] · [[hipaa-lite-defensive-stack]] · [[whatsapp-template-registry]] · [[adrian-reengagement-tool]]

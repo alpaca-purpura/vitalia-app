@@ -1,0 +1,43 @@
+# vitalia/deploy/cloudflared/config.yml
+# Cloudflare Tunnel configuration for Vitalia.
+#
+# Chris executes: cloudflared tunnel create vitalia-tunnel
+# Then replace <TUNNEL_ID> below with the UUID from that command.
+#
+# Tunnel exposes app.vitalia.health → vitalia-app ClusterIP service inside K8s.
+# External TLS termination by Cloudflare (origin receives plain HTTP).
+#
+# Arch ref: 03-arch.md § 5.3 (CF tunnel setup post-cluster — Chris UI gate Q4=B)
+# T-deploy-1: /dev-team provides config; Chris creates tunnel + updates DNS.
+
+tunnel: <TUNNEL_ID>
+credentials-file: /etc/cloudflared/credentials.json
+
+# Ingress rules (evaluated in order — last rule is fallback)
+ingress:
+  # Main application domain → vitalia-app K8s service
+  - hostname: app.vitalia.health
+    service: http://vitalia-app.vitalia.svc.cluster.local:80
+    originRequest:
+      # Timeout for long-running agentic LLM calls (30s per graceful-degradation rule)
+      connectTimeout: 10s
+      tlsTimeout: 10s
+      # No TLS between cloudflared and K8s service (plain HTTP ClusterIP)
+      noTLSVerify: true
+
+  # CDN domain for widget bundle + static assets
+  - hostname: cdn.vitalia.health
+    service: http://vitalia-app.vitalia.svc.cluster.local:80
+    originRequest:
+      connectTimeout: 10s
+      tlsTimeout: 10s
+      noTLSVerify: true
+
+  # Fallback — required by cloudflared
+  - service: http_status:404
+
+# Tunnel metrics (optional — exposes /metrics endpoint for Prometheus scraping)
+metrics: 0.0.0.0:2000
+
+# Logging
+loglevel: info

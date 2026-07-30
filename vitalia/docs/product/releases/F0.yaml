@@ -1,0 +1,45 @@
+---
+# Release schema (v2 cement 2026-05-27)
+# Doc: docs/process/release-protocol.md
+# Path canónico: vitalia/docs/product/releases/F0.yaml
+
+release_id: F0
+brand: vitalia
+name: "Infra base · dev stack + auth + copilot tools + IAM"
+description: "Bloque infra inicial · dev stack multibrand + auth funcional + copilot tools + adopción luana-core-iam."
+status: shipped
+target_date: null
+shipped_date: "2026-05-15"
+order: 0
+created_at: 2026-05-27T18:25:23-05:00
+created_by: scripts/migrate_to_release_schema.py
+
+stories:
+  - vitalia-adopt-luana-core-iam
+  - vitalia-auth-base-functional
+  - vitalia-copilot-tools-impl
+  - vitalia-dev-stack-functional
+  - vitalia-shell-organism
+  - vitalia-slice-1-agenda
+  - vitalia-slice-1-fidelizacion
+  - vitalia-slice-1-inbox
+  - vitalia-slice-1-infra-cross-cutting
+  - vitalia-slice-1-marketing
+  - vitalia-slice-1-marketing-integration
+  - vitalia-slice-1-onboarding-wizard
+  - vitalia-slice-1-pipeline
+  - vitalia-ux-discovery
+
+---
+
+# F0 · Infra base · dev stack + auth + copilot tools + IAM
+
+> Bloque infra inicial · dev stack multibrand + auth funcional + copilot tools + adopción luana-core-iam.
+
+## Stories incluidas
+
+<!-- Auto-poblado durante migración Phase 3 desde checkpoints reales -->
+
+## Notas del release
+
+(libre · Chris escribe aquí contexto adicional · decisiones · gotchas)

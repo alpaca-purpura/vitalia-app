@@ -1,0 +1,588 @@
+# F1-S10 vitalia-fase1-empty-states — 06-tickets.yaml
+#
+# 11 tickets DAG sequential. Suma ~24h estimadas.
+# Owner eligibility: claude_opus_required:false TODOS (no agentic surface).
+# Sonnet (builder-frontend) o opencode (local). NUNCA Opus para este story.
+
+story_id: vitalia-fase1-empty-states
+brand: vitalia
+phase: fase-1
+story_type: ui-story
+last_modified: 2026-05-26
+architect_iter: 1
+total_estimate_hours: 24
+total_tickets: 11
+
+# ──────────────────────────────────────────────────────────────────────
+# DAG visualizado
+# ──────────────────────────────────────────────────────────────────────
+# T-1 (foundations 6 moléculas + vitest unit)
+#   ├── T-2 (16 placeholders genéricos boilerplate)
+#   ├── T-3 (LisaServicios + ConfigConexiones)
+#   ├── T-4 (AdrianEmbudo)
+#   ├── T-5 (5 moléculas inbox sales_studio parity)
+#   │     └── T-6 (2 moléculas takeover + InboxPlaceholder organismo)
+#   ├── T-7 (5 moléculas agenda + ValeriaAgendaPlaceholder organismo)
+#   └── T-8 (CamilaVozPlaceholder)
+#   (T-2, T-3, T-4, T-6, T-7, T-8)
+#         └── T-9 (page.tsx MODIFY + 3 arch tests NEW)
+#               └── T-10 (Playwright suite POMs + fixtures + 11 specs)
+#                     └── T-11 (Visual goldens ~70 PNG)
+
+tickets:
+  # ════════════════════════════════════════════════════════════════════
+  - id: T-1
+    state: audit-passed
+    commit: 0187ce17
+    title: "6 moléculas foundational shell-organism + Vitest unit"
+    description: |
+      NEW 6 moléculas shared shell-organism (foundation para todos los placeholders):
+      EmptyState · PlaceholderCard · SubTabHeader · StatusDot · TogglePill · SubTabContent (dispatcher).
+      Vitest unit RED-first para cada uno.
+
+      EmptyState: icon emoji 5xl opacity-50 + h3 title + description max-w-md + opcional action button.
+      PlaceholderCard: Card con icon + h3 + desc + StatusDot.
+      SubTabHeader: h2 + descripción contextual + opcional CTA right-aligned.
+      StatusDot: indicator color (verde/amarillo/gris).
+      TogglePill: wrapper Shadcn Tabs styled pill (rounded-full + bg-muted).
+      SubTabContent dispatcher: PLACEHOLDER_MAP type-safe consume RIBBON_SUBTABS SSoT + EmptyState fallback.
+    production_code: true
+    owner_eligibility:
+      - opencode
+      - sonnet (builder-frontend)
+    claude_opus_required: false
+    estimate_hours: 2
+    depends_on: []
+    blocks: [T-2, T-3, T-4, T-5, T-7, T-8, T-9]
+    gherkin_coverage: []  # foundation — no scenario coverage direct
+    acceptance:
+      validator_ids:
+        - val-fe-tsc
+        - val-fe-lint
+        - val-fe-format
+        - val-fe-vitest-unit-subtab-content
+        - val-fe-vitest-unit-empty-state
+        - val-fe-vitest-unit-toggle-pill
+        - val-fe-arch-fsd-boundaries
+    files_in_scope:
+      - vitalia/frontend/src/components/shared/shell-organism/EmptyState.tsx
+      - vitalia/frontend/src/components/shared/shell-organism/PlaceholderCard.tsx
+      - vitalia/frontend/src/components/shared/shell-organism/SubTabHeader.tsx
+      - vitalia/frontend/src/components/shared/shell-organism/StatusDot.tsx
+      - vitalia/frontend/src/components/shared/shell-organism/TogglePill.tsx
+      - vitalia/frontend/src/components/shared/shell-organism/SubTabContent.tsx
+      - vitalia/frontend/src/components/shared/shell-organism/SubTabContent.test.tsx
+      - vitalia/frontend/src/components/shared/shell-organism/EmptyState.test.tsx
+      - vitalia/frontend/src/components/shared/shell-organism/TogglePill.test.tsx
+
+  # ════════════════════════════════════════════════════════════════════
+  - id: T-2
+    state: audit-passed
+    commit: cfda5c44
+    title: "16 placeholders genéricos boilerplate (EmptyState wrappers)"
+    description: |
+      NEW 16 placeholders genéricos (wrappers de EmptyState con icon + label del catalog SSoT + copy uniforme):
+      - lisa: marca, doctores, compliance (3)
+      - lucas: lanzar, envuelo, recursos, resultados, mercado (5)
+      - adrian: outbound, propuestas (2)
+      - valeria: pacientes (1)
+      - camila: reactivar, multiplicar, reputacion (3)
+      - config: cuenta, avanzado (2)
+
+      Cada uno: 8-15 LOC. Consume `RIBBON_SUBTABS[agent].find(s => s.id === subtab)` para icon + label.
+      Description uniforme: "Vista placeholder — el contenido real se cablea en Fase 2."
+      Title format: "{label} — próximamente".
+    production_code: true
+    owner_eligibility:
+      - opencode
+      - sonnet (builder-frontend)
+    claude_opus_required: false
+    estimate_hours: 2
+    depends_on: [T-1]
+    blocks: [T-9]
+    gherkin_coverage:
+      - SC-8  # 16 sub-tabs genéricos parametrizado
+      - SC-1  # 22 sub-tabs navegables (16 son genéricos)
+    acceptance:
+      validator_ids:
+        - val-fe-tsc
+        - val-fe-lint
+        - val-fe-format
+        - val-fe-arch-fsd-boundaries
+    files_in_scope:
+      - vitalia/frontend/src/features/lisa/components/placeholders/MarcaPlaceholder.tsx
+      - vitalia/frontend/src/features/lisa/components/placeholders/DoctoresPlaceholder.tsx
+      - vitalia/frontend/src/features/lisa/components/placeholders/CompliancePlaceholder.tsx
+      - vitalia/frontend/src/features/lucas/components/placeholders/LanzarPlaceholder.tsx
+      - vitalia/frontend/src/features/lucas/components/placeholders/EnvueloPlaceholder.tsx
+      - vitalia/frontend/src/features/lucas/components/placeholders/RecursosPlaceholder.tsx
+      - vitalia/frontend/src/features/lucas/components/placeholders/ResultadosPlaceholder.tsx
+      - vitalia/frontend/src/features/lucas/components/placeholders/MercadoPlaceholder.tsx
+      - vitalia/frontend/src/features/adrian/components/placeholders/OutboundPlaceholder.tsx
+      - vitalia/frontend/src/features/adrian/components/placeholders/PropuestasPlaceholder.tsx
+      - vitalia/frontend/src/features/valeria/components/placeholders/PacientesPlaceholder.tsx
+      - vitalia/frontend/src/features/camila/components/placeholders/ReactivarPlaceholder.tsx
+      - vitalia/frontend/src/features/camila/components/placeholders/MultiplicarPlaceholder.tsx
+      - vitalia/frontend/src/features/camila/components/placeholders/ReputacionPlaceholder.tsx
+      - vitalia/frontend/src/features/config/components/placeholders/CuentaPlaceholder.tsx
+      - vitalia/frontend/src/features/config/components/placeholders/AvanzadoPlaceholder.tsx
+
+  # ════════════════════════════════════════════════════════════════════
+  - id: T-3
+    state: audit-passed
+    commit: 84bbceff
+    title: "LisaServiciosPlaceholder (toggle Catálogo|Escalera) + ConfigConexionesPlaceholder (grid 6 cat)"
+    description: |
+      NEW 2 placeholders especiales sencillos:
+
+      LisaServiciosPlaceholder: TogglePill (Catálogo|Escalera default Catálogo, useState local) + grid 5 PlaceholderCards
+      (Limpieza dental · Blanqueamiento · Implante · Mantenimiento periodontal · "+ Nuevo tratamiento" CTA outline).
+      Click Escalera → "Escalera de valor — próximamente" placeholder canvas.
+
+      ConfigConexionesPlaceholder: Server Component grid 3×2 con 6 categorías (Marketing · Mensajería · Pagos · Calendarios · Presencia · Técnicas)
+      cada uno con icon Lucide + label + descripción 2 providers (Meta Ads · Google Ads / WhatsApp · ManyChat / etc).
+    production_code: true
+    owner_eligibility:
+      - opencode
+      - sonnet (builder-frontend)
+    claude_opus_required: false
+    estimate_hours: 2
+    depends_on: [T-1]
+    blocks: [T-9]
+    gherkin_coverage:
+      - SC-2  # Lisa Servicios toggle
+    acceptance:
+      validator_ids:
+        - val-fe-tsc
+        - val-fe-lint
+        - val-fe-format
+        - val-fe-vitest-unit-toggle-pill
+        - val-fe-arch-fsd-boundaries
+    files_in_scope:
+      - vitalia/frontend/src/features/lisa/components/placeholders/ServiciosPlaceholder.tsx
+      - vitalia/frontend/src/features/config/components/placeholders/ConexionesPlaceholder.tsx
+
+  # ════════════════════════════════════════════════════════════════════
+  - id: T-4
+    state: audit-passed
+    commit: 3cc26e09
+    title: "AdrianEmbudoPlaceholder (Kanban 6 cols + 14 leads mock + toggle Kanban|Lista)"
+    description: |
+      NEW 1 placeholder especial Kanban:
+
+      AdrianEmbudoPlaceholder: TogglePill (Kanban|Lista default Kanban, useState local) + 6 columnas Pipeline.
+      Cada columna header: emoji + label + count + value verbatim spec § 5 ("⚪ Interesado 12 · $84k", etc.)
+      Cada columna: 3 lead cards mock con nombre + valor + "hace {x}" (Limpieza-PE, Blanqueamiento, etc.)
+      Total ~18 leads mock LATAM (María, Carlos, Lucía, Diego, Ana, Sofía, JP, Roberto, etc.)
+      Horizontal scroll en viewport <1280px.
+      Click Lista → "Vista lista — próximamente" placeholder.
+
+      Mock data top-of-file declared con Zod schema opcional.
+    production_code: true
+    owner_eligibility:
+      - opencode
+      - sonnet (builder-frontend)
+    claude_opus_required: false
+    estimate_hours: 2
+    depends_on: [T-1]
+    blocks: [T-9]
+    gherkin_coverage:
+      - SC-3  # Adrián Embudo Kanban
+    acceptance:
+      validator_ids:
+        - val-fe-tsc
+        - val-fe-lint
+        - val-fe-format
+        - val-fe-arch-fsd-boundaries
+        - val-fe-arch-no-phi-real-data
+    files_in_scope:
+      - vitalia/frontend/src/features/adrian/components/placeholders/EmbudoPlaceholder.tsx
+
+  # ════════════════════════════════════════════════════════════════════
+  - id: T-5
+    state: audit-passed
+    commit: be016190
+    title: "5 moléculas inbox sales_studio parity (CampaignTag · ConversationItem · MessageBubble · MessageInput · ContactSidebar)"
+    description: |
+      NEW 5 moléculas inbox brand-local con shape conceptual de `ap_sales_agent/closer-studio/inbox/`
+      (NO import cross-brand — anti-duplication rule).
+
+      CampaignTag: pill clickable "📣 {campaignName}" trunca >30 chars + tooltip + href `/{tenantId}/lucas/lanzar?campaign={id}` (NO navega F1).
+      ConversationItem: avatar initials + temp-dot (hot/warm/cold) + stage-badge + channel-abbr + handler_mode border-l verde + inline YouChip conditional.
+      MessageBubble: in/out variants + timestamp + sender attribution (Adrián / paciente name).
+      MessageInput: textarea + send btn + attach btn. State dual con prop `disabled` (state A) y `enabled` (state B). F1 sin RHF; F2 cablea.
+      ContactSidebar: header paciente + PHI masking visual (+51 9** ***-4321 / m***@gmail.com) + 🔓 decorativo + origen CampaignTag + tags + 3 action buttons (Agendar/Historial/Pasar a embudo · todos disabled F1).
+
+      Vitest unit ConversationItem.test.tsx (YouChip conditional render).
+    production_code: true
+    owner_eligibility:
+      - opencode
+      - sonnet (builder-frontend)
+    claude_opus_required: false
+    estimate_hours: 3
+    depends_on: [T-1]
+    blocks: [T-6]
+    gherkin_coverage: []  # consumed by T-6 organism — coverage en SC-4.bis
+    acceptance:
+      validator_ids:
+        - val-fe-tsc
+        - val-fe-lint
+        - val-fe-format
+        - val-fe-vitest-unit-conversation-item
+        - val-fe-arch-fsd-boundaries
+        - val-fe-arch-no-cross-brand-mirror
+        - val-fe-arch-no-phi-real-data
+    files_in_scope:
+      - vitalia/frontend/src/features/adrian/components/inbox/CampaignTag.tsx
+      - vitalia/frontend/src/features/adrian/components/inbox/ConversationItem.tsx
+      - vitalia/frontend/src/features/adrian/components/inbox/MessageBubble.tsx
+      - vitalia/frontend/src/features/adrian/components/inbox/MessageInput.tsx
+      - vitalia/frontend/src/features/adrian/components/inbox/ContactSidebar.tsx
+      - vitalia/frontend/src/features/adrian/components/inbox/ConversationItem.test.tsx
+
+  # ════════════════════════════════════════════════════════════════════
+  - id: T-6
+    state: audit-passed
+    commit: 71f43ac4
+    title: "2 moléculas takeover UX (ThreadHeader · TakeoverBanner) + AdrianInboxPlaceholder organismo"
+    description: |
+      NEW 2 moléculas takeover UX + organismo Inbox especial enriquecido:
+
+      ThreadHeader: 2 estados controlled por prop `mode: 'bot' | 'human'`.
+        Estado A (mode='bot'): avatar+nombre+canal + chip "🤖 Adrián decidiendo" + botón "✋ Tomar el control" + × cerrar sidebar.
+        Estado B (mode='human'): avatar+nombre+canal + × cerrar sidebar (sin chip ni botón takeover, banner abajo separado).
+      TakeoverBanner: amarillo border-l-4 border-yellow-500 bg-yellow-50/30. Icon ⚡ + título + meta + botón "🤖 Devolver a Adrián".
+
+      AdrianInboxPlaceholder organismo:
+        - TogglePill 3-modos global (Adrián decide / Te consulta / Manual) — useState decorativo.
+        - Grid 3-col `320px / flex-1 / 288px`. Cuando sidebarOpen=false → `320px / 1fr / 0`.
+        - ConversationList con 5 INBOX_CONVERSATIONS mock (incluyendo Carlos Pérez handler_mode='human' YouChip + 2 con CampaignTag).
+        - Thread con ThreadHeader state-controlled + 4 MessageBubble mock + MessageInput dual + TakeoverBanner conditional.
+        - ContactSidebar con CONTACT_MOCK.
+        - 3 useState local: globalMode (decorativo), sidebarOpen (bool), localTakeover ('bot'|'human').
+        - Click "✋ Tomar el control" → setLocalTakeover('human'). Click "🤖 Devolver a Adrián" → setLocalTakeover('bot').
+
+      Vitest unit ThreadHeader.test.tsx (state A vs B visual).
+    production_code: true
+    owner_eligibility:
+      - opencode
+      - sonnet (builder-frontend)
+    claude_opus_required: false
+    estimate_hours: 3
+    depends_on: [T-1, T-5]
+    blocks: [T-9]
+    gherkin_coverage:
+      - SC-4-bis  # Adrián Inbox + Takeover A↔B + sidebar toggle
+    acceptance:
+      validator_ids:
+        - val-fe-tsc
+        - val-fe-lint
+        - val-fe-format
+        - val-fe-vitest-unit-thread-header
+        - val-fe-vitest-unit-mock-shape
+        - val-fe-arch-fsd-boundaries
+        - val-fe-arch-no-phi-real-data
+    files_in_scope:
+      - vitalia/frontend/src/features/adrian/components/inbox/ThreadHeader.tsx
+      - vitalia/frontend/src/features/adrian/components/inbox/TakeoverBanner.tsx
+      - vitalia/frontend/src/features/adrian/components/inbox/ThreadHeader.test.tsx
+      - vitalia/frontend/src/features/adrian/components/placeholders/InboxPlaceholder.tsx
+      - vitalia/frontend/src/features/adrian/components/placeholders/__tests__/inbox-mock-shape.test.ts
+
+  # ════════════════════════════════════════════════════════════════════
+  - id: T-7
+    title: "5 moléculas agenda (Toolbar · Filters · DayHeader · Slot · SummaryFooter) + ValeriaAgendaPlaceholder organismo"
+    description: |
+      NEW 5 moléculas agenda + organismo Agenda especial enriquecido:
+
+      AgendaToolbar: period nav (‹ "Semana 26-31 May 2026" ›) + toggle Día|Semana|Mes (default Semana, useState decorativo) + "📅 Hoy" + CTA "+ Crear cita ▾" dropdown 3 opciones (🚶 Walk-in / 📞 Phone / ✉ Proactivo).
+      AgendaFilters: 6 chips visuales disabled (search input + Doctor ▾ + Especialidad ▾ + Status pago ▾ + ☐ no-show + ☐ walk-in). F1 disabled; F2 cablea Zustand.
+      AgendaDayHeader: cell header con label corto (Lun) + day-num grande (26) + `today` highlight (color `agent-valeria` en agentic mode / `agent-adrian` en web).
+      AgendaSlot: paciente + service + doctor + origin icon (🚶/📞/✉/✋) + status pill verbatim (✓ PAG / 30% / SIN PAGO / ⚠ NO-SHOW). 4 variants color border-left.
+      AgendaSummaryFooter: leyenda 4 status + texto "Adrián propuso 4 turnos hoy · 3 sin pago · Lucas: 3 leads listos".
+
+      ValeriaAgendaPlaceholder organismo:
+        - AgendaToolbar + AgendaFilters + grid 6 days × 8 hours
+        - 1 row AgendaDayHeader × 6 (Lun 26 today highlight)
+        - 8 rows × 6 cells (con 10 AgendaSlot mock + 6 cells lunch-time 13:00 stripe pattern + aria-label="Horario de almuerzo")
+        - AgendaSummaryFooter
+
+      Vitest unit AgendaSlot.test.tsx (4 status + 4 origins variants).
+    production_code: true
+    owner_eligibility:
+      - opencode
+      - sonnet (builder-frontend)
+    claude_opus_required: false
+    estimate_hours: 3
+    depends_on: [T-1]
+    blocks: [T-9]
+    gherkin_coverage:
+      - SC-4  # Valeria Agenda enriquecida
+    acceptance:
+      validator_ids:
+        - val-fe-tsc
+        - val-fe-lint
+        - val-fe-format
+        - val-fe-vitest-unit-agenda-slot
+        - val-fe-arch-fsd-boundaries
+        - val-fe-arch-no-phi-real-data
+    state: audit-passed
+    commit: d8f9ac82
+    files_in_scope:
+      - vitalia/frontend/src/features/valeria/components/agenda/AgendaToolbar.tsx
+      - vitalia/frontend/src/features/valeria/components/agenda/AgendaFilters.tsx
+      - vitalia/frontend/src/features/valeria/components/agenda/AgendaDayHeader.tsx
+      - vitalia/frontend/src/features/valeria/components/agenda/AgendaSlot.tsx
+      - vitalia/frontend/src/features/valeria/components/agenda/AgendaSummaryFooter.tsx
+      - vitalia/frontend/src/features/valeria/components/agenda/AgendaSlot.test.tsx
+      - vitalia/frontend/src/features/valeria/components/agenda/AgendaToolbar.test.tsx
+      - vitalia/frontend/src/features/valeria/components/placeholders/AgendaPlaceholder.tsx
+      - vitalia/frontend/src/features/valeria/components/placeholders/AgendaPlaceholder.test.tsx
+      - vitalia/frontend/src/features/valeria/index.ts
+      - vitalia/frontend/src/app/globals.css
+
+  # ════════════════════════════════════════════════════════════════════
+  - id: T-8
+    title: "CamilaVozPlaceholder (3 cards stats + footer aclarado batch 2)"
+    description: |
+      NEW 1 placeholder especial Camila Voz (copy aclarado per spec § 10.2 batch 2 Chris feedback "no entiendo nada"):
+
+      CamilaVozPlaceholder:
+        - TogglePill 3-modos (Camila decide / Curaduría / Manual) — useState decorativo.
+        - Grid 3 PlaceholderCards stats:
+          Card 1 "Entrante" valor "12" desc "Pacientes que respondieron — esperando que Camila analice y categorice"
+          Card 2 "Curaduría" valor "4" desc "Casos ambiguos que necesitan tu revisión antes de derivar"
+          Card 3 "Ciclos activos" valor "47" desc "Pacientes en flujo de seguimiento automático"
+        - Footer aclarado: "Camila gestiona el ciclo de voz del paciente: te avisa cuando algo sale del patrón esperado · te ahorra responder cada feedback uno por uno."
+    production_code: true
+    owner_eligibility:
+      - opencode
+      - sonnet (builder-frontend)
+    claude_opus_required: false
+    estimate_hours: 1
+    depends_on: [T-1]
+    blocks: [T-9]
+    gherkin_coverage: []  # cubierto indirectamente por SC-1 navegación 22-subtabs
+    state: audit-passed
+    commit: 332b8f08
+    acceptance:
+      validator_ids:
+        - val-fe-tsc
+        - val-fe-lint
+        - val-fe-format
+        - val-fe-arch-fsd-boundaries
+    files_in_scope:
+      - vitalia/frontend/src/features/camila/components/placeholders/VozPlaceholder.tsx
+
+  # ════════════════════════════════════════════════════════════════════
+  - id: T-9
+    state: audit-passed
+    commit: 7ba596fe
+    title: "page.tsx MODIFY (mount <SubTabContent>) + 3 arch tests NEW (FSD + ribbon-ssot + no-PHI)"
+    description: |
+      MODIFY 1 page route + NEW 3 arch tests:
+
+      page.tsx MODIFY: reemplazar placeholder body "TBD F1-S10" (F1-S9 cementó) por:
+        ```tsx
+        import { SubTabContent } from '@/components/shared/shell-organism/SubTabContent'
+        import type { RibbonTabSlug } from '@/lib/agent-catalog'
+        export default async function SubTabPage({ params }: Props) {
+          const { agent, subtab } = await params
+          return <SubTabContent agent={agent as RibbonTabSlug} subtab={subtab} />
+        }
+        ```
+
+      Arch tests NEW (consume estructura final del repo post T-1..T-8):
+        test_subtab_content_uses_ribbon_subtabs_ssot: PLACEHOLDER_MAP contiene exactamente 22 keys verbatim de RIBBON_SUBTABS · no 'mateo.*' · importa RIBBON_SUBTABS.
+        test_no_hardcoded_subtab_keys: 0 literales 'agent.subtab' fuera SubTabContent.tsx + __tests__/ + e2e/.
+        test_no_phi_real_data: 0 secuencias 8-digit · 0 phone real 10+ digits en features/{adrian,valeria,camila}/components/.
+    production_code: true
+    owner_eligibility:
+      - opencode
+      - sonnet (builder-frontend)
+    claude_opus_required: false
+    estimate_hours: 1
+    depends_on: [T-2, T-3, T-4, T-6, T-7, T-8]
+    blocks: [T-10]
+    gherkin_coverage:
+      - SC-1
+    acceptance:
+      validator_ids:
+        - val-fe-tsc
+        - val-fe-lint
+        - val-fe-format
+        - val-fe-arch-subtab-content-uses-ribbon-subtabs-ssot
+        - val-fe-arch-no-hardcoded-subtab-keys
+        - val-fe-arch-no-phi-real-data
+        - val-fe-arch-fsd-boundaries
+        - val-fe-arch-no-cross-brand-mirror
+    files_in_scope:
+      - vitalia/frontend/src/app/[tenantId]/(shell-organism)/[agent]/[subtab]/page.tsx
+      - vitalia/frontend/src/__tests__/architecture/test_subtab_content_uses_ribbon_subtabs_ssot.test.ts
+      - vitalia/frontend/src/__tests__/architecture/test_no_hardcoded_subtab_keys.test.ts
+      - vitalia/frontend/src/__tests__/architecture/test_no_phi_real_data.test.ts
+
+  # ════════════════════════════════════════════════════════════════════
+  - id: T-10
+    title: "Playwright suite — 3 POMs + reuse fixture + 11 specs SC-1..SC-10 (TESTS-ONLY)"
+    description: |
+      NEW Playwright suite — TESTS-ONLY (no production_code).
+
+      POMs NEW (3):
+        ShellOrganismPage.ts (genérico 22-subtab navigate + ribbon stable assert)
+        AdrianInboxPage.ts (clickTakeControl + clickReleaseControl + toggleSidebar + assertState A/B)
+        ValeriaAgendaPage.ts (navigatePeriod + openCTADropdown + selectOriginOption + assertSlotVisible)
+
+      Fixture REUSED (no nueva): vitalia-auth.fixture.ts (shipped F1-S0; Clerk testing-token).
+
+      Specs NEW (11):
+        sc-01-navegacion-22-subtabs.spec.ts (foundation — itera 22 subtabs)
+        sc-02-lisa-servicios.spec.ts (toggle Catálogo|Escalera)
+        sc-03-adrian-embudo.spec.ts (6 cols + toggle Kanban|Lista)
+        sc-04-valeria-agenda.spec.ts (toolbar + filters + grid + footer)
+        sc-04bis-adrian-inbox.spec.ts (takeover A↔B + sidebar toggle + YouChip)
+        sc-05-subtab-invalido.spec.ts (not-found jerárquico)
+        sc-06-edge-no-shell-remount.spec.ts (DOM ref stable cross-navegación)
+        sc-07-adversarial-xss.spec.ts (XSS payload bloqueado)
+        sc-08-empty-states-genericos.spec.ts (parametrizado 16 sub-tabs)
+        sc-09-a11y.spec.ts (axe wcag2aa + heading hierarchy + keyboard)
+        sc-10-i18n.spec.ts (Spanish neutro + tenant_locale PEN + 24h format)
+
+      Preflight: `bash scripts/e2e-preflight.sh` antes correr cualquier spec.
+      Run: `E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/vitalia-fase1-empty-states/`
+    production_code: false  # TESTS-ONLY
+    owner_eligibility:
+      - opencode
+      - sonnet (builder-frontend)
+    claude_opus_required: false
+    estimate_hours: 3
+    depends_on: [T-9]
+    blocks: [T-11]
+    gherkin_coverage:
+      - SC-1
+      - SC-2
+      - SC-3
+      - SC-4
+      - SC-4-bis
+      - SC-5
+      - SC-6
+      - SC-7
+      - SC-8
+      - SC-9
+      - SC-10
+    acceptance:
+      validator_ids:
+        - val-fe-e2e-sc01-navegacion-22-subtabs
+        - val-fe-e2e-sc02-lisa-servicios
+        - val-fe-e2e-sc03-adrian-embudo
+        - val-fe-e2e-sc04-valeria-agenda
+        - val-fe-e2e-sc04bis-adrian-inbox
+        - val-fe-e2e-sc05-subtab-invalido
+        - val-fe-e2e-sc06-no-shell-remount
+        - val-fe-e2e-sc07-adversarial-xss
+        - val-fe-e2e-sc08-empty-states-genericos
+        - val-fe-e2e-sc09-a11y
+        - val-fe-axe-empty-states
+        - val-fe-e2e-sc10-i18n
+        - val-fe-arch-no-voseo-strings
+    files_in_scope:
+      - vitalia/frontend/e2e/pages/ShellOrganismPage.ts
+      - vitalia/frontend/e2e/pages/AdrianInboxPage.ts
+      - vitalia/frontend/e2e/pages/ValeriaAgendaPage.ts
+      - vitalia/frontend/e2e/regression/vitalia-fase1-empty-states/sc-01-navegacion-22-subtabs.spec.ts
+      - vitalia/frontend/e2e/regression/vitalia-fase1-empty-states/sc-02-lisa-servicios.spec.ts
+      - vitalia/frontend/e2e/regression/vitalia-fase1-empty-states/sc-03-adrian-embudo.spec.ts
+      - vitalia/frontend/e2e/regression/vitalia-fase1-empty-states/sc-04-valeria-agenda.spec.ts
+      - vitalia/frontend/e2e/regression/vitalia-fase1-empty-states/sc-04bis-adrian-inbox.spec.ts
+      - vitalia/frontend/e2e/regression/vitalia-fase1-empty-states/sc-05-subtab-invalido.spec.ts
+      - vitalia/frontend/e2e/regression/vitalia-fase1-empty-states/sc-06-edge-no-shell-remount.spec.ts
+      - vitalia/frontend/e2e/regression/vitalia-fase1-empty-states/sc-07-adversarial-xss.spec.ts
+      - vitalia/frontend/e2e/regression/vitalia-fase1-empty-states/sc-08-empty-states-genericos.spec.ts
+      - vitalia/frontend/e2e/regression/vitalia-fase1-empty-states/sc-09-a11y.spec.ts
+      - vitalia/frontend/e2e/regression/vitalia-fase1-empty-states/sc-10-i18n.spec.ts
+    state: audit-passed
+
+  # ════════════════════════════════════════════════════════════════════
+  - id: T-11
+    title: "Visual goldens — ~70 PNG snapshots (light/dark/takeover/responsive) (TESTS-ONLY)"
+    description: |
+      NEW Visual goldens — TESTS-ONLY (no production_code).
+
+      ~70 PNG goldens generados con `--update-snapshots` first run:
+        - 44 PNG: 22 sub-tabs × light + dark
+        - 6 PNG: inbox state A (Adrián) × light+dark · state B (human) × light+dark · sidebar closed × light+dark
+        - ~18 PNG: responsive breakpoints (mobile 375 / tablet 768 / desktop 1280) × 6 placeholders especiales
+        - 2 PNG: lisa-servicios catalogo + escalera state
+        - 2 PNG: adrian-embudo kanban + lista state
+
+      Tolerance: 0.001 default · 0.005 responsive (allow minor anti-aliasing diff cross-viewport).
+
+      Mockup baseline references (gate `shell-mockup-per-component.md`):
+        empty-states-grid.html → 22 sub-tabs goldens
+        lisa-servicios-placeholder.html → val-fe-visual-lisa-servicios-{catalogo,escalera}
+        adrian-embudo-placeholder.html → val-fe-visual-adrian-embudo-{kanban,lista}
+        adrian-inbox-placeholder.html → val-fe-visual-inbox-state-{A,B}-* + val-fe-visual-inbox-sidebar-closed
+        valeria-agenda-placeholder.html → val-fe-visual-valeria-agenda-week-default
+        camila-voz-placeholder.html → cubierto por 22 light+dark
+        config-conexiones-placeholder.html → cubierto por 22 light+dark
+
+      Run: `npx playwright test e2e/regression/vitalia-fase1-empty-states/ --update-snapshots` (intentional)
+            `npx playwright test e2e/regression/vitalia-fase1-empty-states/` (compare against goldens)
+    production_code: false  # TESTS-ONLY
+    owner_eligibility:
+      - opencode
+      - sonnet (builder-frontend)
+    claude_opus_required: false
+    estimate_hours: 2
+    depends_on: [T-10]
+    blocks: []  # último ticket
+    gherkin_coverage:
+      - SC-1
+      - SC-2
+      - SC-3
+      - SC-4
+      - SC-4-bis
+    acceptance:
+      validator_ids:
+        - val-fe-visual-goldens-22-subtabs
+        - val-fe-visual-lisa-servicios-catalogo
+        - val-fe-visual-lisa-servicios-escalera
+        - val-fe-visual-adrian-embudo-kanban
+        - val-fe-visual-adrian-embudo-lista
+        - val-fe-visual-valeria-agenda-week-default
+        - val-fe-visual-inbox-state-A-adrian
+        - val-fe-visual-inbox-state-B-human
+        - val-fe-visual-inbox-sidebar-closed
+        - val-fe-visual-responsive-valeria-agenda
+    state: audit-passed
+    pending_chris_visual_ratify: true
+    files_in_scope:
+      - vitalia/frontend/e2e/regression/vitalia-fase1-empty-states/visual-goldens.spec.ts
+      - vitalia/frontend/e2e/__screenshots__/visual/empty-states/  # ~70 PNG directory (generated post live-stack run)
+
+# ──────────────────────────────────────────────────────────────────────
+# Summary
+# ──────────────────────────────────────────────────────────────────────
+summary:
+  tickets_count: 11
+  production_code_tickets: 9  # T-1..T-9
+  tests_only_tickets: 2       # T-10, T-11
+  total_estimate_hours: 24
+  hours_breakdown:
+    T-1: 2
+    T-2: 2
+    T-3: 2
+    T-4: 2
+    T-5: 3
+    T-6: 3
+    T-7: 3
+    T-8: 1
+    T-9: 1
+    T-10: 3
+    T-11: 2
+  dag_parallel_opportunities:
+    "After T-1 done, parallel: T-2 || T-3 || T-4 || T-5 || T-8"
+    "After T-5 done, T-6 unblocked"
+    "After T-2, T-3, T-4, T-6, T-7, T-8 all done → T-9"
+    "T-9 → T-10 → T-11 strictly sequential"
+  owner_recommendation: "opencode (local) o sonnet (builder-frontend) cross-tickets. NUNCA Opus (no agentic surface)."

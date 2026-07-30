@@ -1,0 +1,46 @@
+# Vitalia medical_kb_dental_v1 — bootstrap manifest
+# Story 11 T-kb-1 (R23 Opus 4.7 production AGENTIC code)
+#
+# This manifest is the SSoT metadata for the dental KB pack consumed by:
+#   * vitalia/backend/scripts/seed_medical_kb.py — ingestion driver
+#   * vitalia/backend/src/modules/vitalia/extensions.py EP-14 — registry mounting
+#   * tests/agentic_evals/kb_packs/test_medical_kb_dental_retrieval.py — V-AE-9
+#
+# Spec sources:
+#   * docs/product/stories/luana-vitalia-bootstrap/02-design-agentic.md § 9.1
+#   * docs/product/stories/luana-vitalia-bootstrap/03-arch-agentic.md § 7.1 + § 7.2
+
+pack_id: medical_kb_dental_v1
+qdrant_collection: vitalia_medical_kb_dental_v1
+embedding_model: text-embedding-3-large
+vector_size: 1536
+distance_metric: cosine
+default_top_k: 5
+default_score_threshold: 0.72
+version: 1
+language: es
+tenant_scope: brand          # cross-tenant share — medical reference, not per-tenant PHI
+compliance_level: hipaa_lite # D7 ratified
+chunks_target_baseline: 150  # spec § 9.1 baseline (≥150 enforced by V-AE-9 A1 test)
+
+# Topic family files (ordered by clinical journey: procedures → materials → recovery →
+# common questions → complications). Each file contributes ~30 chunks.
+topic_files:
+  - 01_procedures.md          # Procedure descriptions (endodoncia, extracciones, etc.)
+  - 02_materials.md           # Materials (resinas, amalgamas, implantes, brackets)
+  - 03_recovery.md            # Post-op care + recovery timelines
+  - 04_common_questions.md    # Pre-treatment patient questions + responses
+  - 05_complications.md       # Complications glossary + when to escalate to doctor
+
+# Chunk schema reference (see DentalKbChunk dataclass):
+#   chunk_id (UUIDv5)        derived from source_doc + chunk_index + version
+#   kb_pack                  always "medical_kb_dental_v1"
+#   text                     chunk content (max ~1500 chars per spec § 7.2)
+#   source_doc               filename (e.g. "01_procedures.md")
+#   chunk_index              0-based within source file
+#   topic_tags               list[str]
+#   procedure_codes          list[str] — CDT codes (e.g. "D2740" crown)
+#   tenant_id                null = generic (visible all tenants), uuid = clinic-specific
+#   forced_retrieval         bool — top-1 forced (NOT used in dental pack; psychiatry only)
+#   forced_retrieval_triggers list[str] — match patterns for forced retrieval
+#   version                  1 (bump = full reseed via stable_id rotation)

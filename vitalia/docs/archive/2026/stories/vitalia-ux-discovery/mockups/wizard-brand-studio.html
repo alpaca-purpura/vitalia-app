@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Vitalia · Wizard Brand Studio — mockup v1 Batch 7 agentic</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    :root {
+      --vitalia-cian: 198 99% 49%;
+      --vitalia-purpura: 287 53% 37%;
+      --vitalia-amarillo: 53 99% 51%;
+      --vitalia-azul-marino: 244 84% 32%;
+      --vitalia-verde-lima: 70 73% 51%;
+      --vitalia-bg: 220 28% 98%;
+      --vitalia-surface: 0 0% 100%;
+      --vitalia-surface-alt: 220 38% 98%;
+      --vitalia-muted: 220 33% 96%;
+      --vitalia-text: 226 36% 16%;
+      --vitalia-text-muted: 220 9% 46%;
+      --vitalia-text-faint: 220 9% 65%;
+      --vitalia-border: 222 18% 93%;
+      --vitalia-border-soft: 220 25% 96%;
+      --vitalia-success: 142 76% 36%;
+      --vitalia-warning: 33 91% 44%;
+      --vitalia-danger: 0 73% 50%;
+    }
+    body { font-family: 'Inter', system-ui, sans-serif; background: hsl(var(--vitalia-bg)); color: hsl(var(--vitalia-text)); }
+    .grad-valeria { background: linear-gradient(135deg, #01B2F8 0%, #7B2D91 100%); }
+    .grad-adrian  { background: linear-gradient(135deg, #7B2D91 0%, #180D95 100%); }
+    .grad-mariposa { background: linear-gradient(135deg, #01B2F8 0%, #7B2D91 50%, #B8DC2A 100%); }
+    .pill { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; font-size: 10px; font-weight: 600; }
+    .bubble-valeria { background: hsl(var(--vitalia-muted)); border-radius: 18px 18px 18px 4px; }
+    .bubble-user { background: hsl(var(--vitalia-azul-marino)); color: white; border-radius: 18px 18px 4px 18px; }
+    @keyframes typing-dot { 0%, 60%, 100% { opacity: 0.3 } 30% { opacity: 1 } }
+    .typing-dot { animation: typing-dot 1.5s infinite ease-in-out; }
+  </style>
+</head>
+<body class="min-h-screen">
+  <div class="px-4 py-2 bg-[hsl(var(--vitalia-azul-marino))] text-white text-[11px] flex items-center justify-between">
+    <span>📐 <strong>Mockup Vitalia · Wizard Brand Studio v1 Batch 7 (reframe agentic ratificado 2026-05-17)</strong></span>
+    <span class="opacity-70">Conversacional · slot-filling adaptativo · extracción NLU · voz Adrián REAL Slice 1</span>
+  </div>
+
+  <!-- TopBar -->
+  <header class="h-14 bg-white border-b border-[hsl(var(--vitalia-border))] px-4 flex items-center gap-3">
+    <div class="w-7 h-7 rounded grad-mariposa flex items-center justify-center text-white font-bold text-[11px]">V</div>
+    <span class="font-bold text-[hsl(var(--vitalia-azul-marino))] text-base">Vitalia setup</span>
+    <span class="text-xs text-[hsl(var(--vitalia-text-muted))]">Configuración inicial · primer ingreso</span>
+    <span class="ml-4 text-[11px] text-[hsl(var(--vitalia-text-muted))]">Slots: <strong class="text-[hsl(var(--vitalia-success))]">3/3 req ✓</strong> · 1/2 opc</span>
+    <div class="ml-auto">
+      <button class="text-xs text-[hsl(var(--vitalia-text-muted))] hover:text-[hsl(var(--vitalia-danger))] flex items-center gap-1.5 px-3 py-1.5 rounded hover:bg-[hsl(var(--vitalia-muted))]">
+        <i data-lucide="x" class="w-3.5 h-3.5"></i>
+        <span>Cerrar setup</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="grid h-[900px]" style="grid-template-columns: 1fr 1fr;">
+    <!-- LEFT 50% — Chat Valeria conversacional -->
+    <section class="bg-white border-r border-[hsl(var(--vitalia-border))] flex flex-col">
+      <!-- Slot tracker sticky top -->
+      <div class="px-4 py-3 border-b border-[hsl(var(--vitalia-border))] bg-[hsl(var(--vitalia-surface-alt))]">
+        <div class="text-[10px] font-bold uppercase tracking-wide text-[hsl(var(--vitalia-text-muted))] mb-2">Slot tracker</div>
+        <div class="flex flex-wrap gap-1.5">
+          <span class="pill bg-[hsl(var(--vitalia-success)/0.15)] text-[hsl(var(--vitalia-success))]">✓ Nombre</span>
+          <span class="pill bg-[hsl(var(--vitalia-success)/0.15)] text-[hsl(var(--vitalia-success))]">✓ Vertical</span>
+          <span class="pill bg-[hsl(var(--vitalia-success)/0.15)] text-[hsl(var(--vitalia-success))]">✓ Ubicación</span>
+          <span class="pill bg-[hsl(var(--vitalia-success)/0.15)] text-[hsl(var(--vitalia-success))]">✓ Estilo</span>
+          <span class="pill bg-[hsl(var(--vitalia-cian)/0.15)] text-[hsl(var(--vitalia-cian))]">⚪ 1er tratamiento</span>
+        </div>
+      </div>
+
+      <!-- Chat thread -->
+      <div class="flex-1 overflow-auto px-4 py-4 space-y-4">
+        <!-- Turno 1: Valeria intro -->
+        <div class="flex gap-2 items-end">
+          <div class="w-8 h-8 rounded-full grad-valeria text-white text-[11px] font-bold flex items-center justify-center flex-shrink-0">V</div>
+          <div class="bubble-valeria max-w-[80%] px-3.5 py-2.5">
+            <div class="text-[10px] font-semibold text-[hsl(var(--vitalia-azul-marino))] mb-1">Valeria · 14:23</div>
+            <p class="text-xs leading-relaxed">Hola María 😊 bienvenida a Vitalia. Para configurar tu clínica te puedo preguntar paso a paso, o si preferís contame todo lo que quieras + adjuntá tu web/folleto/Instagram, y yo extraigo lo importante. ¿Qué te resulta más cómodo?</p>
+            <div class="flex gap-1.5 mt-2.5">
+              <button class="text-[10px] px-2.5 py-1 rounded-full bg-[hsl(var(--vitalia-azul-marino))] text-white font-semibold">Conversación libre</button>
+              <button class="text-[10px] px-2.5 py-1 rounded-full border border-[hsl(var(--vitalia-border))] text-[hsl(var(--vitalia-text-muted))]">Guiado paso a paso</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Turno 2: Usuario response + URL attach -->
+        <div class="flex gap-2 items-end justify-end">
+          <div class="bubble-user max-w-[80%] px-3.5 py-2.5">
+            <div class="text-[10px] font-semibold text-white/80 mb-1 text-right">Tú · 14:24</div>
+            <p class="text-xs leading-relaxed text-white">Soy María González, dueña de Clínica Dental Sonríe en Lima Perú. Acá te paso nuestra web 👇</p>
+            <div class="mt-2 px-2 py-1.5 bg-white/10 rounded text-[11px] text-white/90 flex items-center gap-1.5">
+              <i data-lucide="link" class="w-3 h-3"></i>
+              <span>sonrie-dental.pe</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Turno 3: Valeria analyzing -->
+        <div class="flex gap-2 items-end">
+          <div class="w-8 h-8 rounded-full grad-valeria text-white text-[11px] font-bold flex items-center justify-center flex-shrink-0">V</div>
+          <div class="bubble-valeria max-w-[80%] px-3.5 py-2.5">
+            <div class="text-[10px] font-semibold text-[hsl(var(--vitalia-azul-marino))] mb-1">Valeria · 14:24</div>
+            <p class="text-xs leading-relaxed">Analizando tu web...</p>
+            <div class="flex gap-1 mt-1.5">
+              <span class="w-1.5 h-1.5 rounded-full bg-[hsl(var(--vitalia-azul-marino))] typing-dot" style="animation-delay: 0ms"></span>
+              <span class="w-1.5 h-1.5 rounded-full bg-[hsl(var(--vitalia-azul-marino))] typing-dot" style="animation-delay: 180ms"></span>
+              <span class="w-1.5 h-1.5 rounded-full bg-[hsl(var(--vitalia-azul-marino))] typing-dot" style="animation-delay: 360ms"></span>
+            </div>
+            <div class="mt-2 text-[10px] text-[hsl(var(--vitalia-text-muted))] italic">
+              style_analyzer engine · brand_data_adapter
+            </div>
+          </div>
+        </div>
+
+        <!-- Turno 4: Valeria pregunta natural slot 1 nombre -->
+        <div class="flex gap-2 items-end">
+          <div class="w-8 h-8 rounded-full grad-valeria text-white text-[11px] font-bold flex items-center justify-center flex-shrink-0">V</div>
+          <div class="bubble-valeria max-w-[80%] px-3.5 py-2.5">
+            <div class="text-[10px] font-semibold text-[hsl(var(--vitalia-azul-marino))] mb-1">Valeria · 14:25</div>
+            <p class="text-xs leading-relaxed">¡Genial! Vi varias cosas en tu web. Empecemos por confirmar:</p>
+            <p class="text-xs leading-relaxed mt-2">El nombre <strong>'Clínica Dental Sonríe'</strong>, ¿lo dejamos así o lo cambiamos?</p>
+            <div class="flex gap-1.5 mt-2.5">
+              <button class="text-[10px] px-2.5 py-1 rounded-full bg-[hsl(var(--vitalia-success))] text-white font-semibold">Dejarlo así ✓</button>
+              <button class="text-[10px] px-2.5 py-1 rounded-full border border-[hsl(var(--vitalia-border))] text-[hsl(var(--vitalia-text-muted))]">Cambiar →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Turno 5: Usuario confirma -->
+        <div class="flex gap-2 items-end justify-end">
+          <div class="bubble-user max-w-[80%] px-3.5 py-2.5">
+            <div class="text-[10px] font-semibold text-white/80 mb-1 text-right">Tú · 14:25</div>
+            <p class="text-xs text-white">Dejarlo así ✓</p>
+          </div>
+        </div>
+
+        <!-- Turnos 6-9: omitted for brevity, abreviado -->
+        <div class="flex gap-2 items-end">
+          <div class="w-8 h-8 rounded-full grad-valeria text-white text-[11px] font-bold flex items-center justify-center flex-shrink-0">V</div>
+          <div class="bubble-valeria max-w-[80%] px-3.5 py-2.5">
+            <div class="text-[10px] font-semibold text-[hsl(var(--vitalia-azul-marino))] mb-1">Valeria · 14:25-14:28</div>
+            <p class="text-xs leading-relaxed text-[hsl(var(--vitalia-text-muted))]">
+              [Conversación abreviada · slots ✓ Vertical Dental · ✓ Ubicación Lima Perú · ✓ Estilo cálido profesional confirmados turn-by-turn]
+            </p>
+          </div>
+        </div>
+
+        <!-- Turno 10: Valeria pregunta last opcional -->
+        <div class="flex gap-2 items-end">
+          <div class="w-8 h-8 rounded-full grad-valeria text-white text-[11px] font-bold flex items-center justify-center flex-shrink-0">V</div>
+          <div class="bubble-valeria max-w-[80%] px-3.5 py-2.5">
+            <div class="text-[10px] font-semibold text-[hsl(var(--vitalia-azul-marino))] mb-1">Valeria · 14:29</div>
+            <p class="text-xs leading-relaxed">Última cosa: ¿qué tratamiento querés ofrecer primero? Te puedo crear el scaffold inicial. Vi <strong>'Implantes dentales'</strong> destacado en tu web.</p>
+            <div class="flex flex-col gap-1.5 mt-2.5">
+              <button class="text-[10px] px-2.5 py-1 rounded-full bg-[hsl(var(--vitalia-success))] text-white font-semibold self-start">Implantes dentales (sugerido) ✓</button>
+              <button class="text-[10px] px-2.5 py-1 rounded-full border border-[hsl(var(--vitalia-border))] text-[hsl(var(--vitalia-text-muted))] self-start">Otro → input</button>
+              <button class="text-[10px] px-2.5 py-1 rounded-full border border-[hsl(var(--vitalia-border-soft))] text-[hsl(var(--vitalia-text-faint))] self-start">Saltar</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tail bonus extracted (visible si URL adjunto y completas) -->
+        <div class="flex gap-2 items-end">
+          <div class="w-8 h-8 rounded-full grad-valeria text-white text-[11px] font-bold flex items-center justify-center flex-shrink-0">V</div>
+          <div class="bubble-valeria max-w-[80%] px-3.5 py-2.5 bg-[hsl(var(--vitalia-verde-lima)/0.1)] border border-[hsl(var(--vitalia-verde-lima)/0.4)]">
+            <div class="text-[10px] font-semibold text-[hsl(var(--vitalia-azul-marino))] mb-1">Valeria · bonus NLU</div>
+            <p class="text-xs leading-relaxed">Adicionalmente, de tu web extraje:</p>
+            <ul class="text-[11px] mt-1.5 space-y-0.5 text-[hsl(var(--vitalia-text-muted))]">
+              <li>• <strong>Equipo:</strong> Dr. Mendoza · Dra. Soto</li>
+              <li>• <strong>Valores:</strong> trayectoria 15 años · tecnología avanzada</li>
+              <li>• <strong>Contacto:</strong> WhatsApp + teléfono</li>
+            </ul>
+            <p class="text-[11px] mt-2 leading-relaxed">Ya lo guardé en tu Brand Studio drafts — podés revisarlo cuando quieras. ¡A trabajar! 🚀</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Input composer -->
+      <div class="border-t border-[hsl(var(--vitalia-border))] bg-[hsl(var(--vitalia-surface-alt))] px-4 py-3">
+        <div class="flex items-center gap-2 bg-white rounded-lg border border-[hsl(var(--vitalia-border))] px-2 py-1.5">
+          <button class="w-7 h-7 rounded hover:bg-[hsl(var(--vitalia-muted))] flex items-center justify-center text-[hsl(var(--vitalia-text-muted))]">
+            <i data-lucide="paperclip" class="w-4 h-4"></i>
+          </button>
+          <button class="w-7 h-7 rounded hover:bg-[hsl(var(--vitalia-muted))] flex items-center justify-center text-[hsl(var(--vitalia-text-muted))]">
+            <i data-lucide="mic" class="w-4 h-4"></i>
+          </button>
+          <input class="flex-1 text-xs outline-none px-2" placeholder="Escribí tu respuesta o pegá una URL..." />
+          <button class="bg-[hsl(var(--vitalia-azul-marino))] text-white text-[10px] font-semibold px-3 py-1.5 rounded flex items-center gap-1 hover:bg-[hsl(var(--vitalia-purpura))]">
+            <span>Enviar</span>
+            <i data-lucide="arrow-right" class="w-3 h-3"></i>
+          </button>
+        </div>
+        <div class="flex items-center justify-between mt-2 text-[10px] text-[hsl(var(--vitalia-text-muted))]">
+          <div class="flex items-center gap-2">
+            <button class="hover:underline">← Atrás</button>
+            <span>·</span>
+            <button class="hover:underline">Saltar al final con defaults</button>
+          </div>
+          <div class="italic">
+            Modo: <strong class="text-[hsl(var(--vitalia-azul-marino))]">Conversación libre</strong>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT 50% — Live preview split -->
+    <section class="bg-[hsl(var(--vitalia-surface-alt))] flex flex-col">
+      <div class="px-4 py-3 border-b border-[hsl(var(--vitalia-border))] bg-white">
+        <div class="text-[10px] font-bold uppercase tracking-wide text-[hsl(var(--vitalia-text-muted))]">Live preview</div>
+        <div class="text-xs text-[hsl(var(--vitalia-text))] mt-0.5">Mostrá cómo se verá tu marca cuando esté lista</div>
+      </div>
+
+      <div class="flex-1 overflow-auto p-4 space-y-4">
+        <!-- WhatsApp Adrián preview real -->
+        <div class="bg-white rounded-lg shadow-sm border border-[hsl(var(--vitalia-border))] overflow-hidden">
+          <div class="px-3 py-2 border-b border-[hsl(var(--vitalia-border-soft))] flex items-center justify-between bg-[hsl(var(--vitalia-bg))]">
+            <div class="flex items-center gap-2">
+              <i data-lucide="message-circle" class="w-3.5 h-3.5 text-[hsl(var(--vitalia-success))]"></i>
+              <span class="text-[11px] font-bold uppercase tracking-wide text-[hsl(var(--vitalia-text))]">Cómo escribe Adrián</span>
+            </div>
+            <span class="text-[10px] text-[hsl(var(--vitalia-success))] flex items-center gap-1">
+              <i data-lucide="check-circle" class="w-3 h-3"></i> Voz compilada engine
+            </span>
+          </div>
+          <div class="p-3 bg-[hsl(var(--vitalia-muted)/0.4)]">
+            <div class="bg-white rounded-lg p-3 shadow-sm">
+              <div class="flex items-center gap-2 mb-2">
+                <div class="w-7 h-7 rounded-full grad-adrian text-white text-[11px] font-bold flex items-center justify-center">A</div>
+                <div>
+                  <div class="text-[11px] font-semibold text-[hsl(var(--vitalia-azul-marino))]">Adrián</div>
+                  <div class="text-[9px] text-[hsl(var(--vitalia-text-muted))]">Clínica Dental Sonríe · hace 1 min</div>
+                </div>
+              </div>
+              <div class="bg-[hsl(var(--vitalia-bg))] rounded-lg p-2.5 text-xs leading-relaxed">
+                ¡Hola! Soy Adrián de Clínica Dental Sonríe. Vi que estás interesado en implantes dentales. ¿Te puedo agendar una consulta inicial para evaluarte sin compromiso?
+              </div>
+              <div class="text-[9px] text-[hsl(var(--vitalia-text-faint))] mt-2 italic">
+                Estilo: cálido profesional · 15 años trayectoria · invita acción sin presión
+              </div>
+            </div>
+          </div>
+          <div class="px-3 py-2 border-t border-[hsl(var(--vitalia-border-soft))] flex items-center justify-between text-[10px] text-[hsl(var(--vitalia-text-muted))]">
+            <span>Refresh debounced 1.5s post-confirm slot</span>
+            <span>$0.02 USD · Kimi K2</span>
+          </div>
+        </div>
+
+        <!-- Landing snippet preview -->
+        <div class="bg-white rounded-lg shadow-sm border border-[hsl(var(--vitalia-border))] overflow-hidden">
+          <div class="px-3 py-2 border-b border-[hsl(var(--vitalia-border-soft))] flex items-center justify-between bg-[hsl(var(--vitalia-bg))]">
+            <div class="flex items-center gap-2">
+              <i data-lucide="globe" class="w-3.5 h-3.5 text-[hsl(var(--vitalia-cian))]"></i>
+              <span class="text-[11px] font-bold uppercase tracking-wide text-[hsl(var(--vitalia-text))]">Tu landing page</span>
+            </div>
+            <span class="text-[10px] text-[hsl(var(--vitalia-text-muted))] italic">Snippet preview</span>
+          </div>
+          <div class="p-3 bg-gradient-to-b from-[hsl(var(--vitalia-cian)/0.1)] to-white">
+            <div class="bg-white rounded-lg p-5 shadow-sm border border-[hsl(var(--vitalia-border-soft))]">
+              <div class="w-10 h-10 rounded grad-mariposa mb-3"></div>
+              <h2 class="text-base font-bold text-[hsl(var(--vitalia-azul-marino))] mb-1">Clínica Dental Sonríe</h2>
+              <p class="text-[11px] text-[hsl(var(--vitalia-text-muted))] leading-relaxed mb-3">Tu sonrisa en manos expertas · 15 años de trayectoria en Lima</p>
+              <button class="bg-[hsl(var(--vitalia-azul-marino))] text-white text-[10px] font-semibold px-3 py-1.5 rounded hover:bg-[hsl(var(--vitalia-purpura))]">
+                Reservar consulta
+              </button>
+              <div class="text-[9px] text-[hsl(var(--vitalia-text-faint))] mt-3 italic">
+                Update en cada confirmación de slot
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Backend info -->
+        <div class="text-[10px] text-[hsl(var(--vitalia-text-muted))] italic px-2 leading-relaxed">
+          <p class="mb-1">📊 <strong>Backend engine activo:</strong></p>
+          <ul class="space-y-0.5 ml-3">
+            <li>· style_analyzer (LangGraph agent) extrayendo slots</li>
+            <li>· personality_service compile parcial per slot confirmed</li>
+            <li>· voice_fidelity grader validando voz output</li>
+            <li>· throttle 5 simulate/min/tenant + cache results</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Footer notes -->
+  <footer class="border-t border-[hsl(var(--vitalia-border))] bg-white px-4 py-3 text-[11px] text-[hsl(var(--vitalia-text-muted))] flex items-center justify-between gap-4 flex-wrap">
+    <div><strong>Mockup:</strong> Wizard mid-flow turno ~10/12 · slot 1er tratamiento en pregunta · 4/5 slots confirmed · live preview WA Adrián real + Landing snippet update</div>
+    <div class="flex gap-3 text-right">
+      <span>📐 Fase 1 chat-LEFT 50/50 cementado Batch 1 · transición morph 400ms al completar</span>
+    </div>
+  </footer>
+
+  <script>lucide.createIcons();</script>
+</body>
+</html>

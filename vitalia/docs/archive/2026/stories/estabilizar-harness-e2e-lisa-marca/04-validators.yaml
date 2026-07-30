@@ -1,0 +1,296 @@
+# 04-validators.yaml — estabilizar-harness-e2e-lisa-marca (bugfix-lite harness honesto + determinista)
+# Schema v4.1. Architect run 2026-06-02.
+# Naturaleza: bugfix de harness E2E + 2 sub-bugs de auth-header. Los SC del spec se traducen a
+# validators EJECUTABLES (grep-gates anti-regresión + runs repeat-each contra backend real + state_checks DB/log).
+
+story_id: estabilizar-harness-e2e-lisa-marca
+brand: vitalia
+schema_version: v4.1
+
+# ═══════════════════════════════════════════════════════════════
+# VERIFICATION (Critical Rule #37)
+# ═══════════════════════════════════════════════════════════════
+verification:
+  nature: both                    # técnica (grep-gates + asserts + arch-fitness) + funcional (flujos lisa-marca REAL)
+  technical_gates:
+    baseline: [tsc_strict, ruff, eslint_max_warnings_0, arch_fitness]   # mypy_strict aplica al toque BE (sub-bug #1)
+    opt_in:
+      schemathesis: false         # sub-bug #1 NO agrega endpoint nuevo (cambia un header de required→optional)
+      hypothesis: false           # sin domain logic con invariantes nuevos
+      mutmut: false
+  runtime_error_gate: required    # base.ts (pageerror/console/hydration/api-4xx5xx/Next-dialog) — ADOPTADO en los 11 specs de-mockeados
+  business_rules:                 # cada RN del spec → tag → scenario (los grep-gates SON la verificación de las RN del harness)
+    - { rule: "RN-1 cero mock del backend-bajo-prueba",          tag: "@rule-no-mock-bajo-prueba", scenario_id: "SC-2" }
+    - { rule: "RN-2 anti-burbuja siempre (base.ts)",             tag: "@rule-anti-burbuja",        scenario_id: "SC-3" }
+    - { rule: "RN-3 asserts web-first sobre estado hidratado",   tag: "@rule-web-first",           scenario_id: "SC-4" }
+    - { rule: "RN-4 sin listeners dangling",                     tag: "@rule-sin-dangling",        scenario_id: "SC-5" }
+    - { rule: "RN-5 actor de audit real (HIPAA-lite quién)",     tag: "@rule-actor-real",          scenario_id: "SC-6" }
+    - { rule: "RN-6 tenant real (E2E_TENANT_ID)",                tag: "@rule-tenant-real",         scenario_id: "SC-1" }
+    - { rule: "RN-7 cap honesto (e2e_test → spec real)",         tag: "@rule-cap-honesto",         scenario_id: "SC-8" }
+  demo_required: true             # toca FE-prod (marca-voice-api) + flujos lisa-marca user-reachable → demo-script lite
+  demo_skip_reason: null
+  regression_guard:               # tests de OTRAS features que NO deben cambiar (siguen verdes sin tocarse)
+    - "vitalia/frontend/e2e/regression/{valeria,camila}/**/*.spec.ts (NO se tocan)"
+    - "vitalia/frontend/e2e/shell-organism/staff-*.spec.ts (vitalia-fase2-lisa-doctores — NO se toca)"
+    - "vitalia/backend/tests/architecture/ (siguen verdes; el sub-bug #1 mantiene response_model=)"
+  coverage_update:                # tests del comportamiento cambiado a actualizar revisando el diff (no -u mecánico)
+    - "vitalia/frontend/src/features/lisa/hooks/__tests__/usePersonalityAutosave.test.ts (X-User-ID = userId real, no tenantId)"
+    - "vitalia/frontend/src/features/lisa/components/marca/voz-y-tono/__tests__/VozTonoView.test.tsx (prohibited-phrases sin X-User-ID)"
+  new_coverage:                   # tests nuevos (TDD RED primero)
+    - "vitalia/backend/tests/modules/vitalia/brand_studio/ — GET prohibited-phrases sin X-User-ID → 200 (RED contra el 422 actual)"
+
+validators:
+  # ───────────────────────────── NON-FUNCTIONAL (baseline) ─────────────────────────────
+  - id: fe_typecheck
+    category: non_functional
+    type: shell
+    cmd: "cd vitalia/frontend && npx tsc --noEmit"
+    must_pass: true
+    timeout_sec: 120
+    description: "TS strict 0 errors (specs de-mockeados + fixture forwarding + sub-bug #2 api-layer)"
+
+  - id: fe_lint
+    category: non_functional
+    type: shell
+    cmd: "cd vitalia/frontend && npx eslint e2e/ src/features/lisa/api/ --max-warnings 0 --cache --cache-location .eslintcache"
+    must_pass: true
+    timeout_sec: 90
+    description: "ESLint 0 errors/warnings sobre e2e + api-layer tocados"
+
+  - id: fe_arch_fitness
+    category: non_functional
+    type: shell
+    cmd: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/ --reporter=default"
+    must_pass: true
+    timeout_sec: 90
+    description: "FSD-Lite boundaries + test-no-clerk-organizations (api-layer sigue usando useAuth().userId, no orgId)"
+
+  - id: be_arch_fitness
+    category: non_functional
+    type: pytest
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/architecture/ -x -q --override-ini='addopts='"
+    must_pass: true
+    timeout_sec: 120
+    description: "response_model required (GET prohibited-phrases lo mantiene) + brand_studio DDD + tenant-isolation"
+
+  - id: be_lint_format
+    category: non_functional
+    type: shell
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/ruff check src/modules/vitalia/brand_studio/ tests/modules/vitalia/brand_studio/ --no-cache && ${WS}/.venv/bin/ruff format --check src/modules/vitalia/brand_studio/"
+    must_pass: true
+    timeout_sec: 40
+    description: "Ruff check + format sub-bug #1"
+
+  - id: be_typecheck
+    category: non_functional
+    type: shell
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/mypy --strict src/modules/vitalia/brand_studio/api/routers/marca_router.py"
+    must_pass: true
+    timeout_sec: 90
+    description: "mypy strict sobre el router tocado (sub-bug #1 + #2b actor resolver)"
+
+  # ───────────────────────────── FUNCTIONAL: los SC traducidos a validators ejecutables ─────────────────────────────
+
+  - id: sc1_suite_determinista
+    category: functional
+    type: playwright
+    cmd: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test --project=smoke e2e/regression/vitalia-fase2-lisa-marca/ --repeat-each=3 --workers=1"
+    must_pass: true
+    timeout_sec: 600
+    scenario_id: SC-1
+    description: "Suite lisa-marca de-mockeada ×3 contra backend real (BE :8002 + FE :3002 UP). 0 flaky · 0 failed."
+
+  - id: sc2_no_mock_backend_bajo_prueba       # GREP-GATE (adversarial · anti-re-introducción del false-green)
+    category: functional
+    type: shell
+    cmd: "! grep -rEn 'page\\.route\\(.*api/v1/lisa/marca/(identity|visuals|personality|contact|trust-signals)' vitalia/frontend/e2e/regression/vitalia-fase2-lisa-marca/"
+    must_pass: true
+    timeout_sec: 10
+    scenario_id: SC-2
+    description: "0 ocurrencias de page.route sobre identity/visuals/personality/contact/trust-signals (mock del backend-bajo-prueba). Las fallas inyectadas 503/abort van por network-failure.ts (pattern variable) — error-path, no happy-path mock. [M1 fix: el pattern previo 'route.fulfill ... endpoint' daba 0 vacuo porque el mock es multi-línea; la señal real es page.route(...endpoint).]"
+
+  - id: sc3a_anti_burbuja_imports             # GREP-GATE
+    category: functional
+    type: shell
+    cmd: "! grep -rEn 'from \"@playwright/test\"' vitalia/frontend/e2e/regression/vitalia-fase2-lisa-marca/*.spec.ts"
+    must_pass: true
+    timeout_sec: 10
+    scenario_id: SC-3
+    description: "0 specs lisa-marca importan @playwright/test directo (todos importan de base.ts vía real-backend-forward.fixture)"
+
+  - id: sc3b_anti_burbuja_runtime
+    category: functional
+    type: playwright
+    cmd: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test --project=smoke e2e/regression/vitalia-fase2-lisa-marca/lisa-marca-identidad-autosave.spec.ts"
+    must_pass: true
+    timeout_sec: 240
+    scenario_id: SC-3
+    description: "Ejercer el flujo real → base.ts asserta pageErrors[]==0 + hydrationErrors[]==0 + nextjs-dialog count==0 (gate anti-burbuja activo)"
+
+  - id: sc4_reload_persist_web_first
+    category: functional
+    type: playwright
+    cmd: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test --project=smoke e2e/regression/arreglar-guardado-voz-y-tono/ --repeat-each=5 --workers=1"
+    must_pass: true
+    timeout_sec: 600
+    scenario_id: SC-4
+    description: "Los 5 fixme des-quarantined (reload-persist arquetipo + bloque) con asserts web-first → 5/5 determinista"
+
+  - id: sc5a_sin_listeners_dangling           # GREP-GATE
+    category: functional
+    type: shell
+    cmd: "! grep -rEn 'page\\.on\\(|authedPage\\.on\\(' vitalia/frontend/e2e/regression/{vitalia-fase2-lisa-marca,arreglar-guardado-voz-y-tono}/ | grep -E 'void '"
+    must_pass: true
+    timeout_sec: 10
+    scenario_id: SC-5
+    description: "0 page.on/authedPage.on con callback fire-and-forget (void promise) sin cleanup"
+
+  - id: sc5b_sin_dangling_runtime
+    category: functional
+    type: playwright
+    cmd: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test --project=smoke e2e/regression/arreglar-guardado-voz-y-tono/voz-arquetipo-autosave.spec.ts --repeat-each=3 --workers=1"
+    must_pass: true
+    timeout_sec: 300
+    scenario_id: SC-5
+    description: "0 'Target page... has been closed' en repeat-each=3 (flaky=0)"
+
+  - id: sc6_audit_actor_real
+    category: functional
+    type: state_check
+    target: db
+    query: "SELECT user_id, tenant_id FROM vitalia_audit_log WHERE resource_type='personality' ORDER BY occurred_at DESC LIMIT 1"
+    expect: "user_id = users.id del owner Clerk autenticado (resuelto de clerk_sub) AND user_id != tenant_id"
+    must_pass: true
+    timeout_sec: 120
+    scenario_id: SC-6
+    description: "PATCH personality real (browser owner) → fila audit con actor UUID real (HIPAA-lite quién). Verificado via Chrome DevTools MCP + query DB."
+
+  - id: sc7_prohibited_phrases_browser_real
+    category: functional
+    type: state_check
+    target: backend_log
+    expect: "GET /api/v1/lisa/marca/prohibited-phrases → 200 desde el browser real (sin X-User-ID inyectado a mano); 0 ocurrencias de 422 en ese endpoint en los logs del flujo"
+    must_pass: true
+    timeout_sec: 120
+    scenario_id: SC-7
+    description: "Browser real abre voz-y-tono → GET prohibited-phrases 200 (sub-bug #1 cerrado). Verificado via Chrome DevTools MCP (Network panel) + docker logs."
+
+  - id: sc7_be_unit_prohibited_phrases_optional
+    category: functional
+    type: pytest
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/brand_studio/ -k prohibited_phrases -v"
+    must_pass: true
+    timeout_sec: 60
+    scenario_id: SC-7
+    description: "GET prohibited-phrases sin X-User-ID → 200 (RED contra 422 actual) · X-Tenant-ID inválido → 422 (tenant-isolation intacta)"
+
+  - id: sc8_cap_honesto
+    category: functional
+    type: shell
+    cmd: "python3 scripts/validate_code_cap_bidirectional.py --brand vitalia && ! grep -nE 'e2e_test:.*vitalia-fase2-lisa-marca' vitalia/docs/product/capabilities/brand_studio/lisa-marca.yaml | grep -v '#'  # placeholder: el auditor cross-check'ea cada e2e_test status:live → spec sin route.fulfill backend-bajo-prueba"
+    must_pass: true
+    timeout_sec: 30
+    scenario_id: SC-8
+    description: "Cada scenario status:live del cap apunta a spec honesto (de-mockeado) + verified_real; ninguno cableado a spec mockeado. Auditor verifica el cross-check (RN-7)."
+
+  - id: live_verify
+    category: functional
+    type: manual_live_verify
+    must_pass: true
+    description: >
+      DoD Critical Rule #37. Claude ejerce las acciones reales contra el stack dev vitalia
+      (make dev-vitalia → localhost:3002/:8002 o make dev-app-vitalia → dev-app.vitalialat.com)
+      via Chrome DevTools MCP: (1) PATCH personality real → lee Network + Console + DB audit_log (SC-6);
+      (2) abre voz-y-tono → GET prohibited-phrases 200 sin header inyectado (SC-7); (3) confirma 0 burbuja Next.
+      Evidencia en checkpoint.md::dod_evidence.
+    evidence_field: "checkpoint.md::dod_evidence"
+    ref: ".claude/rules/definition-of-done-live-verify.md"
+
+  # ───────────────────────────── ARCHITECTURAL VALIDATION ─────────────────────────────
+
+  - id: arch_no_new_forwarding_duplication
+    category: architectural_validation
+    type: shell
+    cmd: "test $(grep -rln 'page.request.fetch' vitalia/frontend/e2e/regression/ | wc -l) -le 0 && echo 'forwarding lifted to fixture OK' || (grep -rln 'page.request.fetch' vitalia/frontend/e2e/fixtures/real-backend-forward.fixture.ts && echo 'forwarding lives in shared fixture OK')"
+    must_pass: true
+    timeout_sec: 10
+    description: "NO-NEW-LAYER: el forwarding vive en la fixture compartida, NO copiado inline en cada spec (anti-duplicación)"
+
+  - id: arch_no_cross_brand_imports
+    category: architectural_validation
+    type: shell
+    cmd: "! grep -rn 'from .*\\(nicolify\\|comunify\\|lupulo\\)' vitalia/backend/src/ vitalia/frontend/src/ vitalia/frontend/e2e/ 2>/dev/null"
+    must_pass: true
+    timeout_sec: 10
+    description: "Cross-brand import HARD ban"
+
+  - id: arch_no_core_edit
+    category: architectural_validation
+    type: shell
+    cmd: "! git diff --name-only main...HEAD 2>/dev/null | grep -E '^core/luana-core-'"
+    must_pass: true
+    timeout_sec: 10
+    description: "Engine boundary: NINGÚN archivo de core/ tocado (sub-bug #1 y #2b viven en vitalia/backend/src/modules/vitalia/brand_studio + iam consumo)"
+
+# ═══════════════════════════════════════════════════════════════
+# Scenario coverage matrix — los 8 SC del spec → validators
+# ═══════════════════════════════════════════════════════════════
+scenario_coverage:
+  - { scenario_id: SC-1, validators: [sc1_suite_determinista, live_verify] }
+  - { scenario_id: SC-2, validators: [sc2_no_mock_backend_bajo_prueba] }
+  - { scenario_id: SC-3, validators: [sc3a_anti_burbuja_imports, sc3b_anti_burbuja_runtime] }
+  - { scenario_id: SC-4, validators: [sc4_reload_persist_web_first] }
+  - { scenario_id: SC-5, validators: [sc5a_sin_listeners_dangling, sc5b_sin_dangling_runtime] }
+  - { scenario_id: SC-6, validators: [sc6_audit_actor_real, live_verify] }
+  - { scenario_id: SC-7, validators: [sc7_prohibited_phrases_browser_real, sc7_be_unit_prohibited_phrases_optional, live_verify] }
+  - { scenario_id: SC-8, validators: [sc8_cap_honesto] }
+  # sub-categorías mandatory v4.1 — cubiertas por specs existentes que se hacen HONESTOS (no se re-inventan)
+  - { scenario_id: race_condition,   validators: [sc1_suite_determinista], note: "lisa-marca-race-autosave de-mockeado" }
+  - { scenario_id: concurrent_users, validators: [sc1_suite_determinista], note: "lisa-marca-concurrent-owners de-mockeado" }
+  - { scenario_id: network_failure,  validators: [sc1_suite_determinista], note: "lisa-marca-autosave-timeout: 503 inyectado = mock legítimo + base.ts opt-out" }
+  - { scenario_id: empty_state,      validators: [sc1_suite_determinista], note: "lisa-marca-empty-state de-mockeado" }
+  - { scenario_id: large_dataset,    validators: [sc1_suite_determinista], note: "lisa-marca-large-dataset de-mockeado" }
+  - { scenario_id: accessibility,    validators: [], note: "not_applicable — meta-harness, cero UI nueva (ratificado Chris 2026-06-02). lisa-marca-keyboard existente se hace honesto, no se agrega scenario a11y nuevo" }
+  - { scenario_id: i18n,             validators: [], note: "not_applicable — idem; lisa-marca-i18n existente se hace honesto" }
+
+# ═══════════════════════════════════════════════════════════════
+# Test Construction Plan — DE-MOCK (no creación from-scratch; modificación de existentes)
+# ═══════════════════════════════════════════════════════════════
+test_construction_plan:
+  playwright_required: true
+  base_path: "vitalia/frontend/e2e/"
+  nature: "de-mock + web-first + des-quarantine (modificación de suite existente, NO creación from-scratch)"
+
+  creation_order:
+    - { step: 1, file: "fixtures/real-backend-forward.fixture.ts", content: "NEW (lift): mergeTests(base.ts anti-burbuja, auth storageState, forwarding page.route('**/api/v1/**')→page.request.fetch(:8002)). Export test/expect/TENANT_ID/BACKEND_API_URL.", depends_on: [] }
+    - { step: 2, file: "regression/vitalia-fase2-lisa-marca/poms/*.pom.ts", content: "MODIFY: once-reads → web-first. getSelectedArchetype→waitForSelectedArchetype(slug); cualquier getAttribute/textContent/inputValue de estado hidratado → expect(...).toHave*({timeout}).", depends_on: [1] }
+    - { step: 3, file: "regression/vitalia-fase2-lisa-marca/fixtures/lisa-marca.fixture.ts", content: "MODIFY: REMOVE setupLisaMarcaMocks (route.fulfill sobre backend-bajo-prueba). Mantener solo seed constants tolerantes. Re-export desde real-backend-forward.", depends_on: [1] }
+    - { step: 4, file: "regression/vitalia-fase2-lisa-marca/*.spec.ts (×11)", content: "MODIFY: import {test,expect,TENANT_ID} de '../../fixtures/real-backend-forward.fixture'; eliminar route.fulfill inline; round-trips reales (read→write→assert web-first); timeout-spec usa 503 inyectado + test.use({failOnRuntimeError:false}).", depends_on: [2, 3] }
+    - { step: 5, file: "regression/arreglar-guardado-voz-y-tono/poms/voz-tono-section.pom.ts", content: "MODIFY: agregar waitForSelectedArchetype(slug) web-first.", depends_on: [1] }
+    - { step: 6, file: "regression/arreglar-guardado-voz-y-tono/*.spec.ts", content: "MODIFY: des-quarantine 5 authTest.fixme (asserts web-first); eliminar page.on void fire-and-forget (RN-4).", depends_on: [5] }
+
+  scenario_to_test:
+    - { scenario: "SC-1", file: "vitalia-fase2-lisa-marca/ (suite)", function: "--repeat-each=3 --workers=1 backend real" }
+    - { scenario: "SC-2", file: "grep-gate", function: "! grep route.fulfill ... identity|visuals|personality" }
+    - { scenario: "SC-3", file: "grep-gate + lisa-marca-identidad-autosave.spec.ts", function: "! grep '@playwright/test' + base.ts runtime gate" }
+    - { scenario: "SC-4", file: "arreglar-guardado-voz-y-tono/ (5 fixme)", function: "--repeat-each=5 web-first reload-persist" }
+    - { scenario: "SC-5", file: "grep-gate + voz-arquetipo-autosave.spec.ts", function: "! grep 'page.on ... void' + repeat-each=3" }
+    - { scenario: "SC-6", file: "state_check db", function: "PATCH personality real → audit_log actor UUID real" }
+    - { scenario: "SC-7", file: "state_check log + be pytest", function: "GET prohibited-phrases 200 browser real + sin X-User-ID → 200" }
+    - { scenario: "SC-8", file: "cap cross-check", function: "cada e2e_test status:live → spec honesto" }
+
+  poms_required:
+    - { file: "vitalia-fase2-lisa-marca/poms/voz-tono-section.pom.ts (+ identidad/presencia/page)", methods: ["waitForSelectedArchetype(slug, {timeout})", "waitForAutosaveSaved()", "goto()", "reload()"] }
+    - { file: "arreglar-guardado-voz-y-tono/poms/voz-tono-section.pom.ts", methods: ["waitForSelectedArchetype(slug, {timeout})"] }
+
+  fixtures_required:
+    - { name: "real-backend-forward.fixture.ts", content: "Auth storageState + forwarding a :8002 + composición base.ts (mergeTests). TENANT_ID=E2E_TENANT_ID." }
+
+# ═══════════════════════════════════════════════════════════════
+# Iteration policy
+# ═══════════════════════════════════════════════════════════════
+iteration:
+  max_iterations: 8
+  on_fail: "fix targeted file based on test output, re-run failing validator only"
+  on_all_pass: "set state=developing→developed, append iteration_log to T-{n}-impl-log.md; producir demo-script.md lite (PATCH personality + GET prohibited-phrases)"
+  on_cap_reached: "set state=developing→blocked, escalate to Chris with last error trace"

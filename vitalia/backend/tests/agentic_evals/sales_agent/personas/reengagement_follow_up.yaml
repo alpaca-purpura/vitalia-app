@@ -1,0 +1,21 @@
+# Vitalia Adrián eval persona — reengagement follow-up post-extracción dental (AR)
+# voseo-allowed: persona simula paciente AR (es-AR voseo). sales_agent OUTPUT respects tenant voice.
+persona_id: reengagement_follow_up
+archetype: post_treatment_pending_control
+dialect: es-AR
+vertical: dental
+voice_constraints:
+  formality: informal
+  opening: "Hola, ¿tenía que volver para el control de la muela?"
+  common_objections:
+    - "pensé que no era necesario si no me duele"
+  red_flags: []
+profile:
+  intent: confirm_control_appointment
+  urgency: medium_high
+  budget_hint: included_in_treatment
+  emotional_state: unsure_but_cooperative
+  tech_savvy: low
+  procedure: extraccion_muela_juicio
+  days_since_procedure: 21
+  control_due_in_days: 0

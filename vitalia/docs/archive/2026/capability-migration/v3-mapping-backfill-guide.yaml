@@ -1,0 +1,599 @@
+# Capability v3 backfill mapping — orchestrator-decided per ADR-vitalia-005
+# Cada cap mapea a las 4 dimensiones nuevas. Subagentes consumen este file
+# y aplican Edit a cada cap YAML añadiendo los campos.
+#
+# Schema: <tech_module>/<slug>:
+#   agent_owner: lisa | valeria | adrian | lucas | camila | config | infra
+#   functional_area: <agent>.<area-kebab>
+#   user_visible: true | false
+#   nature: feature | scaffold | extension-point
+#   user_facing_name: <human-readable>
+#   user_facing_description_seed: <1-2 sentences seed · subagent expands>
+#   merge_to: <optional · slug del cap final si parte de un merge>
+
+# ============================================================================
+# BATCH 1 — Lisa + Valeria + Adrián + Lucas + Camila (user-facing agents)
+# ============================================================================
+
+# 🏥 LISA — Mi Clínica
+brand_studio/lisa-marca:
+  agent_owner: lisa
+  functional_area: lisa.identidad-marca
+  user_visible: true
+  nature: feature
+  user_facing_name: "Identidad de marca de Lisa"
+  user_facing_description_seed: "Configuración completa de la marca de la clínica: nombre, voz, valores, posicionamiento. Lisa la guía paso a paso desde Configurar."
+  route_hint: "/lisa/marca"
+  main_component_hint: "vitalia/frontend/src/features/brand-studio/components/LisaMarcaPanel.tsx"
+
+brand_studio/brand-studio-medical-sections:
+  agent_owner: lisa
+  functional_area: lisa.identidad-marca
+  user_visible: true
+  nature: feature
+  user_facing_name: "Secciones médicas del Brand Studio"
+  user_facing_description_seed: "Secciones específicas del Brand Studio adaptadas para vertical médica: credenciales, especialidades, certificaciones, equipo médico."
+  route_hint: "/lisa/marca/secciones"
+
+offer_studio/medical-services-offer-preset:
+  agent_owner: lisa
+  functional_area: lisa.servicios
+  user_visible: true
+  nature: feature
+  user_facing_name: "Catálogo de servicios médicos"
+  user_facing_description_seed: "Preset de ofertas para tratamientos médicos: consulta, tratamiento simple, plan multi-sesión, paquete fidelización. Lisa lo configura desde Servicios."
+  route_hint: "/lisa/servicios"
+
+# 🗓 VALERIA — Mi Día
+scheduling/valeria-agenda:
+  agent_owner: valeria
+  functional_area: valeria.agenda
+  user_visible: true
+  nature: feature
+  user_facing_name: "Agenda semanal de Valeria"
+  user_facing_description_seed: "Vista calendario semanal con drag-to-reschedule donde Valeria muestra los turnos. El doctor arrastra slots vacíos para crear reserva o ocupados para reagendar."
+  route_hint: "/valeria/agenda"
+  main_component_hint: "vitalia/frontend/src/features/scheduling/components/AgendaWeekly.tsx"
+
+booking/booking-widget-embed:
+  agent_owner: valeria
+  functional_area: valeria.bookings
+  user_visible: true
+  nature: feature
+  user_facing_name: "Widget de reserva embebido"
+  user_facing_description_seed: "Widget JavaScript embebible en sitio externo de la clínica que permite al paciente reservar turno sin salir de la web."
+  route_hint: "/valeria/bookings/widget"
+
+booking/prepaid-booking-advisory-locks:
+  agent_owner: valeria
+  functional_area: valeria.bookings
+  user_visible: true
+  nature: feature
+  user_facing_name: "Reservas prepagadas con locks avisorios"
+  user_facing_description_seed: "Sistema de reserva prepagada con lock PostgreSQL avisorio que evita doble-booking del mismo slot durante el ventana de pago."
+  route_hint: "/valeria/bookings"
+
+# 🗓 VALERIA — shell merge target (los 7 shell-organism caps mergean acá)
+shell-organism/shell-vitalia:
+  _is_merge_target: true
+  _merges_from:
+    - shell-organism/empty-states
+    - shell-organism/layout-5050
+    - shell-organism/ribbon
+    - shell-organism/routing
+    - shell-organism/sub-tabs
+    - shell-organism/valeria-chat
+    - shell-organism/valeria-sidebar
+  agent_owner: valeria
+  functional_area: valeria.shell
+  user_visible: true
+  nature: feature
+  user_facing_name: "Shell visual de Vitalia post-login"
+  user_facing_description_seed: "El contenedor visual de la app post-login. Layout 50/50 con Valeria conversacional a la izquierda y el panel agéntico a la derecha (Lisa·Lucas·Adrián·Valeria·Camila + Configurar) con sub-tabs por agente."
+  route_hint: "/"
+
+# 💼 ADRIÁN — Vender
+sales_agent/adrian-3-tools-mvp:
+  agent_owner: adrian
+  functional_area: adrian.embudo
+  user_visible: true
+  nature: feature
+  user_facing_name: "Adrián · 3 herramientas MVP del agente vendedor"
+  user_facing_description_seed: "Tres herramientas iniciales que Adrián usa para vender: calificar lead, agendar consulta, dar precio. Base del agente vendedor."
+  route_hint: "/adrian/embudo"
+
+sales_agent/adrian-reengagement-tool:
+  agent_owner: adrian
+  functional_area: adrian.reactivacion
+  user_visible: true
+  nature: feature
+  user_facing_name: "Adrián · reactivación de pacientes dormidos"
+  user_facing_description_seed: "Adrián identifica pacientes que no han vuelto y les envía mensaje personalizado de reactivación con oferta o seguimiento del tratamiento."
+  route_hint: "/adrian/reactivacion"
+
+sales_agent/inbox-handler-mode-occ:
+  agent_owner: adrian
+  functional_area: adrian.inbox
+  user_visible: true
+  nature: feature
+  user_facing_name: "Adrián · inbox con modo handler (agente/humano/pausado) + OCC"
+  user_facing_description_seed: "Inbox de conversaciones que Adrián atiende. Cada conversación tiene modo de handler (agente · humano · pausado) con optimistic concurrency control para coordinar transiciones."
+  route_hint: "/adrian/inbox"
+
+sales_agent/medical-guardrails:
+  agent_owner: adrian
+  functional_area: adrian.embudo
+  user_visible: true
+  nature: feature
+  user_facing_name: "Adrián · guardrails médicos"
+  user_facing_description_seed: "Reglas defensivas que impiden a Adrián dar consejos médicos: deriva siempre al doctor para diagnósticos, dosis, contraindicaciones."
+  route_hint: "/adrian/embudo"
+
+sales_agent/state-overlay-langgraph:
+  agent_owner: infra
+  functional_area: infra.sales-agent-engine
+  user_visible: false
+  nature: extension-point
+  user_facing_name: "State overlay LangGraph para sales_agent"
+  user_facing_description_seed: "Capa de estado del agente LangGraph que permite overlay de comportamiento por brand sin tocar el engine compartido."
+
+crm/crm-scaffold-slice-1:
+  agent_owner: adrian
+  functional_area: adrian.crm
+  user_visible: true
+  nature: feature
+  user_facing_name: "CRM · pacientes y leads"
+  user_facing_description_seed: "Estructura base del CRM Vitalia: entidad Patient con dual filter HIPAA (tenant+clinic) + Lead non-PHI. Conversaciones, mensajes, action receipts."
+  route_hint: "/adrian/crm"
+
+crm/crm-consent-optout:
+  agent_owner: adrian
+  functional_area: adrian.crm
+  user_visible: true
+  nature: feature
+  user_facing_name: "CRM · consentimiento y opt-out de marketing"
+  user_facing_description_seed: "Gestión del consentimiento de marketing del paciente. El paciente puede pedir opt-out y queda registrado con audit log."
+  route_hint: "/adrian/crm/consentimiento"
+
+copilot/inbox-tools-extensions:
+  agent_owner: adrian
+  functional_area: adrian.inbox
+  user_visible: true
+  nature: extension-point
+  user_facing_name: "Extensiones de tools del inbox"
+  user_facing_description_seed: "Conjunto de herramientas que el copilot usa dentro del inbox de Adrián: tomar control, escribir respuesta, escalar a humano, marcar como spam."
+  route_hint: "/adrian/inbox"
+
+# 📣 LUCAS — Marketing
+marketing/attribution-matrix-4-origins:
+  agent_owner: lucas
+  functional_area: lucas.atribucion
+  user_visible: true
+  nature: feature
+  user_facing_name: "Matriz de atribución por 4 orígenes"
+  user_facing_description_seed: "Sistema de atribución que cruza pacientes con sus 4 orígenes posibles (búsqueda, referido, paid, orgánico) para entender qué canal trae mejores resultados."
+  route_hint: "/lucas/atribucion"
+
+marketing/bowtie-funnel-5-stages:
+  agent_owner: lucas
+  functional_area: lucas.bowtie
+  user_visible: true
+  nature: feature
+  user_facing_name: "Embudo Bowtie de 5 etapas"
+  user_facing_description_seed: "Visualización del embudo de marketing en 5 etapas (atracción · adquisición · activación · expansión · referido) con métricas por etapa."
+  route_hint: "/lucas/bowtie"
+
+marketing/lucas-stage-recommendations:
+  agent_owner: lucas
+  functional_area: lucas.recommendations
+  user_visible: true
+  nature: feature
+  user_facing_name: "Recomendaciones de Lucas por etapa del embudo"
+  user_facing_description_seed: "Lucas analiza la etapa actual del paciente y sugiere acciones concretas: enviar nutrición, ofrecer cross-sell, pedir referido."
+  route_hint: "/lucas/recomendaciones"
+
+marketing/referrals-leaderboard:
+  agent_owner: lucas
+  functional_area: lucas.referrals
+  user_visible: true
+  nature: feature
+  user_facing_name: "Leaderboard de referidos"
+  user_facing_description_seed: "Tabla ranking de pacientes que más referidos generan. Lucas premia a los top referidores y los identifica como embajadores."
+  route_hint: "/lucas/referidos"
+
+agentic/lucas-recommendation-tool:
+  agent_owner: lucas
+  functional_area: lucas.recommendations
+  user_visible: true
+  nature: extension-point
+  user_facing_name: "Tool agéntico de recomendaciones de Lucas"
+  user_facing_description_seed: "Herramienta agentic que computa recomendaciones de reactivación cruzando patrones de fidelización por clínica y etapa. Output aggregate-only sin PHI."
+
+agentic/lucas-daily-analysis:
+  agent_owner: lucas
+  functional_area: lucas.recommendations
+  user_visible: true
+  nature: feature
+  user_facing_name: "Análisis diario de Lucas"
+  user_facing_description_seed: "Cron job diario donde Lucas analiza la clínica y produce reporte de patrones · recomendaciones · alertas accionables para el doctor."
+  route_hint: "/lucas/analisis-diario"
+
+# 🌟 CAMILA — Reputación + cohortes
+patients/nps-tracking:
+  agent_owner: camila
+  functional_area: camila.nps
+  user_visible: true
+  nature: feature
+  user_facing_name: "Tracking de NPS"
+  user_facing_description_seed: "Camila envía encuesta NPS post-tratamiento y trackea el score por paciente · clínica · doctor. Identifica detractores y promotores."
+  route_hint: "/camila/nps"
+
+treatments/treatment-followup-workflow:
+  agent_owner: camila
+  functional_area: camila.followup
+  user_visible: true
+  nature: feature
+  user_facing_name: "Workflow de seguimiento post-tratamiento"
+  user_facing_description_seed: "Camila ejecuta workflow automatizado de seguimiento post-tratamiento: día 1 check-in, día 7 evolución, día 30 NPS, día 90 control."
+  route_hint: "/camila/followup"
+
+# ============================================================================
+# BATCH 2 — Configurar (config tenant-side)
+# ============================================================================
+
+onboarding/clinic-onboarding-3step:
+  agent_owner: config
+  functional_area: config.onboarding
+  user_visible: true
+  nature: feature
+  user_facing_name: "Onboarding de clínica · 3 pasos"
+  user_facing_description_seed: "Flujo de onboarding en 3 pasos para una clínica nueva: datos legales · brand básico · primer doctor + clínica."
+  route_hint: "/onboarding"
+
+onboarding/wizard_brand_studio_slice_1:
+  agent_owner: config
+  functional_area: config.onboarding
+  user_visible: true
+  nature: feature
+  user_facing_name: "Wizard del Brand Studio · slice 1"
+  user_facing_description_seed: "Wizard inicial del Brand Studio que el dueño de la clínica completa post-onboarding: nombre, lema, colores, voz mínima."
+  route_hint: "/onboarding/wizard"
+
+compliance/compliance-hipaa-lite-audit:
+  agent_owner: config
+  functional_area: config.compliance
+  user_visible: true
+  nature: feature
+  user_facing_name: "Audit log HIPAA-lite"
+  user_facing_description_seed: "Registro de auditoría sincrónico de todo acceso a PHI (datos sensibles paciente). Quién, qué, cuándo, desde dónde. Inmutable + retención 10 años."
+  route_hint: "/configurar/compliance/audit"
+
+compliance/hipaa-lite-defensive-stack:
+  agent_owner: config
+  functional_area: config.compliance
+  user_visible: true
+  nature: feature
+  user_facing_name: "Stack defensivo HIPAA-lite"
+  user_facing_description_seed: "Conjunto de capas defensivas para PHI: dual filter tenant+clinic en repos · encryption at-rest pgcrypto · RBAC estricto · sanitización output de agentes."
+  route_hint: "/configurar/compliance"
+
+compliance/whatsapp-template-registry:
+  agent_owner: config
+  functional_area: config.compliance
+  user_visible: true
+  nature: feature
+  user_facing_name: "Registro de templates de WhatsApp"
+  user_facing_description_seed: "Sistema de aprobación y versionado de templates WhatsApp con tracking del estado de aprobación Meta. Necesario para enviar broadcast cumpliendo política."
+  route_hint: "/configurar/connections/whatsapp/templates"
+
+auth/clerk-middleware:
+  agent_owner: config
+  functional_area: config.auth
+  user_visible: true
+  nature: feature
+  user_facing_name: "Middleware Clerk para autenticación"
+  user_facing_description_seed: "Middleware Next.js que valida sesión Clerk en cada request, exige login en rutas protegidas, redirige a sign-in si no autenticado."
+  route_hint: "/sign-in"
+
+auth/sign-in-sign-up-pages:
+  agent_owner: config
+  functional_area: config.auth
+  user_visible: true
+  nature: feature
+  user_facing_name: "Páginas de sign-in y sign-up"
+  user_facing_description_seed: "Páginas de inicio de sesión y registro construidas con componentes Clerk pre-built, customizadas con tokens de marca Vitalia."
+  route_hint: "/sign-in"
+
+iam/iam-scaffold-slice-1:
+  agent_owner: config
+  functional_area: config.iam
+  user_visible: true
+  nature: feature
+  user_facing_name: "IAM · roles y permisos por clínica"
+  user_facing_description_seed: "Sistema de identidad y acceso de Vitalia: roles (admin_clinic · doctor · nurse · marketing · receptionist) + scope por clínica + JWT context decoder."
+  route_hint: "/configurar/iam"
+
+iam/luana-core-adoption:
+  agent_owner: config
+  functional_area: config.iam
+  user_visible: false
+  nature: extension-point
+  user_facing_name: "Adopción de luana-core IAM"
+  user_facing_description_seed: "Capa de adopción que conecta Vitalia IAM con luana-core IAM compartido. Permite seguir engine updates sin recrear lógica."
+
+clinics/clinics-brand-extension:
+  agent_owner: config
+  functional_area: config.clinics
+  user_visible: true
+  nature: feature
+  user_facing_name: "Clínicas · extensión brand"
+  user_facing_description_seed: "Entidad Clinic vitalia-specific con campos extra (RUC/RUT/CUIT del país, certificación médica, especialidades). Multi-clinic por tenant."
+  route_hint: "/configurar/clinicas"
+
+clinics/hipaa-dual-filter-decorator:
+  agent_owner: config
+  functional_area: config.compliance
+  user_visible: false
+  nature: extension-point
+  user_facing_name: "Decorator @require_phi_access dual filter"
+  user_facing_description_seed: "Decorator Python que enforce dual filter (tenant + clinic) en métodos que tocan PHI. Falla con MissingClinicFilterError si el filtro no está aplicado."
+
+public_landing/public-clinic-landing:
+  agent_owner: config
+  functional_area: config.public-landing
+  user_visible: true
+  nature: feature
+  user_facing_name: "Landing pública de la clínica"
+  user_facing_description_seed: "Página pública por clínica con info, doctores, servicios, contacto. Auto-generada desde Brand Studio + Offer Studio + datos clínica."
+  route_hint: "/clinica/{slug}"
+
+patients/patient-records-medical-history:
+  agent_owner: config
+  functional_area: config.patients-records
+  user_visible: true
+  nature: feature
+  user_facing_name: "Historial médico de pacientes"
+  user_facing_description_seed: "Sección donde se ven los registros médicos del paciente con historial de tratamientos, controles, prescripciones. Protegido por RBAC + audit log."
+  route_hint: "/configurar/pacientes"
+
+connections/oauth-meta-google-ads:
+  agent_owner: config
+  functional_area: config.connections
+  user_visible: true
+  nature: feature
+  user_facing_name: "Conexión OAuth con Meta y Google Ads"
+  user_facing_description_seed: "Sistema OAuth que conecta la clínica con sus cuentas Meta Ads y Google Ads para sincronizar gasto e impresiones y feed a Lucas."
+  route_hint: "/configurar/connections"
+
+connections/registries-medical-vertical:
+  agent_owner: config
+  functional_area: config.connections
+  user_visible: true
+  nature: feature
+  user_facing_name: "Registries médicos del vertical"
+  user_facing_description_seed: "Registries de proveedores específicos del vertical médico: WhatsApp Business · Mercado Pago · Stripe · GA4 · Meta Pixel · Doctoralia."
+  route_hint: "/configurar/connections/registries"
+
+admin/admin-streamlit-service:
+  agent_owner: config
+  functional_area: config.admin
+  user_visible: true
+  nature: feature
+  user_facing_name: "Servicio admin Streamlit"
+  user_facing_description_seed: "Panel admin built con Streamlit para staff Vitalia (no para clientes). Gestión cross-tenant, debugging, ops."
+  route_hint: "http://localhost:8501 (Streamlit)"
+
+admin/clinics-crud:
+  agent_owner: config
+  functional_area: config.admin
+  user_visible: true
+  nature: feature
+  user_facing_name: "Admin · CRUD clínicas"
+  user_facing_description_seed: "Operaciones CRUD sobre clínicas desde el admin panel. Crear, listar, editar, suspender."
+
+admin/streamlit-tenants-users:
+  agent_owner: config
+  functional_area: config.admin
+  user_visible: true
+  nature: feature
+  user_facing_name: "Admin · vista tenants y users"
+  user_facing_description_seed: "Vista Streamlit unificada de tenants + users con búsqueda y filters."
+
+admin/tenants-crud:
+  agent_owner: config
+  functional_area: config.admin
+  user_visible: true
+  nature: feature
+  user_facing_name: "Admin · CRUD tenants"
+  user_facing_description_seed: "Operaciones CRUD sobre tenants desde el admin panel."
+
+admin/users-crud:
+  agent_owner: config
+  functional_area: config.admin
+  user_visible: true
+  nature: feature
+  user_facing_name: "Admin · CRUD users"
+  user_facing_description_seed: "Operaciones CRUD sobre users desde el admin panel."
+
+audit/audit-writer-ssot:
+  agent_owner: config
+  functional_area: config.compliance
+  user_visible: false
+  nature: extension-point
+  user_facing_name: "Writer SSoT del audit log"
+  user_facing_description_seed: "Único punto de escritura al audit log. Garantiza que toda mutation PHI pasa por acá con redaction y retention."
+
+# ============================================================================
+# BATCH 3 — Infra (user_visible: false default)
+# ============================================================================
+
+copilot/medical-kb-rag:
+  agent_owner: infra
+  functional_area: infra.copilot
+  user_visible: false
+  nature: extension-point
+  user_facing_name: "Knowledge base RAG médica"
+  user_facing_description_seed: "RAG médico con Qdrant que indexa guidelines, protocolos y respuestas frecuentes. Los agentes consultan este KB antes de responder."
+
+copilot/medical-pdf-extractors:
+  agent_owner: infra
+  functional_area: infra.copilot
+  user_visible: false
+  nature: extension-point
+  user_facing_name: "Extractores PDF médicos"
+  user_facing_description_seed: "Pipeline de extracción de PDFs médicos (guías, papers, protocolos) al KB. OCR + chunking + embedding."
+
+copilot/valeria-wizard-onboarding-agentic:
+  agent_owner: config
+  functional_area: config.onboarding
+  user_visible: true
+  nature: feature
+  user_facing_name: "Wizard de Valeria agéntico para onboarding"
+  user_facing_description_seed: "Valeria conduce conversacionalmente el onboarding inicial de la clínica. Pregunta por dato, propone defaults, ratifica con el dueño."
+  route_hint: "/onboarding/wizard"
+
+observability/api-health-endpoint:
+  agent_owner: infra
+  functional_area: infra.observability
+  user_visible: false
+  nature: feature
+  user_facing_name: "Endpoint de health check"
+  user_facing_description_seed: "Endpoint /health que reporta estado de API + DB + Qdrant + Redis. Consumido por k8s liveness/readiness."
+
+observability/otel-sentry-graceful-degradation:
+  agent_owner: infra
+  functional_area: infra.observability
+  user_visible: false
+  nature: extension-point
+  user_facing_name: "OTel + Sentry con degradación graceful"
+  user_facing_description_seed: "Integración OpenTelemetry + Sentry con fallback si están caídos. No rompe el path principal si el sink observability falla."
+
+observability/vitalia-callback-subclasses:
+  agent_owner: infra
+  functional_area: infra.observability
+  user_visible: false
+  nature: extension-point
+  user_facing_name: "Callback handlers Vitalia subclases"
+  user_facing_description_seed: "Subclases de BaseAgentCallbackHandler de luana-core-observability para Vitalia. Captura turn envelope + trace events + LLM calls."
+
+agentic/eval-goldens-slice-1:
+  agent_owner: infra
+  functional_area: infra.agentic-engine
+  user_visible: false
+  nature: scaffold
+  user_facing_name: "Eval goldens · slice 1"
+  user_facing_description_seed: "Conjunto de conversaciones golden para evaluar la calidad de los agentes Vitalia. Base del pipeline de eval continuo."
+
+agentic/medical-agentic-tools:
+  agent_owner: infra
+  functional_area: infra.agentic-engine
+  user_visible: false
+  nature: extension-point
+  user_facing_name: "Tools agentic médicas compartidas"
+  user_facing_description_seed: "Conjunto de herramientas agentic compartidas entre los agentes Vitalia: get_patient, get_treatment, schedule_check, etc."
+
+agentic/medical-safety-guardrails:
+  agent_owner: infra
+  functional_area: infra.agentic-engine
+  user_visible: false
+  nature: extension-point
+  user_facing_name: "Guardrails médicos cross-agent"
+  user_facing_description_seed: "Sistema cross-agent de guardrails médicos. Bloquea respuestas de cualquier agente que intente dar consejo médico."
+
+payment/payment-gateways-latam-recurring:
+  agent_owner: infra
+  functional_area: infra.payment
+  user_visible: false
+  nature: feature
+  user_facing_name: "Gateways de pago LatAm con recurrencia"
+  user_facing_description_seed: "Adaptadores de Mercado Pago · Stripe · Culqi · Wompi para pagos recurrentes en planes multi-sesión. Webhook IPN + reconciliation."
+
+platform/design-tokens-foundation:
+  agent_owner: infra
+  functional_area: infra.platform
+  user_visible: false
+  nature: extension-point
+  user_facing_name: "Foundation de design tokens"
+  user_facing_description_seed: "Catálogo cementado de tokens de diseño Vitalia: colores, tipografía, spacing, radios. Source de luana-core-design-tokens."
+
+platform/design-tokens-theme:
+  agent_owner: infra
+  functional_area: infra.platform
+  user_visible: false
+  nature: extension-point
+  user_facing_name: "Tema dark/light de design tokens"
+  user_facing_description_seed: "Variantes dark/light del theme aplicadas con CSS variables. ThemeToggle global lo controla."
+
+platform/migrations-slice-1-schema:
+  agent_owner: infra
+  functional_area: infra.scaffolding
+  user_visible: false
+  nature: scaffold
+  user_facing_name: "Migraciones Alembic slice 1 schema"
+  user_facing_description_seed: "Migraciones iniciales que cementaron el schema slice 1: tenants, clinics, users, patients, leads, audit_log."
+
+platform/shell-foundation-shadcn-tailwind-v4:
+  agent_owner: infra
+  functional_area: infra.platform
+  user_visible: false
+  nature: extension-point
+  user_facing_name: "Shell foundation Shadcn + Tailwind v4"
+  user_facing_description_seed: "Stack visual base de Vitalia: Shadcn UI + Tailwind v4 + componentes primitivos cementados (Button, Input, Dialog, etc.)."
+
+platform/tenant-switcher:
+  agent_owner: infra
+  functional_area: infra.platform
+  user_visible: true
+  nature: feature
+  user_facing_name: "Tenant switcher en TopBar"
+  user_facing_description_seed: "Selector de tenant en la TopBar para staff que opera múltiples clínicas/tenants. Cambia el X-Tenant-ID activo."
+  route_hint: "(TopBar global)"
+
+platform/topbar-global:
+  agent_owner: infra
+  functional_area: infra.platform
+  user_visible: true
+  nature: feature
+  user_facing_name: "TopBar global con logo, theme y tenant"
+  user_facing_description_seed: "Barra superior cementada en toda la app post-login. Contiene logo, theme toggle, tenant switcher, user avatar."
+  route_hint: "(TopBar global)"
+
+platform/vertical-medical-extension-sdk:
+  agent_owner: infra
+  functional_area: infra.platform
+  user_visible: false
+  nature: extension-point
+  user_facing_name: "SDK de extensión vertical médica"
+  user_facing_description_seed: "Conjunto de extension points específicos del vertical médico (HIPAA decorators, role catalog, audit hooks) sobre luana-core-extension-sdk."
+
+tests/playwright-smoke-suite:
+  agent_owner: infra
+  functional_area: infra.scaffolding
+  user_visible: false
+  nature: scaffold
+  user_facing_name: "Suite de smoke tests Playwright"
+  user_facing_description_seed: "Suite E2E Playwright que valida happy paths críticos post-deploy: login, navegación shell, agenda, inbox."
+
+workers/idempotent-cron-arq-scaffold:
+  agent_owner: infra
+  functional_area: infra.scaffolding
+  user_visible: false
+  nature: scaffold
+  user_facing_name: "Scaffold de cron workers idempotentes"
+  user_facing_description_seed: "Sistema de cron jobs idempotentes con Arq (Redis). Base del Lucas daily analysis, NPS surveys, etc."
+
+fixtures/3-clinic-fixture-latam:
+  agent_owner: infra
+  functional_area: infra.scaffolding
+  user_visible: false
+  nature: scaffold
+  user_facing_name: "Fixture · 3 clínicas LatAm"
+  user_facing_description_seed: "Fixture cementado de 3 clínicas LatAm (AR, MX, PE) con doctores, pacientes, treatments. Usado por dev seed + tests E2E."
+
+ops/k8s-admin-deployment:
+  agent_owner: infra
+  functional_area: infra.scaffolding
+  user_visible: false
+  nature: scaffold
+  user_facing_name: "Deployment k8s del admin Streamlit"
+  user_facing_description_seed: "Manifests Kubernetes para el admin Streamlit + service + ingress. Deploy paralelo al BE principal."

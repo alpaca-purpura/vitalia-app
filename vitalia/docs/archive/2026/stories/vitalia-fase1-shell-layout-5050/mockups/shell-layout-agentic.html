@@ -1,0 +1,487 @@
+<!doctype html>
+<html lang="es-419" data-mockup="shell-layout-agentic" data-version="v1">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Vitalia · F1-S4 · Shell Layout — modo agentic (50/50)</title>
+  <meta name="description" content="Mockup F1-S4 vitalia-fase1-shell-layout-5050: layout root del shell-organism en modo agentic (split 50/50 ValeriaPanel | AppPanel) con divisor resizable, min-widths cementadas, toggle modo placeholder en TopBar, dark mode, responsive < md drawer.">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* === Tokens Vitalia (mismo schema que Design Contract §5.1) === */
+    :root {
+      --background: 0 0% 100%;
+      --foreground: 240 10% 4%;
+      --card: 0 0% 100%;
+      --card-foreground: 240 10% 4%;
+      --popover: 0 0% 100%;
+      --popover-foreground: 240 10% 4%;
+      --primary: 198 99% 49%;
+      --primary-foreground: 0 0% 100%;
+      --secondary: 240 5% 96%;
+      --secondary-foreground: 240 6% 10%;
+      --muted: 240 5% 96%;
+      --muted-foreground: 240 4% 46%;
+      --accent: 287 53% 37%;
+      --accent-foreground: 0 0% 100%;
+      --destructive: 0 84% 60%;
+      --destructive-foreground: 0 0% 98%;
+      --border: 240 6% 90%;
+      --input: 240 6% 90%;
+      --ring: 198 99% 49%;
+      --radius: 0.625rem;
+      --agent-lisa: 156 100% 41%;
+      --agent-lisa-soft: 156 80% 92%;
+      --agent-lucas: 0 0% 7%;
+      --agent-lucas-soft: 0 0% 92%;
+      --agent-adrian: 198 99% 49%;
+      --agent-adrian-soft: 197 90% 89%;
+      --agent-valeria: 287 53% 37%;
+      --agent-valeria-soft: 287 53% 90%;
+      --agent-camila: 244 84% 32%;
+      --agent-camila-soft: 244 53% 92%;
+      --agent-mateo: 53 99% 51%;
+      --agent-config: 240 4% 46%;
+    }
+    .dark {
+      --background: 240 10% 4%;
+      --foreground: 0 0% 98%;
+      --card: 240 8% 8%;
+      --card-foreground: 0 0% 98%;
+      --popover: 240 8% 8%;
+      --popover-foreground: 0 0% 98%;
+      --primary: 198 99% 49%;
+      --primary-foreground: 240 10% 4%;
+      --secondary: 240 4% 16%;
+      --secondary-foreground: 0 0% 98%;
+      --muted: 240 4% 16%;
+      --muted-foreground: 240 5% 65%;
+      --accent: 287 53% 50%;
+      --accent-foreground: 0 0% 98%;
+      --destructive: 0 63% 31%;
+      --destructive-foreground: 0 0% 98%;
+      --border: 240 4% 20%;
+      --input: 240 4% 20%;
+      --ring: 198 99% 49%;
+      --agent-lisa-soft: 156 60% 15%;
+      --agent-lucas-soft: 0 0% 20%;
+      --agent-adrian-soft: 198 60% 20%;
+      --agent-valeria-soft: 287 40% 25%;
+      --agent-camila-soft: 244 50% 20%;
+    }
+
+    html, body { height: 100%; }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: hsl(var(--background));
+      color: hsl(var(--foreground));
+      overflow: hidden;
+    }
+
+    /* Skeleton helpers — silueta gris muy tenue, sin contenido */
+    .skel-block {
+      background: hsl(var(--muted));
+      border-radius: var(--radius);
+      opacity: 0.55;
+    }
+    .skel-line {
+      background: hsl(var(--muted));
+      border-radius: 4px;
+      opacity: 0.45;
+      height: 8px;
+    }
+    .skel-circle {
+      background: hsl(var(--muted));
+      border-radius: 9999px;
+      opacity: 0.55;
+    }
+
+    /* Slot labels — overlay diagonal sutil para indicar "F1-S5/S7 lo llenará" */
+    .slot-label {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 11px;
+      letter-spacing: 0.04em;
+      color: hsl(var(--muted-foreground));
+      text-transform: uppercase;
+      font-weight: 600;
+      background: hsla(var(--background), 0.92);
+      padding: 4px 10px;
+      border-radius: var(--radius);
+      border: 1px dashed hsl(var(--border));
+      pointer-events: none;
+      white-space: nowrap;
+    }
+
+    /* Resizable divider */
+    .resize-handle {
+      position: relative;
+      width: 4px;
+      cursor: col-resize;
+      background: hsl(var(--border));
+      transition: background 0.15s;
+      touch-action: none;
+    }
+    .resize-handle:hover, .resize-handle.dragging {
+      background: hsl(var(--primary));
+    }
+    .resize-handle::before {
+      content: '';
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 2px; height: 32px;
+      background: hsl(var(--muted-foreground));
+      border-radius: 1px;
+      opacity: 0.5;
+    }
+    .resize-handle:hover::before { opacity: 1; background: hsl(var(--primary-foreground)); }
+
+    /* Drawer state mobile */
+    @media (max-width: 767px) {
+      .resize-handle { display: none; }
+    }
+
+    /* === LogoMark CSS-based swap (replaces JS toggle — F1-S2 contract) ===
+       Defaults:
+         < sm (mobile): variant='mark' visible (libélula multicolor)
+         ≥ sm: variant='full' light visible, dark hidden
+       .dark active:
+         ≥ sm: variant='full' light hidden, dark visible
+         < sm: idem mobile (mark sirve ambos modes) */
+    .logomark-light, .logomark-dark { display: none; }
+    .logomark-mark { display: block; }
+    @media (min-width: 640px) {
+      .logomark-light { display: block; }
+      .logomark-mark { display: none; }
+    }
+    .dark .logomark-light { display: none; }
+    @media (min-width: 640px) {
+      .dark .logomark-light { display: none; }
+      .dark .logomark-dark { display: block; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="flex h-screen flex-col overflow-hidden">
+
+    <!-- ============= TopBarGlobal (48px) ============= -->
+    <header class="flex items-center justify-between border-b border-[hsl(var(--border))] bg-[hsl(var(--card))] px-4" style="height:48px;">
+      <!-- LogoMark (F1-S2 contract: size='md' variant='full' · CSS-based dark swap).
+           Display controlado por CSS (.logomark-*) — NO JS toggle (evita Tailwind utility race). -->
+      <a href="#" aria-label="Vitalia inicio" class="flex items-center">
+        <img src="./assets/vitalia-logo.png" alt="" class="logomark-light" style="height:32px;width:auto;">
+        <img src="./assets/vitalia-logo-dark.png" alt="" class="logomark-dark" style="height:32px;width:auto;">
+        <img src="./assets/vitalia-ico.png" alt="" class="logomark-mark" style="height:32px;width:32px;">
+      </a>
+
+      <!-- TopBar actions -->
+      <div class="flex items-center gap-2">
+        <!-- ★ NEW: Toggle agentic↔web (placeholder F1-S4, no interactivo) -->
+        <button
+          type="button"
+          class="flex h-8 items-center gap-1.5 rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] px-2.5 text-xs font-medium text-[hsl(var(--muted-foreground))] opacity-70 cursor-not-allowed"
+          title="Modo (agentic/web) — toggle se activa en F1-S5/S7"
+          aria-label="Modo de shell: agentic activo"
+          disabled>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="18" rx="1"/></svg>
+          <span>Agéntico</span>
+        </button>
+
+        <!-- Theme toggle (F1-S1 done) -->
+        <button id="theme-toggle"
+                type="button"
+                class="flex h-8 w-8 items-center justify-center rounded-md hover:bg-[hsl(var(--secondary))]"
+                title="Cambiar tema"
+                aria-label="Cambiar tema (claro/oscuro)">
+          <span class="theme-icon-light">🌙</span>
+          <span class="theme-icon-dark hidden">☀️</span>
+        </button>
+
+        <!-- TenantSwitcher (F1-S3 done) -->
+        <button type="button"
+                class="flex h-8 items-center gap-2 rounded-md border border-[hsl(var(--border))] px-2 text-sm hover:bg-[hsl(var(--secondary))]"
+                aria-label="Clínica activa: Sonrisa Plena · Lima centro">
+          <div class="flex h-6 w-6 items-center justify-center rounded-full text-white text-[10px] font-semibold" style="background:hsl(var(--accent));">SP</div>
+          <span class="hidden sm:inline truncate max-w-[140px] text-[hsl(var(--foreground))]">Sonrisa Plena</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-[hsl(var(--muted-foreground))]"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- ============= Main grid (modo agentic 50/50 resizable) ============= -->
+    <main id="main-content"
+          tabindex="-1"
+          class="grid flex-1 overflow-hidden md:grid-cols-[var(--valeria-w,1fr)_4px_var(--app-w,1fr)] grid-cols-1"
+          style="--valeria-w:1fr; --app-w:1fr;">
+
+      <!-- ============= ValeriaSidebarSlot (50% default · min 360px · resize) ============= -->
+      <aside id="valeria-slot"
+             aria-label="Panel Valeria (placeholder — F1-S5/S6 lo construirá)"
+             class="relative flex h-full min-h-0 overflow-hidden border-r border-[hsl(var(--border))] bg-[hsl(var(--card))] md:border-r-0 md:min-w-[360px]">
+        <!-- Silueta tenue: rail 60px + history 280px + chat area -->
+        <div class="hidden md:flex h-full w-full">
+          <!-- rail silhouette -->
+          <div class="flex w-[60px] flex-col items-center gap-3 border-r border-[hsl(var(--border))] py-3">
+            <div class="skel-block" style="width:32px;height:32px;"></div>
+            <div class="skel-block" style="width:32px;height:32px;"></div>
+            <div class="skel-block" style="width:32px;height:32px;"></div>
+            <div class="skel-line" style="width:32px;margin-top:8px;"></div>
+            <div class="skel-block" style="width:32px;height:32px;"></div>
+            <div class="skel-block" style="width:32px;height:32px;"></div>
+          </div>
+          <!-- history silhouette (~280px) — visible solo cuando valeriaState='full' -->
+          <div id="valeria-history-skel" class="flex w-[280px] shrink-0 flex-col gap-3 border-r border-[hsl(var(--border))] p-3">
+            <div class="skel-line" style="width:60%;height:14px;"></div>
+            <div class="skel-block" style="height:32px;width:100%;"></div>
+            <div class="flex flex-col gap-2 mt-2">
+              <div class="skel-line" style="width:30%;"></div>
+              <div class="skel-block" style="height:36px;width:100%;"></div>
+              <div class="skel-block" style="height:36px;width:100%;"></div>
+              <div class="skel-block" style="height:36px;width:100%;"></div>
+              <div class="skel-line" style="width:30%;margin-top:8px;"></div>
+              <div class="skel-block" style="height:36px;width:100%;"></div>
+              <div class="skel-block" style="height:36px;width:100%;"></div>
+              <div class="skel-line" style="width:30%;margin-top:8px;"></div>
+              <div class="skel-block" style="height:36px;width:100%;"></div>
+            </div>
+          </div>
+          <!-- chat area silhouette (1fr) -->
+          <div class="flex flex-1 min-w-0 flex-col">
+            <!-- chat header -->
+            <div class="flex items-center gap-3 border-b border-[hsl(var(--border))] px-4" style="height:56px;">
+              <div class="skel-circle" style="width:36px;height:36px;"></div>
+              <div class="flex flex-col gap-1.5">
+                <div class="skel-line" style="width:90px;"></div>
+                <div class="skel-line" style="width:140px;height:6px;"></div>
+              </div>
+            </div>
+            <!-- chat body -->
+            <div class="flex-1 min-h-0 flex flex-col gap-3 p-4 overflow-hidden">
+              <div class="skel-block self-start" style="height:46px;width:65%;"></div>
+              <div class="skel-block self-end" style="height:46px;width:55%;background:hsl(var(--agent-valeria-soft));"></div>
+              <div class="skel-block self-start" style="height:66px;width:75%;"></div>
+              <div class="skel-block self-end" style="height:38px;width:40%;background:hsl(var(--agent-valeria-soft));"></div>
+              <div class="skel-block self-start" style="height:56px;width:60%;"></div>
+            </div>
+            <!-- composer -->
+            <div class="border-t border-[hsl(var(--border))] p-3">
+              <div class="skel-block" style="height:44px;width:100%;"></div>
+            </div>
+          </div>
+        </div>
+        <!-- Mobile view: header only + open-drawer hint -->
+        <div class="md:hidden flex h-full w-full items-center justify-center">
+          <div class="text-center">
+            <div class="skel-circle mx-auto" style="width:48px;height:48px;"></div>
+            <p class="mt-3 text-xs text-[hsl(var(--muted-foreground))]">Valeria — abrir desde burger menu</p>
+          </div>
+        </div>
+
+        <span class="slot-label">ValeriaSidebarSlot · F1-S5/S6</span>
+      </aside>
+
+      <!-- ============= Resize handle (desktop only) ============= -->
+      <div id="resize-handle" class="resize-handle hidden md:block" role="separator" aria-orientation="vertical" aria-label="Redimensionar paneles" tabindex="0"></div>
+
+      <!-- ============= AppPanelSlot (50% default · min 480px) ============= -->
+      <section id="app-slot"
+               aria-label="Panel aplicación (placeholder — F1-S7/S8/S10 lo construirá)"
+               class="relative flex h-full min-h-0 flex-col overflow-hidden bg-[hsl(var(--background))] md:min-w-[480px]">
+        <!-- Silueta: ribbon 6 tabs + sub-tabs + content area -->
+        <!-- ribbon silhouette (~64px) -->
+        <div class="flex items-center gap-2 border-b border-[hsl(var(--border))] px-4" style="height:64px;">
+          <div class="flex items-center gap-1.5">
+            <div class="skel-circle" style="width:28px;height:28px;background:hsl(var(--agent-lisa-soft));"></div>
+            <div class="skel-line" style="width:50px;"></div>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <div class="skel-circle" style="width:28px;height:28px;background:hsl(var(--agent-lucas-soft));"></div>
+            <div class="skel-line" style="width:50px;"></div>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <div class="skel-circle" style="width:28px;height:28px;background:hsl(var(--agent-adrian-soft));"></div>
+            <div class="skel-line" style="width:50px;"></div>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <div class="skel-circle" style="width:28px;height:28px;background:hsl(var(--agent-valeria-soft));"></div>
+            <div class="skel-line" style="width:50px;"></div>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <div class="skel-circle" style="width:28px;height:28px;background:hsl(var(--agent-camila-soft));"></div>
+            <div class="skel-line" style="width:50px;"></div>
+          </div>
+          <div class="ml-auto flex items-center gap-1.5">
+            <div class="skel-block" style="width:28px;height:28px;"></div>
+            <div class="skel-line" style="width:60px;"></div>
+          </div>
+        </div>
+        <!-- sub-tabs silhouette (~40px) -->
+        <div class="flex items-center gap-3 border-b border-[hsl(var(--border))] px-4" style="height:40px;">
+          <div class="skel-line" style="width:62px;"></div>
+          <div class="skel-line" style="width:80px;"></div>
+          <div class="skel-line" style="width:54px;"></div>
+          <div class="skel-line" style="width:70px;"></div>
+        </div>
+        <!-- content area silhouette -->
+        <div class="flex-1 min-h-0 p-6 overflow-hidden flex flex-col gap-4">
+          <div class="skel-line" style="width:42%;height:14px;"></div>
+          <div class="skel-line" style="width:78%;"></div>
+          <div class="skel-line" style="width:60%;"></div>
+          <div class="grid grid-cols-2 gap-3 mt-4">
+            <div class="skel-block" style="height:120px;"></div>
+            <div class="skel-block" style="height:120px;"></div>
+            <div class="skel-block" style="height:120px;"></div>
+            <div class="skel-block" style="height:120px;"></div>
+          </div>
+        </div>
+
+        <span class="slot-label">AppPanelSlot · F1-S7 / S8 / S10</span>
+      </section>
+    </main>
+
+    <!-- ============= Devtools status bar (mockup only) ============= -->
+    <footer class="border-t border-[hsl(var(--border))] bg-[hsl(var(--card))] px-4 py-1.5 text-[10px] text-[hsl(var(--muted-foreground))] flex flex-wrap items-center gap-3 justify-between" style="font-family:'JetBrains Mono', monospace;">
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="font-semibold text-[hsl(var(--foreground))]">F1-S4 · modo agentic</span>
+        <span>·</span>
+        <span>Tokens §5.1</span>
+        <span>·</span>
+        <span>shellMode: <span class="font-semibold text-[hsl(var(--primary))]">agentic</span></span>
+        <span>·</span>
+        <span>split: <span id="dbg-split" class="font-semibold text-[hsl(var(--primary))]">50/50</span></span>
+        <span>·</span>
+        <span>min Valeria: <span id="dbg-min" class="font-semibold text-[hsl(var(--primary))]">620px</span></span>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <label for="dbg-valeria-state" class="text-[hsl(var(--muted-foreground))]">valeriaState:</label>
+        <select id="dbg-valeria-state"
+                class="rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--background))] px-2 py-0.5 text-[10px] font-semibold text-[hsl(var(--foreground))] focus:outline-none focus:ring-1 focus:ring-[hsl(var(--ring))]"
+                aria-label="Estado interno del panel Valeria (rail|full) — controla min width">
+          <option value="full">full (rail+history+chat · min 620)</option>
+          <option value="rail">rail (rail+chat · min 360)</option>
+        </select>
+      </div>
+    </footer>
+  </div>
+
+  <!-- ============= Scripts ============= -->
+  <script>
+    // === Theme toggle (mismo schema F1-S1) ===
+    (function () {
+      const root = document.documentElement;
+      const stored = localStorage.getItem('vitalia-theme');
+      if (stored === 'dark' || (stored !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        root.classList.add('dark');
+        document.querySelector('.theme-icon-light')?.classList.add('hidden');
+        document.querySelector('.theme-icon-dark')?.classList.remove('hidden');
+      }
+      // Logo swap es 100% CSS (.logomark-* + .dark selector) — sin JS race.
+      document.getElementById('theme-toggle').addEventListener('click', () => {
+        const dark = root.classList.toggle('dark');
+        localStorage.setItem('vitalia-theme', dark ? 'dark' : 'light');
+        document.querySelector('.theme-icon-light').classList.toggle('hidden', dark);
+        document.querySelector('.theme-icon-dark').classList.toggle('hidden', !dark);
+      });
+    })();
+
+    // === Resizable panels + valeriaState dynamic min (modo agentic) ===
+    (function () {
+      const handle = document.getElementById('resize-handle');
+      const main = document.getElementById('main-content');
+      const dbgSplit = document.getElementById('dbg-split');
+      const dbgMin = document.getElementById('dbg-min');
+      const stateSelect = document.getElementById('dbg-valeria-state');
+      const historyEl = document.getElementById('valeria-history-skel');
+      let dragging = false;
+
+      // ★ Min Valeria es función del valeriaState (Design Contract §6.1):
+      //   'full' = rail(60) + history(280) + chat min(280) = 620
+      //   'rail' = rail(60) + chat min(300)               = 360
+      // ★ Min App es constante (ribbon 6 tabs + sub-tabs sin overflow).
+      const MIN_VALERIA_BY_STATE = { full: 620, rail: 360 };
+      const MIN_APP = 480;
+      const HANDLE = 4;
+      const STORAGE_KEY_SPLIT = 'vitalia-shell-split-agentic';
+      const STORAGE_KEY_STATE = 'vitalia-valeria-state';
+
+      const currentMin = () => MIN_VALERIA_BY_STATE[stateSelect.value];
+
+      const apply = (valeriaPx) => {
+        const total = main.getBoundingClientRect().width;
+        const min = currentMin();
+        let v = valeriaPx;
+        // Clamp por min App primero, después min Valeria
+        const appPx = total - v - HANDLE;
+        if (appPx < MIN_APP) v = total - MIN_APP - HANDLE;
+        if (v < min) v = min;
+        const appFinal = total - v - HANDLE;
+        main.style.setProperty('--valeria-w', v + 'px');
+        main.style.setProperty('--app-w', appFinal + 'px');
+        const pctV = Math.round((v / total) * 100);
+        dbgSplit.textContent = pctV + '/' + (100 - pctV);
+      };
+
+      const updateMinDisplay = () => { dbgMin.textContent = currentMin() + 'px'; };
+
+      const applyState = (state, opts = { snapIfNeeded: true }) => {
+        // Mostrar/ocultar history skeleton
+        historyEl.style.display = state === 'full' ? '' : 'none';
+        updateMinDisplay();
+        // Si el ancho actual < nuevo min → snap up
+        const cur = parseInt(main.style.getPropertyValue('--valeria-w'), 10);
+        const total = main.getBoundingClientRect().width;
+        const intendedCur = cur || total / 2;
+        if (opts.snapIfNeeded && intendedCur < currentMin()) {
+          apply(currentMin());
+        } else {
+          apply(intendedCur);
+        }
+        localStorage.setItem(STORAGE_KEY_STATE, state);
+      };
+
+      // === Restore from storage ===
+      const storedState = localStorage.getItem(STORAGE_KEY_STATE) || 'full';
+      stateSelect.value = storedState;
+      const storedSplit = parseInt(localStorage.getItem(STORAGE_KEY_SPLIT) || '0', 10);
+      requestAnimationFrame(() => {
+        applyState(storedState, { snapIfNeeded: false });
+        if (storedSplit > 0) apply(storedSplit);
+      });
+
+      // === State select handler ===
+      stateSelect.addEventListener('change', () => applyState(stateSelect.value));
+
+      // === Drag ===
+      handle.addEventListener('mousedown', (e) => { dragging = true; handle.classList.add('dragging'); document.body.style.cursor = 'col-resize'; e.preventDefault(); });
+      window.addEventListener('mouseup', () => {
+        if (!dragging) return;
+        dragging = false;
+        handle.classList.remove('dragging');
+        document.body.style.cursor = '';
+        const cur = parseInt(main.style.getPropertyValue('--valeria-w'), 10);
+        if (cur) localStorage.setItem(STORAGE_KEY_SPLIT, String(cur));
+      });
+      window.addEventListener('mousemove', (e) => {
+        if (!dragging) return;
+        const rect = main.getBoundingClientRect();
+        apply(e.clientX - rect.left);
+      });
+
+      handle.addEventListener('keydown', (e) => {
+        const cur = parseInt(main.style.getPropertyValue('--valeria-w'), 10) || (main.getBoundingClientRect().width / 2);
+        if (e.key === 'ArrowLeft') { apply(cur - 16); e.preventDefault(); }
+        if (e.key === 'ArrowRight') { apply(cur + 16); e.preventDefault(); }
+      });
+
+      // === Recompute on resize ===
+      window.addEventListener('resize', () => {
+        const cur = parseInt(main.style.getPropertyValue('--valeria-w'), 10);
+        if (cur) apply(cur);
+      });
+    })();
+  </script>
+</body>
+</html>

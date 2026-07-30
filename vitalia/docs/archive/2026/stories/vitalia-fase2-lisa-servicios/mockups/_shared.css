@@ -1,0 +1,920 @@
+/*
+  Shared tokens + base styles para mockups v2.1 lisa-marca.
+  Refactor 2026-05-27: shell wrapper fiel a canónico dual-mode-shell + valeria-chat-sample.
+  Tokens reales extraídos de vitalia/frontend/src/app/globals.css (HSL Shadcn-style).
+  Imported by identidad-section.html, voz-tono-section.html, presencia-section.html.
+
+  Filosofía:
+  - `_shared.css` solo provee CHROME del shell (topbar, ribbon, subtabs, subsubtabs, chat-side).
+  - Cada mockup aporta SU panel-content propio (lo que esta story owna).
+  - Splitter state controlado por atributo `data-splitter-state` en `.shell-root`.
+*/
+
+/* ============================================================
+   TOKENS HSL Shadcn-style (espejo de globals.css)
+   ============================================================ */
+:root {
+  --background: 0 0% 100%;
+  --foreground: 240 10% 4%;
+  --card: 0 0% 100%;
+  --card-foreground: 240 10% 4%;
+  --muted: 240 5% 96%;
+  --muted-foreground: 240 4% 46%;
+  --primary: 198 99% 49%;            /* #01B2F8 cian */
+  --primary-foreground: 0 0% 100%;
+  --accent: 287 53% 37%;             /* #7B2D91 púrpura */
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 84% 60%;
+  --warning: 33 91% 44%;
+  --success: 142 76% 36%;
+  --border: 240 6% 90%;
+  --input: 240 6% 90%;
+  --ring: 198 99% 49%;
+  --radius: 0.625rem;
+
+  /* Agentes oficiales (vitalia-agents-catalog memory entry) */
+  --agent-lisa: 156 100% 41%;         /* #00D084 verde */
+  --agent-lisa-soft: 156 80% 92%;
+  --agent-lucas: 0 0% 7%;             /* #111111 negro */
+  --agent-lucas-soft: 240 5% 90%;
+  --agent-adrian: 198 99% 49%;        /* #01B2F8 cian (= primary) */
+  --agent-adrian-soft: 198 99% 92%;
+  --agent-valeria: 287 53% 37%;       /* #7B2D91 púrpura */
+  --agent-valeria-soft: 287 53% 92%;
+  --agent-camila: 244 84% 32%;        /* #180D95 índigo */
+  --agent-camila-soft: 244 50% 92%;
+  --agent-mateo: 56 99% 51%;          /* #FEE209 amarillo */
+  --agent-mateo-soft: 56 99% 92%;
+  --agent-config: 215 16% 47%;        /* #64748b slate */
+
+  /* Vitalia brand identity */
+  --vitalia-gradient-mariposa: linear-gradient(135deg, #01B2F8 0%, #7B2D91 50%, #B8DC2A 100%);
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px hsl(240 10% 4% / 0.04);
+  --shadow-md: 0 4px 12px hsl(240 10% 4% / 0.08);
+
+  /* Splitter widths */
+  --chat-rail-w: 60px;
+  --chat-narrow-w: 360px;
+  --topbar-h: 48px;
+  --ribbon-h: 52px;
+  --subtabs-h: 40px;
+  --subsubtabs-h: 44px;
+}
+
+.dark {
+  --background: 240 10% 4%;
+  --foreground: 0 0% 98%;
+  --card: 240 8% 8%;
+  --card-foreground: 0 0% 98%;
+  --muted: 240 4% 16%;
+  --muted-foreground: 240 5% 65%;
+  --primary: 198 99% 49%;
+  --primary-foreground: 240 10% 4%;
+  --accent: 287 53% 50%;
+  --destructive: 0 73% 50%;
+  --warning: 33 91% 60%;
+  --success: 142 76% 50%;
+  --border: 240 4% 18%;
+  --input: 240 4% 18%;
+
+  --agent-lisa: 156 80% 50%;
+  --agent-lisa-soft: 156 60% 18%;
+  --agent-lucas-soft: 240 8% 18%;
+  --agent-adrian-soft: 198 60% 18%;
+  --agent-valeria: 287 53% 60%;
+  --agent-valeria-soft: 287 40% 22%;
+  --agent-camila: 244 70% 60%;
+  --agent-camila-soft: 244 50% 22%;
+  --agent-mateo-soft: 56 50% 22%;
+
+  --shadow-sm: 0 1px 2px hsl(0 0% 0% / 0.4);
+  --shadow-md: 0 4px 12px hsl(0 0% 0% / 0.6);
+}
+
+/* ============================================================
+   RESET + BASE
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+body {
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+}
+button { font-family: inherit; font-size: inherit; border: none; background: transparent; cursor: pointer; color: inherit; }
+img { display: block; max-width: 100%; }
+
+/* ============================================================
+   COLOR UTILITIES
+   ============================================================ */
+.bg-background { background: hsl(var(--background)); }
+.bg-card { background: hsl(var(--card)); }
+.bg-muted { background: hsl(var(--muted)); }
+.bg-primary { background: hsl(var(--primary)); }
+.bg-accent { background: hsl(var(--accent)); }
+.bg-warning { background: hsl(var(--warning)); }
+.bg-success { background: hsl(var(--success)); }
+.bg-destructive { background: hsl(var(--destructive)); }
+.bg-agent-lisa { background: hsl(var(--agent-lisa)); }
+.bg-agent-lisa-soft { background: hsl(var(--agent-lisa-soft)); }
+.bg-agent-lucas { background: hsl(var(--agent-lucas)); }
+.bg-agent-adrian { background: hsl(var(--agent-adrian)); }
+.bg-agent-valeria { background: hsl(var(--agent-valeria)); }
+.bg-agent-valeria-soft { background: hsl(var(--agent-valeria-soft)); }
+.bg-agent-camila { background: hsl(var(--agent-camila)); }
+.bg-agent-camila-soft { background: hsl(var(--agent-camila-soft)); }
+.bg-agent-mateo { background: hsl(var(--agent-mateo)); }
+.text-foreground { color: hsl(var(--foreground)); }
+.text-muted-foreground { color: hsl(var(--muted-foreground)); }
+.text-primary { color: hsl(var(--primary)); }
+.text-accent { color: hsl(var(--accent)); }
+.text-agent-lisa { color: hsl(var(--agent-lisa)); }
+.text-agent-valeria { color: hsl(var(--agent-valeria)); }
+.text-agent-camila { color: hsl(var(--agent-camila)); }
+.text-warning { color: hsl(var(--warning)); }
+.text-success { color: hsl(var(--success)); }
+.text-destructive { color: hsl(var(--destructive)); }
+.border-default { border-color: hsl(var(--border)); }
+
+/* ============================================================
+   FORM PRIMITIVES
+   ============================================================ */
+input, textarea, select {
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  border: 1px solid hsl(var(--input));
+  border-radius: var(--radius);
+  padding: 0.5rem 0.75rem;
+  width: 100%;
+  font-family: inherit;
+  font-size: 0.875rem;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+textarea { min-height: 7rem; resize: vertical; line-height: 1.5; }
+input:focus, textarea:focus, select:focus {
+  border-color: hsl(var(--ring));
+  box-shadow: 0 0 0 2px hsl(var(--ring) / 0.25);
+  outline: none;
+}
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+  padding: 0.5rem 1rem; border-radius: var(--radius);
+  font-weight: 500; font-size: 0.8125rem;
+  transition: opacity 0.15s, background 0.15s, color 0.15s;
+  cursor: pointer; border: none;
+  font-family: inherit;
+}
+.btn-primary { background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); }
+.btn-primary:hover { opacity: 0.92; }
+.btn-accent { background: hsl(var(--accent)); color: hsl(var(--accent-foreground)); }
+.btn-accent:hover { opacity: 0.92; }
+.btn-ghost { background: transparent; color: hsl(var(--foreground)); border: 1px solid hsl(var(--border)); }
+.btn-ghost:hover { background: hsl(var(--muted)); }
+.btn-valeria { background: hsl(var(--agent-valeria)); color: white; }
+.btn-valeria:hover { opacity: 0.92; }
+.btn-warning { background: hsl(var(--warning)); color: white; }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ============================================================
+   ATOMS — chip / label / hint / card / autosave-badge / avatar
+   ============================================================ */
+.chip {
+  display: inline-flex; align-items: center; gap: 0.375rem;
+  padding: 0.25rem 0.625rem; border-radius: 9999px;
+  background: hsl(var(--muted)); color: hsl(var(--foreground));
+  font-size: 0.75rem; font-weight: 500;
+}
+.chip-success { background: hsl(var(--success) / 0.15); color: hsl(var(--success)); }
+.chip-warning { background: hsl(var(--warning) / 0.15); color: hsl(var(--warning)); }
+.chip-lisa { background: hsl(var(--agent-lisa-soft)); color: hsl(var(--agent-lisa)); }
+.chip-primary { background: hsl(var(--primary) / 0.12); color: hsl(var(--primary)); }
+.chip-accent { background: hsl(var(--accent) / 0.12); color: hsl(var(--accent)); }
+
+.label { font-size: 0.8125rem; font-weight: 500; display: block; margin-bottom: 0.375rem; color: hsl(var(--foreground)); }
+.hint { font-size: 0.75rem; color: hsl(var(--muted-foreground)); margin-top: 0.25rem; line-height: 1.4; }
+
+/* tip — campo con explicación al hover (#2 política UI · subrayado punteado como el cockpit).
+   En código real = Shadcn Tooltip; acá usa title nativo. */
+.tip { text-decoration: underline dotted; text-decoration-color: hsl(var(--muted-foreground)); text-underline-offset: 3px; cursor: help; }
+.tip::after { content: " ⓘ"; font-size: .625rem; color: hsl(var(--muted-foreground)); }
+
+.card {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  padding: 1rem;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.card-title {
+  font-size: 0.875rem; font-weight: 600;
+  margin-bottom: 0.625rem;
+  display: flex; align-items: center; gap: 0.5rem;
+}
+/* Acordeón de grupos — workspace Resumen (Chris 2026-06-15 · colapsa el muro de ~26 campos) */
+.card.acc > .card-title { cursor:pointer; user-select:none; margin-bottom:0; }
+.card.acc > .card-title::before { content:'▸'; color:hsl(var(--muted-foreground)); font-size:.6875rem; transition:transform .15s; }
+.card.acc[data-open="true"] > .card-title { margin-bottom:.625rem; }
+.card.acc[data-open="true"] > .card-title::before { transform:rotate(90deg); }
+.card.acc[data-open="false"] > :not(.card-title) { display:none; }
+.card.acc .acc-count { margin-left:auto; font-size:.6875rem; font-weight:500; color:hsl(var(--muted-foreground)); }
+
+.autosave-badge {
+  display: inline-flex; align-items: center; gap: 0.375rem;
+  padding: 0.25rem 0.625rem; font-size: 0.6875rem;
+  color: hsl(var(--muted-foreground));
+  border-radius: 9999px; background: hsl(var(--muted));
+}
+
+.avatar {
+  width: 32px; height: 32px; border-radius: 9999px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: white; font-weight: 600; font-size: 0.75rem;
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   SHELL ROOT — grid responsive con splitter state
+   Estado canónico shell-organism F1-S4/S5 (replicado, no inventado).
+   ============================================================ */
+.shell-root {
+  display: grid;
+  grid-template-rows: var(--topbar-h) 1fr;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.shell-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 0;
+  overflow: hidden;
+  transition: grid-template-columns 220ms cubic-bezier(.2, .8, .2, 1);
+}
+.shell-body[data-splitter-state="50-50"]         { grid-template-columns: 1fr 1fr; }
+.shell-body[data-splitter-state="chat-narrow"]   { grid-template-columns: var(--chat-narrow-w) 1fr; }
+.shell-body[data-splitter-state="chat-collapsed"] { grid-template-columns: var(--chat-rail-w) 1fr; }
+
+/* Splitter visual handle (NO drag real — solo indica que existe) */
+.shell-body::after { content: none; }
+
+/* ============================================================
+   TOPBAR GLOBAL — fiel a F1-S2 (logo gradiente + tenant + acciones)
+   ============================================================ */
+.topbar {
+  height: var(--topbar-h);
+  background: hsl(var(--card));
+  border-bottom: 1px solid hsl(var(--border));
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 1rem;
+  box-sizing: border-box;
+}
+.topbar-left { display: flex; align-items: center; gap: 0.625rem; min-width: 0; }
+.topbar-logo {
+  display: flex; align-items: center; gap: 0.5rem;
+  font-weight: 700; font-size: 0.9375rem;
+  color: hsl(var(--foreground));
+}
+.topbar-logo-mark {
+  width: 28px; height: 28px; border-radius: 0.5rem;
+  background: var(--vitalia-gradient-mariposa);
+  display: flex; align-items: center; justify-content: center;
+  color: white; font-weight: 700; font-size: 0.8125rem;
+  box-shadow: var(--shadow-sm);
+}
+.topbar-breadcrumb {
+  font-size: 0.75rem; color: hsl(var(--muted-foreground));
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.topbar-right { display: flex; align-items: center; gap: 0.5rem; }
+
+/* Tenant switcher chip */
+.tenant-chip {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  padding: 0.3125rem 0.625rem; border-radius: 0.5rem;
+  background: hsl(var(--card)); border: 1px solid hsl(var(--border));
+  font-size: 0.75rem; font-weight: 500;
+  cursor: pointer; transition: border-color 0.15s;
+}
+.tenant-chip:hover { border-color: hsl(var(--muted-foreground)); }
+.tenant-chip-avatar {
+  width: 18px; height: 18px; border-radius: 0.3125rem;
+  background: hsl(var(--accent)); color: white;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 0.625rem; font-weight: 700;
+}
+
+/* Theme toggle + icon buttons topbar */
+.topbar-icon-btn {
+  width: 30px; height: 30px; border-radius: 0.4375rem;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: hsl(var(--muted-foreground));
+  transition: background 0.15s, color 0.15s;
+  font-size: 0.875rem;
+}
+.topbar-icon-btn:hover { background: hsl(var(--muted)); color: hsl(var(--foreground)); }
+
+/* Splitter state control (mockup-only — selector visual de 3 estados) */
+.splitter-control {
+  display: inline-flex; gap: 0.125rem;
+  padding: 0.1875rem; border-radius: 0.4375rem;
+  background: hsl(var(--muted));
+  font-size: 0.6875rem;
+}
+.splitter-btn {
+  padding: 0.25rem 0.4375rem; border-radius: 0.3125rem;
+  color: hsl(var(--muted-foreground));
+  display: inline-flex; align-items: center; gap: 0.25rem;
+  transition: all 0.15s;
+}
+.splitter-btn[data-active="true"] {
+  background: hsl(var(--card));
+  color: hsl(var(--foreground));
+  box-shadow: var(--shadow-sm);
+  font-weight: 500;
+}
+
+/* ============================================================
+   CHAT SIDE — fiel a F1-S5/S6 (rail + chat con avatar + composer)
+   ============================================================ */
+.chat-side {
+  background: hsl(var(--background));
+  border-right: 1px solid hsl(var(--border));
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Modo rail (solo iconos cuando collapsed) */
+.shell-body[data-splitter-state="chat-collapsed"] .chat-content { display: none; }
+.shell-body[data-splitter-state="chat-collapsed"] .chat-rail-only { display: flex; }
+.chat-rail-only {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.75rem 0; gap: 0.5rem;
+  height: 100%;
+}
+.chat-rail-only .rail-btn {
+  width: 40px; height: 40px;
+  border-radius: 0.625rem;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.125rem;
+  color: hsl(var(--muted-foreground));
+}
+.chat-rail-only .rail-btn:hover { background: hsl(var(--muted)); color: hsl(var(--foreground)); }
+.chat-rail-only .rail-btn.active { background: hsl(var(--agent-valeria)); color: white; }
+
+.chat-content {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Chat header (porte F1-S6) */
+.chat-header {
+  height: 56px;
+  display: flex; align-items: center; gap: 0.625rem;
+  padding: 0 0.875rem;
+  border-bottom: 1px solid hsl(var(--border));
+  background: hsl(var(--card));
+  flex-shrink: 0;
+}
+.chat-avatar-wrap { position: relative; flex-shrink: 0; }
+.chat-avatar {
+  width: 36px; height: 36px;
+  border-radius: 9999px;
+  background: hsl(var(--agent-valeria));
+  display: flex; align-items: center; justify-content: center;
+  color: white; font-weight: 600; font-size: 0.875rem;
+  overflow: hidden;
+}
+.chat-status-dot {
+  position: absolute; bottom: 0; right: 0;
+  width: 10px; height: 10px; border-radius: 9999px;
+  background: hsl(var(--success));
+  box-shadow: 0 0 0 2px hsl(var(--card));
+}
+.chat-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.chat-name { font-size: 0.8125rem; font-weight: 600; color: hsl(var(--foreground)); line-height: 1.15; }
+.chat-role { font-size: 0.6875rem; color: hsl(var(--muted-foreground)); line-height: 1.2; }
+.chat-mode-pill {
+  font-size: 0.6875rem;
+  padding: 0.1875rem 0.5rem; border-radius: 9999px;
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--muted));
+  color: hsl(var(--foreground));
+  flex-shrink: 0;
+}
+
+/* Chat history strip (rail-history mode lite) */
+.chat-history-strip {
+  padding: 0.4375rem 0.625rem;
+  font-size: 0.6875rem;
+  color: hsl(var(--muted-foreground));
+  background: hsl(var(--card));
+  border-bottom: 1px solid hsl(var(--border));
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+/* Chat messages */
+.chat-messages {
+  min-height: 0;
+  overflow-y: auto;
+  padding: 1rem 0.875rem;
+  display: flex; flex-direction: column;
+  gap: 0.75rem;
+  background: hsl(var(--background));
+}
+.msg-row { display: flex; flex-direction: column; gap: 0.25rem; max-width: 85%; }
+.msg-row[data-role="user"] { align-self: flex-end; align-items: flex-end; }
+.msg-row[data-role="bot"] { align-self: flex-start; align-items: flex-start; }
+.msg-bubble {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  border-radius: 1.125rem;
+}
+.msg-row[data-role="bot"] .msg-bubble {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  color: hsl(var(--foreground));
+  border-bottom-left-radius: 0.25rem;
+}
+.msg-row[data-role="user"] .msg-bubble {
+  background: hsl(var(--agent-valeria));
+  color: white;
+  border-bottom-right-radius: 0.25rem;
+}
+.msg-time {
+  font-size: 0.625rem;
+  color: hsl(var(--muted-foreground));
+  padding: 0 0.25rem;
+}
+.msg-delegate {
+  align-self: center;
+  font-size: 0.6875rem;
+  color: hsl(var(--muted-foreground));
+  font-style: italic;
+  display: inline-flex; align-items: center; gap: 0.375rem;
+  padding: 0.25rem 0.625rem;
+  background: hsl(var(--muted));
+  border-radius: 9999px;
+}
+.msg-delegate .agent-tag {
+  display: inline-flex; align-items: center; gap: 0.25rem;
+  font-style: normal; font-weight: 500;
+  color: hsl(var(--agent-camila));
+}
+.msg-delegate .agent-tag .dot {
+  width: 8px; height: 8px; border-radius: 9999px;
+  background: hsl(var(--agent-camila));
+}
+
+/* Chat composer (porte F1-S6) */
+.chat-composer {
+  border-top: 1px solid hsl(var(--border));
+  background: hsl(var(--card));
+  padding: 0.625rem 0.75rem;
+  flex-shrink: 0;
+}
+.composer-row {
+  display: flex; align-items: flex-end; gap: 0.5rem;
+}
+.composer-adornos { display: flex; align-items: center; gap: 0.125rem; padding-bottom: 0.375rem; }
+.composer-adorno-btn {
+  width: 30px; height: 30px;
+  border-radius: 0.4375rem;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: hsl(var(--muted-foreground)); font-size: 0.9375rem;
+  transition: background 0.15s, color 0.15s;
+}
+.composer-adorno-btn:hover { background: hsl(var(--muted)); color: hsl(var(--foreground)); }
+.composer-textarea {
+  flex: 1;
+  min-height: 36px; max-height: 100px;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid hsl(var(--input));
+  border-radius: 0.5rem;
+  background: hsl(var(--background));
+  font-size: 0.8125rem; line-height: 1.45;
+  resize: none;
+}
+.composer-textarea:focus {
+  border-color: hsl(var(--agent-valeria));
+  box-shadow: 0 0 0 2px hsl(var(--agent-valeria) / 0.2);
+  outline: none;
+}
+.composer-send {
+  height: 36px;
+  padding: 0 0.875rem;
+  border-radius: 0.5rem;
+  background: hsl(var(--agent-valeria));
+  color: white;
+  font-size: 0.8125rem; font-weight: 500;
+  align-self: flex-end;
+  transition: opacity 0.15s;
+}
+.composer-send:hover { opacity: 0.92; }
+.composer-hint {
+  font-size: 0.625rem;
+  color: hsl(var(--muted-foreground));
+  margin-top: 0.25rem; padding: 0 0.25rem;
+}
+.kbd {
+  display: inline-block;
+  padding: 0 0.25rem; border-radius: 0.1875rem;
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--muted));
+  font-family: ui-monospace, monospace;
+  font-size: 0.625rem;
+}
+
+/* ============================================================
+   PANEL SIDE — Ribbon + SubTabs + SubSubTabs + Content + Footer
+   ============================================================ */
+.panel-side {
+  display: grid;
+  grid-template-rows: var(--ribbon-h) var(--subtabs-h) var(--subsubtabs-h) 1fr auto;
+  min-width: 0;
+  overflow: hidden;
+  background: hsl(var(--background));
+}
+
+/* N1 Ribbon agentes — fiel a F1-S7 con bordes agent-color */
+.ribbon {
+  display: flex; align-items: stretch;
+  padding: 0 0.75rem; gap: 0.125rem;
+  background: hsl(var(--card));
+  border-bottom: 1px solid hsl(var(--border));
+  overflow-x: auto;
+}
+.ribbon-tab {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  padding: 0 0.875rem;
+  font-size: 0.8125rem; font-weight: 500;
+  color: hsl(var(--muted-foreground));
+  border-bottom: 3px solid transparent;
+  white-space: nowrap;
+  transition: all 0.15s;
+  position: relative;
+}
+.ribbon-tab:hover { color: hsl(var(--foreground)); background: hsl(var(--muted) / 0.5); }
+.ribbon-tab[data-active="true"] {
+  color: hsl(var(--foreground));
+  font-weight: 600;
+}
+.ribbon-tab[data-active="true"][data-color="lisa"]    { border-bottom-color: hsl(var(--agent-lisa)); }
+.ribbon-tab[data-active="true"][data-color="lucas"]   { border-bottom-color: hsl(var(--agent-lucas)); }
+.ribbon-tab[data-active="true"][data-color="adrian"]  { border-bottom-color: hsl(var(--agent-adrian)); }
+.ribbon-tab[data-active="true"][data-color="valeria"] { border-bottom-color: hsl(var(--agent-valeria)); }
+.ribbon-tab[data-active="true"][data-color="camila"]  { border-bottom-color: hsl(var(--agent-camila)); }
+.ribbon-tab[data-active="true"][data-color="config"]  { border-bottom-color: hsl(var(--agent-config)); }
+.ribbon-tab-avatar {
+  width: 24px; height: 24px; border-radius: 9999px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 0.625rem; font-weight: 700; color: white;
+  border: 2px solid transparent;
+}
+.ribbon-tab[data-active="true"] .ribbon-tab-avatar[data-color="lisa"]    { border-color: hsl(var(--agent-lisa)); }
+.ribbon-tab[data-active="true"] .ribbon-tab-avatar[data-color="lucas"]   { border-color: hsl(var(--agent-lucas)); }
+.ribbon-tab[data-active="true"] .ribbon-tab-avatar[data-color="adrian"]  { border-color: hsl(var(--agent-adrian)); }
+.ribbon-tab[data-active="true"] .ribbon-tab-avatar[data-color="valeria"] { border-color: hsl(var(--agent-valeria)); }
+.ribbon-tab[data-active="true"] .ribbon-tab-avatar[data-color="camila"]  { border-color: hsl(var(--agent-camila)); }
+
+/* N2 SubTabs línea 2 — fiel a F1-S8 con agent-soft active */
+.subtabs-bar {
+  display: flex; align-items: center; gap: 0.25rem;
+  padding: 0 0.875rem;
+  background: hsl(var(--card));
+  border-bottom: 1px solid hsl(var(--border));
+  overflow-x: auto;
+}
+.subtab-btn {
+  padding: 0.4375rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem; font-weight: 500;
+  color: hsl(var(--muted-foreground));
+  display: inline-flex; align-items: center; gap: 0.375rem;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+.subtab-btn:hover { background: hsl(var(--muted)); color: hsl(var(--foreground)); }
+.subtab-btn[data-active="true"][data-color="lisa"]    { background: hsl(var(--agent-lisa-soft)); color: hsl(var(--agent-lisa)); font-weight: 600; }
+.subtab-btn[data-active="true"][data-color="lucas"]   { background: hsl(var(--agent-lucas-soft)); color: hsl(var(--foreground)); font-weight: 600; }
+.subtab-btn[data-active="true"][data-color="adrian"]  { background: hsl(var(--agent-adrian-soft)); color: hsl(var(--agent-adrian)); font-weight: 600; }
+.subtab-btn[data-active="true"][data-color="valeria"] { background: hsl(var(--agent-valeria-soft)); color: hsl(var(--agent-valeria)); font-weight: 600; }
+.subtab-btn[data-active="true"][data-color="camila"]  { background: hsl(var(--agent-camila-soft)); color: hsl(var(--agent-camila)); font-weight: 600; }
+
+/* N3-static SubSubTabsBar — ADR-vitalia-004 v1.1 */
+.subsubtabs-bar {
+  display: flex; align-items: center; gap: 0.25rem;
+  padding: 0.375rem 0.875rem 0.5rem;
+  background: hsl(var(--background));
+  border-bottom: 1px solid hsl(var(--border));
+  overflow-x: auto;
+}
+.subsubtab-btn {
+  padding: 0.375rem 0.875rem;
+  border-radius: 0.5rem;
+  font-size: 0.8125rem; font-weight: 500;
+  color: hsl(var(--muted-foreground));
+  display: inline-flex; align-items: center; gap: 0.4375rem;
+  white-space: nowrap;
+  border: 1px solid transparent;
+  transition: all 0.15s;
+}
+.subsubtab-btn:hover { background: hsl(var(--muted)); color: hsl(var(--foreground)); }
+.subsubtab-btn[data-active="true"] {
+  background: hsl(var(--agent-lisa));
+  color: white;
+  border-color: hsl(var(--agent-lisa));
+  box-shadow: 0 1px 2px hsl(var(--agent-lisa) / 0.3);
+  font-weight: 600;
+}
+
+/* ============================================================
+   PANEL CONTENT — fluid, sin max-width hard
+   ============================================================ */
+.panel-content {
+  min-height: 0;
+  overflow-y: auto;
+  padding: 1.25rem 1.5rem 2rem;
+  background: hsl(var(--background));
+}
+.panel-inner {
+  /* Fluido — sin max-width. El ancho lo dicta el splitter state.
+     Cards usan grid auto-fit para aprovechar el espacio disponible. */
+  width: 100%;
+}
+
+/* Section heading (h1 grande arriba de las cards) */
+.section-header {
+  margin-bottom: 1rem;
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;
+}
+.section-title {
+  font-size: 1.375rem; font-weight: 700; line-height: 1.2;
+  color: hsl(var(--foreground));
+}
+.section-subtitle {
+  font-size: 0.8125rem; color: hsl(var(--muted-foreground));
+  margin-top: 0.25rem;
+}
+
+/* Cards grid responsive */
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 0.875rem;
+}
+.cards-stack {
+  display: flex; flex-direction: column;
+  gap: 0.875rem;
+}
+
+/* ============================================================
+   FOOTER META
+   ============================================================ */
+.footer-meta {
+  padding: 0.5rem 0.875rem;
+  background: hsl(var(--muted) / 0.3);
+  border-top: 1px solid hsl(var(--border));
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 0.6875rem; color: hsl(var(--muted-foreground));
+}
+
+/* ============================================================
+   SCROLLBARS
+   ============================================================ */
+*::-webkit-scrollbar { width: 8px; height: 8px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 4px; }
+*::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted-foreground)); }
+
+/* ============================================================
+   SERVICIOS-SPECIFIC — appended para vitalia-fase2-lisa-servicios
+   (el shell chrome de arriba es VERBATIM de lisa-marca v2.1)
+   ============================================================ */
+
+/* rung colors (peldaños de la escalera = OfferValueLevel, labels médicos) */
+:root {
+  --rung-magnet: 142 76% 36%;    /* gancho gratuito (capta) */
+  --rung-primera: 198 99% 49%;   /* primera visita */
+  --rung-principal: 287 53% 37%; /* tratamiento principal */
+  --rung-premium: 33 91% 44%;    /* premium */
+  --rung-plan: 215 16% 47%;      /* plan / convenio */
+}
+.rung-badge { display:inline-flex; align-items:center; gap:.25rem; font-size:.6875rem; font-weight:600; padding:.125rem .5rem; border-radius:9999px; width:fit-content; }
+.rung-magnet    { background: hsl(var(--rung-magnet) / .14);    color: hsl(var(--rung-magnet)); }
+.rung-primera   { background: hsl(var(--rung-primera) / .14);   color: hsl(var(--rung-primera)); }
+.rung-principal { background: hsl(var(--rung-principal) / .14); color: hsl(var(--rung-principal)); }
+.rung-premium   { background: hsl(var(--rung-premium) / .16);   color: hsl(var(--rung-premium)); }
+.rung-plan      { background: hsl(var(--rung-plan) / .14);      color: hsl(var(--rung-plan)); }
+
+/* service card (catálogo grid) */
+.svc-card { display:flex; flex-direction:column; gap:.5rem; cursor:pointer; }
+.svc-icon { width:38px; height:38px; border-radius:.625rem; display:flex; align-items:center; justify-content:center; font-size:1.25rem; background:hsl(var(--muted)); }
+.avatar-stack { display:flex; }
+.avatar-stack .avatar { width:24px; height:24px; font-size:.625rem; margin-right:-8px; border:2px solid hsl(var(--card)); }
+.avatar-stack .avatar:last-child { margin-right:0; }
+.svc-foot { display:flex; align-items:center; justify-content:space-between; padding-top:.5rem; border-top:1px solid hsl(var(--border)); }
+
+/* mini switch (toggles activo/landing) */
+.switch { position:relative; display:inline-block; width:32px; height:18px; flex-shrink:0; }
+.switch input { display:none; }
+.switch .track { position:absolute; inset:0; background:hsl(var(--border)); border-radius:9999px; transition:.15s; }
+.switch .track::after { content:''; position:absolute; left:2px; top:2px; width:14px; height:14px; background:#fff; border-radius:9999px; transition:.15s; box-shadow:var(--shadow-sm); }
+.switch input:checked + .track { background:hsl(var(--agent-lisa)); }
+.switch input:checked + .track::after { transform:translateX(14px); }
+.switch-label { display:inline-flex; align-items:center; gap:.375rem; font-size:.6875rem; color:hsl(var(--muted-foreground)); }
+
+/* warn inline (sin doctores) */
+.warn-inline { font-size:.6875rem; color:hsl(var(--warning)); background:hsl(var(--warning) / .12); border-radius:.4375rem; padding:.375rem .5rem; }
+
+/* ===== ESCALERA — peldaños FIJOS + autoexplicativo =====
+   Layout (Chris 2026-06-12): Gancho = fila full-width arriba · 3 peldaños medios en columnas ·
+   Plan/convenio = fila full-width abajo. PELDAÑO 1 y 5 llevan .rung-row (span 1/-1, banda horizontal). */
+.ladder { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:.75rem; }
+.rung-col { background:hsl(var(--muted) / .35); border:1px solid hsl(var(--border)); border-radius:var(--radius); padding:.75rem; min-height:300px; display:flex; flex-direction:column; gap:.5rem; }
+.rung-col[data-empty="true"] { border-style:dashed; }
+/* fila full-width (Gancho arriba · Plan abajo) — banda horizontal: head a la izquierda, contenido fluye a la derecha */
+.rung-row { grid-column:1 / -1; min-height:auto; flex-direction:row; flex-wrap:wrap; align-items:stretch; gap:.625rem .875rem; }
+.rung-row .rung-head { flex:0 0 210px; border-bottom:none; border-right:1px solid hsl(var(--border)); padding-bottom:0; padding-right:.875rem; justify-content:center; }
+.rung-row > .lad-card { flex:1 1 200px; align-self:center; }
+.rung-row > .rung-empty-hint { flex:1 1 320px; align-self:center; }
+.rung-row > .rung-create { flex:0 0 auto; align-self:center; }
+@media (max-width:760px) { .ladder { grid-template-columns:1fr; } .rung-row { flex-direction:column; } .rung-row .rung-head { flex:1 1 auto; border-right:none; border-bottom:1px solid hsl(var(--border)); padding-right:0; padding-bottom:.5rem; } }
+.rung-head { padding-bottom:.5rem; border-bottom:1px solid hsl(var(--border)); display:flex; flex-direction:column; gap:.25rem; }
+.rung-num { font-size:.625rem; font-weight:700; color:hsl(var(--muted-foreground)); }
+.rung-explain { font-size:.6875rem; color:hsl(var(--muted-foreground)); line-height:1.4; }
+.lad-card { background:hsl(var(--card)); border:1px solid hsl(var(--border)); border-radius:.5rem; padding:.5rem .625rem; font-size:.75rem; cursor:grab; box-shadow:var(--shadow-sm); display:flex; flex-direction:column; gap:.125rem; }
+.lad-card:hover { box-shadow:var(--shadow-md); }
+.lad-price { font-weight:600; }
+.rung-empty-hint { font-size:.6875rem; color:hsl(var(--muted-foreground)); background:hsl(var(--card)); border:1px dashed hsl(var(--border)); border-radius:.5rem; padding:.625rem; line-height:1.45; }
+.rung-create { font-size:.75rem; color:hsl(var(--agent-lisa)); font-weight:600; text-align:center; padding:.5rem; border:1px dashed hsl(var(--agent-lisa) / .5); border-radius:.5rem; cursor:pointer; background:hsl(var(--agent-lisa-soft) / .4); }
+.rung-create:hover { background:hsl(var(--agent-lisa-soft)); }
+
+/* ===== EntitySubNavBar replica (workspace · patrón staff · NO body tabs) ===== */
+.entity-subnav { display:flex; align-items:center; gap:0; min-height:44px; padding:0 1rem; background:hsl(var(--background)); border-bottom:1px solid hsl(var(--border)); overflow-x:auto; }
+.entity-back { display:inline-flex; align-items:center; gap:.25rem; font-size:.8125rem; color:hsl(var(--muted-foreground)); padding-right:.75rem; border-right:1px solid hsl(var(--border)); margin-right:.75rem; white-space:nowrap; }
+.entity-back:hover { color:hsl(var(--foreground)); }
+.entity-id { display:inline-flex; align-items:center; gap:.5rem; margin-right:.75rem; white-space:nowrap; font-size:.8125rem; font-weight:500; }
+.entity-leaves { display:inline-flex; align-items:center; gap:.25rem; }
+/* #4 Chris 2026-06-07: los leaf-tabs del workspace = MISMO color y forma que .subsubtab-btn (Catálogo/Escalera).
+   ⚠️ EntitySubNavBar es componente SHIPPED compartido (staff/doctores) → aplicar esto = restyle global del shell (consistencia). */
+.entity-leaf { padding:.375rem .875rem; font-size:.8125rem; font-weight:500; border-radius:.5rem; color:hsl(var(--muted-foreground)); white-space:nowrap; border:1px solid transparent; display:inline-flex; align-items:center; gap:.4375rem; transition:all .15s; }
+.entity-leaf:hover { background:hsl(var(--muted)); color:hsl(var(--foreground)); }
+.entity-leaf[data-active="true"] { background:hsl(var(--agent-lisa)); color:#fff; border-color:hsl(var(--agent-lisa)); box-shadow:0 1px 2px hsl(var(--agent-lisa) / .3); font-weight:600; }
+
+/* root leaf (‹ Servicios) — peer-leaf que vuelve al catálogo (Cambio B 2026-06-12) */
+.entity-leaf-root { display:inline-flex; align-items:center; gap:.25rem; padding:.375rem .75rem .375rem .5rem; margin-right:.375rem; font-size:.8125rem; font-weight:500; color:hsl(var(--muted-foreground)); text-decoration:none; border-radius:.5rem; white-space:nowrap; border:1px solid transparent; transition:all .15s; }
+.entity-leaf-root:hover { background:hsl(var(--muted)); color:hsl(var(--foreground)); }
+.entity-leaf-root .rl-arrow { font-size:1rem; line-height:1; }
+
+/* ===== EntityPicker (canon §2.4) — cambia de entidad sin volver al catálogo =====
+   Panel = popover position:fixed (escapa el overflow-x:auto del .entity-subnav · posicionado por JS toggleEP). */
+.entity-picker { position:relative; flex:0 0 auto; }
+.entity-picker-trigger { display:inline-flex; align-items:center; gap:.4375rem; max-width:240px; padding:.3125rem .5rem .3125rem .375rem; font-size:.8125rem; font-weight:600; color:hsl(var(--foreground)); background:hsl(var(--card)); border:1px solid hsl(var(--border)); border-radius:.5rem; cursor:pointer; white-space:nowrap; transition:all .15s; }
+.entity-picker-trigger:hover { background:hsl(var(--muted)); border-color:hsl(var(--ring)); }
+.entity-picker-trigger > span:nth-child(2) { overflow:hidden; text-overflow:ellipsis; }
+.ep-avatar { flex:0 0 auto; width:22px; height:22px; border-radius:9999px; background:hsl(var(--agent-lisa)); color:#fff; font-size:.625rem; font-weight:700; display:inline-flex; align-items:center; justify-content:center; }
+.ep-chevron { flex:0 0 auto; font-size:.625rem; color:hsl(var(--muted-foreground)); }
+.entity-picker-panel { position:fixed; display:none; width:min(280px, 90vw); max-height:min(360px, 70vh); flex-direction:column; background:hsl(var(--card)); border:1px solid hsl(var(--border)); border-radius:var(--radius); box-shadow:var(--shadow-md); z-index:50; overflow:hidden; }
+.entity-picker-panel.open { display:flex; }
+.entity-picker-search { padding:.5rem; border-bottom:1px solid hsl(var(--border)); }
+.entity-picker-search input { width:100%; padding:.375rem .5rem; font-size:.8125rem; border:1px solid hsl(var(--border)); border-radius:.4375rem; background:hsl(var(--background)); color:hsl(var(--foreground)); }
+.entity-picker-search input:focus { outline:none; border-color:hsl(var(--ring)); box-shadow:0 0 0 2px hsl(var(--ring) / .2); }
+.entity-picker-list { overflow-y:auto; padding:.25rem; display:flex; flex-direction:column; gap:.125rem; }
+.entity-picker-option { display:flex; align-items:center; gap:.5rem; padding:.375rem .5rem; font-size:.8125rem; border-radius:.4375rem; cursor:pointer; color:hsl(var(--foreground)); white-space:nowrap; }
+.entity-picker-option > span:last-child { overflow:hidden; text-overflow:ellipsis; }
+.entity-picker-option:hover { background:hsl(var(--muted)); }
+.entity-picker-option[data-active="true"] { background:hsl(var(--agent-lisa-soft)); font-weight:600; }
+.ep-opt-avatar { flex:0 0 auto; width:24px; height:24px; border-radius:9999px; background:hsl(var(--agent-lisa)); color:#fff; font-size:.625rem; font-weight:700; display:inline-flex; align-items:center; justify-content:center; }
+.entity-picker-footer { padding:.4375rem .625rem; border-top:1px solid hsl(var(--border)); font-size:.6875rem; color:hsl(var(--muted-foreground)); }
+
+/* ===== modal/sheet crear servicio ===== */
+.sheet-overlay { position:absolute; inset:0; background:hsl(0 0% 0% / .35); display:flex; justify-content:flex-end; z-index:30; }
+.sheet { width:min(520px, 92%); height:100%; background:hsl(var(--card)); border-left:1px solid hsl(var(--border)); box-shadow:var(--shadow-md); display:flex; flex-direction:column; overflow:hidden; }
+.sheet-head { padding:1rem 1.25rem; border-bottom:1px solid hsl(var(--border)); display:flex; align-items:center; justify-content:space-between; }
+.sheet-body { padding:1.25rem; overflow-y:auto; display:flex; flex-direction:column; gap:1rem; }
+.sheet-foot { padding:.875rem 1.25rem; border-top:1px solid hsl(var(--border)); display:flex; justify-content:flex-end; gap:.5rem; }
+.rung-picker { display:grid; grid-template-columns:repeat(5,1fr); gap:.375rem; }
+.rung-opt { border:1px solid hsl(var(--border)); border-radius:.5rem; padding:.5rem .375rem; text-align:center; cursor:pointer; font-size:.625rem; line-height:1.2; }
+.rung-opt[data-sel="true"] { border-color:hsl(var(--agent-lisa)); background:hsl(var(--agent-lisa-soft)); font-weight:600; }
+.field-row { display:grid; grid-template-columns:1fr 1fr; gap:.75rem; }
+
+/* ===== Panel de conocimiento (Fuentes · colapsable · persiste · #1+#9B) ===== */
+.kpanel { border:1px solid hsl(var(--agent-lisa) / .4); border-radius:var(--radius); background:hsl(var(--agent-lisa-soft) / .25); margin-bottom:1rem; overflow:hidden; }
+.kpanel > summary { list-style:none; cursor:pointer; padding:.75rem 1rem; display:flex; align-items:center; gap:.5rem; font-weight:600; font-size:.8125rem; }
+.kpanel > summary::-webkit-details-marker { display:none; }
+.kpanel > summary::before { content:'▸'; color:hsl(var(--muted-foreground)); transition:transform .15s; }
+.kpanel[open] > summary::before { transform:rotate(90deg); }
+.kpanel-body { padding:0 1rem 1rem; display:flex; flex-direction:column; gap:.75rem; }
+.dropzone { border:1.5px dashed hsl(var(--agent-lisa) / .55); background:hsl(var(--card)); border-radius:var(--radius); padding:.875rem; display:flex; flex-direction:column; gap:.625rem; }
+.src-row { display:flex; align-items:center; gap:.5rem; padding:.5rem .625rem; border:1px solid hsl(var(--border)); border-radius:.5rem; background:hsl(var(--card)); font-size:.75rem; flex-wrap:wrap; }
+.src-chip { font-size:.625rem; font-weight:600; padding:.0625rem .4375rem; border-radius:9999px; }
+.src-chip.ok   { background:hsl(var(--success) / .15); color:hsl(var(--success)); }
+.src-chip.rag  { background:hsl(var(--agent-adrian-soft)); color:hsl(var(--agent-adrian)); }
+.src-chip.wait { background:hsl(var(--warning) / .15); color:hsl(var(--warning)); }
+.ai-fill { font-size:.625rem; font-weight:600; color:hsl(var(--agent-lisa)); background:hsl(var(--agent-lisa-soft)); padding:.0625rem .375rem; border-radius:9999px; margin-left:.375rem; cursor:help; }
+
+/* ============================================================
+   REPARACIONES 2026-06-15 — clases referenciadas en el markup
+   sin CSS escrito (mismo patrón de bug que EntityPicker/escalera/biblioteca).
+   ============================================================ */
+
+/* utilitario hidden (toggles JS del panel Vincular + empty-state) — sin esto el panel se ve SIEMPRE (#7) */
+.hidden { display: none !important; }
+
+/* FloatingAutosaveIndicator — componente CORE canon §2.6 · UNA por página · fixed bottom-center · "pastilla flotante" (#2) */
+.floating-autosave {
+  position: fixed; left: 50%; bottom: 1rem; transform: translateX(-50%);
+  display: inline-flex; align-items: center; gap: .4375rem;
+  padding: .375rem .8125rem .375rem .625rem;
+  background: hsl(var(--card)); border: 1px solid hsl(var(--border));
+  border-radius: 9999px; box-shadow: var(--shadow-md);
+  font-size: .75rem; font-weight: 500; color: hsl(var(--muted-foreground));
+  z-index: 60; transition: opacity .2s, color .2s;
+}
+.floating-autosave .fa-dot { width: 7px; height: 7px; border-radius: 9999px; background: hsl(var(--success)); flex-shrink: 0; transition: background .2s; }
+.floating-autosave[data-state="saving"] { color: hsl(var(--foreground)); }
+.floating-autosave[data-state="saving"] .fa-dot { background: hsl(var(--warning)); animation: fa-pulse 1s ease-in-out infinite; }
+.floating-autosave[data-state="saved"] .fa-dot { background: hsl(var(--success)); }
+@keyframes fa-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
+
+/* chip de origen del servicio (estándar / personalizado) — barra de estado (#5/#6) */
+.chip-origen { display:inline-flex; align-items:center; gap:.3125rem; padding:.1875rem .5rem; border-radius:9999px; font-size:.6875rem; font-weight:600; white-space:nowrap; }
+.chip-origen.estandar { background:hsl(var(--agent-lisa-soft)); color:hsl(var(--agent-lisa)); }
+.chip-origen.personalizado { background:hsl(var(--muted)); color:hsl(var(--muted-foreground)); }
+
+/* completitud de la ficha (la barrita "ficha 23/26") — sin CSS se veía como texto suelto (#5) */
+.completeness-chip { display:inline-flex; align-items:center; gap:.4375rem; font-size:.6875rem; color:hsl(var(--muted-foreground)); white-space:nowrap; cursor:help; }
+.cc-bar { width:54px; height:6px; border-radius:9999px; background:hsl(var(--muted)); overflow:hidden; display:inline-block; flex-shrink:0; }
+.cc-fill { display:block; height:100%; background:hsl(var(--agent-lisa)); border-radius:9999px; transition:width .3s; }
+
+/* Select canónico (Shadcn-style · canon §2.5 · ❌ select nativo en producto) — wrapper que estiliza el <select> del mockup */
+.select-canon { position:relative; display:inline-block; }
+.select-canon select {
+  appearance:none; -webkit-appearance:none; -moz-appearance:none;
+  width:100%; padding:.5rem 2rem .5rem .75rem;
+  font-size:.8125rem; line-height:1.4;
+  background:hsl(var(--background)); color:hsl(var(--foreground));
+  border:1px solid hsl(var(--input)); border-radius:.5rem; cursor:pointer;
+}
+.select-canon::after { content:'▾'; position:absolute; right:.6875rem; top:50%; transform:translateY(-50%); font-size:.625rem; color:hsl(var(--muted-foreground)); pointer-events:none; }
+.select-canon select:focus { outline:none; border-color:hsl(var(--ring)); box-shadow:0 0 0 2px hsl(var(--ring) / .2); }
+
+/* affix numérico (campo número + unidad: min · sesiones · cada N semanas) — #1 */
+.num-affix { display:flex; gap:.375rem; align-items:center; }
+.num-affix input[type="number"] { max-width:90px; }
+.num-affix .num-unit { font-size:.75rem; color:hsl(var(--muted-foreground)); white-space:nowrap; }
+
+/* ===== Variantes estructuradas (#4) — opciones del MISMO servicio que cambian precio ===== */
+.variants-list { display:flex; flex-direction:column; gap:.375rem; margin:.25rem 0 .5rem; }
+.variant-row { display:grid; grid-template-columns:1.1fr auto 1.4fr auto; gap:.5rem; align-items:center; }
+.variant-row .v-name { font-weight:500; }
+.variant-row .num-affix { gap:.25rem; }
+.variant-row .v-price { max-width:96px; }
+.variant-row .v-del { width:28px; height:28px; border-radius:.4375rem; color:hsl(var(--muted-foreground)); font-size:.75rem; flex-shrink:0; }
+.variant-row .v-del:hover { background:hsl(var(--destructive) / .12); color:hsl(var(--destructive)); }
+.v-add { font-size:.75rem; }
+@media (max-width:560px){ .variant-row { grid-template-columns:1fr; } }
+
+/* ===== Testimonios manuales (#8) ===== */
+.testi-list { display:flex; flex-direction:column; gap:.625rem; margin-top:.625rem; }
+.testi-row { display:flex; gap:.5rem; align-items:flex-start; border:1px solid hsl(var(--border)); border-radius:.5rem; padding:.625rem; }
+.testi-stars { color:hsl(var(--warning)); font-size:.875rem; flex-shrink:0; letter-spacing:1px; line-height:1.6; }
+.testi-row textarea { min-height:auto; }
+.testi-row .v-del { width:28px; height:28px; border-radius:.4375rem; color:hsl(var(--muted-foreground)); font-size:.75rem; flex-shrink:0; }
+.testi-row .v-del:hover { background:hsl(var(--destructive) / .12); color:hsl(var(--destructive)); }
+
+/* ===== RichSelect (#3) — Shadcn-style Select con descripción por opción · candidato CORE @luana/ui-kit ===== */
+.rich-select { position:relative; display:block; }
+.rich-select-trigger { display:flex; align-items:center; gap:.5rem; width:100%; text-align:left; padding:.4375rem .625rem; background:hsl(var(--background)); border:1px solid hsl(var(--input)); border-radius:.5rem; cursor:pointer; transition:border-color .15s, box-shadow .15s; }
+.rich-select-trigger:hover { border-color:hsl(var(--ring)); }
+.rich-select-trigger[aria-expanded="true"] { border-color:hsl(var(--ring)); box-shadow:0 0 0 2px hsl(var(--ring) / .2); }
+.rich-select-trigger .rs-label { flex:1; min-width:0; display:flex; flex-direction:column; gap:.0625rem; }
+.rs-title { font-size:.8125rem; font-weight:500; color:hsl(var(--foreground)); }
+.rs-desc { font-size:.6875rem; color:hsl(var(--muted-foreground)); line-height:1.3; }
+.rs-chevron { flex:0 0 auto; font-size:.625rem; color:hsl(var(--muted-foreground)); }
+.rich-select-panel { position:fixed; display:none; width:min(340px,92vw); max-height:min(320px,60vh); overflow-y:auto; flex-direction:column; gap:.125rem; padding:.25rem; background:hsl(var(--card)); border:1px solid hsl(var(--border)); border-radius:var(--radius); box-shadow:var(--shadow-md); z-index:55; }
+.rich-select-panel.open { display:flex; }
+.rich-option { display:flex; flex-direction:column; gap:.0625rem; padding:.5rem .625rem; border-radius:.4375rem; cursor:pointer; }
+.rich-option:hover { background:hsl(var(--muted)); }
+.rich-option[data-sel="true"] { background:hsl(var(--agent-lisa-soft)); }
+.rich-option[data-sel="true"] .rs-title { color:hsl(var(--agent-lisa)); font-weight:600; }
+
+/* enlace inline (ej. "2 especialistas vinculados" → salta a la pestaña Especialistas · #6) */
+.statuslink { color:hsl(var(--agent-lisa)); cursor:pointer; text-decoration:underline dotted; text-underline-offset:2px; }
+.statuslink:hover { text-decoration-style:solid; }

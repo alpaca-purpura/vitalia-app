@@ -1,0 +1,141 @@
+{
+  "iteration": "final-consolidated-all-10-tickets",
+  "timestamp": "2026-05-18T15:25:00Z",
+  "overall_verdict": "PASS",
+  "executor": "/pm-vitalia orchestrator inline (gate-runner Haiku truncated mid-run; orchestrator took over)",
+  "tickets_covered": [
+    "T-be-migrations-1",
+    "T-be-services-1",
+    "T-be-services-2",
+    "T-be-services-3",
+    "T-ag-tools-1",
+    "T-ag-tools-2",
+    "T-ag-tools-3",
+    "T-ag-workflows-1",
+    "T-ag-workflows-2",
+    "T-ag-evals-1"
+  ],
+  "commits_pushed": [
+    "fb9b997 — T-ag-tools-3 Lucas",
+    "9c374aa — T-ag-tools-1 Valeria",
+    "6814452 — T-ag-tools-2 Adrián",
+    "78c2d2c — gate-output Wave 3",
+    "d7683db — T-ag-workflows-1 Valeria",
+    "0b824c5 — T-ag-workflows-1 SHA pin",
+    "8898916 — T-ag-workflows-2 Lucas",
+    "3495372 — T-ag-workflows-2 SHA pin",
+    "c7e25c5 — test fixes legacy T-infra-2",
+    "d389948 — gate-output Wave 4",
+    "e2b8e62 — T-ag-evals-1 eval suite",
+    "ecb1051 — T-ag-evals-1 SHA pin"
+  ],
+  "gates": [
+    {
+      "id": "be_lint_ruff_check",
+      "category": "non_functional",
+      "verdict": "PASS",
+      "exit_code": 0,
+      "stdout_tail": "All checks passed!"
+    },
+    {
+      "id": "be_format_ruff",
+      "category": "non_functional",
+      "verdict": "PASS",
+      "exit_code": 0,
+      "stdout_tail": "369 files already formatted"
+    },
+    {
+      "id": "be_arch_fitness_brand_scoped",
+      "category": "non_functional",
+      "verdict": "PASS",
+      "exit_code": 0,
+      "duration_ms": 2550,
+      "stdout_tail": "245 passed, 2 warnings in 2.55s"
+    },
+    {
+      "id": "anti_duplication_cross_module_audit",
+      "category": "non_functional",
+      "verdict": "PASS",
+      "exit_code": 0,
+      "stdout_tail": "no mirrors of BaseObservabilityContext/BaseAgentCallbackHandler/FXResolver/PricingSnapshot/TenantBillingConfig/BaseExtractionOrchestrator without engine import"
+    },
+    {
+      "id": "cross_brand_mirror_scan",
+      "category": "non_functional",
+      "verdict": "PASS",
+      "exit_code": 0,
+      "stdout_tail": "no nicolify/comunify/lupulo mirror of vitalia tools"
+    },
+    {
+      "id": "engine_boundary_no_modification_audit",
+      "category": "non_functional",
+      "verdict": "PASS",
+      "exit_code": 0,
+      "stdout_tail": "git diff main...HEAD has 0 changes to core/luana-core-*/src/"
+    },
+    {
+      "id": "spanish_neutro_voseo_check_chrome",
+      "category": "non_functional",
+      "verdict": "PASS",
+      "exit_code": 0,
+      "stdout_tail": "no voseo patterns in copilot/prompts/, agentic/lucas/prompts/, agentic/lucas/personas/"
+    },
+    {
+      "id": "be_test_extensions_consolidated",
+      "category": "non_functional",
+      "verdict": "PASS",
+      "exit_code": 0,
+      "duration_ms": 290,
+      "stdout_tail": "47 passed in 0.29s",
+      "notes": "Cross-ticket coordination regression check post c7e25c5 fix legacy T-infra-2 contract tests"
+    },
+    {
+      "id": "be_test_unit_full_vitalia",
+      "category": "functional",
+      "verdict": "PASS",
+      "exit_code": 0,
+      "duration_ms": 3140,
+      "stdout_tail": "510 passed in 3.14s",
+      "notes": "Includes be_test_unit_copilot + be_test_unit_sales_agent + be_test_unit_lucas + be_test_observability_cost_canonicalization"
+    },
+    {
+      "id": "be_test_integration_full_vitalia",
+      "category": "functional",
+      "verdict": "PASS",
+      "exit_code": 0,
+      "duration_ms": 1200,
+      "stdout_tail": "49 passed, 32 skipped in 1.20s",
+      "notes": "Skipped tests gated on real DB/external services (not required this phase). Includes be_test_integration_wizard_graph + be_test_integration_lucas_graph"
+    },
+    {
+      "id": "visual_na_marker",
+      "category": "visual",
+      "verdict": "PASS",
+      "exit_code": 0,
+      "stdout_tail": "OK — story scope is BE+AGENTIC only. FE components live in sub-stories vitalia-slice-1-{marketing,pipeline,onboarding-wizard,...}"
+    },
+    {
+      "id": "ae_agentic_evals_aggregate",
+      "category": "agentic_eval",
+      "verdict": "PASS",
+      "exit_code": 0,
+      "duration_ms": 8990,
+      "stdout_tail": "512 passed, 6 warnings in 8.99s",
+      "notes": "Includes ae_voice_fidelity_vitalia + ae_medical_guardrails + ae_pass_k_adrian_goldens + ae_pass_k_wizard_goldens + ae_lucas_smoke + ae_cache_hit_rate_smoke + ae_cost_budget_smoke + ae_anti_duplication_no_observability_mirror (subset of agentic_evals/ dir)"
+    }
+  ],
+  "summary": {
+    "total_gates": 12,
+    "pass": 12,
+    "fail": 0,
+    "tests_aggregated": {
+      "arch_fitness": "245/245",
+      "unit_full": "510/510",
+      "integration_full": "49/49 (32 skipped — DB/external gated)",
+      "agentic_evals_full": "512/512",
+      "extensions_consolidated": "47/47",
+      "grand_total": "1363/1363"
+    }
+  },
+  "next_action": "Transition state: developing → developed · AUTO-HANDOFF /auditor (default per story-closure-gate 2026-05-18, sin defer_audit)"
+}

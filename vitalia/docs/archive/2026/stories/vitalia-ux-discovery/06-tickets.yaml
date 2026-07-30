@@ -1,0 +1,1163 @@
+# vitalia-ux-discovery — Tickets
+# Owner: /architect Opus 4.7 · 2026-05-17
+# Consumer: /dev-team picks tickets per WIP cap + DAG + blocked_by
+#
+# ★ SPLIT RECOMMENDATION ★
+# This mega-story spans 6 routes + cross-cutting infra = ~53-63 tickets natural split.
+# WIP cap states developing ≤ 3, ready ≤ 5 — single story would BLOW cap.
+# Architect recommends /pm-vitalia split into 7 sub-stories (per 03-arch.md § 8).
+# Tickets below GROUPED by sub-story label for direct migration if /pm-vitalia accepts split.
+#
+# If split rejected: /dev-team picks tickets respecting DAG + side story blockers.
+
+version: 1
+story_id: vitalia-ux-discovery
+brand: vitalia
+state_target: developing → developed when all unblocked tickets GREEN
+total_tickets: 56
+split_recommendation:
+  status: RECOMMENDED
+  reason: Mega-story exceeds 10-ticket cap. 7 sub-stories below preserve DAG + parallel execution.
+  sub_stories:
+    - id: vitalia-slice-1-infra-cross-cutting
+      ticket_range: T-infra-1..T-infra-9
+      blocker_dependencies: []
+    - id: vitalia-slice-1-onboarding-wizard
+      ticket_range: T-onboarding-1..T-onboarding-7
+      blocker_dependencies: [vitalia-slice-1-infra-cross-cutting, vitalia-copilot-tools-impl]
+    - id: vitalia-slice-1-inbox
+      ticket_range: T-inbox-1..T-inbox-9
+      blocker_dependencies: [vitalia-slice-1-infra-cross-cutting]
+    - id: vitalia-slice-1-pipeline
+      ticket_range: T-pipeline-1..T-pipeline-7
+      blocker_dependencies: [vitalia-slice-1-infra-cross-cutting, vitalia-payment-adapter-mvp, vitalia-copilot-tools-impl]
+    - id: vitalia-slice-1-agenda
+      ticket_range: T-agenda-1..T-agenda-9
+      blocker_dependencies: [vitalia-slice-1-infra-cross-cutting, vitalia-payment-adapter-mvp, vitalia-fiscal-emission-pe]
+    - id: vitalia-slice-1-fidelizacion
+      ticket_range: T-fidelizacion-1..T-fidelizacion-7
+      blocker_dependencies: [vitalia-slice-1-infra-cross-cutting]
+    - id: vitalia-slice-1-marketing
+      ticket_range: T-marketing-1..T-marketing-8
+      blocker_dependencies: [vitalia-slice-1-infra-cross-cutting, vitalia-copilot-tools-impl]
+
+# ===========================================================================
+# Sub-story 1: vitalia-slice-1-infra-cross-cutting (foundation, no blockers)
+# ===========================================================================
+tickets:
+
+  - id: T-arch-1
+    sub_story: vitalia-slice-1-infra-cross-cutting
+    title: ADR vitalia-001 shared-vs-fork decision + design tokens cement
+    state: pushed
+    push_commit_sha: d6f01b6
+    scope: |
+      Produce vitalia/docs/architecture/ADR-vitalia-001-shared-vs-fork.md documenting:
+      - Decision: fork físico Slice 1 (Nicolify components copied to vitalia/frontend/ + token adapter)
+      - Criteria evaluated
+      - Path forward Slice 2 (shared package candidate)
+      Plus: create vitalia/frontend/src/app/globals.css with :root CSS vars per design-system.md § 4.
+      Plus: extend tailwind.config.ts per design-system.md § 5.
+    owner_eligibility: [claude-sonnet, claude-opus]
+    production_code: false
+    estimated_loc: 200
+    acceptance:
+      test_paths: []
+      validator_ids: [fe_typecheck_tsc, fe_lint_eslint, fe_arch_fitness]
+    blocked_by: []
+    deps: []
+
+  - id: T-infra-1
+    sub_story: vitalia-slice-1-infra-cross-cutting
+    title: Migrations 002-016 idempotent Slice 1 (11 tables + 8 column additions)
+    state: pushed
+    push_commit_sha: "1194941"
+    push_branch: wip/vitalia-slice-1-shipping
+    pushed_at: "2026-05-18"
+    result_artifact: vitalia/docs/product/stories/vitalia-slice-1-infra-cross-cutting/T-infra-1-result.md
+    scope: |
+      Create 15 Alembic migrations in vitalia/backend/src/modules/vitalia/persistence/migrations/:
+      002 appointments columns | 003 payment_events | 004 fiscal_receipts | 005 treatment_plans
+      006 re_engagement_events | 007 channel_sync_state | 008 channel_metrics | 009 lucas_recommendations
+      010 referrals | 011 onboarding_progress | 012 brand_studio_drafts | 013 audit_log_vitalia
+      014 tenants columns (BLOCKED — needs /pm-luana proposal accepted)
+      015 offers columns (BLOCKED — needs /pm-luana proposal accepted)
+      016 patients columns
+      All raw SQL IF NOT EXISTS. pgcrypto PHI columns BYTEA. Partition audit_log monthly.
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: false
+    estimated_loc: 800
+    acceptance:
+      test_paths:
+        - vitalia/backend/tests/migrations/test_slice1_migrations.py
+      validator_ids: [be_lint_ruff_check, be_format_ruff, be_arch_fitness_brand, be_test_migrations_smoke]
+    blocked_by: [T-arch-1]
+    notes: |
+      T-be-migration-014 (tenants) + T-be-migration-015 (offers) sub-tasks BLOCKED until
+      /pm-luana ratifies promotion proposals:
+      - docs/promotion-protocol/proposals/2026-05-17-platform-tenants-location-columns.md
+      - docs/promotion-protocol/proposals/2026-05-17-offer-studio-multi-session-maintenance.md
+      RESOLVED: both proposals confirmed state=migrated (commit 5ca61019) — migrations 014+015 completed.
+
+  - id: T-infra-2
+    sub_story: vitalia-slice-1-infra-cross-cutting
+    title: Extension SDK 5 NEW registries Vitalia + extensions.py mount real handlers placeholders
+    scope: |
+      vitalia/backend/src/modules/vitalia/connections/{payment,fiscal,...}/registry.py + extensions.py update
+      Mount payment_provider · fiscal_provider · appointment_origin · conversation_initiation · print_method registries.
+      Wire EP-3 tool handlers (Slice 1 placeholders raising NotImplementedError where real handlers depend on side stories).
+      Wire EP-13 medical guardrails placeholders (T-guards-1..3 implement real checks later).
+    owner_eligibility: [claude-opus]
+    production_code: true  # extension wiring is agentic-adjacent + dispatch logic
+    estimated_loc: 500
+    acceptance:
+      test_paths:
+        - vitalia/backend/tests/test_extensions.py
+      validator_ids: [be_lint_ruff_check, be_format_ruff, be_arch_fitness_brand, be_test_extensions]
+    blocked_by: [T-infra-1]
+    state: pushed
+    push_commit_sha: 4d1dca2
+    pushed_at: 2026-05-18
+    result_artifact: vitalia/docs/product/stories/vitalia-slice-1-infra-cross-cutting/T-infra-2-result.md
+    builder_model: claude-opus-4.7
+    notes: |
+      Tests-passing state. 12 new files + 1 modify. 29 new tests + 166 arch fitness + 18 regression.
+      Pre-existing baseline (16 ruff errors + 33 format-needed in tests/agentic_evals + tests/migrations
+      from Story 11 era) is OUT OF SCOPE — recommend T-infra-baseline-ruff-cleanup ticket scheduled by /pm-vitalia.
+      Awaiting orchestrator gate-runner + auditor-backend independent verdict.
+
+  - id: T-infra-3
+    sub_story: vitalia-slice-1-infra-cross-cutting
+    title: PHI compliance infrastructure (audit_log + pgcrypto + RBAC decorators)
+    scope: |
+      vitalia/backend/src/modules/vitalia/_shared/repositories/{phi_repository,audit_log_repository}.py
+      vitalia/backend/src/modules/vitalia/_shared/encryption/kek_client.py (Vault/KMS client stub Slice 1)
+      vitalia/backend/src/modules/vitalia/_shared/auth/rbac.py (@require_phi_access decorator)
+      vitalia/backend/src/modules/vitalia/compliance/domain/phi_fields.py (SSoT PHI field list)
+      vitalia/backend/src/modules/vitalia/compliance/application/compliance_service_adapter.py
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: false
+    estimated_loc: 600
+    acceptance:
+      test_paths:
+        - vitalia/backend/tests/modules/vitalia/compliance/
+        - vitalia/backend/tests/architecture/test_phi_dual_filter.py
+        - vitalia/backend/tests/architecture/test_audit_log_sync_write.py
+        - vitalia/backend/tests/architecture/test_pgcrypto_phi_columns.py
+      validator_ids: [be_lint_ruff_check, be_format_ruff, be_arch_fitness_brand, be_test_compliance]
+    blocked_by: [T-infra-1, T-infra-2]
+
+  - id: T-infra-4
+    sub_story: vitalia-slice-1-infra-cross-cutting
+    title: Arch fitness tests Slice 1 (NEW gates + allowlist baseline)
+    state: tests-passing
+    pushed_at: "2026-05-18"
+    pushed_by: builder-backend (claude-sonnet-4-6)
+    result_artifact: vitalia/docs/product/stories/vitalia-ux-discovery/T-infra-4-result.md
+    scope: |
+      vitalia/backend/tests/architecture/{test_phi_dual_filter,test_audit_log_sync_write,test_pgcrypto_phi_columns,test_no_observability_mirror,test_no_legacy_paths,test_extension_sdk_registration,test_response_model_required,test_migrations_idempotent}.py
+      vitalia/frontend/src/__tests__/architecture/{test_no_hardcoded_colors,test_no_hardcoded_strings,test_fsd_boundaries,test_no_cross_feature_imports,test_server_first,test_phi_pii_components_used,test_no_voseo_in_copy,test_page_padding}.test.ts
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: false
+    estimated_loc: 700
+    actual_loc: 820
+    acceptance:
+      test_paths: []
+      validator_ids: [be_arch_fitness_brand, fe_arch_fitness]
+      be_arch_fitness_brand: "216/216 PASS"
+      fe_arch_fitness: "38/38 PASS (9 test files)"
+      be_full_suite: "1061 PASS, 54 SKIP (Postgres)"
+    blocked_by: [T-infra-3, T-arch-1]
+
+  - id: T-infra-5
+    sub_story: vitalia-slice-1-infra-cross-cutting
+    title: OpenTelemetry tracing setup + Sentry integration (cron spans + agent turn spans)
+    scope: |
+      vitalia/backend/src/modules/vitalia/_shared/observability/otel_setup.py
+      Wire 11 cron job spans + agent turn spans + Sentry alerts (cost runaway, cron failures, cache hit rate).
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: false
+    estimated_loc: 300
+    acceptance:
+      test_paths:
+        - vitalia/backend/tests/_shared/observability/
+      validator_ids: [be_lint_ruff_check, be_arch_fitness_brand]
+    blocked_by: [T-infra-2]
+
+  - id: T-infra-6
+    sub_story: vitalia-slice-1-infra-cross-cutting
+    title: Storybook setup + 12 critical component stories
+    scope: |
+      vitalia/frontend/.storybook/{main.ts,preview.ts}
+      Storybook stories for AgentAvatar · LucasStageRecommendationsCard · MarketingBowtieSVG ·
+      ChannelBreakdownRow · AttributionMatrixWidget · ContactSidebar · WizardChatThread ·
+      DepositBadge · AgentAttribution · PiiMaskedSpan · RequireRole · ActivityStreamSticky.
+      Chromatic integration for visual regression.
+    owner_eligibility: [claude-sonnet]
+    production_code: false
+    estimated_loc: 1500
+    acceptance:
+      test_paths: []
+      validator_ids: [fe_typecheck_tsc, fe_lint_eslint, visual_storybook_build]
+    blocked_by: [T-arch-1, T-infra-4]
+    state: tests-passing
+    pushed_at: 2026-05-18
+    result_artifact: vitalia/docs/product/stories/vitalia-slice-1-infra-cross-cutting/T-infra-6-result.md
+
+  - id: T-infra-7
+    sub_story: vitalia-slice-1-infra-cross-cutting
+    title: AppShell + Sidebar + TopBar + CopilotRail layout components
+    scope: |
+      vitalia/frontend/src/components/shared/shell/{AppShell,Sidebar,TopBar}.tsx
+      vitalia/frontend/src/components/shared/copilot-rail/{CopilotRail,CopilotChat}.tsx (80px idle / 460px chat)
+      vitalia/frontend/src/components/shared/agents/{AgentAvatar,AgentAttribution,agent-names.ts}
+      vitalia/frontend/src/components/shared/phi/{PiiMaskedSpan,RequireRole,AuditedSection}.tsx
+      vitalia/frontend/src/components/shared/contact-sidebar/ContactSidebar.tsx
+      vitalia/frontend/src/components/shared/nps/NPSTagBadge.tsx
+      vitalia/frontend/src/components/shared/activity-stream/ActivityStreamSticky.tsx
+      vitalia/frontend/src/lib/format/{formatMoney,formatTenantDate,formatTenantDateTime,formatTenantRelative}.ts
+      vitalia/frontend/src/hooks/{useTenantLocale,useCurrentUser,useClinicId,useFeatureFlag,usePiiRoleGate}.ts
+      vitalia/frontend/src/lib/api/fetchClient.ts (Clerk JWT extraction X-Tenant-ID + X-Clinic-ID)
+      Plus Storybook stories per component (covered by T-infra-6).
+    owner_eligibility: [claude-sonnet]
+    production_code: false
+    estimated_loc: 1800
+    acceptance:
+      test_paths:
+        - vitalia/frontend/src/components/shared/__tests__/
+      validator_ids: [fe_typecheck_tsc, fe_lint_eslint, fe_arch_fitness, fe_test_shared]
+    blocked_by: [T-arch-1, T-infra-4]
+
+  - id: T-infra-8
+    sub_story: vitalia-slice-1-infra-cross-cutting
+    title: 11 ARQ cron workers scaffolding + idempotent base
+    scope: |
+      vitalia/backend/src/modules/vitalia/_shared/workers/arq_settings.py
+      Worker fn scaffolds for 11 crons (placeholders raising NotImplementedError — real logic in respective module tickets).
+      Tracing wired via T-infra-5.
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: false
+    estimated_loc: 400
+    acceptance:
+      test_paths:
+        - vitalia/backend/tests/workers/
+      validator_ids: [be_lint_ruff_check, be_arch_fitness_brand, be_test_workers_cron]
+    blocked_by: [T-infra-3, T-infra-5]
+
+  - id: T-infra-9
+    sub_story: vitalia-slice-1-infra-cross-cutting
+    title: IAM + CRM modules scaffolding (single-clinic Slice 1)
+    scope: |
+      vitalia/backend/src/modules/vitalia/iam/{domain,application,api}/ — role enum + clinic_resolver from JWT
+      vitalia/backend/src/modules/vitalia/crm/{domain,application,api}/ — Patient + Lead domain entities + opt_in/opt_out columns wired
+      5 endpoints: /iam/me · /crm/patients/{id} GET PATCH · /crm/leads/{id} GET · /crm/patients/{id}/opt-out
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: false
+    estimated_loc: 1000
+    acceptance:
+      test_paths:
+        - vitalia/backend/tests/modules/vitalia/iam/
+        - vitalia/backend/tests/modules/vitalia/crm/
+      validator_ids: [be_lint_ruff_check, be_format_ruff, be_arch_fitness_brand]
+    blocked_by: [T-infra-3]
+
+# ===========================================================================
+# Sub-story 2: vitalia-slice-1-onboarding-wizard
+# ===========================================================================
+
+  - id: T-onboarding-1
+    sub_story: vitalia-slice-1-onboarding-wizard
+    title: Backend onboarding module domain + persistence (entities, repos, migrations applied)
+    scope: |
+      vitalia/backend/src/modules/vitalia/onboarding/{domain,infrastructure}/
+      OnboardingProgress + BrandStudioDraft + slot_taxonomy.py (3 req + 2 opt + bonus NLU slots)
+      Repositories with tenant_id filter.
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: false
+    estimated_loc: 600
+    acceptance:
+      test_paths:
+        - vitalia/backend/tests/modules/vitalia/onboarding/domain/
+        - vitalia/backend/tests/modules/vitalia/onboarding/infrastructure/
+      validator_ids: [be_lint_ruff_check, be_arch_fitness_brand, be_test_onboarding]
+    blocked_by: [T-infra-3, T-infra-9]
+
+  - id: T-onboarding-2
+    sub_story: vitalia-slice-1-onboarding-wizard
+    title: Onboarding services (WebsiteScraper + DocumentExtractor + AudioTranscriber + OnboardingService + SlotExtraction + LivePreview)
+    scope: |
+      vitalia/backend/src/modules/vitalia/onboarding/application/services/{onboarding_service,slot_extraction_service,live_preview_service}.py
+      vitalia/backend/src/modules/vitalia/onboarding/infrastructure/providers/{website_scraper,document_extractor,audio_transcriber}.py
+      Whisper STT adapter wrap timeout+fallback per graceful-degradation.
+      Throttle 5/min/tenant for simulate-voice. Cache results per slot combination.
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: false
+    estimated_loc: 1200
+    acceptance:
+      test_paths:
+        - vitalia/backend/tests/modules/vitalia/onboarding/application/
+      validator_ids: [be_lint_ruff_check, be_format_ruff, be_arch_fitness_brand, be_test_onboarding]
+    blocked_by: [T-onboarding-1]
+
+  - id: T-onboarding-3
+    sub_story: vitalia-slice-1-onboarding-wizard
+    title: Backend onboarding API routes (5 endpoints)
+    scope: |
+      vitalia/backend/src/modules/vitalia/onboarding/api/router.py
+      Endpoints: /onboarding/start · /onboarding/extract · /onboarding/confirm-slot · /onboarding/simulate-voice · /onboarding/complete
+      response_model= on all. Bearer + X-Tenant-ID.
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: false
+    estimated_loc: 500
+    acceptance:
+      test_paths:
+        - vitalia/backend/tests/modules/vitalia/onboarding/api/
+      validator_ids: [be_test_onboarding]
+    blocked_by: [T-onboarding-2]
+
+  - id: T-onboarding-4
+    sub_story: vitalia-slice-1-onboarding-wizard
+    title: Valeria copilot tools wizard onboarding (4 tools — R23 production agentic)
+    scope: |
+      vitalia/backend/src/modules/vitalia/copilot/tools/{extract_tenant_context,confirm_slot,simulate_personality,complete_onboarding}.py
+      Pydantic input schemas. async + tenant_id mandatory. External calls (Whisper, engine personality_service) wrap timeout+fallback.
+      Register via EP-3 in extensions.py.
+    owner_eligibility: [claude-opus]
+    production_code: true
+    estimated_loc: 800
+    acceptance:
+      test_paths:
+        - vitalia/backend/tests/modules/vitalia/copilot/tools/
+      validator_ids: [be_test_onboarding, agentic_cost_canonicalization]
+    blocked_by: [T-onboarding-2, T-onboarding-3]
+    notes: "blocked_by side story vitalia-copilot-tools-impl SHIPPED state expected"
+
+  - id: T-onboarding-5
+    sub_story: vitalia-slice-1-onboarding-wizard
+    title: LangGraph wizard onboarding supervisor topology (R23 production agentic)
+    scope: |
+      vitalia/backend/src/modules/vitalia/copilot/workflows/{wizard_onboarding_state,wizard_onboarding_graph}.py
+      Supervisor topology + deepagents.task subagent for URL/doc/audio extraction.
+      AsyncPostgresSaver checkpointer. Max-iter guard 25.
+      Prompt cache slots 1-5 cacheable, slot 6 variable per claude-api patterns.
+    owner_eligibility: [claude-opus]
+    production_code: true
+    estimated_loc: 1000
+    acceptance:
+      test_paths:
+        - vitalia/backend/tests/modules/vitalia/copilot/workflows/test_wizard_onboarding_graph.py
+      validator_ids: [be_test_onboarding, agentic_wizard_goldens, agentic_cost_canonicalization]
+    blocked_by: [T-onboarding-4]
+
+  - id: T-onboarding-6
+    sub_story: vitalia-slice-1-onboarding-wizard
+    title: Frontend wizard onboarding feature (chat-LEFT 50/50 split + live preview area)
+    scope: |
+      vitalia/frontend/src/features/onboarding/{api,components,store,types,copy.ts,index.ts}/
+      Components: WizardOnboardingLayout · WizardChatThread (REUSE adapter) · SlotTrackerSticky · ModeSelector
+      · SlotConfirmInline · LiveWhatsAppPreview · LiveLandingSnippetPreview · CloseSetupWarningModal · WizardCompletionTransition
+      Hooks: useExtractTenantContext · useOnboardingProgress · useConfirmSlot · useSimulateVoice · useCompleteOnboarding · useTranscribeAudio
+      URL state nuqs (step + mode + draftId).
+      Microcopy LatAm neutro estricto en copy.ts.
+      Morph transition 400ms wizard→app shell (Batch 1 ratified).
+    owner_eligibility: [claude-sonnet]
+    production_code: false
+    estimated_loc: 2200
+    acceptance:
+      test_paths:
+        - vitalia/frontend/src/features/onboarding/__tests__/
+        - vitalia/frontend/e2e/specs/smoke/wizard-onboarding.smoke.spec.ts
+      validator_ids: [fe_typecheck_tsc, fe_lint_eslint, fe_arch_fitness, fe_test_onboarding, e2e_smoke_wizard_onboarding, spanish_neutro_voseo_check]
+    blocked_by: [T-onboarding-3, T-infra-7, T-infra-6]
+
+  - id: T-onboarding-7
+    sub_story: vitalia-slice-1-onboarding-wizard
+    title: Wizard onboarding eval goldens (4 escenarios — production_code=false)
+    scope: |
+      vitalia/backend/tests/agentic_evals/copilot/wizard_goldens/{happy_url_extraction,negative_incomplete,edge_browser_close_resume,adversarial_url_malicious_pii_xss}.yaml
+      Runner test_wizard_goldens.py with pass^k k=3 threshold 0.5.
+    owner_eligibility: [claude-sonnet]
+    production_code: false
+    estimated_loc: 500
+    acceptance:
+      test_paths:
+        - vitalia/backend/tests/agentic_evals/copilot/
+      validator_ids: [agentic_wizard_goldens]
+    blocked_by: [T-onboarding-5]
+
+# ===========================================================================
+# Sub-story 3: vitalia-slice-1-inbox
+# ===========================================================================
+
+  - id: T-inbox-1
+    sub_story: vitalia-slice-1-inbox
+    title: Backend inbox domain + persistence
+    scope: |
+      Conversation · Message + retraction · ActivityEvent · ActionReceipt · ProposalCard entities
+      Repositories with tenant_id+clinic_id dual filter.
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: false
+    estimated_loc: 700
+    acceptance:
+      test_paths:
+        - vitalia/backend/tests/modules/vitalia/inbox/domain/
+        - vitalia/backend/tests/modules/vitalia/inbox/infrastructure/
+      validator_ids: [be_lint_ruff_check, be_arch_fitness_brand, be_test_inbox]
+    blocked_by: [T-infra-3, T-infra-9]
+
+  - id: T-inbox-2
+    sub_story: vitalia-slice-1-inbox
+    title: Backend inbox services + Whisper STT integration
+    scope: |
+      InboxService · ProactiveOutboundService · WhisperTranscribeService (audio IN)
+      Conversation actions (send, retract, pause-adrian).
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: false
+    estimated_loc: 800
+    acceptance:
+      test_paths:
+        - vitalia/backend/tests/modules/vitalia/inbox/application/
+      validator_ids: [be_test_inbox]
+    blocked_by: [T-inbox-1]
+
+  - id: T-inbox-3
+    sub_story: vitalia-slice-1-inbox
+    title: Backend inbox API routes (8 endpoints)
+    scope: |
+      8 endpoints: list conversations · detail · send · retract · pause-adrian · activity-stream · proactive-outbound · tools-state
+      response_model + Bearer + dual filter middleware.
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: false
+    estimated_loc: 600
+    acceptance:
+      test_paths:
+        - vitalia/backend/tests/modules/vitalia/inbox/api/
+      validator_ids: [be_test_inbox]
+    blocked_by: [T-inbox-2]
+
+  - id: T-inbox-4
+    sub_story: vitalia-slice-1-inbox
+    title: Frontend /inbox feature scaffold + URL state nuqs
+    scope: |
+      vitalia/frontend/src/features/inbox/{api,components,store,types,copy.ts,index.ts}/ scaffold.
+      InboxLayout + ConversationList + ConversationThread + MessageBubble + MessageInput (REUSE adapter closer-studio Nicolify).
+      URL state schema per 03-arch-fe.md § 3.1.
+    owner_eligibility: [claude-sonnet]
+    production_code: false
+    estimated_loc: 1400
+    acceptance:
+      test_paths:
+        - vitalia/frontend/src/features/inbox/__tests__/
+      validator_ids: [fe_typecheck_tsc, fe_lint_eslint, fe_arch_fitness, fe_test_inbox]
+    blocked_by: [T-inbox-3, T-infra-7]
+
+  - id: T-inbox-5
+    sub_story: vitalia-slice-1-inbox
+    title: SegmentedControl3Modes + FilterChips + PauseAdrianButton (venta consultiva ética)
+    scope: |
+      Adrián decide · Adrián consulta · Yo escribo segmented control.
+      Filter chips primarios (Canal + Status + Adrián pide ayuda + audio/imagen sin abrir).
+      Collapsed filters bajo "Más filtros" (Stage decisión + Modo + Período).
+    owner_eligibility: [claude-sonnet]
+    production_code: false
+    estimated_loc: 600
+    acceptance:
+      test_paths:
+        - vitalia/frontend/src/features/inbox/components/__tests__/
+      validator_ids: [fe_test_inbox, fe_arch_fitness, spanish_neutro_voseo_check]
+    blocked_by: [T-inbox-4]
+
+  - id: T-inbox-6
+    sub_story: vitalia-slice-1-inbox
+    title: Audio IN VoiceMessagePlayer + Audio composer attach
+    scope: |
+      VoiceMessagePlayer (player play+scrubber+speed+transcript collapsible)
+      Composer attach [📎] + [🎤] (REUSE adapter VoiceOverlay copilot Nicolify)
+      Image Analysis Card stub UI (Slice 1 placeholder)
+    owner_eligibility: [claude-sonnet]
+    production_code: false
+    estimated_loc: 700
+    acceptance:
+      test_paths:
+        - vitalia/frontend/src/features/inbox/components/__tests__/
+      validator_ids: [fe_test_inbox]
+    blocked_by: [T-inbox-4]
+
+  - id: T-inbox-7
+    sub_story: vitalia-slice-1-inbox
+    title: AdrianToolsSheet read-only + ActionReceiptUndoChip + ActivityStream sticky 32px expand 240px
+    scope: |
+      Tools Sheet read-only with last-used display (link /offer-studio Slice 2 edit).
+      Action receipt undo chip 5min countdown + retract endpoint dispatch.
+      ActivityStream sticky 32px → expand 240px with 8 last events.
+    owner_eligibility: [claude-sonnet]
+    production_code: false
+    estimated_loc: 800
+    acceptance:
+      test_paths:
+        - vitalia/frontend/src/features/inbox/components/__tests__/
+      validator_ids: [fe_test_inbox]
+    blocked_by: [T-inbox-5, T-inbox-6]
+
+  - id: T-inbox-8
+    sub_story: vitalia-slice-1-inbox
+    title: ProactiveOutboundModal NEW Slice 1 (cross-link /agenda /pipeline /marketing)
+    scope: |
+      Modal: contact picker + template picker (5 HSM Meta-approved) + variables auto-fill + preview WA + WA Business Platform compliance.
+    owner_eligibility: [claude-sonnet]
+    production_code: false
+    estimated_loc: 500
+    acceptance:
+      test_paths:
+        - vitalia/frontend/src/features/inbox/components/__tests__/
+      validator_ids: [fe_test_inbox, e2e_smoke_inbox]
+    blocked_by: [T-inbox-7]
+
+  - id: T-inbox-9
+    sub_story: vitalia-slice-1-inbox
+    title: /inbox E2E smoke + visual regression Chromatic
+    scope: |
+      vitalia/frontend/e2e/specs/smoke/inbox.smoke.spec.ts (happy path)
+      vitalia/frontend/e2e/pages/inbox.page.ts (POM)
+      Chromatic snapshot per breakpoint.
+    owner_eligibility: [claude-sonnet]
+    production_code: false
+    estimated_loc: 400
+    acceptance:
+      test_paths:
+        - vitalia/frontend/e2e/specs/smoke/inbox.smoke.spec.ts
+      validator_ids: [e2e_smoke_inbox, visual_regression_bowtie_svg]
+    blocked_by: [T-inbox-8]
+
+# ===========================================================================
+# Sub-story 4: vitalia-slice-1-pipeline
+# ===========================================================================
+
+  - id: T-pipeline-1
+    sub_story: vitalia-slice-1-pipeline
+    title: Backend pipeline domain + persistence + 6 stages mapping engine funnel_stage
+    scope: |
+      Lead + ScreeningOutcome entities. Mapping 6 stages venta consultiva ética to engine funnel_stage enum (rapport/discovery/presentation/closing/won/lost).
+      Repository with tenant_id+clinic_id dual filter.
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: false
+    estimated_loc: 500
+    acceptance:
+      test_paths:
+        - vitalia/backend/tests/modules/vitalia/pipeline/
+      validator_ids: [be_lint_ruff_check, be_arch_fitness_brand, be_test_pipeline]
+    blocked_by: [T-infra-3, T-infra-9]
+
+  - id: T-pipeline-2
+    sub_story: vitalia-slice-1-pipeline
+    title: Backend pipeline services + ScreeningService
+    scope: |
+      PipelineService (move, summary, list) + ScreeningService (Lucas screening clínico per vertical).
+      DnD manual + auto-progression event-driven hooks.
+      Payment timeout cron handler (auto-cancel phone_manual 72h unpaid).
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: false
+    estimated_loc: 900
+    acceptance:
+      test_paths:
+        - vitalia/backend/tests/modules/vitalia/pipeline/application/
+      validator_ids: [be_test_pipeline]
+    blocked_by: [T-pipeline-1]
+
+  - id: T-pipeline-3
+    sub_story: vitalia-slice-1-pipeline
+    title: Backend pipeline API routes (6 endpoints) + screening_questions_by_vertical.yaml SSoT
+    scope: |
+      6 endpoints + vitalia/backend/src/modules/vitalia/agentic/screening/screening_questions_by_vertical.yaml
+      (dental/estética/psicología/fertilidad/otro questions config Slice 1 hardcoded engine; Slice 2 per offer in /offer-studio).
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: false
+    estimated_loc: 500
+    acceptance:
+      test_paths:
+        - vitalia/backend/tests/modules/vitalia/pipeline/api/
+      validator_ids: [be_test_pipeline]
+    blocked_by: [T-pipeline-2]
+
+  - id: T-pipeline-4
+    sub_story: vitalia-slice-1-pipeline
+    title: Lucas screening tool (R23 production agentic)
+    scope: |
+      vitalia/backend/src/modules/vitalia/sales_agent/tools/screening_questions.py
+      Engine personality_service compile + Kimi reasoning prompt + 1-2 questions per vertical.
+      Compliance: screening NO es diagnóstico — es triage.
+      Register via EP-3.
+    owner_eligibility: [claude-opus]
+    production_code: true
+    estimated_loc: 600
+    acceptance:
+      test_paths:
+        - vitalia/backend/tests/modules/vitalia/sales_agent/tools/test_screening_questions.py
+      validator_ids: [agentic_medical_guardrails, agentic_cost_canonicalization]
+    blocked_by: [T-pipeline-3]
+    notes: "blocked_by side story vitalia-copilot-tools-impl"
+
+  - id: T-pipeline-5
+    sub_story: vitalia-slice-1-pipeline
+    title: Frontend /pipeline feature (kanban + REUSE closer-studio adapter)
+    scope: |
+      vitalia/frontend/src/features/pipeline/{api,components,store,types,copy.ts,index.ts}/
+      PipelineLayout · PipelineBoard (REUSE) · PipelineColumn (REUSE) · PipelineCard (REUSE + 3-state expand: compact / hover-expand / click-navigate).
+      PipelineHeaderMetrics · PipelineFilters · StageAttributionChip · ScreeningChip.
+      URL state nuqs schema per 03-arch-fe.md § 3.2.
+    owner_eligibility: [claude-sonnet]
+    production_code: false
+    estimated_loc: 1500
+    acceptance:
+      test_paths:
+        - vitalia/frontend/src/features/pipeline/__tests__/
+      validator_ids: [fe_typecheck_tsc, fe_lint_eslint, fe_arch_fitness, fe_test_pipeline]
+    blocked_by: [T-pipeline-3, T-infra-7]
+
+  - id: T-pipeline-6
+    sub_story: vitalia-slice-1-pipeline
+    title: DepositBadge + AutoMoveFlashToast + auto-progression event-driven (diferenciador MUST #2 visible)
+    scope: |
+      DepositBadge "✓ depósito 30% · ${amount}" in cards stage Reservado + total pipeline value header.
+      AutoMoveFlashToast (5s flash visual on auto-progression).
+      Listener to PaymentCapturedEvent → auto-move lead.
+    owner_eligibility: [claude-sonnet]
+    production_code: false
+    estimated_loc: 500
+    acceptance:
+      test_paths:
+        - vitalia/frontend/src/features/pipeline/components/__tests__/
+      validator_ids: [fe_test_pipeline, e2e_smoke_pipeline]
+    blocked_by: [T-pipeline-5]
+    notes: "blocked_by side story vitalia-payment-adapter-mvp (deposit 30% capture flow)"
+
+  - id: T-pipeline-7
+    sub_story: vitalia-slice-1-pipeline
+    title: /pipeline E2E smoke + visual regression
+    scope: |
+      E2E happy path: load pipeline kanban · expand card hover · check deposit badge visible.
+    owner_eligibility: [claude-sonnet]
+    production_code: false
+    estimated_loc: 300
+    acceptance:
+      test_paths:
+        - vitalia/frontend/e2e/specs/smoke/pipeline.smoke.spec.ts
+      validator_ids: [e2e_smoke_pipeline]
+    blocked_by: [T-pipeline-6]
+
+# ===========================================================================
+# Sub-story 5: vitalia-slice-1-agenda
+# ===========================================================================
+
+  - id: T-agenda-1
+    sub_story: vitalia-slice-1-agenda
+    title: Backend agenda domain + persistence + 4 origins enum
+    scope: |
+      Appointment (8 column additions) + PaymentEvent + FiscalReceipt entities.
+      AppointmentOrigin enum (sales_agent | walk_in | phone_manual | proactive_outbound).
+      BalanceStatus enum.
+      Repositories with dual filter.
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: false
+    estimated_loc: 700
+    acceptance:
+      test_paths:
+        - vitalia/backend/tests/modules/vitalia/agenda/
+      validator_ids: [be_lint_ruff_check, be_arch_fitness_brand, be_test_agenda]
+    blocked_by: [T-infra-3, T-infra-9]
+
+  - id: T-agenda-2
+    sub_story: vitalia-slice-1-agenda
+    title: Backend agenda services (AgendaService + PaymentService + FiscalService + RefundService)
+    scope: |
+      AgendaService (slots, availability, create, reschedule, cancel, checkin, complete).
+      PaymentService (3 capas: Capa 1 manual capture + audit + VLT receipt; Capa 2 fiscal Nubefact stub Slice 1; Capa 3 PDF print).
+      FiscalService orchestration (Nubefact PE via side story).
+      RefundService 24h hardcoded policy Slice 1.
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: false
+    estimated_loc: 1500
+    acceptance:
+      test_paths:
+        - vitalia/backend/tests/modules/vitalia/agenda/application/
+      validator_ids: [be_test_agenda]
+    blocked_by: [T-agenda-1]
+
+  - id: T-agenda-3
+    sub_story: vitalia-slice-1-agenda
+    title: Backend agenda API routes (12 endpoints)
+    scope: |
+      12 endpoints per 03-arch-be.md § 3.3.
+      Idempotency-Key header on POST/PATCH for payments + reschedule + fiscal_emit.
+      response_model + Bearer + dual filter middleware.
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: false
+    estimated_loc: 800
+    acceptance:
+      test_paths:
+        - vitalia/backend/tests/modules/vitalia/agenda/api/
+      validator_ids: [be_test_agenda]
+    blocked_by: [T-agenda-2]
+
+  - id: T-agenda-4
+    sub_story: vitalia-slice-1-agenda
+    title: Mercado Pago integration (depósito 30% capture flow)
+    scope: |
+      vitalia/backend/src/modules/vitalia/connections/payment/mercadopago/{adapter,refund_handler}.py
+      MP API wrap timeout+fallback. Webhook handler. Refund flow synchronous.
+      Register via payment_provider_registry (EP-3).
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: false
+    estimated_loc: 800
+    acceptance:
+      test_paths:
+        - vitalia/backend/tests/modules/vitalia/connections/payment/
+      validator_ids: [be_test_agenda]
+    blocked_by: [T-agenda-3]
+    notes: "blocked_by side story vitalia-payment-adapter-mvp SHIPPED — provides core MP API client"
+
+  - id: T-agenda-5
+    sub_story: vitalia-slice-1-agenda
+    title: Nubefact PE fiscal adapter + retry queue + CDR archive
+    scope: |
+      vitalia/backend/src/modules/vitalia/connections/fiscal/nubefact_pe/{adapter,retry_queue,cdr_archive}.py
+      Secrets vault token storage. Retry queue (Nubefact rate-limited 100req/h).
+      Register via fiscal_provider_registry (EP-3).
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: false
+    estimated_loc: 800
+    acceptance:
+      test_paths:
+        - vitalia/backend/tests/modules/vitalia/connections/fiscal/
+      validator_ids: [be_test_agenda]
+    blocked_by: [T-agenda-3]
+    notes: "blocked_by side story vitalia-fiscal-emission-pe SHIPPED"
+
+  - id: T-agenda-6
+    sub_story: vitalia-slice-1-agenda
+    title: ARQ cron payment_timeout_sweep (hourly :45 — auto-cancel phone_manual 72h unpaid)
+    scope: |
+      Real implementation of payment_timeout_sweep worker scaffolded in T-infra-8.
+      Tracing + idempotent runs.
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: false
+    estimated_loc: 300
+    acceptance:
+      test_paths:
+        - vitalia/backend/tests/workers/test_payment_timeout_sweep.py
+      validator_ids: [be_test_workers_cron]
+    blocked_by: [T-agenda-4]
+
+  - id: T-agenda-7
+    sub_story: vitalia-slice-1-agenda
+    title: Frontend /agenda feature (Week/Day/Month + 4 origins + ContactSidebar PHI-aware)
+    scope: |
+      vitalia/frontend/src/features/agenda/{api,components,store,types,copy.ts,index.ts}/
+      AgendaWeekGrid · DayView · MonthView (REUSE CalendarWidget) · AgendaSlot (color-coded balance_status).
+      AgendaContactSidebar (REUSE shared ContactSidebar + PHI wrappers).
+      WalkInForm · PhoneManualForm · CreateAppointmentDrawer · RescheduleConfirmModal · CancelAppointmentModal.
+      URL state nuqs schema per 03-arch-fe.md § 3.3.
+    owner_eligibility: [claude-sonnet]
+    production_code: false
+    estimated_loc: 2200
+    acceptance:
+      test_paths:
+        - vitalia/frontend/src/features/agenda/__tests__/
+      validator_ids: [fe_typecheck_tsc, fe_lint_eslint, fe_arch_fitness, fe_test_agenda]
+    blocked_by: [T-agenda-3, T-infra-7]
+
+  - id: T-agenda-8
+    sub_story: vitalia-slice-1-agenda
+    title: PaymentSubform (3 capas inline ContactSidebar) + ReceiptPrintButton + FiscalEmissionToggle
+    scope: |
+      PaymentSubform with 5 manual methods (cash/card/transfer/MP manual/other) + audit + internal VLT receipt.
+      ReceiptPrintButton with window.print() Slice 1.
+      FiscalEmissionToggle (Nubefact PE feature flag).
+    owner_eligibility: [claude-sonnet]
+    production_code: false
+    estimated_loc: 700
+    acceptance:
+      test_paths:
+        - vitalia/frontend/src/features/agenda/components/__tests__/
+      validator_ids: [fe_test_agenda, e2e_smoke_agenda]
+    blocked_by: [T-agenda-7]
+    notes: "blocked_by side stories vitalia-payment-adapter-mvp + vitalia-fiscal-emission-pe"
+
+  - id: T-agenda-9
+    sub_story: vitalia-slice-1-agenda
+    title: /agenda E2E smoke + visual regression
+    scope: |
+      E2E happy path: load week · click empty slot · open walk-in drawer · save manual cash.
+    owner_eligibility: [claude-sonnet]
+    production_code: false
+    estimated_loc: 300
+    acceptance:
+      test_paths:
+        - vitalia/frontend/e2e/specs/smoke/agenda.smoke.spec.ts
+      validator_ids: [e2e_smoke_agenda]
+    blocked_by: [T-agenda-8]
+
+# ===========================================================================
+# Sub-story 6: vitalia-slice-1-fidelizacion
+# ===========================================================================
+
+  - id: T-fidelizacion-1
+    sub_story: vitalia-slice-1-fidelizacion
+    title: Backend fidelización domain + persistence (treatment_plans + re_engagement_events + nps)
+    scope: |
+      TreatmentPlan + ReEngagementEvent + NpsResponse entities. pgcrypto for treatment_plans.notes + re_engagement_events.payload_phi.
+      Repositories dual filter.
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: false
+    estimated_loc: 600
+    acceptance:
+      test_paths:
+        - vitalia/backend/tests/modules/vitalia/fidelizacion/
+      validator_ids: [be_lint_ruff_check, be_arch_fitness_brand, be_test_fidelizacion]
+    blocked_by: [T-infra-3, T-infra-9]
+
+  - id: T-fidelizacion-2
+    sub_story: vitalia-slice-1-fidelizacion
+    title: Backend fidelización services (TreatmentFollowup + ReEngagement + Nps)
+    scope: |
+      TreatmentFollowupService · ReEngagementService · NpsService.
+      WhatsApp Business API integration (5 Meta-approved templates: recordatorio_proxima_sesion · recordatorio_control_doctor · invitacion_mantenimiento · re_engagement_ausencia · nps_post_tratamiento).
+      Throttle 1 reminder per pattern per 7d.
+      ComplianceService channel guards.
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: false
+    estimated_loc: 1300
+    acceptance:
+      test_paths:
+        - vitalia/backend/tests/modules/vitalia/fidelizacion/application/
+      validator_ids: [be_test_fidelizacion]
+    blocked_by: [T-fidelizacion-1]
+
+  - id: T-fidelizacion-3
+    sub_story: vitalia-slice-1-fidelizacion
+    title: Backend fidelización API routes (8 endpoints)
+    scope: |
+      8 endpoints per 03-arch-be.md § 3.4.
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: false
+    estimated_loc: 500
+    acceptance:
+      test_paths:
+        - vitalia/backend/tests/modules/vitalia/fidelizacion/api/
+      validator_ids: [be_test_fidelizacion]
+    blocked_by: [T-fidelizacion-2]
+
+  - id: T-fidelizacion-4
+    sub_story: vitalia-slice-1-fidelizacion
+    title: ARQ crons fidelización (6 jobs)
+    scope: |
+      multi_session_gap_sweep · follow_up_due_sweep · maintenance_due_sweep · absence_sweep · nps_post_treatment_sweep · re_engagement_response_timeout_sweep
+      Real implementations of T-infra-8 scaffolds.
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: false
+    estimated_loc: 900
+    acceptance:
+      test_paths:
+        - vitalia/backend/tests/workers/test_fidelizacion_crons.py
+      validator_ids: [be_test_workers_cron]
+    blocked_by: [T-fidelizacion-2]
+
+  - id: T-fidelizacion-5
+    sub_story: vitalia-slice-1-fidelizacion
+    title: Frontend /fidelización feature (5 tabs verticales + cards adaptive)
+    scope: |
+      vitalia/frontend/src/features/fidelizacion/{api,components,store,types,copy.ts,index.ts}/
+      FidelizacionLayout · KPIsHero · TabsBar (5 tabs) · MultiSessionTab · FollowUpTab · MaintenanceTab · AbsenceTab · NPSResumenTab.
+      ReEngagementCard adaptive per pattern · ReEngagementContactSidebar · SuggestSlotsModal · PausePatientModal · ConfirmTemplateModal.
+      URL state nuqs schema per 03-arch-fe.md § 3.4.
+    owner_eligibility: [claude-sonnet]
+    production_code: false
+    estimated_loc: 2300
+    acceptance:
+      test_paths:
+        - vitalia/frontend/src/features/fidelizacion/__tests__/
+      validator_ids: [fe_typecheck_tsc, fe_lint_eslint, fe_arch_fitness, fe_test_fidelizacion]
+    blocked_by: [T-fidelizacion-3, T-infra-7]
+
+  - id: T-fidelizacion-6
+    sub_story: vitalia-slice-1-fidelizacion
+    title: FollowUpField in /agenda complete drawer + MaintenanceScheduleField in /offer-studio stub
+    scope: |
+      Retro-extension /agenda: "¿Doctor pidió control de seguimiento?" field + duration + reason.
+      /offer-studio stub: maintenance_schedule field per offer edit.
+    owner_eligibility: [claude-sonnet]
+    production_code: false
+    estimated_loc: 400
+    acceptance:
+      test_paths:
+        - vitalia/frontend/src/features/agenda/components/__tests__/test_followup_field.test.ts
+      validator_ids: [fe_test_agenda, fe_test_fidelizacion]
+    blocked_by: [T-agenda-7, T-fidelizacion-5]
+
+  - id: T-fidelizacion-7
+    sub_story: vitalia-slice-1-fidelizacion
+    title: /fidelización E2E smoke + WA template compliance check
+    scope: |
+      E2E happy path: load /fidelización · click tab MultiSession · click ReEngagementCard · open ConfirmTemplateModal · cancel.
+      WhatsApp Business API template compliance smoke.
+    owner_eligibility: [claude-sonnet]
+    production_code: false
+    estimated_loc: 400
+    acceptance:
+      test_paths:
+        - vitalia/frontend/e2e/specs/smoke/fidelizacion.smoke.spec.ts
+      validator_ids: [e2e_smoke_fidelizacion]
+    blocked_by: [T-fidelizacion-5, T-fidelizacion-6]
+
+# ===========================================================================
+# Sub-story 7: vitalia-slice-1-marketing
+# ===========================================================================
+
+  - id: T-marketing-1
+    sub_story: vitalia-slice-1-marketing
+    title: Backend marketing domain + persistence (lucas_recommendations + referrals + channel_sync_state + channel_metrics)
+    scope: |
+      LucasRecommendation + Referral + ChannelSyncState + ChannelMetric entities.
+      Repositories dual filter.
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: false
+    estimated_loc: 600
+    acceptance:
+      test_paths:
+        - vitalia/backend/tests/modules/vitalia/marketing/
+      validator_ids: [be_lint_ruff_check, be_arch_fitness_brand, be_test_marketing]
+    blocked_by: [T-infra-3, T-infra-9]
+
+  - id: T-marketing-2
+    sub_story: vitalia-slice-1-marketing
+    title: Backend marketing services (Marketing + Attribution + Referrals + LucasRecommendations)
+    scope: |
+      MarketingService (bowtie summary, stage detail, channel detail).
+      AttributionService (UTM tracking lead→origin matrix 4 origins).
+      ReferralsService (codes + leaderboard + conv tracking).
+      LucasRecommendationsService orchestration (calls Lucas agentic).
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: false
+    estimated_loc: 1400
+    acceptance:
+      test_paths:
+        - vitalia/backend/tests/modules/vitalia/marketing/application/
+      validator_ids: [be_test_marketing]
+    blocked_by: [T-marketing-1]
+
+  - id: T-marketing-3
+    sub_story: vitalia-slice-1-marketing
+    title: Backend marketing API routes (10 endpoints) + Meta Ads + Google Ads OAuth wizard adapters
+    scope: |
+      10 endpoints per 03-arch-be.md § 3.5.
+      vitalia/backend/src/modules/vitalia/connections/{meta_ads,google_ads}/adapter.py (OAuth + sync simplified).
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: false
+    estimated_loc: 1200
+    acceptance:
+      test_paths:
+        - vitalia/backend/tests/modules/vitalia/marketing/api/
+      validator_ids: [be_test_marketing]
+    blocked_by: [T-marketing-2]
+
+  - id: T-marketing-4
+    sub_story: vitalia-slice-1-marketing
+    title: Lucas growth setter tools (R23 production agentic)
+    scope: |
+      vitalia/backend/src/modules/vitalia/agentic/lucas/tools/{compute_stage_recommendation,compute_attribution_matrix,compute_referrals_leaderboard}.py
+      vitalia/backend/src/modules/vitalia/agentic/lucas/workflows/lucas_daily_analysis_graph.py (LangGraph cron-triggered)
+      vitalia/backend/src/modules/vitalia/agentic/lucas/personas/lucas_growth_setter.yaml
+      Register via EP-3 + EP-4.
+    owner_eligibility: [claude-opus]
+    production_code: true
+    estimated_loc: 1200
+    acceptance:
+      test_paths:
+        - vitalia/backend/tests/modules/vitalia/agentic/lucas/
+      validator_ids: [agentic_cost_canonicalization, agentic_medical_guardrails]
+    blocked_by: [T-marketing-3]
+    notes: "blocked_by side story vitalia-copilot-tools-impl (Lucas tools impl)"
+
+  - id: T-marketing-5
+    sub_story: vitalia-slice-1-marketing
+    title: ARQ crons marketing (4 jobs)
+    scope: |
+      lucas_daily_analysis_sweep · channel_metrics_sync_meta · channel_metrics_sync_google · referrals_value_sync
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: false
+    estimated_loc: 700
+    acceptance:
+      test_paths:
+        - vitalia/backend/tests/workers/test_marketing_crons.py
+      validator_ids: [be_test_workers_cron]
+    blocked_by: [T-marketing-2, T-marketing-4]
+
+  - id: T-marketing-6
+    sub_story: vitalia-slice-1-marketing
+    title: Frontend /marketing feature (bowtie SVG + 5 stage tabs + Lucas cards)
+    scope: |
+      vitalia/frontend/src/features/marketing/{api,components,store,types,copy.ts,index.ts}/
+      MarketingLayout · MarketingBowtieSVG (REUSE pixel-invariante) · StageDispatcher · 5 stage components (AttractionStage REUSE · QualificationStage adapter · ReservationStage NEW · AdoptionStage REUSE · ExpansionStage NEW).
+      LucasStageRecommendationsCard ★ protagonista (3 cards sticky top per stage) · LucasRecommendationDetailModal · LucasApprovalModal.
+      URL state nuqs schema per 03-arch-fe.md § 3.5.
+    owner_eligibility: [claude-sonnet]
+    production_code: false
+    estimated_loc: 2500
+    acceptance:
+      test_paths:
+        - vitalia/frontend/src/features/marketing/__tests__/
+      validator_ids: [fe_typecheck_tsc, fe_lint_eslint, fe_arch_fitness, fe_test_marketing]
+    blocked_by: [T-marketing-3, T-infra-7, T-infra-6]
+
+  - id: T-marketing-7
+    sub_story: vitalia-slice-1-marketing
+    title: AttributionMatrixWidget + ReferralsWidget NEW Slice 1 + ChannelDetailSidebar + ChannelConnectionWizard
+    scope: |
+      AttributionMatrixWidget (4 origins Stage Reserva) · ReferralsWidget (Stage Expansión leaderboard + Adrián template).
+      ChannelDetailSidebar simplified 3 sections · ChannelConnectionWizard simplified 3 steps OAuth.
+      BottleneckBannerAdapter Lucas-styled.
+    owner_eligibility: [claude-sonnet]
+    production_code: false
+    estimated_loc: 1200
+    acceptance:
+      test_paths:
+        - vitalia/frontend/src/features/marketing/components/__tests__/
+      validator_ids: [fe_test_marketing, e2e_smoke_marketing]
+    blocked_by: [T-marketing-6]
+
+  - id: T-marketing-8
+    sub_story: vitalia-slice-1-marketing
+    title: /marketing E2E smoke + visual regression bowtie SVG + perf budget
+    scope: |
+      E2E happy path: load /marketing · bowtie SVG render · click stage tab · Lucas card visible · click recommendation detail modal · close.
+      Chromatic visual regression bowtie SVG pixel-invariante.
+      Lighthouse perf budget enforcement.
+    owner_eligibility: [claude-sonnet]
+    production_code: false
+    estimated_loc: 400
+    acceptance:
+      test_paths:
+        - vitalia/frontend/e2e/specs/smoke/marketing.smoke.spec.ts
+      validator_ids: [e2e_smoke_marketing, visual_regression_bowtie_svg, visual_perf_budget_lighthouse]
+    blocked_by: [T-marketing-7]
+
+# ===========================================================================
+# Cross-cutting: Agentic personas + goldens (parallel to all routes)
+# ===========================================================================
+
+  - id: T-agentic-1
+    sub_story: vitalia-slice-1-infra-cross-cutting
+    title: Adrián sales_agent personas + 12 eval goldens (production_code=false test/docs about agentic)
+    scope: |
+      vitalia/backend/src/modules/vitalia/sales_agent/personas/{warm_close_default,warm_close_dental,warm_close_estetica,warm_close_psicologia,warm_close_fertilidad}.yaml
+      vitalia/backend/tests/agentic_evals/sales_agent/goldens/{dental,estetica,psicologia,fertilidad}/ (3 escenarios per vertical = 12 total).
+      Voice fidelity grader test wrapper.
+    owner_eligibility: [claude-sonnet]
+    production_code: false
+    estimated_loc: 1200
+    acceptance:
+      test_paths:
+        - vitalia/backend/tests/agentic_evals/sales_agent/
+      validator_ids: [agentic_pass_k_adrian_goldens, agentic_trajectory_adrian, agentic_voice_fidelity_grader, agentic_cost_budget]
+    blocked_by: [T-infra-2]
+
+  - id: T-agentic-2
+    sub_story: vitalia-slice-1-infra-cross-cutting
+    title: Adrián sales_agent brand-specific tools (4 tools — R23 production agentic)
+    scope: |
+      vitalia/backend/src/modules/vitalia/sales_agent/tools/{send_template_confirmation,send_payment_link,reschedule_appointment,retract_last_message}.py
+      Register via EP-3.
+    owner_eligibility: [claude-opus]
+    production_code: true
+    estimated_loc: 800
+    acceptance:
+      test_paths:
+        - vitalia/backend/tests/modules/vitalia/sales_agent/tools/
+      validator_ids: [agentic_cost_canonicalization, agentic_channel_guards]
+    blocked_by: [T-infra-2, T-agenda-4]
+    notes: "blocked_by side stories vitalia-payment-adapter-mvp + vitalia-copilot-tools-impl"
+
+  - id: T-agentic-3
+    sub_story: vitalia-slice-1-infra-cross-cutting
+    title: Medical guardrails real check callables (T-guards-1..3 implement)
+    scope: |
+      vitalia/backend/src/modules/vitalia/compliance/guardrails/{medical_safety_no_diagnosis,medical_safety_no_prescription,medical_disclaimer_required,prompt_injection_block}.py
+      Regex + LLM classifier hybrid.
+      Register via EP-13 (replace Story 11 placeholders).
+    owner_eligibility: [claude-opus]
+    production_code: true
+    estimated_loc: 800
+    acceptance:
+      test_paths:
+        - vitalia/backend/tests/agentic_evals/sales_agent/test_medical_guardrails.py
+      validator_ids: [agentic_medical_guardrails]
+    blocked_by: [T-infra-2]
+
+  - id: T-agentic-4
+    sub_story: vitalia-slice-1-infra-cross-cutting
+    title: PII sanitization Vitalia overlay (phi_fields.py + sanitizer adapter)
+    scope: |
+      vitalia/backend/src/modules/vitalia/compliance/domain/phi_fields.py — canonical PHI field list per hipaa-lite.md
+      Adapter wiring engine sanitize_payload(compliance_level="hipaa_lite") with brand-specific fields.
+    owner_eligibility: [claude-opus]
+    production_code: true
+    estimated_loc: 400
+    acceptance:
+      test_paths:
+        - vitalia/backend/tests/modules/vitalia/compliance/test_pii_sanitization.py
+      validator_ids: [agentic_cost_canonicalization]
+    blocked_by: [T-infra-3]
+
+# ===========================================================================
+# DAG summary
+# ===========================================================================
+
+dag_summary:
+  foundation:
+    - T-arch-1
+    - T-infra-1 → T-infra-2 → T-infra-3 → T-infra-4
+    - T-infra-5 (parallel post T-infra-2)
+    - T-infra-6 (parallel post T-arch-1 + T-infra-4)
+    - T-infra-7 (parallel post T-arch-1 + T-infra-4)
+    - T-infra-8 (parallel post T-infra-3 + T-infra-5)
+    - T-infra-9 (parallel post T-infra-3)
+  agentic_cross:
+    - T-agentic-1 (parallel post T-infra-2)
+    - T-agentic-2 (post T-infra-2 + T-agenda-4 — wait for MP adapter)
+    - T-agentic-3 (parallel post T-infra-2)
+    - T-agentic-4 (parallel post T-infra-3)
+  routes_parallel_after_foundation:
+    - vitalia-slice-1-onboarding-wizard (T-onboarding-1..7)
+    - vitalia-slice-1-inbox (T-inbox-1..9)
+    - vitalia-slice-1-pipeline (T-pipeline-1..7)
+    - vitalia-slice-1-agenda (T-agenda-1..9)
+    - vitalia-slice-1-fidelizacion (T-fidelizacion-1..7)
+    - vitalia-slice-1-marketing (T-marketing-1..8)
+
+side_story_blockers:
+  vitalia-payment-adapter-mvp:
+    tickets_blocked: [T-agenda-4, T-agenda-8, T-pipeline-6, T-agentic-2]
+    description: Provides MP API client + OAuth wizard
+  vitalia-copilot-tools-impl:
+    tickets_blocked: [T-onboarding-4, T-pipeline-4, T-marketing-4, T-agentic-2]
+    description: Provides Valeria tools harness + Lucas tools harness
+  vitalia-fiscal-emission-pe:
+    tickets_blocked: [T-agenda-5, T-agenda-8]
+    description: Provides Nubefact PE adapter + retry queue + CDR archive
+
+engine_promotion_blockers:
+  - proposal: docs/promotion-protocol/proposals/2026-05-17-platform-tenants-location-columns.md
+    tickets_blocked: [T-infra-1 sub-task T-be-migration-014]
+    description: tenants table columns (is_onboarded, location_country, location_city, timezone) live in core/luana-core-platform/
+  - proposal: docs/promotion-protocol/proposals/2026-05-17-offer-studio-multi-session-maintenance.md
+    tickets_blocked: [T-infra-1 sub-task T-be-migration-015]
+    description: offers table columns (requires_multi_session, sessions_expected, gap_alert_days, maintenance_schedule, maintenance_custom_days) live in core/luana-core-offer-studio/
+
+# ===========================================================================
+# Total estimated effort
+# ===========================================================================
+
+estimated_total_loc: 53000
+estimated_tickets: 56
+estimated_iterations_per_ticket: 2-5 (validator-driven loop)
+estimated_calendar_weeks: 8-12 (post side stories shipped, parallel execution across 7 sub-stories)

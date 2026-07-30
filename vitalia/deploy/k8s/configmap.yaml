@@ -1,0 +1,56 @@
+---
+# vitalia/deploy/k8s/configmap.yaml
+# Valores no sensibles para la aplicacion Vitalia.
+# Secretos sensibles viven en secrets.template.yaml — NUNCA commitear valores reales aqui.
+#
+# Wire CI/CD (S-CICD-DEPLOY T-5):
+#   _deploy-brand.yml aplica este ConfigMap via kubectl apply antes del rolling update.
+#   Secrets: viven en GitHub Environment 'vitalia-prod' o 'vitalia-staging'.
+#
+# Arch ref: 03-arch.md § 5.3 (K8s deploy — Chris UI gate Q4=B)
+# T-deploy-1 scope: /dev-team genera manifests; Chris provisiona cluster + DNS.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vitalia-config
+  namespace: vitalia
+  labels:
+    app.kubernetes.io/name: vitalia
+    app.kubernetes.io/component: backend
+    app.kubernetes.io/part-of: luana-platform
+    app.kubernetes.io/managed-by: kubectl
+data:
+  # ── Application ────────────────────────────────────────────────────────────
+  APP_ENV: "production"
+  APP_VERSION: "0.1.0"
+  LOG_LEVEL: "INFO"
+
+  # ── Database (non-sensitive fields) ────────────────────────────────────────
+  POSTGRES_HOST: "postgres-vitalia"
+  POSTGRES_PORT: "5432"
+  POSTGRES_DB: "vitalia_prod"
+  POSTGRES_USER: "vitalia_app"
+
+  # ── Redis ────────────────────────────────────────────────────────────────
+  REDIS_HOST: "redis-vitalia"
+  REDIS_PORT: "6379"
+  REDIS_DB: "0"
+
+  # ── Qdrant vector store ──────────────────────────────────────────────────
+  QDRANT_HOST: "qdrant-vitalia"
+  QDRANT_PORT: "6333"
+
+  # ── Domain + CORS ───────────────────────────────────────────────────────
+  VITALIA_APP_DOMAIN: "app.vitalia.health"
+  VITALIA_CDN_DOMAIN: "cdn.vitalia.health"
+  VITALIA_API_BASE_URL: "https://app.vitalia.health/api/v1"
+  CORS_ALLOWED_ORIGINS: "https://app.vitalia.health,https://cdn.vitalia.health"
+
+  # ── Compliance (HIPAA-lite — Q6=B ratified, NOT HIPAA-full) ────────────
+  VITALIA_COMPLIANCE_LEVEL: "hipaa_lite"
+  VITALIA_BRAND_SLUG: "vitalia"
+
+  # ── Feature flags (greenfield — no flips, per anti-default-flip-audit.md) ─
+  VITALIA_VOICE_CLONING_ENABLED: "false"
+  VITALIA_MULTI_SITE_FEDERATION_ENABLED: "false"
+  VITALIA_INSURANCE_INTEGRATION_ENABLED: "false"

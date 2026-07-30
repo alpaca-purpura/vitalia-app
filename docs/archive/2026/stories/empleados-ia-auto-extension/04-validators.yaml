@@ -1,0 +1,152 @@
+story_id: empleados-ia-auto-extension
+schema_version: v4.1
+brand: platform
+authorization: docs/promotion-protocol/proposals/2026-06-02-durable-flows-engine.md  # accepted
+scope: two-layer
+
+# ── Verification nature (DoD rule #37) ─────────────────────────────
+verification_nature: ambas
+# Engine provider + migrations = TÉCNICA (automated gates).
+# The durable-checkpoint persistence proof over a real graph = FUNCIONAL (live-verify a real durable thread).
+demo_required: false
+demo_skip_reason: >
+  Engine infra story — no UI, no user-reachable surface. The "functional" verification is the
+  durable-thread persistence + resume proof (psql + backend restart), NOT a product demo Chris clicks.
+  Recorded as dod_evidence, not demo_signoff.
+runtime_error_gate: not_applicable   # no FE surface → no anti-bubble Playwright fixture
+
+# ── L1 executable validators (build-now) ───────────────────────────
+validators:
+
+  - id: v_lint_flows_pkg
+    layer: lint
+    nature: tecnica
+    cmd: "cd ${WS}/core/luana-core-flows && ${WS}/.venv/bin/ruff check src/ tests/ && ${WS}/.venv/bin/ruff format --check src/ tests/"
+    blocking: true
+
+  - id: v_lint_brands
+    layer: lint
+    nature: tecnica
+    cmd: "cd ${WS}/vitalia/backend && ${WS}/.venv/bin/ruff check src/ && cd ${WS}/comunify/backend && ${WS}/.venv/bin/ruff check src/"
+    blocking: true
+
+  - id: v_uv_sync_resolves
+    layer: build
+    nature: tecnica
+    desc: "uv sync resolves langgraph-checkpoint-postgres against locked langgraph 1.2.0 / langgraph-checkpoint 4.1.0 WITHOUT version bump"
+    cmd: "cd ${WS} && uv sync && ${WS}/.venv/bin/python -c 'import luana_core_flows.checkpointer as c; assert hasattr(c, \"make_durable_checkpointer\") and hasattr(c, \"build_flow_thread_id\")'"
+    blocking: true
+
+  - id: v_unit_checkpointer_provider
+    layer: unit
+    nature: tecnica
+    desc: "Provider: signature, serde wired when encryption_key set, table_prefix honored, run_setup calls setup(), NEVER returns MemorySaver"
+    cmd: "cd ${WS}/core/luana-core-flows && ${WS}/.venv/bin/pytest tests/checkpointer/test_provider.py -x -q"
+    blocking: true
+
+  - id: v_unit_thread_id
+    layer: unit
+    nature: tecnica
+    desc: "thread_id tenant-scoped composition + collision-safety + PHI clinic variant"
+    cmd: "cd ${WS}/core/luana-core-flows && ${WS}/.venv/bin/pytest tests/checkpointer/test_thread_id.py -x -q"
+    blocking: true
+
+  - id: v_setup_idempotent
+    layer: integration
+    nature: tecnica
+    desc: "AsyncPostgresSaver.setup() idempotent — run twice on clean DB, no error (confirms LangGraph-owned tables approach, O-2)"
+    cmd: "cd ${WS}/core/luana-core-flows && ${WS}/.venv/bin/pytest -m integration tests/checkpointer/test_provider.py -x -q"
+    blocking: true
+    requires: "real Postgres (dev stack up: make dev-vitalia)"
+
+  - id: v_migration_idempotent
+    layer: migration
+    nature: tecnica
+    desc: "vitalia 037 + comunify 002 idempotent; alembic upgrade head twice = no error (prod-clone)"
+    cmd: "${WS}/.venv/bin/alembic -c ${WS}/vitalia/backend/alembic.ini upgrade head && ${WS}/.venv/bin/alembic -c ${WS}/comunify/backend/alembic.ini upgrade head"
+    blocking: true
+
+  - id: v_no_brand_mirror
+    layer: arch-fitness
+    nature: tecnica
+    desc: "Anti-dup: ZERO brand checkpointer factory after L1 (build_production_checkpointer / wizard_checkpoint_config deleted)"
+    cmd: "test $(grep -rln 'build_production_checkpointer' ${WS}/vitalia/backend/src ${WS}/comunify/backend/src 2>/dev/null | wc -l) -eq 0"
+    blocking: true
+
+  - id: v_no_factory_test_mock
+    layer: arch-fitness
+    nature: tecnica
+    desc: "No test mocks the deleted factory (it was never test-mocked — confirms no default-flip test migration needed)"
+    cmd: "test $(grep -rln 'build_production_checkpointer' ${WS}/vitalia/backend/tests ${WS}/comunify/backend/tests 2>/dev/null | wc -l) -eq 0"
+    blocking: true
+
+  - id: v_workspace_members
+    layer: arch-fitness
+    nature: tecnica
+    desc: "Workspace member count 27→28 + alphabetical (luana-core-flows inserted correctly)"
+    cmd: "cd ${WS} && ${WS}/.venv/bin/pytest core/tests/architecture/test_workspace_members_alphabetical_story8.py core/tests/architecture/test_workspace_versions_uniform_at_v0_1_0.py -x -q"
+    blocking: true
+
+  - id: v_downstream_vitalia
+    layer: downstream-regression
+    nature: tecnica
+    desc: "R3 — vitalia agentic + arch suites GREEN with langgraph-checkpoint-postgres installed"
+    cmd: "cd ${WS}/vitalia/backend && ${WS}/.venv/bin/pytest tests/unit/modules/vitalia/copilot/workflows/ tests/unit/modules/vitalia/agentic/lucas/ tests/architecture/ -x -q"
+    blocking: true
+
+  - id: v_downstream_comunify
+    layer: downstream-regression
+    nature: tecnica
+    desc: "R3 — comunify agentic + arch suites GREEN with package installed"
+    cmd: "cd ${WS}/comunify/backend && ${WS}/.venv/bin/pytest tests/modules/comunify/copilot/ tests/architecture/ -x -q"
+    blocking: true
+
+  - id: v_replay_safety
+    layer: integration
+    nature: funcional
+    desc: >
+      Compile a real graph (vitalia wizard) with the durable checkpointer, advance >=1 checkpoint,
+      simulate resume (re-invoke same thread_id) → state resumes from persisted checkpoint, NOT restart.
+    cmd: "cd ${WS}/vitalia/backend && ${WS}/.venv/bin/pytest -k 'durable_resume or checkpoint_persist' tests/ -x -q"
+    blocking: true
+    requires: "real Postgres"
+
+  - id: v_live_verify_durable_persist
+    layer: live-verify
+    nature: funcional
+    desc: >
+      DoD #37 — exercise wizard_onboarding durable graph in dev-app (or scripted real invocation),
+      confirm checkpoint PERSISTS in Postgres (psql, NOT MemorySaver), survives backend restart (resume).
+    cmd: "make dev-app-vitalia  # then Chrome MCP wizard advance + psql checkpoints query + container restart resume (see 03-arch § Live-verify)"
+    blocking: true
+    evidence_field: dod_evidence
+    fallback: "scripted real durable invocation against dev Postgres + psql observation + resume (O-3)"
+
+# ── L2 design validators (NOT executable now — deferred-next-story) ──
+l2_design_validators:
+  build_status: deferred-next-story
+  validators:
+    - id: v_l2_flow_definition_pydantic
+      desc: "FlowDefinition Pydantic v2 (ConfigDict, tenant_scoped Literal[True], typed nodes/triggers/guardrails). DESIGN ONLY."
+    - id: v_l2_flow_compiler
+      desc: "FlowCompiler.compile builds StateGraph, wraps side-effect nodes in luana-core-idempotency, compiles with make_durable_checkpointer, final node publishes to outbox. DESIGN ONLY."
+    - id: v_l2_ep19
+      desc: "EP-19 durable_flow_register: _EP_IDS range(1,20), EP-19 in _BACKLOG_EPS (signature-only), register+dispatch by brand_slug. DESIGN ONLY."
+    - id: v_l2_idempotency_replay
+      desc: "Per-node replay-safety: every side-effect node idempotent under re-execution (LangGraph replay re-runs nodes). DESIGN ONLY."
+
+# ── Regression guard (modification of existing graphs) ──────────────
+regression_guard:
+  - "The 5 build_*_graph signatures + topologies are UNCHANGED — their existing tests stay green WITHOUT modification."
+  - "Tests injecting InMemorySaver/MemorySaver directly at construction remain unchanged (provider is prod-only)."
+  - "If a graph topology test changes → explicit review (NOT mechanical); this story does not touch topology."
+coverage_update:
+  - "Composition-root tests (cron handlers / orchestrator services) update to assert the core provider is constructed (was inline MemorySaver/dead factory). Diff reviewed, not snapshot-updated mechanically."
+new_coverage:
+  - "test_provider.py + test_thread_id.py (core pkg) — NEW, RED-first."
+  - "v_replay_safety integration — NEW, RED-first (proves durable resume)."
+
+technical_gates:
+  baseline: [v_lint_flows_pkg, v_lint_brands, v_workspace_members, v_unit_checkpointer_provider, v_unit_thread_id]
+  opt_in: [v_setup_idempotent, v_migration_idempotent, v_replay_safety]  # require real Postgres
+  downstream: [v_downstream_vitalia, v_downstream_comunify]

@@ -1,0 +1,140 @@
+---
+capability_id: vitalia-design-tokens-foundation
+module: platform
+slug: design-tokens-foundation
+status: live
+date_introduced: 2026-05-18
+story_introduced: vitalia-slice-1-infra-cross-cutting
+package_version: 0.1.0
+package_path: vitalia/frontend/src/app
+license: proprietary
+
+# v3 cement 2026-05-27 · 4 dimensiones + dev_preview (ADR-vitalia-005)
+tech_module: platform
+agent_owner: plataforma-tecnica
+functional_area: plataforma-tecnica.platform
+user_visible: false
+nature: extension-point
+ui_paradigm: infra-only  # T-3 reconcile 2026-05-29
+
+user_facing_name: "Foundation de design tokens"
+user_facing_description: >
+  Catálogo cementado de tokens de diseño Vitalia definidos como CSS variables HSL
+  en globals.css: cinco colores de marca (cian, púrpura, amarillo, azul marino,
+  verde lima), nueve neutrales, cuatro semánticos (success, warning, danger, info),
+  cuatro de forma y tres gradientes. Fuente de verdad que garantiza cero literales
+  hex/hsl en archivos TSX. Consumido por Tailwind v4 y clases utilitarias vt-*.
+
+dev_preview:
+  route: null
+  how_to_navigate: "BE-only · ver via arch test vitalia/frontend/src/__tests__/architecture/test_no_hardcoded_colors.test.ts"
+  main_component: null
+  api_endpoints: []
+  e2e_test: null
+  fixtures_required: []
+  storybook_url: null
+  loom_demo: null
+
+# Capability ledger v2 (cement 2026-05-27)
+created_in_story: vitalia-slice-1-infra-cross-cutting   # v2 cement · mirror of story_introduced
+created_date: 2026-05-18   # v2 cement · mirror of date_introduced
+parent_cap: null   # v2 cement · mirror of extends_capability
+derives_capabilities: []   # v2 cement · initial empty list
+
+# Capability ledger v2 (cement 2026-05-27)
+
+# Capability change log v2 (cement 2026-05-27)
+change_log:
+  - story_id: vitalia-slice-1-infra-cross-cutting
+    date: 2026-05-18
+    type: new
+    summary: "Implementación inicial · migración legacy a schema v2"
+    merge_sha: null
+    status: done
+  - story_id: vitalia-stub-caps-scenario-backfill
+    date: 2026-05-30
+    type: extend
+    summary: "backfill scenario+e2e → verified-live (deployed-visible)"
+    added_in_story: vitalia-stub-caps-scenario-backfill
+    status: done
+
+last_modified: 2026-05-30
+
+scenarios:
+  - id: tokens-hsl-aplicados-en-shell
+    name: "Los tokens HSL de design system se aplican en el shell sin literales hex en TSX"
+    actor: sistema
+    status: live
+    given: "El archivo globals.css define tokens HSL (:root block) y el arch-fitness test escanea archivos TSX"
+    when: "Se corre el test de arquitectura test_no_hardcoded_colors + el theme toggle renderiza el componente"
+    then: "No se encuentran literales hex/hsl en archivos TSX · los tokens CSS vars están definidos · ThemeToggle renderiza en light y dark con tokens correctos (golden visual)"
+    e2e_test: "vitalia/frontend/e2e/visual/design-tokens-theme/theme-toggle.spec.ts"
+    verification_method: dev-app
+    story_spec_ref: "vitalia/docs/archive/2026/stories/vitalia-slice-1-infra-cross-cutting/01-spec.md"
+    atomic_ref: null
+    added_in_story: vitalia-stub-caps-scenario-backfill
+    added_date: 2026-05-30
+map_box: plataforma-tecnica
+
+---
+
+# vitalia-design-tokens-foundation
+
+Brand design system SSoT en `globals.css` con HSL CSS vars + Tailwind v4 + Shadcn pattern + vt-* utility classes. Architectural enforcement: zero hex/hsl literals en TSX files (arch test `test_no_hardcoded_colors.test.ts`).
+
+## Surface
+
+### `globals.css` (`vitalia/frontend/src/app/globals.css`)
+
+**Brand core HSL vars (5):**
+- `--vitalia-cian: 198 99% 49%` → #01B2F8 (hero, links, primary CTA, info, badges)
+- `--vitalia-purpura: 287 53% 37%` → #7B2D91 (acento secundario, hover, agent gradient stop)
+- `--vitalia-amarillo: 53 99% 51%` → #FEE209 (highlight, badge premium, warning soft)
+- `--vitalia-azul-marino: 244 84% 32%` → #180D95 (texto cuerpo, primary button)
+- `--vitalia-verde-lima: 70 73% 51%` → #B8DC2A (acento natural, success soft, Lucas avatar)
+
+**Neutrales (9):** `--vitalia-bg`, `--vitalia-surface`, `--vitalia-surface-alt`, `--vitalia-muted`, `--vitalia-text`, `--vitalia-text-muted`, `--vitalia-text-faint`, `--vitalia-border`, `--vitalia-border-soft`
+
+**Semantic (4):** `--vitalia-success`, `--vitalia-warning`, `--vitalia-danger`, `--vitalia-info`
+
+**Shape (4):** `--radius`, `--radius-lg`, `--radius-bubble`, `--radius-pill`
+
+**Gradients (3):** `--vitalia-gradient-mariposa`, `--vitalia-gradient-agent`, `--vitalia-gradient-app-cta`
+
+**Wrapped color vars (12 — post-4545c22 FE-A1 fix):** `--vitalia-cian-color`, `--vitalia-purpura-color`, `--vitalia-azul-marino-color`, `--vitalia-verde-lima-color`, `--vitalia-text-muted-color`, `--vitalia-text-faint-color`, `--vitalia-border-color`, `--vitalia-success-color`, `--vitalia-danger-color`, `--vitalia-success-soft-bg`, `--vitalia-danger-soft-bg`, `--vitalia-danger-soft-border`. Consumidos via `var(--vitalia-X-color)` en SVG attrs / inline styles donde Tailwind class no aplica.
+
+### vt-* utility classes (globals.css — exempt from arch color scan)
+**Backgrounds:** `vt-bg-app`, `vt-bg-surface`, `vt-bg-surface-alt`, `vt-bg-muted`, `vt-bg-cian` (NEW post-fix), `vt-bg-cian-10`, `vt-bg-cian-8`, `vt-bg-azul-marino`, `vt-bg-danger-12`, `vt-bg-warning-12`, `vt-bg-success-12`, `vt-bg-success` (NEW), `vt-bg-success-soft` (NEW), `vt-bg-danger-soft` (NEW)
+
+**Text:** `vt-text`, `vt-text-muted`, `vt-text-faint`, `vt-text-cian`, `vt-text-azul-marino`, `vt-text-danger`, `vt-text-warning`, `vt-text-success`, `vt-text-white`
+
+**Borders:** `vt-border`, `vt-border-soft`, `vt-border-cian`, `vt-border-cian-l`, `vt-border-verde-lima` (NEW), `vt-border-danger-30`, `vt-border-warning-30`, `vt-border-success-30`, `vt-border-danger-soft` (NEW)
+
+**Ring/Divide/Gradient classes:** `vt-ring-cian`, `vt-divide-border-soft`, `vt-bg-gradient-agent`, `vt-bg-gradient-app-cta`, `vt-bg-gradient-mariposa`, `vitalia-agent-gradient-{valeria,adrian,lucas}`
+
+### `tailwind.config.ts`
+Maps Tailwind utility names (`text-vitalia-cian`, `bg-vitalia-purpura`, etc.) to `hsl(var(--vitalia-X))` consumption via Tailwind v4 + Shadcn pattern. All 18 official tokens consumed.
+
+## Test coverage
+
+- 4 tests `test_no_hardcoded_colors.test.ts` (clean baseline post-4545c22, `KNOWN_COLOR_VIOLATIONS = Set()` shrink-only ratchet)
+
+## Architectural rule
+
+> **CRITICAL:** zero hsl/rgb/hex literals en ningún `.tsx` file. Todo color via:
+> 1. Tailwind utility class (preferred)
+> 2. vt-* CSS class (cuando Tailwind no es suficiente)
+> 3. `var(--vitalia-X-color)` inline style / SVG attr (último recurso cuando class no aplica)
+
+Reference: `vitalia/docs/architecture/design-system.md § 4` (canonical SSoT)
+
+## Promotion candidate (cross-brand)
+
+Status: NO — cada brand tiene su propio design system. Shared TS packages vivien en `core/luana-core-*` (TS) y se consumen vía `@luana/*` imports. CSS vars son brand-internal.
+
+## Referencias
+
+- ADR: `vitalia/docs/architecture/adrs/ADR-vitalia-001-shared-vs-fork.md`
+- Rule: `.claude/rules/frontend-fsd.md` § design tokens
+- Arch fitness test: `vitalia/frontend/src/__tests__/architecture/test_no_hardcoded_colors.test.ts`
+- Fix commit: 4545c22 (post-defer-audit FE-A1 resolution)

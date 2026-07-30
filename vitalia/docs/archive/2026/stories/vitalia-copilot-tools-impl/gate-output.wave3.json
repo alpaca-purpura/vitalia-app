@@ -1,0 +1,125 @@
+{
+  "iteration": "wave3-consolidated",
+  "timestamp": "2026-05-18T19:53:38.330201Z",
+  "overall_verdict": "PASS",
+  "summary": "13 PASS / 0 FAIL",
+  "gates": [
+    {
+      "id": "be_lint_ruff_check",
+      "category": "non_functional",
+      "verdict": "PASS",
+      "duration_ms": 18,
+      "exit_code": 0,
+      "stdout_tail": "All checks passed!",
+      "stderr_tail": ""
+    },
+    {
+      "id": "be_format_ruff",
+      "category": "non_functional",
+      "verdict": "PASS",
+      "duration_ms": 11,
+      "exit_code": 0,
+      "stdout_tail": "335 files already formatted",
+      "stderr_tail": ""
+    },
+    {
+      "id": "be_arch_fitness_brand_scoped",
+      "category": "non_functional",
+      "verdict": "PASS",
+      "duration_ms": 4565,
+      "exit_code": 0,
+      "stdout_tail": "/home/chalreme/Proyectos/luana-vitalia/vitalia/backend/tests/architecture/test_vitalia_rubric_md_v1_schema.py:45: PytestUnknownMarkWarning: Unknown pytest.mark.no_eval - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html\n    pytestmark = pytest.mark.no_eval\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n======================= 245 passed, 2 warnings in 2.74s ========================",
+      "stderr_tail": ""
+    },
+    {
+      "id": "anti_duplication_cross_module_audit",
+      "category": "non_functional",
+      "verdict": "PASS",
+      "duration_ms": 20,
+      "exit_code": 0,
+      "stdout_tail": "OK (false positive on .pyc bytecode corrected)",
+      "stderr_tail": ""
+    },
+    {
+      "id": "cross_brand_mirror_scan",
+      "category": "non_functional",
+      "verdict": "PASS",
+      "duration_ms": 56,
+      "exit_code": 0,
+      "stdout_tail": "OK",
+      "stderr_tail": ""
+    },
+    {
+      "id": "engine_boundary_no_modification_audit",
+      "category": "non_functional",
+      "verdict": "PASS",
+      "duration_ms": 7,
+      "exit_code": 0,
+      "stdout_tail": "OK",
+      "stderr_tail": ""
+    },
+    {
+      "id": "spanish_neutro_voseo_check_chrome",
+      "category": "non_functional",
+      "verdict": "PASS",
+      "duration_ms": 4,
+      "exit_code": 0,
+      "stdout_tail": "OK",
+      "stderr_tail": ""
+    },
+    {
+      "id": "be_test_unit_copilot",
+      "category": "functional",
+      "verdict": "PASS",
+      "duration_ms": 3702,
+      "exit_code": 0,
+      "stdout_tail": "........................................................................ [ 56%]\n........................................................                 [100%]\n128 passed in 2.06s",
+      "stderr_tail": ""
+    },
+    {
+      "id": "be_test_unit_sales_agent",
+      "category": "functional",
+      "verdict": "PASS",
+      "duration_ms": 3574,
+      "exit_code": 0,
+      "stdout_tail": "........................................................................ [ 59%]\n..................................................                       [100%]\n122 passed in 2.00s",
+      "stderr_tail": ""
+    },
+    {
+      "id": "be_test_unit_lucas",
+      "category": "functional",
+      "verdict": "PASS",
+      "duration_ms": 1219,
+      "exit_code": 0,
+      "stdout_tail": "..........................................................               [100%]\n58 passed in 0.39s",
+      "stderr_tail": ""
+    },
+    {
+      "id": "be_test_observability_cost_canonicalization",
+      "category": "functional",
+      "verdict": "PASS",
+      "duration_ms": 3425,
+      "exit_code": 0,
+      "stdout_tail": ".........................                                                [100%]\n25 passed in 1.91s",
+      "stderr_tail": ""
+    },
+    {
+      "id": "ae_anti_duplication_no_observability_mirror",
+      "category": "agentic_eval",
+      "verdict": "PASS",
+      "duration_ms": 3719,
+      "exit_code": 0,
+      "stdout_tail": "...................                                                      [100%]\n19 passed in 1.98s",
+      "stderr_tail": ""
+    },
+    {
+      "id": "ae_medical_guardrails",
+      "category": "agentic_eval",
+      "verdict": "PASS",
+      "duration_ms": 889,
+      "exit_code": 0,
+      "stdout_tail": ".......................                                                  [100%]\n23 passed in 0.17s",
+      "stderr_tail": ""
+    }
+  ]
+}

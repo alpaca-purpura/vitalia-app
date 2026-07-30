@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>F2-S1 · AppointmentDrawer — Vitalia</title>
+<link rel="stylesheet" href="_shared.css">
+<style>
+  body { overflow-x: hidden; }
+  .drawer-demo {
+    background: var(--bg-app);
+    min-height: 100vh;
+    padding-right: 460px;
+  }
+  .demo-bg {
+    padding: 24px;
+    color: var(--text-muted);
+    font-size: 12px;
+  }
+  .drawer {
+    width: 440px;
+  }
+  .header-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .patient-info-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+  .patient-meta {
+    flex: 1;
+  }
+  .patient-name { font-size: 16px; font-weight: 700; }
+  .patient-dni { font-size: 11px; color: var(--text-muted); font-family: ui-monospace, monospace; }
+  .turno-info {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 12px;
+    font-size: 12px;
+  }
+  .turno-info-row { display: flex; flex-direction: column; gap: 2px; }
+  .turno-info-label { color: var(--text-muted); font-size: 11px; }
+  .pago-status-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: var(--c-warning-soft);
+    border-radius: var(--r-sm);
+    margin-bottom: 12px;
+  }
+  [data-theme="dark"] .pago-status-row { color: #fde68a; }
+  .pago-amount { font-size: 18px; font-weight: 700; }
+  .pago-balance { font-size: 12px; opacity: 0.8; }
+</style>
+</head>
+<body>
+
+<button class="theme-btn" onclick="toggleTheme()" style="position:fixed;top:16px;right:476px;z-index:200">🌓 Tema</button>
+
+<div class="drawer-demo">
+  <!-- Background context (agenda blurred) -->
+  <div class="demo-bg">
+    <h2 style="color:var(--text-primary);font-size:16px;margin-bottom:8px">Vista Semana (de fondo)</h2>
+    <p>El drawer abre side=right cuando el usuario hace click en un slot del calendar. Resizable 440-640px localStorage.</p>
+    <p>Mostrado acá: drawer abierto para slot <strong>P. Hernández · Lun 26 May 09:00 · Limpieza dental · Dr. García</strong>.</p>
+    <p style="margin-top:16px"><a href="agenda-cockpit-grid.html" class="muted">← Volver al cockpit</a> · <a href="agenda-week.html" class="muted">Ver WeekCalendar →</a></p>
+  </div>
+
+  <!-- DRAWER -->
+  <aside class="drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title">
+    <!-- Resize handle -->
+    <div class="drawer-resize-handle" title="Arrastrá para redimensionar (440-640px)"></div>
+
+    <!-- HEADER -->
+    <div class="drawer-header">
+      <div class="patient-info-row">
+        <div class="avatar">PH</div>
+        <div class="patient-meta">
+          <div class="patient-name" id="drawer-title">P. Hernández</div>
+          <div class="patient-dni">DNI: 12.***.***</div>
+        </div>
+        <button class="btn-icon btn-ghost" aria-label="Cerrar drawer del turno">✕</button>
+      </div>
+      <div class="header-actions">
+        <div class="tooltip-wrapper" style="flex:1">
+          <button class="btn btn-outline btn-sm" disabled style="width:100%;justify-content:center">
+            Ver ficha del paciente →
+          </button>
+          <span class="tooltip">Pacientes — próximamente disponible en Fase 2</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- BODY (acordeones) -->
+    <div class="drawer-body">
+
+      <!-- Acordeón 1: TURNO (expandido) -->
+      <div class="accordion-item open">
+        <button class="accordion-trigger" aria-expanded="true">
+          <span>Turno</span>
+          <span class="chevron">▸</span>
+        </button>
+        <div class="accordion-content">
+          <div class="turno-info">
+            <div class="turno-info-row">
+              <span class="turno-info-label">Fecha</span>
+              <strong>Lun 26 May 2026</strong>
+            </div>
+            <div class="turno-info-row">
+              <span class="turno-info-label">Hora</span>
+              <strong>09:00 — 09:30 (30 min)</strong>
+            </div>
+            <div class="turno-info-row">
+              <span class="turno-info-label">Doctor</span>
+              <strong>Dr. García</strong>
+            </div>
+            <div class="turno-info-row">
+              <span class="turno-info-label">Servicio</span>
+              <strong>Limpieza dental</strong>
+            </div>
+            <div class="turno-info-row">
+              <span class="turno-info-label">Origen</span>
+              <span><span class="status-pill info">👤 Walk-in</span></span>
+            </div>
+            <div class="turno-info-row">
+              <span class="turno-info-label">Estado</span>
+              <span><span class="status-pill info">Confirmado</span></span>
+            </div>
+          </div>
+
+          <div class="section-label">Acciones</div>
+          <div class="flex gap-2" style="flex-wrap:wrap">
+            <button class="btn btn-outline btn-sm">↩ Re-agendar</button>
+            <button class="btn btn-outline btn-sm" onclick="openDialog('cancel')">✕ Cancelar turno</button>
+            <button class="btn btn-outline btn-sm">✓ Marcar completado</button>
+            <button class="btn btn-outline btn-sm" onclick="openDialog('noshow')">🚫 Marcar no-show</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Acordeón 2: PAGO / SALDO (expandido) -->
+      <div class="accordion-item open">
+        <button class="accordion-trigger" aria-expanded="true">
+          <span>Pago / saldo</span>
+          <span class="chevron">▸</span>
+        </button>
+        <div class="accordion-content">
+          <div class="pago-status-row">
+            <span style="font-size:24px">🟡</span>
+            <div style="flex:1">
+              <div style="font-weight:600">Depósito parcial</div>
+              <div class="pago-balance">PEN 40 pagados de PEN 120 totales</div>
+            </div>
+            <div>
+              <div class="pago-amount">PEN 80</div>
+              <div class="pago-balance" style="text-align:right">saldo pendiente</div>
+            </div>
+          </div>
+          <button class="btn btn-primary" style="width:100%" onclick="window.location.href='cobrar-saldo-subform.html'">
+            💰 Cobrar saldo
+          </button>
+        </div>
+      </div>
+
+      <!-- Acordeón 3: HISTÓRICO PAGOS (collapsed) -->
+      <div class="accordion-item">
+        <button class="accordion-trigger" onclick="toggleAccordion(this)">
+          <span>Histórico de pagos</span>
+          <span class="chevron">▸</span>
+        </button>
+        <div class="accordion-content">
+          <div style="border:1px solid var(--border);border-radius:var(--r-sm);overflow:hidden">
+            <div style="padding:10px 12px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;font-size:12px">
+              <div>
+                <strong>20 May 2026</strong> · <span class="muted">14:32</span>
+              </div>
+              <div>
+                <span style="font-weight:600">PEN 40</span> · <span class="muted">Depósito</span>
+              </div>
+            </div>
+            <div style="padding:10px 12px;font-size:11px;color:var(--text-muted);background:var(--bg-elevated)">
+              Mercado Pago · Boleta #B001-00045 · <a href="#" style="color:var(--c-adrian)">ver PDF</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Acordeón 4: NOTAS INTERNAS (collapsed) -->
+      <div class="accordion-item">
+        <button class="accordion-trigger" onclick="toggleAccordion(this)">
+          <span>Notas internas</span>
+          <span class="chevron">▸</span>
+        </button>
+        <div class="accordion-content">
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">
+            Solo logística — NO incluir info médica clínica (usá portal seguro paciente).
+          </div>
+          <textarea class="form-textarea" placeholder="Ej: paciente prefiere mañanas, llegar 15 min antes para revisar presupuesto"></textarea>
+          <div class="form-helper" style="margin-top:6px">Última actividad: Mar 21 May · Camila Roca</div>
+        </div>
+      </div>
+
+      <!-- Acordeón 5: ACCIONES AVANZADAS (collapsed) -->
+      <div class="accordion-item">
+        <button class="accordion-trigger" onclick="toggleAccordion(this)">
+          <span>Acciones avanzadas</span>
+          <span class="chevron">▸</span>
+        </button>
+        <div class="accordion-content">
+          <div class="form-field">
+            <label class="form-label">Enviar recordatorio por WhatsApp</label>
+            <select class="form-select">
+              <option>Elegí un template</option>
+              <option>Recordatorio de turno (mañana)</option>
+              <option>Confirma asistencia (24h antes)</option>
+              <option>Reagendar — opciones disponibles</option>
+            </select>
+            <div class="form-helper">Templates aprobados sin info clínica · canal validado por ComplianceService.</div>
+          </div>
+          <button class="btn btn-outline btn-sm" style="width:100%;margin-bottom:8px">
+            👨‍⚕️ Reasignar doctor
+          </button>
+          <button class="btn btn-outline btn-sm" style="width:100%">
+            ⏱ Cambiar duración del turno
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- FOOTER -->
+    <div class="drawer-footer">
+      <button class="btn btn-ghost btn-sm">Cerrar</button>
+      <button class="btn btn-primary btn-sm">Guardar cambios</button>
+    </div>
+  </aside>
+</div>
+
+<!-- Dialog Cancelar (oculto inicialmente) -->
+<div id="dialog-cancel" style="display:none">
+  <div class="dialog-overlay" onclick="closeDialog('cancel')">
+    <div class="dialog" onclick="event.stopPropagation()">
+      <div class="dialog-title">¿Cancelar este turno?</div>
+      <div class="dialog-body">
+        Se notificará al paciente. Esta acción no se puede deshacer fácilmente.
+        Quedará registrada en el histórico del turno + audit log.
+      </div>
+      <div class="dialog-actions">
+        <button class="btn btn-ghost btn-sm" onclick="closeDialog('cancel')">Volver</button>
+        <button class="btn btn-destructive btn-sm">Sí, cancelar turno</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Dialog No-show -->
+<div id="dialog-noshow" style="display:none">
+  <div class="dialog-overlay" onclick="closeDialog('noshow')">
+    <div class="dialog" onclick="event.stopPropagation()">
+      <div class="dialog-title">¿Marcar como no-show?</div>
+      <div class="dialog-body">
+        Se registrará en el histórico del paciente. Podés deshacer en las próximas 24h desde el historial del paciente.
+      </div>
+      <div class="dialog-actions">
+        <button class="btn btn-ghost btn-sm" onclick="closeDialog('noshow')">Volver</button>
+        <button class="btn btn-destructive btn-sm">Sí, marcar no-show</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleTheme() {
+  const html = document.documentElement;
+  const current = html.getAttribute('data-theme');
+  html.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark');
+}
+
+function toggleAccordion(btn) {
+  const item = btn.closest('.accordion-item');
+  item.classList.toggle('open');
+  btn.setAttribute('aria-expanded', item.classList.contains('open'));
+}
+
+function openDialog(id) {
+  document.getElementById('dialog-' + id).style.display = 'block';
+}
+function closeDialog(id) {
+  document.getElementById('dialog-' + id).style.display = 'none';
+}
+</script>
+
+</body>
+</html>

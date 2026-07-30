@@ -1,0 +1,110 @@
+---
+capability_id: vitalia-medical-agentic-tools
+module: agentic
+slug: medical-agentic-tools
+status: deprecated
+date_introduced: 2026-05-15
+story_introduced: luana-vitalia-bootstrap
+package_version: 0.1.0
+package_path: vitalia/backend/src/modules/vitalia/agentic/tools
+license: proprietary
+
+# v3 cement 2026-05-27 · 4 dimensiones + dev_preview (ADR-vitalia-005)
+tech_module: agentic
+agent_owner: motor-agentico
+functional_area: motor-agentico.agentic-engine
+user_visible: false
+nature: extension-point
+ui_paradigm: slice-1-superseded  # T-3 reconcile 2026-05-29
+
+user_facing_name: "Tools agentic médicas compartidas"
+user_facing_description: >
+  Conjunto de cuatro herramientas agentic compartidas entre los agentes Vitalia:
+  verificación de pago prepagado, solicitud de consentimiento informado,
+  reagendamiento de cita con el doctor y seguimiento de tratamiento.
+  Estas tools habilitan el ciclo conversacional médico completo vía Extension SDK.
+
+dev_preview:
+  route: null
+  how_to_navigate: "BE-only · ver via tests en vitalia/backend/tests/agentic_evals/tools/"
+  main_component: null
+  api_endpoints: []
+  e2e_test: null
+  fixtures_required: []
+  storybook_url: null
+  loom_demo: null
+
+# Capability ledger v2 (cement 2026-05-27)
+created_in_story: luana-vitalia-bootstrap   # v2 cement · mirror of story_introduced
+created_date: 2026-05-15   # v2 cement · mirror of date_introduced
+last_modified: 2026-05-29   # T-3 reconcile 2026-05-29
+parent_cap: null   # v2 cement · mirror of extends_capability
+derives_capabilities: []   # v2 cement · initial empty list
+
+# Capability ledger v2 (cement 2026-05-27)
+
+# Capability change log v2 (cement 2026-05-27)
+change_log:
+  - story_id: vitalia-bootstrap-inventory-2026-05-15
+    date: 2026-05-15
+    type: new
+    summary: "Implementación inicial · migración legacy a schema v2"
+    merge_sha: null
+    status: done
+map_box: motor-agentico
+
+---
+
+# vitalia-medical-agentic-tools
+
+4 tools agentic registradas vía Extension SDK EP-3, consumidas por `core/luana-core-sales-agent` y por `TreatmentFollowupWorkflow`. Habilitan el bucle conversacional médico end-to-end: validar pago → solicitar consentimiento → reagendar → checkin follow-up.
+
+## Surface (`vitalia/backend/src/modules/vitalia/agentic/tools/`)
+
+- **`prepaid_payment_check.py`** — verifica balance/quota prepaid para próximo tratamiento. Inputs: `patient_id`, `treatment_id`. Outputs: `balance_remaining`, `sufficient`, `topup_recommended_amount`
+- **`medical_consent_request.py`** — genera formulario de consentimiento + envía al paciente + registra firma. Inputs: `patient_id`, `procedure_id`. Outputs: `consent_record_id`, `signed`, `signed_at`
+- **`appointment_reschedule_with_doctor.py`** — 4 acciones (search_slots, hold_slot, confirm_reschedule, notify_parties). Inputs: `booking_id`, `action`, `payload`
+- **`treatment_followup_check.py`** — 7 acciones (status, vitals, adherence, side_effects, satisfaction, next_steps, escalation). Inputs: `treatment_id`, `action`, `payload`
+
+### Prompts compose
+
+- **`agentic/prompts/compose.py`** — helpers para composición de slot 4 MEDICAL_SAFETY_RAILS
+
+### Config (`vitalia/config/brand.yaml`)
+
+```yaml
+agentic_tools:
+  - prepaid_payment_check
+  - treatment_followup_check
+  - medical_consent_request
+  - appointment_reschedule_with_doctor
+```
+
+## Test coverage
+
+- `vitalia/backend/tests/agentic_evals/tools/test_prepaid_payment_check.py`
+- `vitalia/backend/tests/agentic_evals/tools/test_treatment_followup_check.py`
+- `vitalia/backend/tests/agentic_evals/tools/test_appointment_reschedule_with_doctor.py`
+- `vitalia/backend/tests/agentic_evals/tools/test_medical_consent_request.py`
+- `vitalia/backend/tests/agentic_evals/observability/test_trace_invariants.py`
+- `vitalia/backend/tests/agentic_evals/cost_budget/test_cost_budget_booking_conversation.py`
+- `vitalia/backend/tests/agentic_evals/cost_budget/test_cost_budget_followup_turn.py`
+
+## Dependencies
+
+- `core/luana-core-sales-agent` (consumidor: orquesta tools en turnos conversacionales)
+- `core/luana-core-llm` (LLM router para reasoning)
+- `core/luana-core-extension-sdk` EP-3 (ToolDef registration)
+- `vitalia.application.services.prepaid_payment_service` + `consent_service` + `booking_service` + `treatment_followup_service`
+
+## Scenarios live
+
+- Paciente pregunta "¿cuánto me queda del paquete?" → sales_agent invoca `prepaid_payment_check`
+- Sales agent detecta que próximo procedimiento requiere consent → invoca `medical_consent_request`
+- Paciente pide reagendar por WhatsApp → sales_agent invoca `appointment_reschedule_with_doctor`
+- TreatmentFollowupWorkflow cron-driven invoca `treatment_followup_check(action=vitals)` weekly
+- Todas las invocaciones registran trace en `copilot_trace_event` + cost en `copilot_llm_call`
+
+## Referencias
+
+- Archive: `docs/archive/2026/snapshot-pre-multibrand-pm-redesign/capabilities/vitalia/medical-followup-workflow.yaml` (subset tools)

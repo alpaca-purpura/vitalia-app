@@ -1,0 +1,456 @@
+# 04-validators-template.yaml — Validators ejecutables
+#
+# Owner: /architect orchestrator (post pm-redesign 2026-05 Punto 4 + v4.1 cement 2026-05-19).
+# Schema v4.1 — 5 categories: non_functional / functional / visual / agentic_eval / architectural_validation.
+#
+# /dev-team itera contra estos validators en bucle hasta GREEN o cap_reached.
+# /auditor verifica cada uno fue corrido + GREEN antes APPROVED.
+#
+# CRITICAL: cada validator MUST tener `must_pass: true` y comando ejecutable shell.
+# Si falla, fix targeted + re-run. NO disable ni skip sin justificación commit.
+#
+# v4.1 cement 2026-05-19:
+# - Nueva categoría `architectural_validation` separada (DDD/FSD boundaries, tenant grep, anti-dup, cross-module)
+# - Nueva sección `test_construction_plan` (architect dicta orden + POMs + fixtures + mapping)
+# - Paths brand-scoped (post multibrand reorg 2026-05-15): cd {brand}/backend, cd {brand}/frontend
+# - Workspace venv: ${WS}/.venv/bin/{ruff,pytest} (no backend/.venv)
+#
+# ─────────────────────────────────────────────────────────────────
+
+story_id: STORY_ID
+brand: BRAND_SLUG                                  # ★ v4.1 — vitalia | nicolify | comunify | lupulo
+schema_version: v4.1
+
+# ═══════════════════════════════════════════════════════════════
+# VERIFICATION (Critical Rule #37) — el architect DECLARA por capability/ticket
+# ═══════════════════════════════════════════════════════════════
+verification:
+  nature: functional            # technical | functional | both (técnica=sin UI; funcional=user-reachable)
+  technical_gates:
+    baseline: [tsc_strict, mypy_strict, ruff, eslint_max_warnings_0, arch_fitness]   # SIEMPRE, bloqueante
+    # ★ DS gates (Storybook-first · canon §5 · frontend-visual-fidelity.md § Storybook) — FE story:
+    #   · eslint `no-arbitrary-value` (spacing/radius/font-size/color-hex) → corre dentro de eslint_max_warnings_0 (todas las marcas wired).
+    #   · arch-test `no-div-layout` + `no-native-select` (ratchet shrink-only) → corre dentro de arch_fitness. LIVE en vitalia + nicolify + comunify (HB-106 aplicado 2026-06-24).
+    #   · net-new shared → PROMOVER a @luana/ui-kit + story → gate mecánico `no-local-kit-primitive` (HB-107, ratchet baseline 0) en nicolify+comunify (vitalia parity diferida) + /auditor Cat 16. /architect: confirmá que cubren el surface FE.
+    opt_in:                     # activar SOLO por naturaleza de la capability (NO en toda story)
+      schemathesis: false       # true → endpoint nuevo (contrato FE↔BE antes del runtime de Next)
+      hypothesis: false         # true → domain logic con invariantes (pricing/PHI/scheduling/validaciones)
+    mutation:                   # ★ proceso v5 §5.6 (HB-54) · gate DIFF-SCOPED via scripts/mutation_gate.py
+      enabled: false            # true SOLO en superficies mutation-críticas que /architect marca por verification_nature
+      mode: advisory            # hard = crítica (commit/persistencia HB-50 · dinero/pricing · gates PHI · state-machines · transforms-contrato HB-42/44); advisory = resto (anti-costo)
+      surfaces: []              # paths/módulos críticos. Umbral hard: 100% mutantes muertos sobre líneas NUEVAS + escape equivalente documentado (ratchet). Survivor líneas-nuevas → CHANGES_REQUESTED; survivor HEREDADO → CIL L4 (no bloquea). DEGRADA advisory si mutmut/Stryker ausente
+  runtime_error_gate: required  # FE: {brand}/frontend/e2e/fixtures/base.ts (pageerror/console/hydration/api-4xx5xx/Next-dialog) + scripts/verify-no-backend-errors.sh
+  business_rules:               # functional: cada regla de negocio del spec → tag → scenario (happy + ≥1 negative/edge)
+    - rule: "<RN-1 descripción>"
+      tag: "@rule-<slug>"
+      scenario_id: "<SC-N>"
+  demo_required: true           # toca frontend/ o endpoint con consumer FE → true; solo tests/migrations/config/core sin cambio de contrato → false
+  demo_skip_reason: null
+  regression_guard: []          # modificación: tests EXISTENTES que NO deben cambiar (siguen verdes sin tocarse)
+  coverage_update: []           # tests del comportamiento cambiado a actualizar (revisando el diff, nunca vitest -u mecánico)
+  new_coverage: []              # tests nuevos para lo nuevo (TDD RED primero)
+
+  # ── Live-verify gate (Critical Rule #37) ─────────────────────────
+  # OBLIGATORIO cuando verification_nature ∈ {funcional, ambas}.
+  # dev-team completa evidence al cerrar developing → developed.
+  # Auditor auto-FAILea si ausente o evidence vacío (LIVE_VERIFY_MISSING).
+  dev_app_verified:
+    required: true              # false SOLO si demo_required: false + dod_live_verified_skip_reason provisto
+    evidence: ""                # dev-team completa: "acción real ejercida · efecto observado · sin traceback BE"
+
+  # ── Playwright visual scope (D3 — Critical Rule #34 + #37) ───────
+  # OBLIGATORIO para toda story ui-story o ui-mixed (toca frontend/).
+  # Delimita qué rutas y componentes puede modificar visualmente el builder.
+  # Fuera de scope → STOP + doc en T-{n}-impl-log.md + escalar /pm-{brand}.
+  # Sub-keys de referencia: autonomous-mode.md § Playwright visual scope discipline.
+  playwright_visual_scope:
+    story_scope_routes:
+      - "/{feature}/{sub-route}"       # ÚNICA(S) ruta(s) donde aplicar visual changes
+      # - "/{feature}/[id]/edit"       # añadir rutas adicionales si aplica
+    story_scope_components:
+      - "{brand}/frontend/src/features/{m}/components/{ComponentName}.tsx"
+      # - "{brand}/frontend/src/features/{m}/components/{OtherComponent}.tsx"
+    forbidden_visual_changes:
+      paths:
+        - "{brand}/frontend/src/components/ui/"       # Shadcn primitives — escalar /pm-{brand}
+        - "{brand}/frontend/src/components/shared/"   # cross-feature shared — escalar /pm-{brand}
+        - "{brand}/frontend/src/app/layout.tsx"       # app shell — escalar /pm-{brand}
+      reasons:
+        - "Cambios en primitivas Shadcn impactan TODA la app"
+        - "Cambios en shared afectan features fuera del scope de esta story"
+        - "Cambios en layout romperían navegación global"
+      if_change_needed_outside_scope: "STOP · documentar en T-{n}-impl-log.md · escalar /pm-{brand} para spec extension o story cross-cutting separada"
+    playwright_assertions_scope:
+      - "Assertions visuales SOLO sobre story_scope_routes + story_scope_components"
+      - "NUNCA toHaveScreenshot() de página completa fuera del scope (usar bounded locators)"
+      - "Si snapshot diverge en área no relacionada (toolbar, sidebar) → flag baseline drift; NO arreglar inline"
+    non_egoismo_clause: "Bug real visible en otra ruta NO tocada por esta story → reportar en T-{n}-impl-log.md § 'Cross-story observed bugs'. NO arreglar inline (rompe scope discipline)."
+
+validators:
+  # ═══════════════════════════════════════════════════════════════
+  # NON-FUNCTIONAL — code quality (lint, format, type-check, arch fitness)
+  # Apply: SIEMPRE, en CUALQUIER story que toque código
+  # ═══════════════════════════════════════════════════════════════
+
+  - id: be_arch_fitness
+    category: non_functional
+    type: pytest
+    # ★ HB-79: este cmd es BRAND-style ({brand}/backend/tests/architecture/). Para una
+    # technical-story que toca un CORE package (core/luana-core-*), ese dir NO existe —
+    # el arch-fitness vive INLINE en la suite del paquete. Usá el layout real del pkg:
+    #   cmd: "cd core/luana-core-<pkg> && ${WS}/.venv/bin/pytest -x -q"
+    # NUNCA copies `tests/architecture/` brand-style a un cmd de validator core.
+    cmd: "cd {brand}/backend && ${WS}/.venv/bin/pytest tests/architecture/ -x -q --override-ini='addopts='"
+    must_pass: true
+    timeout_sec: 120
+    description: "DDD boundaries, API contracts, conventions, naming, SQLA 2.0, etc."
+
+  - id: be_lint
+    category: non_functional
+    type: shell
+    cmd: "cd {brand}/backend && ${WS}/.venv/bin/ruff check src/modules/{m}/ tests/modules/{m}/ --no-cache"
+    must_pass: true
+    timeout_sec: 30
+    description: "Ruff 70+ rules, 0 errors"
+
+  - id: be_format
+    category: non_functional
+    type: shell
+    cmd: "cd {brand}/backend && ${WS}/.venv/bin/ruff format --check src/modules/{m}/ tests/modules/{m}/"
+    must_pass: true
+    timeout_sec: 30
+
+  - id: fe_typecheck
+    category: non_functional
+    type: shell
+    cmd: "cd {brand}/frontend && npx tsc --noEmit"
+    must_pass: true
+    timeout_sec: 90
+    description: "TypeScript strict, 0 errors"
+
+  - id: fe_lint
+    category: non_functional
+    type: shell
+    cmd: "cd {brand}/frontend && npx eslint src/features/{m}/ --cache --cache-location .eslintcache"
+    must_pass: true
+    timeout_sec: 60
+    description: "ESLint 60+ rules, 0 errors"
+
+  - id: fe_arch_fitness
+    category: non_functional
+    type: shell
+    cmd: "cd {brand}/frontend && npx vitest run src/__tests__/architecture/ --reporter=default"
+    must_pass: true
+    timeout_sec: 60
+    description: "FSD-Lite boundaries, ratchet allowlists shrink-only"
+
+  # ═══════════════════════════════════════════════════════════════
+  # FUNCTIONAL — Gherkin scenarios (happy / negative / edge / adversarial)
+  # Apply: SIEMPRE — 1 validator MIN por scenario en 01-spec.md
+  # ═══════════════════════════════════════════════════════════════
+
+  - id: scenario_happy_path
+    category: functional
+    type: pytest
+    cmd: "cd {brand}/backend && ${WS}/.venv/bin/pytest tests/modules/{m}/test_story.py::test_happy -v"
+    must_pass: true
+    timeout_sec: 60
+    scenario_id: happy
+
+  - id: scenario_negative
+    category: functional
+    type: pytest
+    cmd: "cd {brand}/backend && ${WS}/.venv/bin/pytest tests/modules/{m}/test_story.py::test_negative -v"
+    must_pass: true
+    timeout_sec: 60
+    scenario_id: negative
+
+  - id: scenario_edge
+    category: functional
+    type: pytest
+    cmd: "cd {brand}/backend && ${WS}/.venv/bin/pytest tests/modules/{m}/test_story.py::test_edge -v"
+    must_pass: true
+    timeout_sec: 60
+    scenario_id: edge
+
+  - id: scenario_adversarial
+    category: functional
+    type: pytest
+    cmd: "cd {brand}/backend && ${WS}/.venv/bin/pytest tests/modules/{m}/test_story.py::test_adversarial -v"
+    must_pass: true
+    timeout_sec: 90
+    scenario_id: adversarial
+
+  - id: integration_e2e
+    category: functional
+    type: playwright
+    # ★ HB-45 — el `--project` DEBE coincidir con el directorio del spec, o Playwright matchea
+    #   0 tests y sale 0 (FALSO VERDE). Regla: spec en e2e/regression/ → --project=regression;
+    #   spec en e2e/smoke/ → --project=smoke. gate-runner trata "0 tests matched" como FAIL.
+    cmd: "cd {brand}/frontend && E2E_BASE_URL=http://localhost:{brand_port} npx playwright test --project=regression e2e/regression/{m}-{story}.spec.ts"
+    must_pass: true
+    expect_min_tests: 1                              # ★ HB-45 — gate FALLA si Playwright corre <1 test (anti falso-verde)
+    timeout_sec: 240
+    description: "Regression E2E, Clerk auth, full flow. {brand_port}: nicolify=3001 vitalia=3002 comunify=3003 lupulo=3004. El --project SIEMPRE coincide con el dir del spec (regression/smoke)."
+
+  - id: live_verify
+    category: functional
+    type: manual_live_verify                      # ★ NOT a shell command — gate manual ejecutado por Claude via Chrome DevTools MCP
+    must_pass: true
+    description: >
+      Definition of Done — Critical Rule #37 (`definition-of-done-live-verify.md`).
+      Claude MUST exercise the real user action (especially writes: POST/PATCH/PUT/DELETE)
+      against the brand dev stack (`make dev-app-{brand}` → `dev-app.{brand}lat.com` or
+      `localhost:300X`), read backend logs, and confirm DB effect.
+      Evidence recorded in checkpoint.md `dod_evidence` field.
+      Suite green / build OK / GET-200 are NECESSARY but NEVER SUFFICIENT.
+      Skippable only for config/docs/tooling-only tickets via `dod_live_verified_skip_reason`.
+    evidence_field: "checkpoint.md::dod_evidence"
+    ref: ".claude/rules/definition-of-done-live-verify.md"
+
+  # ═══════════════════════════════════════════════════════════════
+  # VISUAL — UI fidelity + responsive (Playwright + screenshots)
+  # Apply: SOLO si story toca UI (FE components, layouts, forms, dashboards)
+  # ═══════════════════════════════════════════════════════════════
+
+  - id: visual_fidelity
+    category: visual
+    type: playwright
+    cmd: "cd {brand}/frontend && npx playwright test e2e/visual/{story}.spec.ts --update-snapshots=false"
+    capture: screenshots
+    must_pass: true
+    timeout_sec: 240
+    description: "Screenshot diff vs baseline. Update baseline si UI cambió: --update-snapshots"
+
+  - id: responsive_breakpoints
+    category: visual
+    type: playwright
+    cmd: "cd {brand}/frontend && npx playwright test e2e/visual/{story}-responsive.spec.ts --project=mobile,tablet,desktop"
+    must_pass: true
+    timeout_sec: 240
+    description: "Mobile + tablet + desktop coverage"
+
+  - id: a11y_axe
+    category: visual
+    type: playwright
+    cmd: "cd {brand}/frontend && npx playwright test e2e/a11y/{story}.spec.ts"
+    must_pass: true
+    timeout_sec: 180
+    description: "Accessibility (axe-core). Critical/serious violations = fail"
+
+  # ═══════════════════════════════════════════════════════════════
+  # AGENTIC EVAL — pass^k + rubrics + trajectory + cost/latency
+  # Apply: SOLO si story toca modules/copilot o modules/sales_agent runtime
+  # ★ SSoT del plan de eval: 02-design-agentic.md (owner /ux-agentico · MF-22) + agentic-eval-policy.md.
+  #   Mecanismo REAL = `pytest tests/agentic_evals/{m}/` (NO scripts/run_*.py — eran phantom · D-X3).
+  #   Goldens/rubrics/personas viven en el design-agentic; estas entradas seleccionan la dimensión vía `-k`.
+  # ═══════════════════════════════════════════════════════════════
+
+  - id: agentic_pass_k
+    category: agentic_eval
+    type: pytest
+    cmd: "cd {brand}/backend && ${WS}/.venv/bin/pytest tests/agentic_evals/{m}/{story-id}.py -k pass_k --trials=3"
+    rubrics: [voice-fidelity, goal-completion, tool-call-accuracy]
+    pass_k:
+      trials: 3
+      per_trial_threshold: 0.66
+      pass_k_threshold: 0.5
+    must_pass: true
+    timeout_sec: 600
+    description: "Multi-persona conversational eval. LLM-as-judge rubrics + pass^k"
+
+  - id: agentic_trajectory
+    category: agentic_eval
+    type: pytest
+    cmd: "cd {brand}/backend && ${WS}/.venv/bin/pytest tests/agentic_evals/{m}/{story-id}.py -k trajectory"
+    must_pass: true
+    timeout_sec: 300
+    description: "Tool call sequence + LangGraph state transitions vs expected trajectory (agentevals lib)"
+
+  - id: agentic_cost_budget
+    category: agentic_eval
+    type: pytest
+    cmd: "cd {brand}/backend && ${WS}/.venv/bin/pytest tests/agentic_evals/{m}/{story-id}.py -k cost_budget"
+    threshold:
+      cost_usd_max: 0.50
+      tokens_max: 6000
+      latency_p95_max: 8.0
+    must_pass: true
+    timeout_sec: 60
+    description: "Cost USD + tokens + latency p95 vs budget. Falla si excede"
+
+  - id: agentic_voice_fidelity
+    category: agentic_eval
+    type: pytest
+    cmd: "cd {brand}/backend && ${WS}/.venv/bin/pytest tests/agentic_evals/{m}/{story-id}.py -k voice_fidelity"
+    rubric: docs/specs/rubrics/voice-fidelity.md
+    threshold: 0.80
+    must_pass: true
+    timeout_sec: 300
+    description: "Voice fidelity grader runtime — voz tenant SSoT respetada"
+
+  - id: agentic_observability
+    category: agentic_eval
+    type: pytest
+    cmd: "cd {brand}/backend && ${WS}/.venv/bin/pytest tests/modules/{m}/observability/test_trace_invariants.py -v"
+    must_pass: true
+    timeout_sec: 60
+    description: "copilot_trace_event records present + cost_usd > 0 + tokens accounted"
+
+  - id: agentic_adversarial
+    category: agentic_eval
+    type: pytest
+    cmd: "cd {brand}/backend && ${WS}/.venv/bin/pytest tests/agentic_evals/{m}/{story-id}.py -k adversarial"
+    must_pass: true
+    timeout_sec: 600
+    description: "Prompt injection + jailbreak + PII leak + scope creep tests"
+
+  # ═══════════════════════════════════════════════════════════════
+  # ARCHITECTURAL VALIDATION (★ v4.1 cement 2026-05-19 — separada de non_functional)
+  # Verificación arquitectónica explícita: DDD/FSD boundaries, tenant grep, anti-dup, cross-module audit
+  # Apply: SIEMPRE, en cualquier story que toque código
+  # ═══════════════════════════════════════════════════════════════
+
+  - id: arch_ddd_boundaries
+    category: architectural_validation
+    type: pytest
+    cmd: "cd {brand}/backend && ${WS}/.venv/bin/pytest tests/architecture/test_ddd_boundaries.py -v"
+    must_pass: true
+    timeout_sec: 30
+    description: "DDD layers domain→infra→app→api boundary enforcement"
+
+  - id: arch_tenant_isolation_grep
+    category: architectural_validation
+    type: shell
+    cmd: "! grep -rn 'select.*Model)' {brand}/backend/src/modules/{brand}/{m}/ | grep -v 'tenant_id' | grep -v test_"
+    must_pass: true
+    timeout_sec: 10
+    description: "Cada query debe filtrar tenant_id (regex scan + auditor doble check)"
+
+  - id: arch_anti_duplication_scan
+    category: architectural_validation
+    type: shell
+    # Mirror scan REAL (anti-duplication.md Step-0 grep) — basename del módulo colisionando cross-brand.
+    # NO hay scripts/scan_cross_brand_mirror.sh (era phantom · D-X3); el enforce vivo = auditor Cat 12 + architect pre-builder.
+    cmd: "! for B in nicolify vitalia comunify lupulo; do [ \"$B\" = {brand} ] && continue; comm -12 <(find {brand}/backend/src/modules/{brand}/{m} -name '*.py' -printf '%f\\n' 2>/dev/null | sort -u) <(find $B/backend/src -name '*.py' -printf '%f\\n' 2>/dev/null | sort -u); done | grep ."
+    must_pass: true
+    timeout_sec: 30
+    description: "Detecta mirrors cross-brand del módulo (basename collision · anti-duplication.md). Match → auditor Cat 12 + spawn promotion proposal."
+
+  - id: arch_fsd_boundaries
+    category: architectural_validation
+    type: shell
+    cmd: "cd {brand}/frontend && npx vitest run src/__tests__/architecture/test_fsd_boundaries.test.ts"
+    must_pass: true
+    timeout_sec: 60
+    description: "FSD-Lite boundaries — feature → feature own/shared/lib only"
+
+  - id: arch_no_cross_brand_imports
+    category: architectural_validation
+    type: shell
+    cmd: "! grep -rn 'from {other_brand}' {brand}/backend/src/ {brand}/frontend/src/ 2>/dev/null"
+    must_pass: true
+    timeout_sec: 10
+    description: "Cross-brand import detection (HARD ban — lift via /pm-luana)"
+
+# ═══════════════════════════════════════════════════════════════
+# Scenario coverage matrix — 1 scenario maps to N validators
+# ★ v4.1 ampliado con sub-categorías mandatory
+# ═══════════════════════════════════════════════════════════════
+
+scenario_coverage:
+  - scenario_id: happy
+    validators: [scenario_happy_path, integration_e2e, visual_fidelity, agentic_pass_k]
+  - scenario_id: negative
+    validators: [scenario_negative, integration_e2e, agentic_pass_k]
+  - scenario_id: edge
+    validators: [scenario_edge, agentic_trajectory]
+  - scenario_id: adversarial
+    validators: [scenario_adversarial, agentic_adversarial]
+  # ★ v4.1 sub-categorías mandatory (heredadas de /po-ux refined gate)
+  - scenario_id: race_condition
+    validators: [scenario_edge, integration_e2e]
+  - scenario_id: concurrent_users
+    validators: [scenario_edge, integration_e2e]
+  - scenario_id: network_failure
+    validators: [scenario_edge, integration_e2e]
+  - scenario_id: empty_state
+    validators: [integration_e2e, visual_fidelity]
+  - scenario_id: large_dataset
+    validators: [integration_e2e]
+  - scenario_id: accessibility
+    validators: [a11y_axe]
+  - scenario_id: i18n
+    validators: [integration_e2e]
+
+# ═══════════════════════════════════════════════════════════════
+# ★ Test Construction Plan (v4.1 cement 2026-05-19)
+# Architect dicta cómo construir Playwright tests. Dev-team CONSTRUYE siguiendo,
+# NO inventa orden, POMs, fixtures, ni mapping scenario→test.
+# ═══════════════════════════════════════════════════════════════
+
+test_construction_plan:
+  playwright_required: true                    # HARD para stories ui-story o ui-mixed; false solo service-only
+  base_path: "{brand}/frontend/e2e/regression/{story-id}/"
+
+  # Orden de creación de tests (dependencias numeradas)
+  creation_order:
+    - { step: 1, file: "fixtures/{story-id}.fixture.ts",       content: "Auth state + tenant setup + DB seed + network mocks", depends_on: [] }
+    - { step: 2, file: "poms/{m}-list-page.pom.ts",            content: "POM list",                            depends_on: [1] }
+    - { step: 3, file: "poms/{m}-detail-page.pom.ts",          content: "POM detail",                          depends_on: [1] }
+    - { step: 4, file: "{m}-happy.spec.ts",                    content: "Scenario happy",                      depends_on: [2, 3] }
+    - { step: 5, file: "{m}-negative.spec.ts",                 content: "Scenario negative",                   depends_on: [2, 3] }
+    - { step: 6, file: "{m}-edge.spec.ts",                     content: "Sub-categorías race/concurrent/empty/large/network", depends_on: [2, 3] }
+    - { step: 7, file: "{m}-adversarial.spec.ts",              content: "Scenario adversarial",                depends_on: [2, 3] }
+    - { step: 8, file: "../a11y/{story-id}.spec.ts",           content: "axe-core wcag2aa",                    depends_on: [4] }
+    - { step: 9, file: "../i18n/{story-id}.spec.ts",           content: "3 tenants distintos locale",          depends_on: [4] }
+
+  # Mapping explícito Gherkin scenario → test
+  scenario_to_test:
+    - { scenario: "happy",            file: "{m}-happy.spec.ts",       function: "test('user creates {entity} successfully'" }
+    - { scenario: "negative",         file: "{m}-negative.spec.ts",    function: "test('rejects empty required field'" }
+    - { scenario: "edge",             file: "{m}-edge.spec.ts",        function: "test('handles standard edge case'" }
+    - { scenario: "adversarial",      file: "{m}-adversarial.spec.ts", function: "test('rejects cross-tenant access'" }
+    - { scenario: "race_condition",   file: "{m}-edge.spec.ts",        function: "test('handles concurrent create same slug'" }
+    - { scenario: "concurrent_users", file: "{m}-edge.spec.ts",        function: "test('tenant isolation under concurrent load'" }
+    - { scenario: "network_failure",  file: "{m}-edge.spec.ts",        function: "test('shows retry on 500'" }
+    - { scenario: "empty_state",      file: "{m}-edge.spec.ts",        function: "test('renders empty state with CTA'" }
+    - { scenario: "large_dataset",    file: "{m}-edge.spec.ts",        function: "test('pagination handles 1000 items'" }
+    - { scenario: "accessibility",    file: "../a11y/{story-id}.spec.ts", function: "test('axe-core wcag2aa pass'" }
+    - { scenario: "i18n",             file: "../i18n/{story-id}.spec.ts", function: "test('renders correct currency per tenant'" }
+
+  # ── ★ Seam coverage (HB-95 · cobertura = colaborador real, no mock) ───────────
+  # Cada escenario que cruza una COSTURA declara la costura + el tipo de test que la
+  # ejerce DE VERDAD (no un unit mockeado). Gate: scripts/check_seam_coverage.py.
+  #   seam      ∈ code-db | fe-be | router | auth | component-shell
+  #   test_type ∈ integration-realdb | contract | router | e2e-live | live-verify
+  #   mapeo: code-db→integration-realdb · fe-be→contract · router→router(end-to-end)
+  #          · auth→live-verify(#37, NO unit-testeable) · component-shell→e2e-live(render real)
+  #   `unit-mocked`/`unit`/`mocked` PROHIBIDO para un escenario de costura.
+  #   `target` = path del test que toca el colaborador real (o "live" para la costura auth/#37).
+  # `target` = path WORKSPACE-ROOTED del test que toca el colaborador real (para que el gate lo resuelva).
+  seam_coverage:
+    - { sc: "SC-<happy-write>",  seam: code-db,         test_type: integration-realdb, target: "{brand}/backend/tests/modules/{brand}/{m}/test_<x>_realdb.py" }
+    - { sc: "SC-<fe-be>",        seam: fe-be,           test_type: contract,           target: "{brand}/backend/tests/modules/{brand}/{m}/test_<x>_contract.py" }
+    - { sc: "SC-<response-dto>", seam: router,          test_type: router,             target: "{brand}/backend/tests/modules/{brand}/{m}/test_<x>_router.py" }
+    - { sc: "SC-<auth-write>",   seam: auth,            test_type: live-verify,        target: "live (#37 dod_evidence)" }
+    - { sc: "SC-<form-in-shell>",seam: component-shell, test_type: e2e-live,           target: "{brand}/frontend/e2e/regression/{story-id}/<x>.spec.ts" }
+
+  poms_required:
+    - { file: "{m}-list-page.pom.ts",   methods: ["goto()", "filterBy(criteria)", "clickCreateButton()", "getRowCount() → number", "getRowByName(name)"] }
+    - { file: "{m}-detail-page.pom.ts", methods: ["goto(id)", "fillForm(data)", "submit()", "getErrorMessage() → string|null"] }
+
+  fixtures_required:
+    - { name: "authedAs(role)",        content: "Clerk storage state per role" }
+    - { name: "dbSeed(m, count)",      content: "Insert N rows in {table} para tenant test" }
+    - { name: "networkFailure(endpt)", content: "page.route mock con 500/503 para network failure sim" }
+
+# ═══════════════════════════════════════════════════════════════
+# Iteration policy — autonomous build behavior
+# ═══════════════════════════════════════════════════════════════
+
+iteration:
+  max_iterations: 10
+  on_fail: "fix targeted file based on test output, re-run failing validator only"
+  on_all_pass: "set state=developing→developed, append iteration_log to T-{n}-impl-log.md"
+  on_cap_reached: "set state=developing→blocked, escalate to Chris with last error trace"

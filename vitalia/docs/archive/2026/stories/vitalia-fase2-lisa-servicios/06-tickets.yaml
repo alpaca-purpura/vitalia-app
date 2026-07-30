@@ -1,0 +1,246 @@
+story_id: vitalia-fase2-lisa-servicios
+brand: vitalia
+architecture_pattern: ADR-vitalia-004
+autonomous_mode: true          # Sub-phase A only (Chris opt-in); Sub-phase B gated
+total_tickets_sub_phase_A: 8   # ≤10 OK
+total_tickets_sub_phase_B: 3   # blocked · dimension only
+
+# ════════════════════════════════════════════════════════════════════════════
+# SUB-PHASE A — NO-RAG · AUTONOMOUS · builds to live-verified
+# ════════════════════════════════════════════════════════════════════════════
+tickets:
+  - id: T-1
+    title: "BE · offer domain + VOs + migrations + repos (net-new module)"
+    phase: A
+    surface: backend
+    production_code: true
+    depends_on: []
+    blocks: [T-2, T-3, T-4]
+    acceptance:
+      validator_ids: [NF-2, RN-6, RN-11, RN-12, RN-29, RN-31, RN-33]
+      gherkin_coverage: ["§3 herencia", "§4 variantes", "§5 modalidad (schema)", "§9 pricing (calc)", "§10 prueba social (entities)"]
+    scope: >-
+      offer/domain/{enums,vos,offer_ext,sales_brief,specialist_link,proof,completeness,pricing_calc}.py +
+      offer/infrastructure/models/*.py + repositories/*.py (async, tenant-scoped) +
+      persistence/migrations/XXXX_offer_service_tables.py (idempotent raw SQL).
+      pricing_calc + completeness = mutation-critical (hard, diff-scoped).
+    assignment:
+      primary_agent: builder-backend
+      model_preference: workhorse
+      must_load_skills: [backend-expert, offer-expert, tenant-isolation, backend-ddd, backend-migrations, currency-handling, tdd-mandatory, "vitalia/.claude/rules/hipaa-lite.md"]
+      must_load_artifacts: [03-arch.md, 03-arch-be.md, 01-spec.md]
+      forbidden_to_touch: ["core/luana-core-*/src", "core/@luana/ui-kit/src", "other brands", "offer/api (T-2)"]
+      rationale: "Net-new DDD domain+infra · no agentic · workhorse. RED-first per layer; pricing/completeness mutation-critical."
+
+  - id: T-2
+    title: "BE · services + routers + RBAC + tenant + search/filters"
+    phase: A
+    surface: backend
+    production_code: true
+    depends_on: [T-1]
+    blocks: [T-4, T-6, T-7, T-8]
+    acceptance:
+      validator_ids: [NF-1, NF-2, NF-3, RN-7, RN-10, RN-15, RN-16, RN-23]
+      gherkin_coverage: ["§1 catálogo+RBAC+borrado+grande", "§2 crear (api)", "§9 plan de pago (api)", "§16 cross-tenant+staff"]
+    scope: >-
+      offer/application/services/{catalog,specialist_link,proof,sales_brief}_service.py +
+      ports/{OfferEnginePort(D-1 wrap),DoctorRosterPort,BrandVoicePort}.py +
+      offer/api/{servicios_router,dtos}.py (response_model= en TODA ruta, Bearer+X-Tenant-ID, redirect_slashes=False) +
+      main router include. RBAC RN-7. Cursor pagination RN-15. Idempotent create on-choose RN-16.
+    assignment:
+      primary_agent: builder-backend
+      model_preference: workhorse
+      must_load_skills: [backend-expert, offer-expert, tenant-isolation, backend-ddd, spanish-text, currency-handling, tdd-mandatory, "vitalia/.claude/rules/hipaa-lite.md"]
+      must_load_artifacts: [03-arch.md, 03-arch-be.md]
+      forbidden_to_touch: ["core/luana-core-*/src", "@luana/ui-kit/src", "other brands"]
+      rationale: "Application+API thin · RBAC/tenant/search · workhorse. Cross-module solo vía ports."
+
+  - id: T-3
+    title: "BE · EP-2 preset pack (biblioteca seed dental+estética) + BibliotecaService typeahead"
+    phase: A
+    surface: backend
+    production_code: true
+    depends_on: [T-1]
+    blocks: [T-6, T-8]
+    acceptance:
+      validator_ids: [RN-25, RN-27]
+      gherkin_coverage: ["§2 crear-plantilla+typeahead-sinonimo", "§1 catálogo-vacío-biblioteca (data)"]
+    scope: >-
+      extensions.py::register_all MODIFY — materializar PresetPack(name='vitalia.medical_services_v1', presets=(...))
+      con biblioteca seed dental+estética Tier-1 (canonical_ref+synonyms+content) + BibliotecaService (typeahead
+      nombre+sinónimos scoped al tipo de clínica). NO bump _CATALOG_VERSION (brand preset). CERO engine edit.
+    assignment:
+      primary_agent: builder-backend
+      model_preference: workhorse
+      must_load_skills: [backend-expert, offer-expert, offer-type-preset-expert, spanish-text, anti-duplication, tdd-mandatory]
+      must_load_artifacts: [03-arch.md, 03-arch-be.md]
+      forbidden_to_touch: ["core/luana-core-offer-studio/src (engine catalog)", "@luana/ui-kit/src", "other brands"]
+      rationale: "EP-2 preset pack brand-level + typeahead · offer-type-preset-expert. NO toca engine catalog."
+
+  - id: T-4
+    title: "BE · document-autocomplete (consume copilot extract) + KEYSTONE offer-shape"
+    phase: A
+    surface: backend
+    production_code: true
+    depends_on: [T-1, T-2]
+    blocks: [T-8]
+    acceptance:
+      validator_ids: [RN-8, RN-17a, AC-6, "AE-A1"]
+      gherkin_coverage: ["§14 doc-autocompleta (A)", "§15 KEYSTONE", "§4 descripción-voz-marca"]
+    scope: >-
+      DocumentAutocompleteService (DocExtractPort → copilot extract_from_doc one-shot, editable prefill +
+      KnowledgeSource engine row, stub indexer OK) + BrandVoicePort (descripción voz marca, consume lisa-marca,
+      NO mirror) + KEYSTONE: verificar que el Offer activo creado por el service aparece en
+      OfferRepository.get_all_by_tenant con status active (test_keystone_offer_shape.py) + SalesBrief write-through
+      D-2 (confirmar mapeo campos engine). CONSUME-ONLY: cero engine edit, cero sales_agent/copilot code nuevo.
+    assignment:
+      primary_agent: builder-backend
+      model_preference: workhorse
+      must_load_skills: [backend-expert, sales-agent-expert, copilot-expert, offer-expert, anti-duplication, tdd-mandatory, definition-of-done-live-verify]
+      must_load_artifacts: [03-arch.md, 03-arch-be.md, 03-arch-agentic.md]
+      forbidden_to_touch: ["core/luana-core-*/src", "@luana/ui-kit/src", "modules/vitalia/{copilot,sales_agent} (NO escribir agentic)", "other brands"]
+      rationale: "KEYSTONE consume-only (data shape) + document extract consume copilot. NO es agentic-runtime → R23 NO aplica → workhorse. Live-verify obligatorio (AC-6)."
+
+  - id: T-5
+    title: "FE · NumberWithUnit (shared) + field primitives (moléculas)"
+    phase: A
+    surface: frontend
+    production_code: true
+    depends_on: []
+    blocks: [T-6, T-7]
+    acceptance:
+      validator_ids: [RN-28, RN-29, RN-31, RN-32, "AC-19"]
+      gherkin_coverage: ["§4 variantes (componente)", "§5 modalidad+richselect (componente)"]
+    scope: >-
+      components/shared/NumberWithUnit.tsx (NEW vitalia-local shared · lift-candidate) +
+      features/lisa/components/servicios/{ModalidadPicker,RungPicker,VariantsRepeater,TestimonialsList,
+      FaqPairList,ObjecionPairList,TagInput,FichaCompletenessChip,chip-origen}.tsx + __tests__/.
+      RichSelect = CONSUME (ui-kit shipped). Vitest unit per molécula (RungPicker locked, ModalidadPicker discriminated).
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: workhorse
+      must_load_skills: [frontend-expert, vitalia-design-system, frontend-visual-fidelity, frontend-fsd, spanish-text, anti-duplication, tdd-mandatory]
+      must_load_artifacts: [03-arch.md, 03-arch-fe.md, "mockups/servicio-workspace.html", "docs/architecture/luana-platform/design-system-canon.md"]
+      forbidden_to_touch: ["@luana/ui-kit/src (NumberWithUnit lift diferido)", "components/ui", "components/shared/shell-organism", "other features", "other brands"]
+      rationale: "Primitivas/moléculas FE · workhorse. NumberWithUnit shared (NO lift). Mockup'eado → build fiel."
+
+  - id: T-6
+    title: "FE · catálogo grid + search/filters + AGENT_SUBSUBTABS + escalera (dnd + a11y)"
+    phase: A
+    surface: frontend
+    production_code: true
+    depends_on: [T-2, T-3, T-5]
+    blocks: [T-8]
+    acceptance:
+      validator_ids: [AC-1, RN-2, RN-15, RN-30, "AC-3", "AC-7", "AC-10"]
+      gherkin_coverage: ["§1 búsqueda/filtros/empty", "§11 escalera (drag/vacío/a11y/estándar-fijo)", "§2 picker entry"]
+    scope: >-
+      shell-routes.ts MODIFY (AGENT_SUBSUBTABS['lisa.servicios']=[catalogo,escalera] + N3_DEFAULT_LEAF) +
+      app/.../lisa/servicios/{page,[subsubtab]/page}.tsx + LisaServiciosView + ServiciosDirectoryHeader +
+      CatalogoView (EntityInfoCard grid + EmptyState invita biblioteca) + ServiceCard + EscaleraView+RungColumn
+      (5 fijos · layout full/3col/full · @dnd-kit drag value_level + keyboard a11y + estándar locked RN-30).
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: workhorse
+      must_load_skills: [frontend-expert, vitalia-design-system, frontend-visual-fidelity, frontend-fsd, playwright-expert, spanish-text, tenant-isolation, anti-duplication, tdd-mandatory, ADR-vitalia-004]
+      must_load_artifacts: [03-arch.md, 03-arch-fe.md, "mockups/catalogo.html", "mockups/escalera.html", "docs/architecture/luana-platform/design-system-canon.md"]
+      forbidden_to_touch: ["@luana/ui-kit/src", "components/ui", "components/shared/shell-organism", "other features", "other brands", "shell-routes.ts existing entries"]
+      rationale: "Catálogo + escalera + N3-static routing · workhorse. AGENT_SUBSUBTABS append (SSoT arch test). useTenantId NUNCA orgId."
+
+  - id: T-7
+    title: "FE · workspace EntitySubNavBar + 5 leaves + autosave + biblioteca picker + knowledge panel + especialistas"
+    phase: A
+    surface: frontend
+    production_code: true
+    depends_on: [T-2, T-4, T-5]
+    blocks: [T-8]
+    acceptance:
+      validator_ids: [AC-2, RN-16, RN-18, RN-20, RN-23, RN-26, "AC-4", "AC-4.bis", "AC-5", "AC-11", "AC-13", "AC-14", "AC-18"]
+      gherkin_coverage: ["§2 crear=editar/picker/borrador", "§3 identidad+herencia", "§4 qué-es+variantes", "§5 modalidad+agenda", "§6 ficha paciente", "§7 Para Adrián", "§8 especialistas", "§9 plan de pago", "§10 prueba social", "§12 autosave", "§13 tooltips", "§14 Fuentes (A)"]
+    scope: >-
+      app/.../lisa/servicios/{[offer-id]/{layout,[leaf]/page},nuevo/page}.tsx + ServicioWorkspaceView (crear=editar RN-16) +
+      ServiceStatusBar + 5 leaves (ResumenView 6 grupos·ParaAdrianView·EspecialistasView·PlanPagoView·PruebaSocialView) +
+      BibliotecaPicker (inline NO modal) + EspecialistaLinkPicker (roster · autosave al marcar) + KnowledgeSourcesPanel
+      (persistente+colapsable · extract-only A) + use-autosave (debounce 600ms · UNA FloatingAutosaveIndicator) +
+      RHF+Zod discriminated union modality + FieldTooltip (RN-18) + derived read-only (3 cobros). EntityWorkspaceLayout+EntitySubNavBar+EntityPicker CONSUME.
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: workhorse
+      must_load_skills: [frontend-expert, vitalia-design-system, frontend-visual-fidelity, frontend-fsd, playwright-expert, brand-expert, offer-expert, spanish-text, tenant-isolation, currency-handling, anti-duplication, tdd-mandatory, ADR-vitalia-004]
+      must_load_artifacts: [03-arch.md, 03-arch-fe.md, "mockups/servicio-workspace.html", "mockups/nuevo-servicio.html", "01-spec.md (§ Mapa de campos)", "docs/architecture/luana-platform/design-system-canon.md"]
+      forbidden_to_touch: ["@luana/ui-kit/src", "components/ui", "components/shared/shell-organism", "other features", "other brands"]
+      rationale: "Workspace 5 leaves + autosave + picker · el corazón FE · workhorse. crear=editar (RN-16). UNA autosave indicator."
+
+  - id: T-8
+    title: "Tests · vitest + playwright real-backend + a11y + visual goldens + BE pytest dual-tenant + arch + live-verify"
+    phase: A
+    surface: [backend, frontend]
+    production_code: false
+    depends_on: [T-4, T-6, T-7]
+    blocks: []
+    acceptance:
+      validator_ids: [NF-1, NF-2, NF-3, NF-4, NF-5, AC-6, AC-8, "AE-A1", "all functional scenario_coverage Sub-phase A"]
+      gherkin_coverage: ["TODOS los §1-§13, §15, §16 + §14(A)"]
+    scope: >-
+      BE pytest (pricing_calc/completeness mutation, repos dual-tenant, services, RBAC 403, cross-tenant 404,
+      case consent gate, keystone offer shape) + arch fitness EXTEND (response_model, DDD boundaries, no-engine-edit) +
+      FE vitest (hooks+componentes) + Playwright funcional real-backend (auth fixture, anti-burbuja base.ts) +
+      visual goldens 8 (4 mockups × light/dark · maxDiffPixelRatio 0.001) + axe + smoke ruta nueva +
+      LIVE-VERIFY DoD #37 (crear+activar servicio en dev-app + leer logs + confirmar keystone · chrome-devtools-verify).
+    assignment:
+      primary_agent: builder-frontend     # coordina; BE pytest lo escribe junto con T-1..T-4 (RED-first)
+      model_preference: workhorse
+      must_load_skills: [playwright-expert, frontend-expert, backend-expert, chrome-devtools-verify, definition-of-done-live-verify, test-design-doctrine, tdd-mandatory]
+      must_load_artifacts: [03-arch.md, 04-validators.yaml, "mockups/*.html"]
+      forbidden_to_touch: ["@luana/ui-kit/src", "core/luana-core-*/src", "other brands", "production code semantics (tests only)"]
+      rationale: "Cobertura por naturaleza + visual goldens + LIVE-verify. production_code:false → workhorse OK. Live-verify cierra DoD #37."
+
+# ════════════════════════════════════════════════════════════════════════════
+# SUB-PHASE B — RAG · ENGINE-LIFT /pm-luana · BLOCKED (dimension only · NO build)
+# ════════════════════════════════════════════════════════════════════════════
+tickets_blocked:
+  - id: T-B1
+    title: "ENGINE · IRAGIndexerPort real Qdrant binding (offer-studio)"
+    phase: B-rag-engine-lift
+    status: blocked
+    blocked_on: "/pm-luana promotion proposal (docs/promotion-protocol/proposals/2026-06-15-offer-knowledge-rag-indexer-and-sales-agent-retrieval.md) accepted"
+    surface: engine
+    production_code: true
+    owner_eligibility: flagship
+    acceptance:
+      validator_ids: [RN-17b, RN-22, "AE-B1"]
+    note: "Reemplaza stub IRAGIndexerPort con pipeline embeddings+Qdrant tenant-scoped. /pm-luana gate. NO build sin OK."
+
+  - id: T-B2
+    title: "ENGINE · sales_agent offer-knowledge retrieval tool"
+    phase: B-rag-engine-lift
+    status: blocked
+    blocked_on: "T-B1 + /pm-luana proposal accepted"
+    surface: engine
+    production_code: true
+    owner_eligibility: flagship
+    acceptance:
+      validator_ids: [RN-22, "AE-B1", "AE-B2", "AE-B3"]
+    note: "Nuevo tool retrieval (query+tenant+offer_id scope → chunks comerciales con cita) + guards (commercial-only, price-from-field, clinical-escalate). + goldens (1 happy + 3 adversarial · grader>=0.85). flagship (R23)."
+
+  - id: T-B3
+    title: "ENGINE/BRAND · RAG guards + PHI scrub on ingest + UI RAG toggle wiring"
+    phase: B-rag-engine-lift
+    status: blocked
+    blocked_on: "T-B1 + T-B2"
+    surface: [engine, frontend]
+    production_code: true
+    owner_eligibility: flagship
+    acceptance:
+      validator_ids: [RN-22, "AE-B4", "AC-15 (B part)"]
+    note: "PHI scrub (sanitize_payload) on ingest + price-always-from-field + clinical-escalate guard + FE 'Adrián consulta' toggle wiring real. flagship."
+
+# DAG (Sub-phase A)
+dag: |
+  T-1 ──┬─→ T-2 ──┬─→ T-4 ──┐
+        ├─→ T-3 ──┤         ├─→ T-8 (tests + live-verify)
+        │         └─→ T-6 ──┤
+  T-5 ──┴───────────────────┤
+        T-5 ─→ T-7 ─────────┘
+  (T-2,T-4,T-5 → T-7 ; T-2,T-3,T-5 → T-6 ; T-4,T-6,T-7 → T-8)
+  STOP after T-8 (Sub-phase A done · live-verified) → chris_verify.signoff → THEN /pm-luana for Sub-phase B

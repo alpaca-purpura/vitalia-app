@@ -1,0 +1,331 @@
+# 04-validators.yaml — vitalia-auth-base-functional
+# Validators ejecutables ★ must_pass:true gate
+# /auditor Phase B runs each command, captures verdict.
+# v2 — 2026-05-18: post Chris ratificación gaps audit (+9 validators)
+
+---
+story_id: vitalia-auth-base-functional
+generated_at: 2026-05-18
+generated_by: /pm-vitalia
+brand: vitalia
+total_validators: 19
+version: v2-post-gaps-audit
+
+# ============================================================
+# § NON_FUNCTIONAL (lint, format, type-check, arch fitness)
+# ============================================================
+
+non_functional:
+
+  - id: nf-fe-tsc
+    must_pass: true
+    surface: frontend
+    command: |
+      cd vitalia/frontend && npx tsc --noEmit
+    expected_exit: 0
+    description: "TypeScript strict, 0 errors across all FE files (incluyendo middleware + dashboard feature)"
+
+  - id: nf-fe-eslint
+    must_pass: true
+    surface: frontend
+    command: |
+      cd vitalia/frontend && npx eslint src/ --cache --max-warnings=0
+    expected_exit: 0
+    description: "ESLint 0 errors + 0 warnings"
+
+  - id: nf-fe-arch-fitness
+    must_pass: true
+    surface: frontend
+    command: |
+      cd vitalia/frontend && npx vitest run src/__tests__/architecture/ --reporter=default
+    expected_exit: 0
+    description: "FE arch fitness ratchet — shrink-only allowlists, no new violations"
+
+  - id: nf-be-ruff-check
+    must_pass: true
+    surface: backend
+    command: |
+      WS=$(git rev-parse --show-toplevel) && cd $WS/vitalia/backend && $WS/.venv/bin/ruff check src/modules/vitalia/admin/ tests/admin/ tests/integration/admin/ --no-cache
+    expected_exit: 0
+    description: "Ruff 0 errors on new admin module + tests (unit + integration)"
+
+  - id: nf-be-ruff-format
+    must_pass: true
+    surface: backend
+    command: |
+      WS=$(git rev-parse --show-toplevel) && cd $WS/vitalia/backend && $WS/.venv/bin/ruff format --check src/modules/vitalia/admin/ tests/admin/ tests/integration/admin/
+    expected_exit: 0
+    description: "Ruff format consistency on admin module"
+
+  - id: nf-be-arch-fitness
+    must_pass: true
+    surface: backend
+    command: |
+      WS=$(git rev-parse --show-toplevel) && cd $WS/vitalia/backend && $WS/.venv/bin/pytest tests/architecture/ -x -q --tb=short
+    expected_exit: 0
+    description: "BE arch fitness (DDD, tenant isolation, admin-panel rules)"
+
+  - id: nf-anti-duplication-scan
+    must_pass: true
+    surface: cross-cutting
+    command: |
+      WS=$(git rev-parse --show-toplevel) && \
+      MIRROR_COUNT=$(diff <(find $WS/nicolify/backend/src/modules/nicolify/admin/modules -name "tenants.py" -o -name "users.py" | xargs cat) <(find $WS/vitalia/backend/src/modules/vitalia/admin/modules -name "tenants.py" -o -name "users.py" | xargs cat) | wc -l) && \
+      [ "$MIRROR_COUNT" -gt 50 ]
+    expected_exit: 0
+    description: "Cross-brand anti-mirror check: vitalia admin modules MUST differ ≥50 lines from nicolify (proven brand-specific reimplementation, not copy-paste). Per .claude/rules/admin-panel.md + anti-duplication.md."
+
+# ============================================================
+# § FUNCTIONAL (unit + integration tests)
+# ============================================================
+
+functional:
+
+  - id: fn-be-admin-contract
+    must_pass: true
+    surface: backend
+    command: |
+      WS=$(git rev-parse --show-toplevel) && cd $WS/vitalia/backend && $WS/.venv/bin/pytest tests/admin/test_admin_contract.py -v
+    expected_exit: 0
+    description: "Admin contract test: PAGE_SPECS registry valid, all pages exist + callable, no slug dups"
+
+  - id: fn-fe-dashboard-unit
+    must_pass: true
+    surface: frontend
+    command: |
+      cd vitalia/frontend && npx vitest run src/features/dashboard/__tests__/ --reporter=default
+    expected_exit: 0
+    description: "Dashboard feature unit tests (DashboardWelcome + SliceOneStubsRow)"
+
+  - id: fn-be-webhook-clerk-integration            # ★ NEW MUST 2 ★
+    must_pass: true
+    surface: backend
+    command: |
+      WS=$(git rev-parse --show-toplevel) && cd $WS/vitalia/backend && $WS/.venv/bin/pytest tests/integration/admin/test_clerk_webhook_integration.py -v --tb=short
+    expected_exit: 0
+    description: |
+      Backend integration test: POST fake user.created webhook with valid HMAC signature
+      to /api/v1/vitalia/webhooks/clerk → verify UserProfile row created + tenant_id
+      auto-associated (default aurora-dental-ar fixture) + audit_log row created.
+      Also tests rejection of invalid HMAC signature (returns 401, no row created).
+      Cubre SC-05 (sign-up → webhook → DB) + SC-12 (HMAC validation).
+
+  - id: fn-be-hipaa-audit-log-verify               # ★ NEW MUST 3 ★
+    must_pass: true
+    surface: backend
+    command: |
+      WS=$(git rev-parse --show-toplevel) && cd $WS/vitalia/backend && $WS/.venv/bin/pytest tests/integration/admin/test_audit_log_verify.py -v --tb=short
+    expected_exit: 0
+    description: |
+      HIPAA-lite audit_log compliance verification (per vitalia/.claude/rules/hipaa-lite.md).
+      Test: invoke admin.tenant.create → query vitalia_audit_log table → verify row created
+      with action="admin.tenant.create" + actor="super-admin" + resource_id=tenant_id +
+      payload_redacted contains identity fields only (NO PHI). Idem admin.user.create.
+      Cubre SC-13 (audit log row verify).
+
+  - id: fn-be-cross-tenant-isolation-admin         # ★ NEW SHOULD 7 ★
+    must_pass: true
+    surface: backend
+    command: |
+      WS=$(git rev-parse --show-toplevel) && cd $WS/vitalia/backend && $WS/.venv/bin/pytest tests/integration/admin/test_cross_tenant_isolation.py -v --tb=short
+    expected_exit: 0
+    description: |
+      HIPAA-lite dual-filter runtime verification (per hipaa-lite.md § tenant isolation).
+      Test: admin creates Tenant A (user UA) + Tenant B (user UB) → query as UA
+      requesting clinic_id of Tenant B → 404 (no leak). Query as UA requesting clinic_id
+      of Tenant A but X-Tenant-ID header of Tenant B → 403. Arch fitness covers static,
+      este verifica runtime. Cubre SC-11.
+
+# ============================================================
+# § VISUAL (E2E LIVE Playwright + LOCAL + a11y + mobile + screenshots)
+# ============================================================
+
+visual:
+
+  - id: vs-playwright-smoke-local-pre-deploy       # ★ NEW MUST 1 ★
+    must_pass: true
+    surface: e2e-local
+    command: |
+      WS=$(git rev-parse --show-toplevel) && \
+      bash $WS/scripts/e2e-preflight.sh && \
+      cd $WS/vitalia/frontend && \
+        E2E_BASE_URL=http://localhost:3002 \
+        CLERK_TESTING_TOKEN=${CLERK_TESTING_TOKEN_VITALIA} \
+        npx playwright test --project=smoke --grep "vitalia-auth-base-functional" --reporter=list
+    expected_exit: 0
+    description: |
+      Playwright LOCAL smoke contra localhost:3002 (make dev-vitalia stack)
+      ANTES del deploy a dev-app.vitalialat.com. Gate de calidad pre-deploy.
+      Cubre SC-01..SC-09 baseline. Sin esto, bugs FE-BE wire-up se descubren en producción.
+      Cubre SC-18 (local smoke pre-deploy).
+    requires:
+      - make dev-vitalia stack up (postgres + backend + frontend + opcional admin streamlit)
+      - scripts/e2e-preflight.sh PASS
+      - CLERK_TESTING_TOKEN_VITALIA env var
+
+  - id: vs-playwright-smoke-live                   # existing (renamed scope: ALL specs LIVE)
+    must_pass: true
+    surface: e2e-live
+    command: |
+      cd vitalia/frontend && \
+        E2E_BASE_URL=https://dev-app.vitalialat.com \
+        CLERK_TESTING_TOKEN=${CLERK_TESTING_TOKEN_VITALIA} \
+        VITALIA_ADMIN_PASSWORD=${VITALIA_ADMIN_PASSWORD} \
+        npx playwright test --project=smoke --grep "vitalia-auth-base-functional" --reporter=list
+    expected_exit: 0
+    description: |
+      Playwright LIVE smoke contra dev-app.vitalialat.com — 10/10 baseline scenarios PASS
+      (SC-01..SC-10). Post-T-5 deploy. Yo (/pm-vitalia) ejecuto antes de declarar PASS.
+    requires:
+      - T-5 ops deploy completed
+      - K8s secrets configured (VITALIA_CLERK_* + VITALIA_ADMIN_PASSWORD_HASH)
+      - Fixture clinics seeded
+      - Clerk testing token generated (Chris)
+
+  - id: vs-playwright-trace-broader-monitor        # ★ AMPLIADO MUST 4 ★
+    must_pass: true
+    surface: e2e-live
+    command: |
+      cd vitalia/frontend && \
+        E2E_BASE_URL=https://dev-app.vitalialat.com \
+        CLERK_TESTING_TOKEN=${CLERK_TESTING_TOKEN_VITALIA} \
+        npx playwright test e2e/auth/ e2e/dashboard/ --trace=on --reporter=list && \
+      WS=$(git rev-parse --show-toplevel) && \
+      bash $WS/scripts/playwright_console_network_audit.sh vitalia/frontend/playwright-report/
+    expected_exit: 0
+    description: |
+      Playwright trace post-execution audit (broader than ClerkProvider grep):
+      - ZERO console.error entries
+      - ZERO console.warn entries (excepto allowlist: Clerk dev mode warnings if applicable)
+      - ZERO HTTP 4xx responses (excepto 401 ESPERADO en pre-auth flow validations)
+      - ZERO HTTP 5xx responses
+      - ZERO uncaught promise rejections
+      Script scripts/playwright_console_network_audit.sh parsea trace.zip + exit 1 si violación.
+      NEW script en T-6.b. Cubre SC-17 (console + network broader monitor).
+
+  - id: vs-playwright-a11y-axe                     # ★ NEW SHOULD 5 ★
+    must_pass: true
+    surface: e2e-live
+    command: |
+      cd vitalia/frontend && \
+        E2E_BASE_URL=https://dev-app.vitalialat.com \
+        CLERK_TESTING_TOKEN=${CLERK_TESTING_TOKEN_VITALIA} \
+        npx playwright test e2e/a11y/ --reporter=list
+    expected_exit: 0
+    description: |
+      A11y axe-core smoke contra /sign-in, /sign-up, /, /onboarding/wizard.
+      Critical + serious violations = FAIL. Vertical médica = stakes a11y altas.
+      Cubre SC-14.
+    requires:
+      - axe-core/playwright dependency in vitalia/frontend/package.json
+      - e2e/a11y/a11y-smoke.spec.ts NEW
+
+  - id: vs-playwright-mobile-viewport              # ★ NEW SHOULD 6 ★
+    must_pass: true
+    surface: e2e-live
+    command: |
+      cd vitalia/frontend && \
+        E2E_BASE_URL=https://dev-app.vitalialat.com \
+        CLERK_TESTING_TOKEN=${CLERK_TESTING_TOKEN_VITALIA} \
+        npx playwright test e2e/mobile/ --project=mobile --reporter=list
+    expected_exit: 0
+    description: |
+      Mobile viewport smoke (devices['iPhone 13']) contra /sign-in, /, dashboard welcome,
+      /onboarding/wizard. Tappable targets ≥44px, no horizontal scroll, no overflow.
+      Cubre SC-15.
+    requires:
+      - vitalia/frontend/playwright.config.ts project=mobile defined with devices['iPhone 13']
+      - e2e/mobile/mobile-smoke.spec.ts NEW
+
+  - id: vs-playwright-screenshot-baseline          # ★ NEW COULD 11 ★
+    must_pass: true
+    surface: e2e-live
+    command: |
+      cd vitalia/frontend && \
+        E2E_BASE_URL=https://dev-app.vitalialat.com \
+        CLERK_TESTING_TOKEN=${CLERK_TESTING_TOKEN_VITALIA} \
+        npx playwright test e2e/visual/ --reporter=list
+    expected_exit: 0
+    description: |
+      Visual screenshot baseline (toHaveScreenshot) — establish baseline en primer run,
+      regression detect en runs futuros. Páginas: /sign-in, /sign-up, / (dashboard welcome).
+      Threshold 0.2 (allow minor pixel diff Clerk dev mode UI updates).
+      Cubre SC-16. Establece baseline en T-6.b primer push.
+    requires:
+      - vitalia/frontend/e2e/visual/screenshots/ directory (git tracked .png baselines)
+      - e2e/visual/visual-smoke.spec.ts NEW
+
+# ============================================================
+# § OPS (K8s healthcheck + deploy smoke automated)
+# ============================================================
+
+ops:
+
+  - id: ops-k8s-healthcheck-deploy-verify          # ★ NEW SHOULD 8 ★
+    must_pass: true
+    surface: ops
+    command: |
+      WS=$(git rev-parse --show-toplevel) && bash $WS/vitalia/deploy/scripts/post_deploy_smoke.sh
+    expected_exit: 0
+    description: |
+      Post-deploy K8s healthcheck + smoke automated (reemplaza manual_smoke en T-5):
+      - kubectl get pods -n vitalia → all Ready (10s timeout per pod)
+      - curl -fsS https://dev-app.vitalialat.com/api/health → 200 JSON {status:"ok"}
+      - curl -fsS https://vitalia-admin.vitalialat.com/healthz → 200 (Streamlit native)
+      - curl -fsS https://dev-app.vitalialat.com/ → 307 to /sign-in (Clerk middleware active)
+      - curl -fsS https://dev-app.vitalialat.com/sign-in → 200 HTML contains "Iniciar sesión"
+      Exit 1 si cualquier check falla. NEW script en T-5.
+      Cubre SC-17 (K8s healthcheck + deploy verify).
+
+# ============================================================
+# § AGENTIC_EVAL (n/a for this story — non-agentic)
+# ============================================================
+
+agentic_eval: []   # Story toca FE auth + BE admin Streamlit + ops. No agentic surface.
+
+# ============================================================
+# § AUDITOR PHASE D — Gherkin verification matrix
+# ============================================================
+
+gherkin_verification_matrix:
+  required: true
+  source: 01-spec.md § 3
+  scenarios:
+    - SC-01: nf-fe-tsc + vs-playwright-smoke-local-pre-deploy + vs-playwright-smoke-live (sign-in-redirect.spec.ts)
+    - SC-02: vs-playwright-smoke-local-pre-deploy + vs-playwright-smoke-live (sign-in-redirect.spec.ts)
+    - SC-03: vs-playwright-smoke-local-pre-deploy + vs-playwright-smoke-live (sign-in-form.spec.ts)
+    - SC-04: vs-playwright-smoke-local-pre-deploy + vs-playwright-smoke-live (sign-in-form.spec.ts)
+    - SC-05: fn-be-webhook-clerk-integration (BE side) + vs-playwright-smoke-live (FE navigation side, welcome.spec.ts)
+    - SC-06: fn-fe-dashboard-unit + vs-playwright-smoke-local-pre-deploy + vs-playwright-smoke-live (welcome.spec.ts)
+    - SC-07: vs-playwright-smoke-local-pre-deploy + vs-playwright-smoke-live (welcome.spec.ts onboarding CTA)
+    - SC-08: fn-be-admin-contract + vs-playwright-smoke-local-pre-deploy + vs-playwright-smoke-live (tenants-users.spec.ts)
+    - SC-09: fn-be-admin-contract + vs-playwright-smoke-local-pre-deploy + vs-playwright-smoke-live (tenants-users.spec.ts)
+    - SC-10: vs-playwright-smoke-live (umbrella whole suite GREEN)
+    - SC-11: fn-be-cross-tenant-isolation-admin (cross-tenant isolation runtime)
+    - SC-12: fn-be-webhook-clerk-integration (HMAC validation invalid sig rejected)
+    - SC-13: fn-be-hipaa-audit-log-verify (audit_log row created post action)
+    - SC-14: vs-playwright-a11y-axe (a11y axe smoke)
+    - SC-15: vs-playwright-mobile-viewport (mobile responsive)
+    - SC-16: vs-playwright-screenshot-baseline (visual baseline)
+    - SC-17: vs-playwright-trace-broader-monitor + ops-k8s-healthcheck-deploy-verify
+    - SC-18: vs-playwright-smoke-local-pre-deploy (gate pre-deploy)
+
+  pass_threshold: 18/18
+  output: 06-audit/gherkin-matrix.md
+
+# ============================================================
+# § Estadísticas
+# ============================================================
+
+summary:
+  total_validators: 19
+  must_pass_count: 19
+  by_category:
+    non_functional: 7
+    functional: 5
+    visual: 6
+    ops: 1
+    agentic_eval: 0
+  new_in_v2: 9                                     # post-Chris-ratificación gaps audit 2026-05-18
+  total_scenarios: 18                              # SC-01..SC-18
+  gaps_audit_version: v2-2026-05-18

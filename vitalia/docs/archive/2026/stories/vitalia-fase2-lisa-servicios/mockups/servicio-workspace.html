@@ -1,0 +1,569 @@
+<!--
+  Mockup vitalia-fase2-lisa-servicios · workspace de un servicio [offer-id]
+  Shell wrapper VERBATIM. Patrón ENTIDAD = staff (EntitySubNavBar, NO tabs body).
+  5 leaves navegables (JS): Resumen · Para Adrián · Especialistas · Plan de pago · Prueba social.
+  Chris 2026-06-07 FIRMA-2 round: #4 sin Stats · #5 Detalle→Resumen · #6 vincular panel ·
+  #7 "Ver detalle ↗" · #8 badge peldaño solo en Resumen · #2/#3 dinero = reserva+anticipo+cuotas.
+  Round 3: Doctores→Especialistas · panel "Fuentes & conocimiento" persistente+colapsable (extrae→campos + RAG Adrián) ·
+  autosave (sin botón Guardar) · ai-fill badges · tabs estilo subsubtab (global).
+-->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Servicio · Workspace — shell</title>
+<link rel="stylesheet" href="_shared.css" />
+<style>
+  .leaf-pane { display:none; }
+  .leaf-pane.active { display:block; }
+  .qa { border:1px solid hsl(var(--border)); border-radius:var(--radius); padding:.625rem .75rem; margin-bottom:.5rem; }
+  .qa .q { font-weight:600; font-size:.8125rem; }
+  .qa .a { font-size:.8125rem; color:hsl(var(--muted-foreground)); margin-top:.25rem; }
+  .obj { display:grid; grid-template-columns:120px 1fr; gap:.5rem .75rem; font-size:.8125rem; padding:.5rem 0; border-bottom:1px solid hsl(var(--border)); }
+  .obj:last-child { border-bottom:none; }
+  .obj .otag { font-weight:600; }
+  .ba { aspect-ratio:4/3; background:hsl(var(--muted)); border-radius:var(--radius); display:flex; align-items:center; justify-content:center; color:hsl(var(--muted-foreground)); font-size:.75rem; }
+  .stat-card { text-align:center; }
+  .stat-num { font-size:1.5rem; font-weight:700; }
+  .safety { border-left:3px solid hsl(var(--warning)); background:hsl(var(--warning) / .08); border-radius:.5rem; padding:.625rem .75rem; font-size:.75rem; }
+  .group-h { font-size:.6875rem; font-weight:700; text-transform:uppercase; letter-spacing:.03em; color:hsl(var(--muted-foreground)); margin:.25rem 0 .5rem; }
+  /* barra de estado consolidada del servicio (Chris 2026-06-15 · 1 fila en vez de banner+ficha+toggle+chip apilados) */
+  .svc-statusbar { display:flex; align-items:center; gap:.5rem .875rem; flex-wrap:wrap; padding:.5rem .75rem; margin-bottom:.75rem; background:hsl(var(--card)); border:1px solid hsl(var(--border)); border-radius:var(--radius); }
+  .svc-statusbar .svc-active { font-weight:600; color:hsl(var(--foreground)); font-size:.8125rem; }
+  .svc-status-note { font-size:.75rem; color:hsl(var(--muted-foreground)); }
+  .svc-statusbar .completeness-chip { margin-left:auto; }
+  /* Peldaño = 5 botones · servicio estándar → bloqueado (Chris 2026-06-15) */
+  .rung-picker.id-rung .rung-opt { font-size:.6875rem; padding:.5rem .375rem; line-height:1.2; }
+  .rung-picker.locked .rung-opt { cursor:not-allowed; opacity:.45; }
+  .rung-picker.locked .rung-opt[data-sel="true"] { opacity:1; }
+  .select-canon select:disabled { opacity:1; color:hsl(var(--foreground)); background:hsl(var(--muted) / .45); cursor:not-allowed; }
+  /* Modalidad del servicio (Chris 2026-06-15 · reemplaza "¿Recurrente?") */
+  .modalidad-picker { display:grid; grid-template-columns:repeat(3,1fr); gap:.375rem; }
+  .mod-opt { border:1px solid hsl(var(--border)); border-radius:.5rem; padding:.5rem; cursor:pointer; transition:all .12s; }
+  .mod-opt:hover { border-color:hsl(var(--agent-lisa) / .5); }
+  .mod-opt[data-sel="true"] { border-color:hsl(var(--agent-lisa)); background:hsl(var(--agent-lisa-soft) / .5); }
+  .mod-t { font-size:.75rem; font-weight:600; display:flex; align-items:center; gap:.3125rem; }
+  .mod-d { font-size:.625rem; color:hsl(var(--muted-foreground)); margin-top:.1875rem; line-height:1.3; }
+  .mod-detail { margin-top:.75rem; }
+</style>
+</head>
+<body>
+<div class="shell-root">
+
+  <header class="topbar">
+    <div class="topbar-left"><div class="topbar-logo"><div class="topbar-logo-mark">V</div><span>Vitalia</span></div><span class="topbar-breadcrumb">› Lisa · Servicios · Diseño de sonrisa</span></div>
+    <div class="topbar-right">
+      <div class="splitter-control"><button class="splitter-btn" data-state="chat-collapsed">◧</button><button class="splitter-btn" data-state="chat-narrow">◨</button><button class="splitter-btn" data-state="50-50" data-active="true">⬓</button></div>
+      <button class="topbar-icon-btn" id="theme-toggle" title="Tema">🌓</button>
+      <button class="tenant-chip"><span class="tenant-chip-avatar">SP</span><span>Sonrisa Plena</span><span style="color:hsl(var(--muted-foreground));font-size:.625rem;">▾</span></button>
+      <div class="avatar bg-agent-valeria" style="width:28px;height:28px;font-size:.6875rem;">CL</div>
+    </div>
+  </header>
+
+  <div class="shell-body" data-splitter-state="50-50" id="shell-body">
+    <aside class="chat-side">
+      <div class="chat-rail-only"><div class="rail-btn active">💬</div><div class="rail-btn">📜</div><div class="rail-btn">＋</div></div>
+      <div class="chat-content">
+        <header class="chat-header"><div class="chat-avatar-wrap"><div class="chat-avatar">V</div><span class="chat-status-dot"></span></div><div class="chat-meta"><span class="chat-name">Valeria</span><span class="chat-role">En línea · Tu secretaria virtual</span></div><span class="chat-mode-pill">🤖 Modo agente</span></header>
+        <div class="chat-history-strip">📜 Hoy 09:10 · Adrián cerró a Sofía Mendoza</div>
+        <div class="chat-messages"><div class="msg-row" data-role="bot"><div class="msg-bubble">Cuanto más completes la pestaña <strong>"Para Adrián"</strong>, mejor vende: ahí están las respuestas a objeciones, las preguntas frecuentes y cómo el paciente nombra este tratamiento.</div><span class="msg-time">Valeria · 09:14</span></div></div>
+        <footer class="chat-composer"><div class="composer-row"><div class="composer-adornos"><button class="composer-adorno-btn">📎</button><button class="composer-adorno-btn">🎙️</button><button class="composer-adorno-btn">⚡</button></div><textarea class="composer-textarea" rows="1" placeholder="Escribe a Valeria…"></textarea><button class="composer-send">Enviar</button></div><p class="composer-hint"><span class="kbd">Cmd</span> + <span class="kbd">K</span> enfoca el composer.</p></footer>
+      </div>
+    </aside>
+
+    <main class="panel-side">
+      <nav class="ribbon" aria-label="Agentes">
+        <button class="ribbon-tab" data-active="true" data-color="lisa"><span class="ribbon-tab-avatar bg-agent-lisa" data-color="lisa">L</span><span>Lisa <span style="font-size:.625rem;color:hsl(var(--muted-foreground));font-weight:400;">· Servicios</span></span></button>
+        <button class="ribbon-tab" data-color="lucas"><span class="ribbon-tab-avatar bg-agent-lucas" data-color="lucas">Lc</span><span>Lucas</span></button>
+        <button class="ribbon-tab" data-color="adrian"><span class="ribbon-tab-avatar bg-agent-adrian" data-color="adrian">A</span><span>Adrián</span></button>
+        <button class="ribbon-tab" data-color="valeria"><span class="ribbon-tab-avatar bg-agent-valeria" data-color="valeria">V</span><span>Valeria</span></button>
+        <button class="ribbon-tab" data-color="camila"><span class="ribbon-tab-avatar bg-agent-camila" data-color="camila">Ca</span><span>Camila</span></button>
+        <button class="ribbon-tab" data-color="config"><span class="ribbon-tab-avatar" data-color="config" style="background:hsl(var(--muted));color:hsl(var(--muted-foreground));">⚙</span><span>Configurar</span></button>
+      </nav>
+      <nav class="subtabs-bar">
+        <button class="subtab-btn" data-color="lisa">Marca</button>
+        <button class="subtab-btn" data-color="lisa">Especialistas</button>
+        <button class="subtab-btn" data-active="true" data-color="lisa">Servicios</button>
+        <button class="subtab-btn" data-color="lisa">Compliance</button>
+      </nav>
+
+      <!-- EntitySubNavBar canon (§2.2 full-bleed · bg-card · sticky · border-radius:0) -->
+      <!-- ★ Cambio B (2026-06-12): root "‹ Servicios" = primer leaf del tablist (peer-leaf) -->
+      <div class="entity-subnav" role="navigation" aria-label="Servicio">
+        <div class="entity-leaves" role="tablist" style="gap:0;margin:0;">
+          <a class="entity-leaf-root" href="catalogo.html" role="tab" data-testid="entity-leaf-root"><span class="rl-arrow">‹</span> Servicios</a>
+        </div>
+        <!-- EntityPicker (§2.4) — cambia de servicio sin volver al catálogo -->
+        <div class="entity-picker" id="ep" style="margin-left:.5rem;">
+          <button class="entity-picker-trigger" onclick="toggleEP(event, this)" aria-haspopup="listbox" aria-expanded="false" aria-controls="ep-panel">
+            <span class="ep-avatar">DS</span>
+            <span>Diseño de sonrisa</span>
+            <span class="ep-chevron">▾</span>
+          </button>
+          <div class="entity-picker-panel" id="ep-panel" role="listbox">
+            <div class="entity-picker-search"><input placeholder="Buscar servicio…" aria-label="Buscar servicio"></div>
+            <div class="entity-picker-list">
+              <div class="entity-picker-option" data-active="true" role="option"><span class="ep-opt-avatar">DS</span><span>Diseño de sonrisa</span></div>
+              <div class="entity-picker-option" role="option"><span class="ep-opt-avatar" style="background:hsl(var(--rung-primera));">LD</span><span>Limpieza dental</span></div>
+              <div class="entity-picker-option" role="option"><span class="ep-opt-avatar" style="background:hsl(var(--rung-principal));">ID</span><span>Implante dental</span></div>
+              <div class="entity-picker-option" role="option"><span class="ep-opt-avatar" style="background:hsl(var(--rung-magnet));">EI</span><span>Evaluación inicial gratuita</span></div>
+              <div class="entity-picker-option" role="option"><span class="ep-opt-avatar" style="background:hsl(var(--rung-premium));">CP</span><span>Carillas de porcelana</span></div>
+              <div class="entity-picker-option" role="option"><span class="ep-opt-avatar" style="background:hsl(var(--agent-camila));">BF</span><span>Botox facial</span></div>
+            </div>
+            <div class="entity-picker-footer">Mostrando 6 de 7 servicios</div>
+          </div>
+        </div>
+        <div class="entity-leaves" role="tablist">
+          <button class="entity-leaf" data-active="true" data-leaf="resumen">Resumen</button>
+          <button class="entity-leaf" data-leaf="adrian">⭐ Para Adrián</button>
+          <button class="entity-leaf" data-leaf="doctores">Especialistas</button>
+          <button class="entity-leaf" data-leaf="pago">Plan de pago</button>
+          <button class="entity-leaf" data-leaf="social">Prueba social</button>
+        </div>
+      </div>
+
+      <div class="panel-content">
+        <div class="panel-inner">
+
+          <!-- barra de estado consolidada (Chris 2026-06-15 · AC-19 · completitud NUNCA bloquea Activo) -->
+          <div class="svc-statusbar">
+            <label class="switch-label svc-active"><span class="switch"><input type="checkbox" checked><span class="track"></span></span> Activo</label>
+            <span class="svc-status-note">🤖 Adrián lo ofrece · <span class="statuslink" onclick="goLeaf('doctores')" title="Ver/editar quién realiza este servicio">2 especialistas vinculados</span></span>
+            <span class="chip-origen estandar" title="Vinculado a la biblioteca estándar: 'Diseño de sonrisa dental'">📚 Estándar</span>
+            <span class="completeness-chip" title="Faltan: expectativas realistas, duración resultado, tiempo de recuperación. No bloquea 'Activo' — solo enriquece lo que Adrián puede responder.">
+              <span class="cc-bar"><span class="cc-fill" style="width:88%;"></span></span> ficha 23/26
+            </span>
+          </div>
+
+          <!-- ★ PANEL CONOCIMIENTO (persiste + colapsable · #1 + #9B · visible en todos los leaves) -->
+          <details class="kpanel">
+            <summary>📚 Fuentes &amp; conocimiento <span class="chip chip-lisa" style="margin-left:.25rem;">Lisa completó 14 campos ✨</span> <span class="src-chip rag" style="margin-left:auto;">2 en RAG de Adrián</span></summary>
+            <div class="kpanel-body">
+              <p class="hint" style="margin:0;">Carga el material del servicio una vez. Lisa <strong>(1)</strong> autocompleta los campos de abajo (los revisas) y <strong>(2)</strong> lo deja disponible para que Adrián responda preguntas libres del paciente. Menos tipeo, más venta.</p>
+              <div class="dropzone">
+                <div style="display:flex;align-items:center;gap:.5rem;"><span style="font-size:1.25rem;">📄</span><div style="flex:1;"><div style="font-weight:600;font-size:.8125rem;">Arrastra o <span class="text-agent-lisa" style="cursor:pointer;text-decoration:underline;">elige archivos</span></div><div class="hint" style="margin:0;">folleto · lista de precios · protocolo · ficha técnica · enlace web</div></div><button class="btn btn-primary" style="font-size:.75rem;"><span>✨</span> Procesar con Lisa</button></div>
+              </div>
+              <div class="src-row"><span>📄 folleto-diseno-sonrisa.pdf</span><span class="src-chip ok">✓ extraído → campos</span><span class="src-chip rag">🔎 en RAG</span><span style="margin-left:auto;display:flex;gap:.625rem;"><label class="switch-label" style="color:hsl(var(--foreground));"><span class="switch"><input type="checkbox" checked><span class="track"></span></span> Adrián consulta</label><a class="hint" href="#" style="margin:0;">Ver qué extrajo</a></span></div>
+              <div class="src-row"><span>📊 lista-precios-2026.xlsx</span><span class="src-chip ok">✓ extraído → precio</span><span style="margin-left:auto;display:flex;gap:.625rem;"><label class="switch-label" style="color:hsl(var(--foreground));"><span class="switch"><input type="checkbox"><span class="track"></span></span> Adrián consulta</label><span class="hint" style="margin:0;" title="El precio sale del campo estructurado, no del PDF (evita que quede viejo).">precio = campo, no RAG ⓘ</span></span></div>
+              <p class="hint" style="margin:0;">🔒 Lo clínico (contraindicaciones, diagnóstico) que Adrián consulte se limita a lo comercial + escala al doctor. El precio siempre sale del campo (no del documento) para no quedar viejo.</p>
+            </div>
+          </details>
+
+          <!-- ===== RESUMEN (★ reagrupado v3 2026-06-12 · 6 grupos) ===== -->
+          <div class="leaf-pane active" data-pane="resumen">
+            <div class="section-header"><div><h1 class="section-title">Resumen</h1><p class="section-subtitle">Qué es y qué se lleva el paciente.</p></div></div>
+            <div class="cards-stack">
+
+              <!-- GRUPO 1: Identidad -->
+              <section class="card">
+                <h2 class="card-title">📋 Identidad</h2>
+                <div class="field-row">
+                  <div><label class="label">Nombre</label><input value="Diseño de sonrisa"></div>
+                  <div><label class="label"><span class="tip" title="Categoría del servicio · sale de las áreas de tu clínica (Lisa → Marca). En un servicio estándar la define la biblioteca.">Especialidad / categoría</span> <span title="Definido por el servicio estándar — no editable" style="cursor:help;font-size:.75rem;">🔒</span></label><span class="select-canon" style="display:block;"><select disabled><option>Estética dental</option><option>Odontología general</option><option>Ortodoncia</option><option>Implantología</option></select></span></div>
+                </div>
+                <div style="margin-top:.5rem;display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;">
+                  <span class="chip-origen estandar">📚 Servicio estándar: <strong>Diseño de sonrisa dental</strong></span>
+                </div>
+                <div style="margin-top:.625rem;">
+                  <label class="label"><span class="tip" title="En qué momento del recorrido del paciente entra. En un servicio estándar lo define la biblioteca.">Peldaño</span> <span title="Definido por el servicio estándar — no editable" style="cursor:help;font-size:.75rem;">🔒</span></label>
+                  <div class="rung-picker id-rung locked">
+                    <div class="rung-opt" data-rung="Gancho gratuito">Gancho gratuito</div>
+                    <div class="rung-opt" data-rung="Primera visita">Primera visita</div>
+                    <div class="rung-opt" data-sel="true" data-rung="Tratamiento principal">Tratamiento principal</div>
+                    <div class="rung-opt" data-rung="Premium">Premium</div>
+                    <div class="rung-opt" data-rung="Plan / convenio">Plan / convenio</div>
+                  </div>
+                  <span class="hint" style="margin:.375rem 0 0;display:block;">🔒 Lo define el servicio estándar.</span>
+                </div>
+              </section>
+
+              <!-- GRUPO 2: Qué es -->
+              <section class="card">
+                <h2 class="card-title">📝 Qué es</h2>
+                <label class="label">Descripción corta (lenguaje paciente) <span class="chip chip-lisa tip" title="El tono/voz lo toma de Lisa → Marca (tu voz de marca). El texto es editable; el estilo viene de Marca.">✨ voz de marca</span></label>
+                <textarea rows="2">Transformamos la forma, el color y la alineación de tus dientes frontales para una sonrisa armónica y natural. Te acompañamos sin apuro en cada paso.</textarea>
+                <label class="label" style="margin-top:.625rem;">Descripción larga (FAQ + landing)</label>
+                <textarea rows="3">El diseño de sonrisa es un tratamiento integral que combina diagnóstico digital, preparación mínima del diente y colocación de carillas de porcelana o composite. Resultado visible desde la primera sesión de mockup.</textarea>
+                <div class="cards-grid" style="grid-template-columns:1fr 1fr;margin-top:.625rem;">
+                  <div><label class="label">Qué incluye <span class="field-sparkle" title="Pre-llenado desde la biblioteca — revísalo">✨</span></label><textarea rows="3">Diagnóstico · mockup digital previsualizable · 8 carillas de porcelana · prueba en boca · ajustes finales</textarea></div>
+                  <div><label class="label">Qué no incluye</label><textarea rows="3">Tratamientos previos de encías o caries (se cotizan aparte si se requieren).</textarea></div>
+                </div>
+                <div style="margin-top:.625rem;">
+                  <label class="label">Variantes <span class="hint" style="display:inline;margin:0;font-weight:400;">— opciones del mismo servicio que cambian el precio</span></label>
+                  <div class="variants-list" id="variants-list">
+                    <div class="variant-row">
+                      <input class="v-name" value="Composite" placeholder="Nombre">
+                      <div class="num-affix"><span class="num-unit">S/</span><input type="number" class="v-price" value="2500"></div>
+                      <input class="v-note" value="más económica" placeholder="qué cambia (opcional)">
+                      <button class="v-del" title="Quitar variante" onclick="this.closest('.variant-row').remove()">✕</button>
+                    </div>
+                    <div class="variant-row">
+                      <input class="v-name" value="Porcelana" placeholder="Nombre">
+                      <div class="num-affix"><span class="num-unit">S/</span><input type="number" class="v-price" value="4500"></div>
+                      <input class="v-note" value="premium · más duradera" placeholder="qué cambia (opcional)">
+                      <button class="v-del" title="Quitar variante" onclick="this.closest('.variant-row').remove()">✕</button>
+                    </div>
+                  </div>
+                  <button class="btn btn-ghost v-add" onclick="addVariant('variants-list')">+ Agregar variante</button>
+                  <p class="hint" style="margin:.375rem 0 0;">Adrián cotiza la variante exacta: "en porcelana te queda S/ 4.500". Si no hay variantes, vale el precio del tratamiento.</p>
+                </div>
+                <div class="field-row" style="margin-top:.625rem;"><div><label class="label">Garantía</label><input value="5 años sobre las carillas"></div><div></div></div>
+              </section>
+
+              <!-- GRUPO 3: El procedimiento (★ NUEVO v3 · RN-26 ficha completa paciente) -->
+              <section class="card">
+                <h2 class="card-title">🔬 El procedimiento</h2>
+                <p class="hint" style="margin-bottom:.625rem;">Adrián cita esto textual en las conversaciones. Lo clínico escala al doctor.</p>
+                <label class="label">Cómo se hace (pasos numerados) <span class="field-sparkle" title="Pre-llenado desde la biblioteca — revísalo">✨</span></label>
+                <textarea rows="4">1. Diagnóstico y toma de fotos · 2. Mockup digital para que lo visualices · 3. Preparación mínima del diente con anestesia local · 4. Prueba de las carillas en boca · 5. Cementación definitiva y ajustes · 6. Control a los 7-10 días</textarea>
+                <div class="field-row" style="margin-top:.625rem;">
+                  <div><label class="label">¿Lleva anestesia / duele? <span class="field-sparkle" title="Pre-llenado desde la biblioteca — revísalo">✨</span></label><input value="Anestesia local; molestias leves los primeros días"></div>
+                  <div><label class="label">Duración de cada sesión</label><div class="num-affix"><input type="number" min="5" step="5" value="60"><span class="num-unit">min</span></div></div>
+                </div>
+                <div class="field-row" style="margin-top:.625rem;">
+                  <div><label class="label">Preparación previa <span class="field-sparkle" title="Pre-llenado desde la biblioteca — revísalo">✨</span></label><input value="Encías sanas + limpieza si hay sarro"></div>
+                  <div><label class="label">Cuidados posteriores <span class="field-sparkle" title="Pre-llenado desde la biblioteca — revísalo">✨</span></label><input value="Higiene normal; evitar morder hielo o abrir cosas con los dientes"></div>
+                </div>
+                <div class="field-row" style="margin-top:.625rem;">
+                  <div><label class="label">Tiempo de recuperación / downtime <span class="field-sparkle" title="Pre-llenado desde la biblioteca — revísalo">✨</span></label><input value="Sin downtime"></div>
+                  <div></div>
+                </div>
+              </section>
+
+              <!-- GRUPO 4: Resultados -->
+              <section class="card">
+                <h2 class="card-title">🌟 Resultados</h2>
+                <div class="field-row">
+                  <div><label class="label">Resultado esperado</label><input value="Sonrisa pareja, blanca y armónica con tu rostro"></div>
+                  <div><label class="label">¿Cuándo se ve el resultado?</label><input value="Al colocar las carillas finales (sesión 2-3)"></div>
+                </div>
+                <div class="field-row" style="margin-top:.625rem;">
+                  <div><label class="label">¿Cuánto dura el resultado?</label><input value="15-20 años (porcelana) con buen cuidado"></div>
+                  <div><label class="label">Expectativas realistas</label><input placeholder="Ej: Las carillas no blanquean los dientes adyacentes sin tratar"></div>
+                </div>
+              </section>
+
+              <!-- GRUPO 5: Riesgos (★ NUEVO v3 · RN-26 · "Adrián cita esto textual") -->
+              <section class="card">
+                <h2 class="card-title">⚠️ Riesgos y cuidados</h2>
+                <div class="safety" style="margin-bottom:.625rem;">🛡️ Adrián cita esto textual en las conversaciones — siempre deriva al doctor para diagnóstico clínico.</div>
+                <label class="label">Riesgos y efectos secundarios <span class="field-sparkle" title="Pre-llenado desde la biblioteca — revísalo">✨</span></label>
+                <textarea rows="3">• Sensibilidad temporal (1-2 semanas): normal y cede sola.
+• Discrepancia de color con dientes no tratados: se evalúa antes.
+• En bruxismo severo sin férula: mayor desgaste a largo plazo.</textarea>
+                <label class="label" style="margin-top:.625rem;">Señales de alarma <span class="field-sparkle" title="Pre-llenado desde la biblioteca — revísalo">✨</span></label>
+                <textarea rows="2">Si hay dolor intenso, hinchazón o la carilla se afloja: contactar a la clínica inmediatamente. No intentar recolocarla.</textarea>
+              </section>
+
+              <!-- GRUPO 6: Operación -->
+              <section class="card">
+                <h2 class="card-title">🗓️ Modalidad y agenda</h2>
+                <label class="label"><span class="tip" title="Cómo se entrega y se agenda el servicio. Define si Adrián vende una cita, un paquete de sesiones, o un plan que se repite.">Modalidad</span> <span class="field-sparkle" title="Sugerido por la plantilla — ajústalo a tu clínica">✨</span></label>
+                <div class="modalidad-picker" id="f-modalidad">
+                  <div class="mod-opt" data-mod="unica" onclick="pickMod(this)"><div class="mod-t">🟢 Sesión única</div><div class="mod-d">Se resuelve en una sola cita</div></div>
+                  <div class="mod-opt" data-sel="true" data-mod="sesiones" onclick="pickMod(this)"><div class="mod-t">🔁 Por sesiones</div><div class="mod-d">Un paquete de varias sesiones completa el tratamiento</div></div>
+                  <div class="mod-opt" data-mod="recurrente" onclick="pickMod(this)"><div class="mod-t">📅 Recurrente</div><div class="mod-d">El paciente lo repite cada cierto tiempo (mantenimiento)</div></div>
+                </div>
+                <div class="mod-detail" id="mod-detail-sesiones">
+                  <div class="field-row">
+                    <div><label class="label">Número de sesiones</label><div class="num-affix"><input type="number" min="1" value="3"><span class="num-unit">sesiones</span></div></div>
+                    <div><label class="label">Cada cuánto</label><div class="num-affix"><span class="num-unit">cada</span><input type="number" min="1" value="2" style="max-width:68px;"><span class="select-canon" style="min-width:118px;"><select><option>semanas</option><option>días</option><option>meses</option></select></span></div></div>
+                  </div>
+                  <p class="hint" style="margin:.375rem 0 0;">El paquete se vende junto; Adrián lo ofrece como un solo tratamiento y Mateo agenda las sesiones.</p>
+                </div>
+                <div class="mod-detail" id="mod-detail-recurrente" style="display:none;">
+                  <div class="field-row">
+                    <div><label class="label">Se repite cada</label><div class="num-affix"><input type="number" min="1" value="6" style="max-width:68px;"><span class="select-canon" style="min-width:118px;"><select><option>meses</option><option>semanas</option><option>años</option></select></span></div></div>
+                    <div></div>
+                  </div>
+                  <p class="hint" style="margin:.375rem 0 0;">Camila lo usa para reactivar al paciente cuando toca repetir.</p>
+                </div>
+                <div class="field-row" style="margin-top:.875rem;">
+                  <div><label class="label">Duración de la cita inicial</label><div class="num-affix"><input type="number" min="5" step="5" value="40"><span class="num-unit">min</span></div></div>
+                  <div><label class="label">Tipo de cita inicial</label>
+                    <div class="rich-select" id="rs-tipocita">
+                      <button class="rich-select-trigger" type="button" aria-haspopup="listbox" aria-expanded="false" onclick="toggleRich(event,this)">
+                        <span class="rs-label"><span class="rs-title">Valoración + diagnóstico</span><span class="rs-desc">Primera cita para evaluar y planificar el tratamiento</span></span>
+                        <span class="rs-chevron">▾</span>
+                      </button>
+                      <div class="rich-select-panel" role="listbox">
+                        <div class="rich-option" data-sel="true" role="option" onclick="pickRich(this)"><span class="rs-title">Valoración + diagnóstico</span><span class="rs-desc">Primera cita para evaluar y planificar el tratamiento</span></div>
+                        <div class="rich-option" role="option" onclick="pickRich(this)"><span class="rs-title">Primera sesión directa</span><span class="rs-desc">El tratamiento arranca en la primera cita, sin valoración previa</span></div>
+                        <div class="rich-option" role="option" onclick="pickRich(this)"><span class="rs-title">Consulta informativa gratuita</span><span class="rs-desc">Charla sin costo para resolver dudas antes de decidir</span></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+            </div>
+          </div>
+          <!-- FloatingAutosaveIndicator (canon §2.6 · UNA por página, fixed bottom-center) -->
+          <div class="floating-autosave" data-state="saved" role="status" aria-live="polite">
+            <span class="fa-dot"></span> Guardado hace 4 s
+          </div>
+
+          <!-- ===== PARA ADRIÁN ===== -->
+          <div class="leaf-pane" data-pane="adrian">
+            <div class="section-header"><div><h1 class="section-title">⭐ Para Adrián <span class="hint" style="font-weight:400;">(argumentario de venta)</span></h1><p class="section-subtitle">Todo lo que el agente usa para ofrecer, calificar, manejar objeciones y cerrar. Mientras más completes, mejor vende.</p></div></div>
+            <div class="cards-stack">
+              <section class="card">
+                <h2 class="card-title">🎯 Candidatura y seguridad</h2>
+                <div class="safety" style="margin-bottom:.75rem;">🛡️ El agente NO diagnostica ni promete a un no-candidato. Lo que pongas en contraindicaciones y escalada define cuándo deriva al doctor.</div>
+                <div class="field-row"><div><label class="label">Candidato ideal</label><textarea rows="2">Dientes sanos sin caries ni enfermedad de encías activa; quiere mejorar la estética de su sonrisa.</textarea></div><div><label class="label"><span class="tip" title="Quién NO es candidato. Seguridad (HIPAA-lite): el agente NO ofrece a un no-candidato y deriva al doctor cuando aplica. Lo escribís una vez, protege siempre.">Contraindicaciones / NO candidato</span></label><textarea rows="2">Caries o enfermedad de encías activa, bruxismo severo sin férula. → requiere evaluación.</textarea></div></div>
+                <div class="field-row" style="margin-top:.625rem;"><div><label class="label">Preguntas de calificación</label><textarea rows="2">¿Qué te gustaría cambiar de tu sonrisa? ¿Tienes algún tratamiento dental pendiente? ¿Para cuándo te gustaría lograrlo?</textarea></div><div><label class="label"><span class="tip" title="Qué temas el agente NO maneja y pasa a una persona: dolor, sangrado, diagnóstico, medicación. Es el freno de seguridad del agente.">Condiciones de escalada a humano</span></label><textarea rows="2">Dolor, sangrado, diagnóstico clínico, medicación → derivar al doctor.</textarea></div></div>
+                <div style="margin-top:.625rem;"><span class="switch-label" style="color:hsl(var(--foreground));"><span class="switch"><input type="checkbox" checked><span class="track"></span></span> Requiere evaluación previa antes de cerrar</span></div>
+              </section>
+              <section class="card">
+                <h2 class="card-title">💬 Argumentario</h2>
+                <div class="field-row"><div><label class="label">Beneficios emocionales</label><textarea rows="2">Sonreír sin tapar la boca; verte mejor en fotos; seguridad en lo personal y laboral.</textarea></div><div><label class="label">Dolor de no tratarse (urgencia)</label><textarea rows="2">La incomodidad con tu sonrisa sigue; el desgaste/manchas avanzan con el tiempo.</textarea></div></div>
+                <div class="field-row" style="margin-top:.625rem;"><div><label class="label">Diferenciadores (por qué con nosotros)</label><textarea rows="2">Mockup digital para previsualizar tu sonrisa antes de tocar un diente; laboratorio propio.</textarea></div><div><label class="label">Ganchos / promociones vigentes</label><textarea rows="2">Diagnóstico + mockup sin costo este mes.</textarea></div></div>
+              </section>
+              <section class="card">
+                <h2 class="card-title">❓ Preguntas frecuentes <span class="chip" style="margin-left:auto;">pares editables → KB del agente</span></h2>
+                <div class="qa"><div class="q">¿Duele? ¿Liman mucho el diente?</div><div class="a">El desgaste es mínimo y se trabaja con anestesia local; molestias leves los primeros días.</div></div>
+                <div class="qa"><div class="q">¿Cuánto tarda?</div><div class="a">Alrededor de 2-3 semanas, en 2-3 visitas.</div></div>
+                <div class="qa"><div class="q">¿Se ve natural?</div><div class="a">Sí: color y forma a medida de tu rostro; lo previsualizas en el mockup.</div></div>
+                <div class="qa"><div class="q">¿Cuánto dura?</div><div class="a">15-20 años con buen cuidado (porcelana).</div></div>
+                <button class="btn btn-ghost" style="font-size:.75rem;">+ Agregar pregunta</button>
+              </section>
+              <section class="card">
+                <h2 class="card-title">🛡️ Objeciones → cómo responder</h2>
+                <div class="obj"><span class="otag text-destructive">Precio</span><span>"Tenemos planes en cuotas; te queda en ~S/ X al mes, con seña para reservar."</span></div>
+                <div class="obj"><span class="otag">Miedo</span><span>"Es un procedimiento suave con anestesia; te explicamos cada paso y hay controles."</span></div>
+                <div class="obj"><span class="otag">Tiempo</span><span>"Lo coordinamos a tu ritmo; tenemos horarios flexibles, también por la tarde."</span></div>
+                <div class="obj"><span class="otag">"Lo pienso"</span><span>"Claro. ¿Qué te genera duda — el precio, el procedimiento o la fecha? Te agendo una valoración sin compromiso."</span></div>
+                <div class="obj"><span class="otag">Confianza</span><span>"Mira casos reales antes/después + las credenciales de la Dra. López."</span></div>
+              </section>
+              <section class="card">
+                <h2 class="card-title">🔑 Cómo lo nombra el paciente (para el match)</h2>
+                <label class="label"><span class="tip" title="Cómo nombra el paciente al servicio (no el nombre clínico): 'carillas', 'fundas', 'arreglarme los dientes'. Con esto Adrián entiende la intención aunque no diga el término técnico (match canal-inbound).">Palabras clave / sinónimos</span></label>
+                <div style="display:flex;flex-wrap:wrap;gap:.375rem;margin-bottom:.625rem;"><span class="chip">carillas</span><span class="chip">fundas</span><span class="chip">arreglarme los dientes</span><span class="chip">sonrisa de Hollywood</span><span class="chip chip-lisa" style="cursor:pointer;">+ Agregar</span></div>
+                <div class="field-row"><div><label class="label">Problemas que resuelve</label><textarea rows="2">Dientes manchados, chuecos, separados o desgastados.</textarea></div><div><label class="label">Lenguaje a evitar (asusta)</label><textarea rows="2">"tallado", "fresado" → usar "preparación suave".</textarea></div></div>
+                <p class="hint">Esto ayuda a que Adrián entienda al paciente aunque no diga el nombre clínico (match servicio→especialista, canal-inbound).</p>
+              </section>
+            </div>
+          </div>
+
+          <!-- ===== DOCTORES ===== -->
+          <div class="leaf-pane" data-pane="doctores">
+            <div class="section-header"><div><h1 class="section-title">Especialistas</h1><p class="section-subtitle">Quién realiza este servicio. Adrián propone al especialista correcto (match canal-inbound).</p></div><button class="btn btn-primary" onclick="document.getElementById('link-doctor-panel').classList.toggle('hidden')">+ Vincular especialista</button></div>
+
+            <div class="safety" style="margin-bottom:.75rem;border-left-color:hsl(var(--agent-lisa));background:hsl(var(--agent-lisa) / .06);">🔗 Vincular no crea especialistas: elige del <strong>roster de tu clínica</strong> (Lisa → Especialistas). Acá solo marcas quiénes <strong>realizan este servicio</strong>. Sus datos (nombre, especialidad, credenciales) <strong>se editan en Lisa → Especialistas</strong>, no aquí.</div>
+
+            <!-- doctores YA vinculados -->
+            <div class="group-h">Vinculados a este servicio (2)</div>
+            <div class="cards-grid">
+              <section class="card">
+                <div style="display:flex;align-items:center;gap:.625rem;"><span class="avatar bg-agent-valeria">CL</span><div style="flex:1;"><div style="font-weight:600;">Dra. Carla López</div><div class="hint" style="margin:0;">Estética dental · +10 años</div></div></div>
+                <p class="hint" style="margin-top:.5rem;">Especialista en rehabilitación oral. Adrián puede citar sus credenciales.</p>
+                <div style="display:flex;gap:.5rem;margin-top:.625rem;"><a class="btn btn-ghost" style="font-size:.75rem;text-decoration:none;" href="#" title="Abre la ficha de la especialista en Lisa → Especialistas">Ver detalle ↗</a><button class="btn btn-ghost" style="font-size:.75rem;color:hsl(var(--destructive));">Desvincular</button></div>
+              </section>
+              <section class="card">
+                <div style="display:flex;align-items:center;gap:.625rem;"><span class="avatar bg-agent-adrian">JR</span><div style="flex:1;"><div style="font-weight:600;">Dr. Javier Ruiz</div><div class="hint" style="margin:0;">Odontología general</div></div></div>
+                <div style="display:flex;gap:.5rem;margin-top:.625rem;"><a class="btn btn-ghost" style="font-size:.75rem;text-decoration:none;" href="#" title="Abre la ficha del especialista en Lisa → Especialistas">Ver detalle ↗</a><button class="btn btn-ghost" style="font-size:.75rem;color:hsl(var(--destructive));">Desvincular</button></div>
+              </section>
+            </div>
+
+            <!-- panel VINCULAR (selector desde el roster · #6 cómo funciona) -->
+            <section class="card hidden" id="link-doctor-panel" style="margin-top:.875rem;border:1px solid hsl(var(--agent-lisa));">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem;"><h2 class="card-title" style="margin:0;">🔗 Vincular especialistas del roster</h2><button class="topbar-icon-btn" onclick="document.getElementById('link-doctor-panel').classList.add('hidden')">✕</button></div>
+              <div class="search-box" style="position:relative;margin-bottom:.625rem;"><span style="position:absolute;left:.625rem;top:.55rem;color:hsl(var(--muted-foreground));">🔍</span><input style="padding-left:2rem;" placeholder="Buscar en tu roster…"></div>
+              <div style="display:flex;flex-direction:column;gap:.25rem;">
+                <label class="switch-label" style="color:hsl(var(--foreground));justify-content:flex-start;gap:.625rem;padding:.5rem;border:1px solid hsl(var(--border));border-radius:.5rem;"><input type="checkbox" checked style="width:auto;"><span class="avatar bg-agent-valeria" style="width:26px;height:26px;font-size:.625rem;">CL</span><span style="flex:1;">Dra. Carla López <span class="hint" style="display:inline;margin:0;">· Estética dental</span></span></label>
+                <label class="switch-label" style="color:hsl(var(--foreground));justify-content:flex-start;gap:.625rem;padding:.5rem;border:1px solid hsl(var(--border));border-radius:.5rem;"><input type="checkbox" checked style="width:auto;"><span class="avatar bg-agent-adrian" style="width:26px;height:26px;font-size:.625rem;">JR</span><span style="flex:1;">Dr. Javier Ruiz <span class="hint" style="display:inline;margin:0;">· Odontología general</span></span></label>
+                <label class="switch-label" style="color:hsl(var(--foreground));justify-content:flex-start;gap:.625rem;padding:.5rem;border:1px solid hsl(var(--border));border-radius:.5rem;"><input type="checkbox" style="width:auto;"><span class="avatar bg-agent-camila" style="width:26px;height:26px;font-size:.625rem;">AM</span><span style="flex:1;">Dra. Ana Morales <span class="hint" style="display:inline;margin:0;">· Medicina estética</span></span></label>
+                <label class="switch-label" style="color:hsl(var(--foreground));justify-content:flex-start;gap:.625rem;padding:.5rem;border:1px solid hsl(var(--border));border-radius:.5rem;"><input type="checkbox" style="width:auto;"><span class="avatar bg-agent-lucas" style="width:26px;height:26px;font-size:.625rem;">MS</span><span style="flex:1;">Dr. Marco Salas <span class="hint" style="display:inline;margin:0;">· Cirugía maxilofacial</span></span></label>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-top:.75rem;"><a class="hint" href="#" style="margin:0;">¿Falta un especialista? Agrégalo en Lisa → Especialistas ↗</a><span style="display:flex;align-items:center;gap:.5rem;"><span class="hint" style="margin:0;">💾 se guarda solo al marcar</span><button class="btn btn-ghost" style="font-size:.8125rem;" onclick="document.getElementById('link-doctor-panel').classList.add('hidden')">Listo</button></span></div>
+            </section>
+          </div>
+
+          <!-- ===== PLAN DE PAGO ===== -->
+          <div class="leaf-pane" data-pane="pago">
+            <div class="section-header"><div><h1 class="section-title">Plan de pago</h1><p class="section-subtitle">Cómo Adrián cotiza y cobra para cerrar. Son <strong>3 cobros distintos</strong>: reservar la cita, iniciar el tratamiento y financiar el resto.</p></div></div>
+            <div class="cards-stack">
+
+              <!-- 1 · PRECIO -->
+              <section class="card">
+                <h2 class="card-title">💲 Precio del tratamiento</h2>
+                <div class="field-row"><div><label class="label">Precio</label><div style="display:flex;gap:.375rem;align-items:center;"><span class="chip tip" title="La moneda (S/) sale de la configuración de tu clínica (no se edita aquí). Para cambiarla: Configuración → Cuenta/Localización.">S/</span><input value="4,500"></div></div><div><label class="label">Modo</label><select><option>Rango ("desde")</option><option>Fijo</option></select></div></div>
+                <div style="margin-top:.625rem;"><span class="switch-label" style="color:hsl(var(--foreground));"><span class="switch"><input type="checkbox" checked><span class="track"></span></span> Adrián puede decir el precio en el chat <span class="hint">(si lo apagas, agenda valoración en vez de dar precio)</span></span></div>
+              </section>
+
+              <!-- 2 · RESERVA (seña) -->
+              <section class="card">
+                <h2 class="card-title">📅 Reserva de la cita <span class="chip" style="margin-left:auto;">la "seña" para apartar el turno</span></h2>
+                <p class="hint" style="margin-top:0;">Monto pequeño que el paciente paga para <strong>apartar su cita</strong> (reduce inasistencias · reserva prepagada de Vitalia). <strong>Se descuenta del total.</strong></p>
+                <div style="margin:.5rem 0 .625rem;"><span class="switch-label" style="color:hsl(var(--foreground));"><span class="switch"><input type="checkbox" checked><span class="track"></span></span> Pide reserva para agendar</span></div>
+                <div class="field-row"><div><label class="label">Monto de la reserva</label><div style="display:flex;gap:.375rem;align-items:center;"><span class="chip tip" title="Moneda de la config de tu clínica (no se edita aquí).">S/</span><input value="200"></div></div><div><label class="label">Tipo</label><select><option>Monto fijo</option><option>% del total</option></select></div></div>
+              </section>
+
+              <!-- 3 · ANTICIPO -->
+              <section class="card">
+                <h2 class="card-title">💵 Anticipo para iniciar <span class="chip" style="margin-left:auto;">pago inicial del tratamiento</span></h2>
+                <p class="hint" style="margin-top:0;">Pago adelantado sobre el <strong>costo del tratamiento</strong> que el paciente da para <strong>empezar</strong> (aparte de la reserva). Clave en implantes, ortodoncia y cirugía.</p>
+                <div style="margin:.5rem 0 .625rem;"><span class="switch-label" style="color:hsl(var(--foreground));"><span class="switch"><input type="checkbox" checked><span class="track"></span></span> Requiere anticipo para iniciar</span></div>
+                <div class="field-row"><div><label class="label"><span class="tip" title="Pago inicial sobre el costo del tratamiento para empezar (aparte de la reserva de la cita). Ej: 30% del total antes de la primera sesión de implante.">Anticipo</span></label><div style="display:flex;gap:.375rem;align-items:center;"><input value="30" style="max-width:80px;"><select style="max-width:130px;"><option>% del total</option><option>monto fijo</option></select></div></div><div><label class="label"><span class="tip" title="Se calcula solo a partir del % y el precio del tratamiento. No se edita.">≈ equivale a</span></label><input value="S/ 1,350" disabled style="background:hsl(var(--muted));"></div></div>
+              </section>
+
+              <!-- 4 · FINANCIAMIENTO -->
+              <section class="card">
+                <h2 class="card-title">🏦 Financiamiento del saldo <span class="chip" style="margin-left:auto;">cuotas del resto</span></h2>
+                <div style="margin-bottom:.625rem;"><span class="switch-label" style="color:hsl(var(--foreground));"><span class="switch"><input type="checkbox" checked><span class="track"></span></span> Ofrece pago en cuotas</span></div>
+                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem;">
+                  <div><label class="label">Cuotas</label><input value="6"></div>
+                  <div><label class="label">Interés</label><select><option>Sin interés (MSI)</option><option>Con interés</option></select></div>
+                  <div><label class="label"><span class="tip" title="Se calcula solo: (precio − reserva − anticipo) ÷ cuotas. No se edita.">≈ por mes</span></label><input value="S/ 525" disabled style="background:hsl(var(--muted));"></div>
+                </div>
+                <div class="field-row" style="margin-top:.625rem;"><div><label class="label">Medios de pago</label><input value="Tarjeta · transferencia · Mercado Pago"></div><div><label class="label">Socio financiero</label><input value="—"></div></div>
+              </section>
+            </div>
+          </div>
+
+          <!-- ===== PRUEBA SOCIAL ===== -->
+          <div class="leaf-pane" data-pane="social">
+            <div class="section-header"><div><h1 class="section-title">Prueba social</h1><p class="section-subtitle">Casos y reseñas que Adrián muestra para generar confianza.</p></div><button class="btn btn-primary">+ Subir caso</button></div>
+            <section class="card">
+              <h2 class="card-title">🖼️ Antes / después <span class="chip chip-warning" style="margin-left:auto;">con consentimiento</span></h2>
+              <div class="cards-grid" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr));"><div class="ba">caso 1</div><div class="ba">caso 2</div><div class="ba">caso 3</div><div class="ba" style="border:1px dashed hsl(var(--border));cursor:pointer;">+ subir caso</div></div>
+              <p class="hint" style="margin-top:.5rem;">Cada caso requiere el consentimiento firmado del paciente (HIPAA-lite). "+ Subir caso" abre la carga: foto antes · foto después · confirmar consentimiento.</p>
+            </section>
+            <section class="card" style="margin-top:.875rem;">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;"><h2 class="card-title" style="margin:0;">⭐ Testimonios</h2><button class="btn btn-ghost" style="font-size:.75rem;" onclick="addTesti('testi-list')">+ Agregar testimonio</button></div>
+              <p class="hint" style="margin-top:.25rem;">Escríbelos o pégalos (de Google, Instagram, encuestas). Adrián los cita para generar confianza.</p>
+              <div class="testi-list" id="testi-list">
+                <div class="testi-row">
+                  <span class="testi-stars">★★★★★</span>
+                  <div style="flex:1;min-width:0;">
+                    <textarea rows="2">Cambió mi vida, ahora sonrío en todas las fotos.</textarea>
+                    <div class="field-row" style="margin-top:.375rem;"><div><input value="Sofía M." placeholder="Autor (nombre o iniciales)"></div><div><input value="Google" placeholder="Origen (Google, Instagram…)"></div></div>
+                  </div>
+                  <button class="v-del" title="Quitar testimonio" onclick="this.closest('.testi-row').remove()">✕</button>
+                </div>
+              </div>
+              <p class="chip chip-lisa" style="margin-top:.75rem;">+300 diseños de sonrisa realizados</p>
+            </section>
+          </div>
+
+        </div>
+      </div>
+      <div class="footer-meta"><span>Última edición: <strong>Dra. Camila Llerena</strong></span><span></span></div>
+    </main>
+  </div>
+</div>
+
+<script>
+  const shellBody = document.getElementById('shell-body');
+  document.querySelectorAll('.splitter-btn').forEach(btn => btn.addEventListener('click', () => { document.querySelectorAll('.splitter-btn').forEach(b => b.removeAttribute('data-active')); btn.setAttribute('data-active','true'); shellBody.setAttribute('data-splitter-state', btn.dataset.state); }));
+  document.getElementById('theme-toggle').addEventListener('click', () => document.documentElement.classList.toggle('dark'));
+  document.querySelectorAll('.entity-leaf').forEach(b => b.addEventListener('click', () => {
+    document.querySelectorAll('.entity-leaf').forEach(x=>x.removeAttribute('data-active')); b.setAttribute('data-active','true');
+    document.querySelectorAll('.leaf-pane').forEach(p=>p.classList.remove('active'));
+    document.querySelector(`[data-pane="${b.dataset.leaf}"]`).classList.add('active');
+  }));
+  // EntityPicker: popover position:fixed anclado al trigger (escapa overflow-x del subnav)
+  function toggleEP(e, trigger){
+    e.stopPropagation();
+    const panel = document.getElementById('ep-panel');
+    const willOpen = !panel.classList.contains('open');
+    panel.classList.toggle('open', willOpen);
+    trigger.setAttribute('aria-expanded', String(willOpen));
+    if (willOpen){
+      const r = trigger.getBoundingClientRect();
+      panel.style.left = Math.min(r.left, window.innerWidth - panel.offsetWidth - 8) + 'px';
+      panel.style.top  = (r.bottom + 4) + 'px';
+    }
+  }
+  // cerrar al hacer click fuera
+  document.addEventListener('click', e => {
+    const ep = document.getElementById('ep');
+    const panel = document.getElementById('ep-panel');
+    if (ep && panel && !ep.contains(e.target)){
+      panel.classList.remove('open');
+      ep.querySelector('.entity-picker-trigger')?.setAttribute('aria-expanded','false');
+    }
+  });
+  // FloatingAutosave: simular estados al editar campos
+  let autosaveTimer;
+  document.querySelectorAll('input,textarea,select').forEach(el => el.addEventListener('input', () => {
+    const fa = document.querySelector('.floating-autosave');
+    if (!fa) return;
+    fa.setAttribute('data-state','saving'); fa.innerHTML = '<span class="fa-dot"></span> Guardando…';
+    clearTimeout(autosaveTimer);
+    autosaveTimer = setTimeout(() => { fa.setAttribute('data-state','saved'); fa.innerHTML = '<span class="fa-dot"></span> Guardado'; }, 900);
+  }));
+  // Acordeón de grupos del Resumen (Chris 2026-06-15): Identidad abierto, resto colapsado · click en el título abre/cierra
+  document.querySelectorAll('[data-pane="resumen"] .cards-stack > .card').forEach((card, i) => {
+    card.classList.add('acc');
+    card.setAttribute('data-open', i === 0 ? 'true' : 'false');
+    const title = card.querySelector('.card-title');
+    if (!title) return;
+    const n = card.querySelectorAll('input,textarea,select').length;
+    if (n && !title.querySelector('.acc-count')) {
+      const c = document.createElement('span');
+      c.className = 'acc-count';
+      c.textContent = n === 1 ? '1 campo' : n + ' campos';
+      title.appendChild(c);
+    }
+    title.addEventListener('click', () => card.setAttribute('data-open', card.getAttribute('data-open') === 'true' ? 'false' : 'true'));
+  });
+  // Modalidad: única / por sesiones / recurrente — revela el detalle correspondiente
+  function applyMod(mod) {
+    const ds = document.getElementById('mod-detail-sesiones');
+    const dr = document.getElementById('mod-detail-recurrente');
+    if (ds) ds.style.display = (mod === 'sesiones') ? '' : 'none';
+    if (dr) dr.style.display = (mod === 'recurrente') ? '' : 'none';
+  }
+  function pickMod(el) {
+    const wrap = document.getElementById('f-modalidad');
+    wrap.querySelectorAll('.mod-opt').forEach(o => o.setAttribute('data-sel', 'false'));
+    el.setAttribute('data-sel', 'true');
+    applyMod(el.dataset.mod);
+  }
+  // #6 saltar a una pestaña (leaf) del workspace
+  function goLeaf(name){ const b = document.querySelector('.entity-leaf[data-leaf="'+name+'"]'); if (b) b.click(); }
+  // #3 RichSelect (Select con descripción · candidato CORE) — popover position:fixed anclado al trigger (escapa el scroll del content)
+  function toggleRich(e, trigger){
+    e.stopPropagation();
+    const panel = trigger.parentElement.querySelector('.rich-select-panel');
+    const willOpen = !panel.classList.contains('open');
+    document.querySelectorAll('.rich-select-panel.open').forEach(p => { if (p !== panel){ p.classList.remove('open'); p.parentElement.querySelector('.rich-select-trigger').setAttribute('aria-expanded','false'); } });
+    panel.classList.toggle('open', willOpen);
+    trigger.setAttribute('aria-expanded', String(willOpen));
+    if (willOpen){
+      const r = trigger.getBoundingClientRect();
+      panel.style.width = r.width + 'px';
+      panel.style.left = Math.min(r.left, window.innerWidth - r.width - 8) + 'px';
+      panel.style.top  = (r.bottom + 4) + 'px';
+    }
+  }
+  function pickRich(opt){
+    const panel = opt.parentElement;
+    panel.querySelectorAll('.rich-option').forEach(o => o.setAttribute('data-sel','false'));
+    opt.setAttribute('data-sel','true');
+    panel.parentElement.querySelector('.rich-select-trigger .rs-label').innerHTML = opt.innerHTML;
+    panel.classList.remove('open');
+    panel.parentElement.querySelector('.rich-select-trigger').setAttribute('aria-expanded','false');
+  }
+  document.addEventListener('click', e => {
+    document.querySelectorAll('.rich-select-panel.open').forEach(panel => {
+      const rs = panel.closest('.rich-select');
+      if (rs && !rs.contains(e.target)){ panel.classList.remove('open'); rs.querySelector('.rich-select-trigger').setAttribute('aria-expanded','false'); }
+    });
+  });
+  // #4/#8 agregar fila vacía
+  function addVariant(listId){
+    const row = document.createElement('div'); row.className = 'variant-row';
+    row.innerHTML = '<input class="v-name" placeholder="Nombre"><div class="num-affix"><span class="num-unit">S/</span><input type="number" class="v-price" placeholder="0"></div><input class="v-note" placeholder="qué cambia (opcional)"><button class="v-del" title="Quitar variante" onclick="this.closest(\'.variant-row\').remove()">✕</button>';
+    document.getElementById(listId).appendChild(row);
+  }
+  function addTesti(listId){
+    const row = document.createElement('div'); row.className = 'testi-row';
+    row.innerHTML = '<span class="testi-stars">★★★★★</span><div style="flex:1;min-width:0;"><textarea rows="2" placeholder="Pega o escribe el testimonio…"></textarea><div class="field-row" style="margin-top:.375rem;"><div><input placeholder="Autor (nombre o iniciales)"></div><div><input placeholder="Origen (Google, Instagram…)"></div></div></div><button class="v-del" title="Quitar testimonio" onclick="this.closest(\'.testi-row\').remove()">✕</button>';
+    document.getElementById(listId).appendChild(row);
+  }
+</script>
+</body>
+</html>

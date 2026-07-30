@@ -1,0 +1,10 @@
+name: status-all
+description: Dashboard cross-worktree Luana — branch + dirty/clean + last commit + story + Docker per brand.
+command: bash scripts/git/status-all.sh
+tags:
+  - luana
+  - git
+  - worktree
+shells:
+  - bash
+  - zsh

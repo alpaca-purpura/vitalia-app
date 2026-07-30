@@ -1,0 +1,65 @@
+{
+  "schema_version": "1.0",
+  "pr_folder": "/home/chalreme/Proyectos/luana-vitalia/vitalia/docs/product/stories/vitalia-fase2-valeria-agenda/",
+  "brand": "vitalia",
+  "story_id": "vitalia-fase2-valeria-agenda",
+  "ticket": null,
+  "iter": 1,
+  "command": "test-vitalia",
+  "command_alias": "test-vitalia",
+  "started_at": "2026-05-27T00:16:00Z",
+  "finished_at": "2026-05-27T05:17:06.512087Z",
+  "duration_ms": 45000,
+  "exit_code": 0,
+  "raw_log_path": "/home/chalreme/Proyectos/luana-vitalia/vitalia/docs/product/stories/vitalia-fase2-valeria-agenda/gate-logs/iter-1-test-vitalia-20260527T000000Z.log",
+  "gates": [
+    {
+      "name": "be_arch_fitness",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": []
+    },
+    {
+      "name": "be_lint_scheduling_payments_fiscal",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": []
+    },
+    {
+      "name": "be_format_scheduling_payments_fiscal",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": []
+    },
+    {
+      "name": "be_tests_scheduling_payments_fiscal",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": []
+    },
+    {
+      "name": "fe_typecheck_vitalia",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": []
+    },
+    {
+      "name": "fe_eslint_valeria",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": []
+    },
+    {
+      "name": "fe_vitest_valeria",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": []
+    }
+  ],
+  "overall": {
+    "any_fail": false,
+    "fail_gate_names": [],
+    "summary": "All 7 gates PASSED: be_arch_fitness, be_lint, be_format, be_tests, fe_typecheck, fe_eslint, fe_vitest"
+  },
+  "notes": "vitalia-fase2-valeria-agenda full suite: 321 BE arch fitness tests GREEN, 181 BE unit tests GREEN, 271 FE vitest tests GREEN, 0 lint errors, 0 typecheck errors. Ready for auditor review."
+}

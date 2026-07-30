@@ -1,0 +1,440 @@
+# 06-tickets.yaml — vitalia-slice-1-marketing
+# Generated 2026-05-20 by /architect (Opus 4.7) post REPLAN.
+# DAG: wave-1 BE foundation → wave-2 BE services + adapters → wave-3 BE API + crons → wave-4 FE components → wave-5 FE composition + widgets → wave-6 E2E + visual + perf
+# Each ticket has gherkin_coverage[] field MANDATORY per story-closure-gate.md cement-date 2026-05-18.
+---
+story_id: vitalia-slice-1-marketing
+brand: vitalia
+generated_on: 2026-05-20
+architect_model: claude-opus-4-7
+wip_cap: developing<=1 reviewing<=1 developed<=1
+
+# ════════════════════════════════════════════════════════════════════════
+# WAVE 1 — BE foundation (entities + tables + repos)
+# ════════════════════════════════════════════════════════════════════════
+tickets:
+  - id: T-mk-be-1
+    sub_story: vitalia-slice-1-marketing
+    wave: 1
+    title: Marketing domain entities + 5 Alembic migrations (channel_sync_state + channel_metrics + lucas_recommendations + referrals + appointments_utm_columns)
+    surface: backend
+    owner_eligibility: [qwen-opencode, claude-sonnet-4-6]
+    production_code: false
+    estimated_loc: 700
+    scope: |
+      Domain entities ChannelSyncState · ChannelMetric · LucasRecommendation · Referral.
+      Enums (ProviderSlug, SyncStatus, RecommendationStatus, ReferralStatus, BowtieStage, RejectReason).
+      Domain events (LucasRecommendationGenerated, LucasRecommendationApproved, LucasRecommendationRejected, LucasRecommendationUndone, LucasRecommendationExpired, ChannelSyncSucceeded, ChannelSyncFailed, ReferralCodeGenerated, ReferralConverted).
+      5 Alembic migrations 050-054 idempotent raw SQL IF NOT EXISTS (per 03-arch-be.md § 2).
+      Verify vitalia_appointments is brand-local table BEFORE adding utm columns (T-mk-be-1.5 escalate if engine).
+    acceptance:
+      test_paths:
+        - vitalia/backend/tests/modules/vitalia/marketing/domain/
+      validator_ids: [be_lint_ruff_check, be_format_ruff_check, be_arch_fitness_brand, be_test_marketing_domain]
+    gherkin_coverage:
+      - scenario: SC-MK-01 (Lucas approve happy)
+        tests:
+          - vitalia/backend/tests/modules/vitalia/marketing/domain/test_lucas_recommendation_entity.py::test_approve_transitions_status
+          - vitalia/backend/tests/modules/vitalia/marketing/domain/test_lucas_recommendation_entity.py::test_approved_sets_undo_until_5min
+    state: pushed
+    pushed_sha: f0e395e
+    blocked_by: []
+
+  - id: T-mk-be-2
+    sub_story: vitalia-slice-1-marketing
+    wave: 1
+    title: SQLAlchemy 2.0 models + Repositories subclass CompoundScopeRepositoryBase (4 repos)
+    surface: backend
+    owner_eligibility: [qwen-opencode, claude-sonnet-4-6]
+    production_code: false
+    estimated_loc: 800
+    scope: |
+      SQLAlchemy 2.0 mapped_column models (ChannelSyncStateModel · ChannelMetricModel · LucasRecommendationModel · ReferralModel).
+      4 repositories subclass luana_core_platform.repositories.compound_scope_repository.CompoundScopeRepositoryBase with scope_field="clinic_id".
+      Custom queries: list_open_by_stage, list_pending_undo_expired (lucas), upsert_metric (channel_metric ON CONFLICT), get_active_by_provider (channel_sync_state).
+      Pgcrypto encrypt/decrypt roundtrip for channel_sync_state.oauth_token_encrypted via KEK from _shared/encryption/kek_client.py (already shipped infra story).
+    acceptance:
+      test_paths:
+        - vitalia/backend/tests/modules/vitalia/marketing/infrastructure/
+      validator_ids: [be_test_marketing_infrastructure, be_arch_fitness_brand]
+    gherkin_coverage:
+      - scenario: SC-MK-01 (Lucas approve happy — repo state transition)
+        tests:
+          - vitalia/backend/tests/modules/vitalia/marketing/infrastructure/repositories/test_lucas_recommendation_repository.py::test_approve_updates_status
+          - vitalia/backend/tests/modules/vitalia/marketing/infrastructure/repositories/test_lucas_recommendation_repository.py::test_dual_filter_tenant_and_clinic
+      - scenario: SC-MK-04 (cross-clinic isolation)
+        tests:
+          - vitalia/backend/tests/modules/vitalia/marketing/infrastructure/repositories/test_lucas_recommendation_repository.py::test_other_clinic_cannot_read
+          - vitalia/backend/tests/modules/vitalia/marketing/infrastructure/repositories/test_channel_sync_state_repository.py::test_oauth_token_pgcrypto_roundtrip
+    state: pushed
+    pushed_sha: "8211510"
+    blocked_by: [T-mk-be-1]
+
+# ════════════════════════════════════════════════════════════════════════
+# WAVE 2 — BE services + DTOs + adapters (Meta + Google OAuth)
+# ════════════════════════════════════════════════════════════════════════
+  - id: T-mk-be-3
+    sub_story: vitalia-slice-1-marketing
+    wave: 2
+    title: Application services + Pydantic v2 DTOs (MarketingService · AttributionService · ReferralsService · LucasRecommendationsService)
+    surface: backend
+    owner_eligibility: [qwen-opencode, claude-sonnet-4-6]
+    production_code: false
+    estimated_loc: 1400
+    scope: |
+      Pydantic v2 DTOs (BowtieSummaryResponse, StageDetailResponse, ChannelDetailResponse, LucasRecommendationResponse, ApproveRecommendationRequest, RejectRecommendationRequest, AttributionMatrixResponse, ReferralsResponse, OAuthConnectRequest/Response, SyncResponse).
+      MarketingService.bowtie_summary() · stage_detail() · channel_detail() — read snapshots persisted by Lucas cron + channel_metrics.
+      AttributionService.matrix() — proxies to LucasAttributionService snapshot read.
+      ReferralsService.leaderboard() · generate_code(patient_id) — proxies to LucasReferralsService + Referral repo.
+      LucasRecommendationsService.list() · approve() · reject() · undo() — state machine + audit_log SYNC write + outbox events publish.
+    acceptance:
+      test_paths:
+        - vitalia/backend/tests/modules/vitalia/marketing/application/
+      validator_ids: [be_test_marketing_application, be_arch_fitness_brand]
+    gherkin_coverage:
+      - scenario: SC-MK-01 (Lucas approve happy — service flow)
+        tests:
+          - vitalia/backend/tests/modules/vitalia/marketing/application/services/test_lucas_recommendations_service.py::test_approve_sets_status_audit_outbox
+          - vitalia/backend/tests/modules/vitalia/marketing/application/services/test_lucas_recommendations_service.py::test_approve_undo_within_5min
+          - vitalia/backend/tests/modules/vitalia/marketing/application/services/test_lucas_recommendations_service.py::test_approve_idempotency_dedup
+      - scenario: SC-MK-04 (adversarial — RBAC + range validation)
+        tests:
+          - vitalia/backend/tests/modules/vitalia/marketing/application/services/test_lucas_recommendations_service.py::test_approve_action_payload_out_of_range_rejected
+    state: pushed
+    pushed_sha: "978d002"
+    blocked_by: [T-mk-be-2]
+
+  - id: T-mk-be-4
+    sub_story: vitalia-slice-1-marketing
+    wave: 2
+    title: Meta Ads + Google Ads OAuth adapters + Extension SDK EP-8 registration
+    surface: backend
+    owner_eligibility: [qwen-opencode, claude-sonnet-4-6]
+    production_code: false
+    estimated_loc: 900
+    scope: |
+      vitalia/backend/src/modules/vitalia/connections/meta_ads/adapter.py — MetaAdsAdapter (OAuth authorize_url + callback + list_ad_accounts + fetch_insights).
+      vitalia/backend/src/modules/vitalia/connections/google_ads/adapter.py — GoogleAdsAdapter (idem GAQL).
+      Both wrap timeout 30s + exponential backoff retry 3× + circuit breaker per tenant (5 fail → status='error' 1h cool-down).
+      Update vitalia/backend/src/modules/vitalia/extensions.py::register_all to call registry.register_channel_provider("meta_ads", MetaAdsAdapter()) + same for "google_ads" via EP-8.
+    acceptance:
+      test_paths:
+        - vitalia/backend/tests/modules/vitalia/connections/meta_ads/
+        - vitalia/backend/tests/modules/vitalia/connections/google_ads/
+      validator_ids: [be_test_connections_meta_ads, be_test_connections_google_ads, be_test_extension_sdk_registration_marketing]
+    gherkin_coverage:
+      - scenario: SC-MK-02 (Meta API timeout)
+        tests:
+          - vitalia/backend/tests/modules/vitalia/connections/meta_ads/test_meta_ads_adapter.py::test_timeout_30s_raises
+          - vitalia/backend/tests/modules/vitalia/connections/meta_ads/test_meta_ads_adapter.py::test_circuit_breaker_after_5_consecutive_failures
+    blocked_by: [T-mk-be-2]
+    state: pushed
+    pushed_sha: "08555c5"
+
+# ════════════════════════════════════════════════════════════════════════
+# WAVE 3 — BE API routes + 4 cron jobs
+# ════════════════════════════════════════════════════════════════════════
+  - id: T-mk-be-5
+    sub_story: vitalia-slice-1-marketing
+    wave: 3
+    title: 10 FastAPI endpoints /api/v1/vitalia/marketing/* with response_model + role gates + Idempotency-Key
+    surface: backend
+    owner_eligibility: [qwen-opencode, claude-sonnet-4-6]
+    production_code: false
+    estimated_loc: 800
+    scope: |
+      10 endpoints per 03-arch-be.md § 4:
+        GET /bowtie/summary
+        GET /stage/{stage_slug}
+        GET /channels/{provider}
+        POST /channels/{provider}/connect
+        POST /channels/{provider}/sync (Idempotency-Key)
+        GET /recommendations
+        POST /recommendations/{rec_id}/approve (Idempotency-Key)
+        POST /recommendations/{rec_id}/reject (Idempotency-Key)
+        POST /recommendations/{rec_id}/undo (Idempotency-Key)
+        GET /attribution-matrix
+        GET /referrals
+      response_model= mandatory + Bearer + X-Tenant-ID + X-Clinic-ID headers + @require_role decorators per 2.5.
+    acceptance:
+      test_paths:
+        - vitalia/backend/tests/modules/vitalia/marketing/api/
+      validator_ids: [be_test_marketing_api, be_arch_fitness_brand, be_test_marketing_coverage]
+    gherkin_coverage:
+      - scenario: SC-MK-01 (Lucas approve happy — endpoint round-trip)
+        tests:
+          - vitalia/backend/tests/modules/vitalia/marketing/api/test_recommendations_endpoints.py::test_approve_endpoint_happy_path
+          - vitalia/backend/tests/modules/vitalia/marketing/api/test_recommendations_endpoints.py::test_approve_idempotency_key_dedup
+          - vitalia/backend/tests/modules/vitalia/marketing/api/test_recommendations_endpoints.py::test_undo_endpoint_within_5min
+          - vitalia/backend/tests/modules/vitalia/marketing/api/test_recommendations_endpoints.py::test_undo_endpoint_after_window_410
+      - scenario: SC-MK-04 (adversarial RBAC + role check)
+        tests:
+          - vitalia/backend/tests/modules/vitalia/marketing/api/test_recommendations_endpoints.py::test_approve_role_recepcion_returns_403
+          - vitalia/backend/tests/modules/vitalia/marketing/api/test_recommendations_endpoints.py::test_audit_log_unauthorized_attempt_recorded
+      - scenario: SC-MK-02 (Meta sync degraded endpoint)
+        tests:
+          - vitalia/backend/tests/modules/vitalia/marketing/api/test_channels_endpoints.py::test_channel_detail_shows_last_known_when_sync_failed
+          - vitalia/backend/tests/modules/vitalia/marketing/api/test_channels_endpoints.py::test_manual_sync_endpoint_triggers_retry
+    blocked_by: [T-mk-be-3, T-mk-be-4]
+    state: pushed
+    pushed_sha: "191c93a"
+
+  - id: T-mk-be-6
+    sub_story: vitalia-slice-1-marketing
+    wave: 3
+    title: 4 ARQ cron jobs decorated with engine @cron_envelope (channel_metrics_sync_meta + channel_metrics_sync_google + lucas_daily_analysis_sweep + referrals_value_sync)
+    surface: backend
+    owner_eligibility: [qwen-opencode, claude-sonnet-4-6]
+    production_code: false
+    estimated_loc: 600
+    scope: |
+      4 cron jobs per 03-arch-be.md § 8 — ALL decorated @cron_envelope("vitalia.cron.<name>", ttl=...) from luana_core_platform.workers.cron_envelope.
+      channel_metrics_sync_meta + _google: c/4h, soft-fail per tenant, ON CONFLICT upsert metrics.
+      lucas_daily_analysis_sweep: daily 06:00 UTC, BudgetGuard wired inside LucasOrchestratorService (no new wiring).
+      referrals_value_sync: daily 10:00 UTC, recomputes referrals.conversion_value_cents from completed appointments.
+      Register schedule in vitalia/backend/src/main.py ARQ worker_settings or dedicated worker entrypoint.
+    acceptance:
+      test_paths:
+        - vitalia/backend/tests/workers/test_marketing_crons.py
+      validator_ids: [be_test_workers_marketing_crons, be_arch_fitness_brand]
+    gherkin_coverage:
+      - scenario: SC-MK-02 (Meta sync degraded cron)
+        tests:
+          - vitalia/backend/tests/workers/test_marketing_crons.py::test_channel_metrics_sync_meta_soft_fail_per_tenant
+          - vitalia/backend/tests/workers/test_marketing_crons.py::test_channel_metrics_sync_meta_publishes_channelsyncfailed_event
+          - vitalia/backend/tests/workers/test_marketing_crons.py::test_lucas_daily_analysis_sweep_skips_rejected_30d_cooldown
+    state: pushed
+    pushed_sha: 8471b25
+    blocked_by: [T-mk-be-3, T-mk-be-4]
+
+# ════════════════════════════════════════════════════════════════════════
+# WAVE 4 — FE foundation (types + hooks + URL state + copy)
+# ════════════════════════════════════════════════════════════════════════
+  - id: T-mk-fe-1
+    state: pushed                                # ★ added by /dev-team orchestrator 2026-05-20 post-Wave 6 closure (builder missed state field)
+    pushed_sha: "866079b"
+    sub_story: vitalia-slice-1-marketing
+    wave: 4
+    title: FE foundation — TS types + Zod schemas + nuqs parsers + MARKETING_COPY + React Query hooks
+    surface: frontend
+    owner_eligibility: [claude-sonnet-4-6]
+    production_code: false
+    estimated_loc: 900
+    scope: |
+      vitalia/frontend/src/features/marketing/types/{lucas-recommendation,bowtie,attribution,referrals,channel,url-state}.ts — TS mirrors of Pydantic DTOs camelCase.
+      vitalia/frontend/src/lib/zod-schemas/lucas-recommendation.ts — Z schema for cross-story consumption.
+      vitalia/frontend/src/features/marketing/copy.ts — MARKETING_COPY namespace (heredado parent spec § §§§ Microcopy verbatim) with <!-- voseo-allowed: NO --> magic comment.
+      vitalia/frontend/src/features/marketing/api/* hooks (10 hooks): useBowtieSummary, useStageDetail, useChannelDetail, useLucasRecommendations, useApproveRecommendation, useRejectRecommendation, useUndoRecommendation, useSyncChannel, useAttributionMatrix, useReferrals.
+      vitalia/frontend/src/features/marketing/store/marketing-store.ts — Zustand ephemeral UI state.
+      vitalia/frontend/src/features/marketing/index.ts + marketing-shared/index.ts Public API barrels.
+    acceptance:
+      test_paths:
+        - vitalia/frontend/src/features/marketing/__tests__/
+      validator_ids: [fe_typecheck_tsc, fe_lint_eslint, fe_arch_fitness, fe_test_marketing_unit]
+    gherkin_coverage:
+      - scenario: SC-MK-03 (Tab change URL state)
+        tests:
+          - vitalia/frontend/src/features/marketing/__tests__/marketing-parsers.test.ts::test_default_tab_is_attraction
+          - vitalia/frontend/src/features/marketing/__tests__/marketing-parsers.test.ts::test_tab_param_replace_intra_route
+    blocked_by: [T-mk-be-5]
+
+# ════════════════════════════════════════════════════════════════════════
+# WAVE 5 — FE components (build NUEVO simple — no growth-studio reuse)
+# ════════════════════════════════════════════════════════════════════════
+  - id: T-mk-fe-2
+    sub_story: vitalia-slice-1-marketing
+    wave: 5
+    title: MarketingBowtieSVG + MarketingStageTabs + MarketingLayout (orchestrator) + page.tsx route
+    surface: frontend
+    owner_eligibility: [claude-sonnet-4-6]
+    production_code: false
+    estimated_loc: 1000
+    scope: |
+      Promote scaffold vitalia/frontend/src/components/shared/marketing/MarketingBowtieSVG.tsx to real implementation (consume hook useBowtieSummary, render 5 stages SVG pixel-invariante per mockup HTML).
+      NEW MarketingStageTabs.tsx (5 tabs · active state · count badges · KPI hero per active stage).
+      NEW MarketingLayout.tsx (orchestrates: bowtie sticky top + tabs + StageDispatcher).
+      NEW StageDispatcher.tsx (renders correct stage section by URL ?tab=).
+      NEW MarketingActivityFooter.tsx (Lucas analyzed X + sync c/4h + last_sync).
+      NEW app/marketing/page.tsx Server Component reading nuqs server-side.
+      Storybook stories for each component (per 03-arch-fe.md § 7).
+    acceptance:
+      test_paths:
+        - vitalia/frontend/src/features/marketing/__tests__/MarketingBowtieSVG.test.tsx
+        - vitalia/frontend/src/features/marketing/__tests__/MarketingLayout.test.tsx
+      validator_ids: [fe_typecheck_tsc, fe_lint_eslint, fe_arch_fitness, fe_test_marketing_unit]
+    gherkin_coverage:
+      - scenario: SC-MK-03 (Tab change Lucas re-render)
+        tests:
+          - vitalia/frontend/src/features/marketing/__tests__/MarketingStageTabs.test.tsx::test_tab_click_updates_url_replace
+          - vitalia/frontend/src/features/marketing/__tests__/MarketingStageTabs.test.tsx::test_active_tab_highlight_cian
+          - vitalia/frontend/src/features/marketing/__tests__/MarketingLayout.test.tsx::test_bowtie_sticky_top
+    blocked_by: [T-mk-fe-1]
+    state: pushed
+    pushed_sha: ac7b3e9
+
+  - id: T-mk-fe-3
+    sub_story: vitalia-slice-1-marketing
+    wave: 5
+    title: LucasStageRecommendationsCard + LucasRecommendationDetailModal + LucasApprovalModal + LucasUndoChip + LucasRejectModal
+    surface: frontend
+    owner_eligibility: [claude-sonnet-4-6]
+    production_code: false
+    estimated_loc: 1200
+    scope: |
+      Promote scaffold vitalia/frontend/src/components/shared/lucas-recommendations/LucasStageRecommendationsCard.tsx to real implementation (consume useLucasRecommendations, render top 3 cards sticky inline · "Ver todas" expand · click → DetailModal).
+      NEW LucasRecommendationDetailModal.tsx (analysis + projection + audit trail + action_payload preview + Aprobar/Rechazar/Posponer 7d).
+      NEW LucasApprovalModal.tsx (warning reversible · Idempotency-Key + useApproveRecommendation mutation · action receipt 5min countdown).
+      NEW LucasUndoChip.tsx (5min countdown timer reads marketing-store).
+      NEW LucasRejectModal.tsx (RHF + Zod reason enum · useRejectRecommendation).
+    acceptance:
+      test_paths:
+        - vitalia/frontend/src/features/marketing/__tests__/LucasStageRecommendationsCard.test.tsx
+        - vitalia/frontend/src/features/marketing/__tests__/LucasApprovalModal.test.tsx
+      validator_ids: [fe_typecheck_tsc, fe_lint_eslint, fe_arch_fitness, fe_test_marketing_unit]
+    gherkin_coverage:
+      - scenario: SC-MK-01 (Lucas approve happy)
+        tests:
+          - vitalia/frontend/src/features/marketing/__tests__/LucasStageRecommendationsCard.test.tsx::test_renders_top_3_cards
+          - vitalia/frontend/src/features/marketing/__tests__/LucasApprovalModal.test.tsx::test_approve_invokes_mutation_with_idempotency_key
+          - vitalia/frontend/src/features/marketing/__tests__/LucasApprovalModal.test.tsx::test_post_approve_shows_undo_chip_5min
+      - scenario: SC-MK-04 (RBAC denied UI)
+        tests:
+          - vitalia/frontend/src/features/marketing/__tests__/LucasApprovalModal.test.tsx::test_role_recepcion_disables_approve_button_with_tooltip
+    blocked_by: [T-mk-fe-1]
+    state: pushed
+    pushed_sha: "205e8d9"
+
+  - id: T-mk-fe-4
+    sub_story: vitalia-slice-1-marketing
+    wave: 5
+    title: AttributionMatrixWidget + ReferralsWidget + 5 stage section components (AttractionStage · QualificationStage · ReservationStage · AdoptionStage · ExpansionStage)
+    surface: frontend
+    owner_eligibility: [claude-sonnet-4-6]
+    production_code: false
+    estimated_loc: 1300
+    scope: |
+      Promote scaffold vitalia/frontend/src/components/shared/attribution/AttributionMatrixWidget.tsx (consume useAttributionMatrix · 4 origins × KPI columns · heatmap conv cells · top insight Lucas).
+      NEW ReferralsWidget.tsx (consume useReferrals · 3 KPIs hero · top 5 leaderboard · Adrián template CTA).
+      NEW 5 stage section components: each consumes useStageDetail + renders LucasStageRecommendationsCard + KPI hero + secondary surfaces (Attraction: ChannelBreakdown · Reservation: AttributionMatrix · Expansion: Referrals + NPS).
+    acceptance:
+      test_paths:
+        - vitalia/frontend/src/features/marketing/__tests__/AttributionMatrixWidget.test.tsx
+        - vitalia/frontend/src/features/marketing/__tests__/ReferralsWidget.test.tsx
+      validator_ids: [fe_typecheck_tsc, fe_lint_eslint, fe_arch_fitness, fe_test_marketing_unit]
+    gherkin_coverage:
+      - scenario: SC-MK-03 (Tab change re-render)
+        tests:
+          - vitalia/frontend/src/features/marketing/__tests__/ReservationStage.test.tsx::test_renders_attribution_matrix_inline
+          - vitalia/frontend/src/features/marketing/__tests__/ExpansionStage.test.tsx::test_renders_referrals_widget
+    state: pushed
+    pushed_sha: fc8f6aa
+    blocked_by: [T-mk-fe-2, T-mk-fe-3]
+
+  - id: T-mk-fe-5
+    sub_story: vitalia-slice-1-marketing
+    wave: 5
+    title: ChannelBreakdownRow + ChannelDetailSidebar + ChannelConnectionWizard + ConnectionBadge
+    surface: frontend
+    owner_eligibility: [claude-sonnet-4-6]
+    production_code: false
+    estimated_loc: 1000
+    scope: |
+      Promote scaffold vitalia/frontend/src/components/shared/channels/ChannelBreakdownRow.tsx to real implementation (consume useChannelDetail · render row per provider · click → ChannelDetailSidebar).
+      NEW ChannelDetailSidebar.tsx (3 sections simplificado: KPIs principales · campañas top 3 · Lucas recommendations canal-specific · cross-link external Meta/Google Ads Manager target=_blank).
+      NEW ChannelConnectionWizard.tsx (3 pasos: selector canal → OAuth redirect → confirm test sync · consume useSyncChannel + useApproveRecommendation pattern).
+      NEW ConnectionBadge.tsx (4 estados: idle/running/error/disconnected · color tokens vt-text-success/warning/danger).
+    acceptance:
+      test_paths:
+        - vitalia/frontend/src/features/marketing/__tests__/ChannelBreakdownRow.test.tsx
+        - vitalia/frontend/src/features/marketing/__tests__/ChannelConnectionWizard.test.tsx
+      validator_ids: [fe_typecheck_tsc, fe_lint_eslint, fe_arch_fitness, fe_test_marketing_unit]
+    gherkin_coverage:
+      - scenario: SC-MK-02 (Meta sync degraded UI)
+        tests:
+          - vitalia/frontend/src/features/marketing/__tests__/ChannelBreakdownRow.test.tsx::test_shows_warning_badge_when_sync_error
+          - vitalia/frontend/src/features/marketing/__tests__/ChannelBreakdownRow.test.tsx::test_shows_last_known_metrics_with_timestamp
+          - vitalia/frontend/src/features/marketing/__tests__/ChannelBreakdownRow.test.tsx::test_retry_sync_button_invokes_useSyncChannel
+    blocked_by: [T-mk-fe-2]
+    state: pushed
+    pushed_sha: b8edd54
+
+# ════════════════════════════════════════════════════════════════════════
+# WAVE 6 — E2E + visual regression + perf + a11y
+# ════════════════════════════════════════════════════════════════════════
+  - id: T-mk-fe-6
+    sub_story: vitalia-slice-1-marketing
+    wave: 6
+    title: Storybook stories complete + Chromatic visual regression baselines (~71 visual baselines per 02-design-ui.md § 8)
+    surface: frontend
+    owner_eligibility: [claude-sonnet-4-6]
+    production_code: false
+    estimated_loc: 600
+    scope: |
+      Storybook stories per 03-arch-fe.md § 7 — every NEW component variant.
+      Run Chromatic --auto-accept-changes=false to publish baseline preview.
+      Chris approves baselines pre-merge.
+    acceptance:
+      test_paths:
+        - vitalia/frontend/src/features/marketing/components/**/*.stories.tsx
+      validator_ids: [visual_regression_bowtie_svg, fe_arch_fitness]
+    gherkin_coverage:
+      - scenario: All SC-MK-01..04 (visual baselines per scenario)
+        tests:
+          - chromatic://vitalia-marketing-baselines  # external service
+    state: pushed
+    pushed_sha: 5b8b0d2
+    chromatic_baseline_pending: true
+    chromatic_note: "CHROMATIC_PROJECT_TOKEN not set. 13 story files written. Local BowtieSVG regression test: 8/8 PASS. Chromatic baselines pending Chris ratification at merge."
+    blocked_by: [T-mk-fe-2, T-mk-fe-3, T-mk-fe-4, T-mk-fe-5]
+
+  - id: T-mk-fe-7
+    sub_story: vitalia-slice-1-marketing
+    wave: 6
+    title: E2E smoke + a11y + perf budget Lighthouse + bundle size check
+    surface: frontend
+    owner_eligibility: [claude-sonnet-4-6]
+    production_code: false
+    estimated_loc: 500
+    scope: |
+      vitalia/frontend/e2e/specs/smoke/marketing.smoke.spec.ts (per FE arch § 10 — happy paths).
+      vitalia/frontend/e2e/specs/a11y/marketing.a11y.spec.ts (Axe WCAG 2.1 AA).
+      vitalia/frontend/scripts/check-bowtie-bundle.mjs (size budget < 30KB gzipped).
+      Lighthouse CI assertions LCP<2.5s · INP<200ms · CLS<0.1.
+      vitalia/frontend/e2e/pages/marketing.page.ts POM.
+    acceptance:
+      test_paths:
+        - vitalia/frontend/e2e/specs/smoke/marketing.smoke.spec.ts
+        - vitalia/frontend/e2e/specs/a11y/marketing.a11y.spec.ts
+      validator_ids: [e2e_smoke_marketing, visual_a11y_axe, visual_perf_budget_lighthouse, visual_bowtie_bundle_size]
+    gherkin_coverage:
+      - scenario: SC-MK-01 (Lucas approve E2E)
+        tests:
+          - vitalia/frontend/e2e/specs/smoke/marketing.smoke.spec.ts::test_lucas_approval_modal_opens_closes_no_confirm
+      - scenario: SC-MK-03 (Tab change E2E)
+        tests:
+          - vitalia/frontend/e2e/specs/smoke/marketing.smoke.spec.ts::test_tab_change_updates_url_re_renders
+    blocked_by: [T-mk-fe-2, T-mk-fe-3, T-mk-fe-4, T-mk-fe-5]
+    state: pushed
+    pushed_sha: "145a854"
+    defer_validators:
+      - id: e2e_smoke_marketing
+        reason: "Turbopack dev server drops connections during concurrent Playwright browser requests to /marketing (ERR_EMPTY_RESPONSE on lazy compile). Route serves via curl. CI gate where server pre-built."
+      - id: visual_a11y_axe
+        reason: "Depends on e2e_smoke_marketing — same Turbopack connection issue. CI gate."
+      - id: visual_perf_budget_lighthouse
+        reason: "Requires LHCI + pre-warmed server. CI gate (lhci autorun in ci.yml targets LHCI_URL)."
+      - id: visual_bowtie_bundle_size
+        reason: ".next/static/chunks owned by root (Docker dev server). Native next build blocked EACCES. CI gate where build runs as CI user."
+
+# ════════════════════════════════════════════════════════════════════════
+# Wave summary
+# ════════════════════════════════════════════════════════════════════════
+# Wave 1 (BE foundation): T-mk-be-1, T-mk-be-2                                          (~2-3 days)
+# Wave 2 (BE services + adapters): T-mk-be-3, T-mk-be-4                                 (~3-4 days)
+# Wave 3 (BE API + crons): T-mk-be-5, T-mk-be-6                                         (~3-4 days)
+# Wave 4 (FE foundation): T-mk-fe-1                                                     (~2 days)
+# Wave 5 (FE components NEW SIMPLE — no growth-studio reuse): T-mk-fe-2..5             (~5-7 days)
+# Wave 6 (E2E + visual + perf + a11y): T-mk-fe-6, T-mk-fe-7                            (~3-4 days)
+# ────────────────────────────────────────────────────────────────────
+# TOTAL: 13 tickets, ~18-24 wall days (Ola 2 parallel with vitalia-slice-1-pipeline)
+# Estimated 3-4 weeks wall clock per cross-story handoff Ola 2 estimate

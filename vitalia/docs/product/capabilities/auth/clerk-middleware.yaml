@@ -1,0 +1,200 @@
+---
+capability_id: vitalia.auth.clerk-middleware
+module: auth
+slug: clerk-middleware
+status: live
+date_introduced: 2026-05-18
+story_introduced: vitalia-auth-base-functional
+package_version: vitalia-frontend@0.1.0
+package_path: vitalia/frontend/src/proxy.ts
+license: proprietary
+
+# v3 cement 2026-05-27 · 4 dimensiones + dev_preview (ADR-vitalia-005)
+tech_module: auth
+agent_owner: acceso
+functional_area: acceso.auth
+user_visible: true
+nature: feature
+ui_paradigm: shell-organism  # T-3 reconcile 2026-05-29
+
+user_facing_name: "Middleware Clerk para autenticación"
+user_facing_description: >
+  Capa de protección que verifica la sesión del usuario en cada solicitud a la
+  aplicación. Si el usuario no está autenticado y accede a una ruta protegida,
+  lo redirige automáticamente a la página de inicio de sesión. Las rutas públicas
+  (landing pública, webhooks, health) quedan disponibles sin autenticación.
+
+dev_preview:
+  route: "/sign-in"
+  how_to_navigate: "Abrir cualquier ruta protegida sin sesión → el middleware redirige a /sign-in automáticamente"
+  main_component: "vitalia/frontend/src/proxy.ts"
+  api_endpoints: []
+  e2e_test: "vitalia/frontend/e2e/auth/sign-in-redirect.spec.ts"
+  fixtures_required: []
+  storybook_url: null
+  loom_demo: null
+
+# Capability ledger v2 (cement 2026-05-27)
+created_in_story: vitalia-auth-base-functional   # v2 cement · mirror of story_introduced
+created_date: 2026-05-18   # v2 cement · mirror of date_introduced
+last_modified: 2026-06-15   # bugfix-root-login-redirect-softnav (edge-redirect root / en proxy)
+parent_cap: null   # v2 cement · mirror of extends_capability
+derives_capabilities: []   # v2 cement · initial empty list
+
+# Capability ledger v2 (cement 2026-05-27)
+
+# Capability change log v2 (cement 2026-05-27)
+change_log:
+  - story_id: vitalia-bugfix-shell-nav-scroll-errors
+    date: 2026-06-03
+    type: fix
+    summary: "Bug#1 hardening (story bugfix shell): el proxy ahora hace edge-redirect HTTP 307 de bare /{tenant} → /{tenant}/{DEFAULT_LANDING_SUBPATH} vía bareTenantLandingRedirect() (UUID-only, no toca sign-in/sign-out/marketing). Evita que el Server Component (shell-organism)/page.tsx haga una soft-navigation intra-route-group que dispara 'Rendered more hooks' en el Router de Next 16.2.3 (~40% flake en el landing). Live-verified dev-app: /{tenant} → mateo/agenda limpio."
+    merge_sha: null
+    status: done
+  - story_id: vitalia-auth-base-functional
+    date: 2026-05-18
+    type: new
+    summary: "Implementación inicial · migración legacy a schema v2"
+    merge_sha: null
+    status: done
+  - story_id: vitalia-bugfix-root-login-redirect-softnav
+    date: 2026-06-15
+    type: fix
+    summary: >-
+      Post-login se colgaba en / ("rendering", Next 16 soft-nav → ssr:false shell). Edge-redirect
+      307 del root / en proxy.ts (scoped pathname==='/' autenticado, tenant via clerkClient
+      publicMetadata) → mata el soft-nav, igual patrón que el edge-redirect bare-tenant (bug#1).
+      chris_verify SATISFIED + Playwright 8/8 determinístico (0× 'Rendered more hooks'). Commit a4345e74.
+    scenarios_added: []
+    merge_sha: null
+    status: done
+
+access:
+  entry_points:
+    - path: "/sign-in"
+      navigation: "Acceder a cualquier ruta protegida sin sesión activa → middleware redirige automáticamente a /sign-in"
+      requires_role: []
+      requires_clinic_scope: false
+      entry_type: ui
+  forbidden_roles: []
+  authentication: none
+
+scenarios:
+  - id: usuario-sin-sesion-redirigido
+    name: "Usuario sin sesión es redirigido a /sign-in al acceder ruta protegida"
+    actor: doctor
+    status: live
+    given: "Usuario no autenticado intenta acceder a /valeria/agenda"
+    when: "Request llega al middleware Clerk"
+    then: "Clerk redirige con 302/307 a /sign-in · URL de retorno preservada en parámetro redirectUrl"
+    e2e_test: "vitalia/frontend/e2e/auth/sign-in-redirect.spec.ts"
+    story_spec_ref: "vitalia/docs/archive/2026/stories/vitalia-auth-base-functional/01-spec.md"
+    atomic_ref: null
+    edge_cases:
+      - "Ruta _next o assets estáticos → bypasan el middleware sin redirección"
+      - "Ruta /api/v1/vitalia/webhooks → pública (HMAC validado server-side independiente)"
+      - "Ruta /public/{clinic-slug} → pública sin auth (landing pública)"
+    added_in_story: vitalia-auth-base-functional
+    added_date: 2026-05-18
+  - id: usuario-autenticado-accede-ruta
+    name: "Usuario con sesión válida accede a ruta protegida"
+    actor: admin_clinic
+    status: live
+    given: "Admin con sesión Clerk activa y clinic_scope válido"
+    when: "Accede a /lisa/marca"
+    then: "Middleware valida sesión · pasa request al handler · shell carga correctamente"
+    e2e_test: "vitalia/frontend/e2e/auth/sign-in-redirect.spec.ts"
+    story_spec_ref: "vitalia/docs/archive/2026/stories/vitalia-auth-base-functional/01-spec.md"
+    atomic_ref: null
+    edge_cases:
+      - "Token Clerk expirado → middleware redirige a /sign-in con preservación de URL"
+      - "RBAC se realiza en route handlers / page level, NO en el middleware"
+    added_in_story: vitalia-auth-base-functional
+    added_date: 2026-05-18
+
+business_rules:
+  - id: default-deny-all-routes
+    rule: "Todas las rutas son protegidas por defecto · solo las rutas explícitamente listadas en createRouteMatcher son públicas"
+    enforcement:
+      - ".claude/rules/tenant-isolation.md"
+    code_ref: "vitalia/frontend/src/proxy.ts"
+    severity: critical
+    audit_trail: false
+  - id: rbac-not-in-middleware
+    rule: "El middleware NO realiza RBAC · auth.protect() delegado 100% a Clerk · RBAC se aplica en route handlers o page level"
+    enforcement:
+      - ".claude/rules/tenant-isolation.md"
+    code_ref: "vitalia/frontend/src/proxy.ts"
+    severity: high
+    audit_trail: false
+  - id: webhook-routes-public
+    rule: "Rutas /api/v1/vitalia/webhooks/* son públicas en middleware · seguridad garantizada por HMAC signature + timestamp window 5min server-side"
+    enforcement:
+      - "vitalia/.claude/rules/hipaa-lite.md"
+    code_ref: "vitalia/frontend/src/proxy.ts"
+    severity: high
+    audit_trail: false
+
+related_capabilities:
+  depends_on: []
+  enables:
+    - shell-organism.shell-vitalia
+    - iam.luana-core-adoption
+    - scheduling.mateo-agenda
+    - brand_studio.lisa-marca
+    - compliance.hipaa-lite-defensive-stack
+    - public_landing.public-clinic-landing
+  similar: []
+  obsoletes: []
+map_box: acceso
+
+---
+
+# Clerk middleware — Vitalia FE
+
+Protección de rutas mediante `clerkMiddleware` + `createRouteMatcher`. Default deny — todo route protegido excepto los explícitamente públicos.
+
+## Surfaces
+
+- **Config:** `vitalia/frontend/src/proxy.ts`
+- **Backend:** n/a (FE only)
+- **Frontend:** `vitalia/frontend/src/proxy.ts` ejecuta en edge runtime de Next.js 16
+- **Tests:** `vitalia/frontend/src/__tests__/architecture/` (arch fitness ratchet)
+- **Docs:** Story 01-spec.md SC-01, SC-02
+
+## Rutas públicas (matcher)
+
+- `/sign-in(.*)` — Clerk SignIn page
+- `/sign-up(.*)` — Clerk SignUp page
+- `/public(.*)` — Landing pública por clínica (futuro Slice 1)
+- `/api/v1/vitalia/webhooks(.*)` — Webhooks BE (HMAC validation server-side)
+- `/api/health` — Health check endpoint
+
+## Comportamiento
+
+- Sin sesión + ruta protegida → Clerk redirige a `/sign-in` (302/307)
+- Con sesión + ruta protegida → pasa a handler
+- Ruta pública → bypass middleware
+- Matcher excluye `_next` y static assets (`/((?!_next|.*\\..*).*)`)
+
+## Verification
+
+```yaml
+commands:
+  - "cd vitalia/frontend && npx tsc --noEmit"
+  - "cd vitalia/frontend && npx eslint src/middleware.ts --max-warnings=0"
+gherkin_evidence:
+  - SC-01: "vitalia/frontend/e2e/auth/sign-in-redirect.spec.ts::SC-01 (PENDING_DEPLOY)"
+  - SC-02: "vitalia/frontend/e2e/auth/sign-in-redirect.spec.ts::SC-02 (PASS 2026-05-18)"
+```
+
+## Dependencies
+
+- `@clerk/nextjs` (version locked in package.json)
+- Existing Clerk dev keys (`NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`, `CLERK_ISSUER`)
+
+## Notes
+
+- `auth.protect()` delegado 100% a Clerk — sin redirect manual ni RBAC.
+- RBAC se hace en route handlers / page level, no middleware.
+- T-1 commit e80c806.

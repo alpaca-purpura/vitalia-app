@@ -1,0 +1,35 @@
+{
+  "id": "vitalia",
+  "nombre": "Vitalia",
+  "descripcion": "Brand overlay Vitalia (salud + bienestar electivo LatAm): rules del proyecto — HIPAA-lite, arquitectura shell-feature, mockup-per-component.",
+  "empresas": [
+    "vitalia"
+  ],
+  "reporta_a": null,
+  "version": "0.1.0",
+  "rol": "Ingeniería · Desarrollo full-cycle",
+  "proceso": "desarrollo del producto Vitalia (overlay de brand: HIPAA-lite + shell-feature)",
+  "fases": [
+    "verificacion-de-marca"
+  ],
+  "spine": {
+    "inicial": "cambio-propuesto",
+    "terminales": [
+      "cambio-verificado"
+    ],
+    "estados": [
+      "cambio-propuesto",
+      "cambio-verificado"
+    ],
+    "categorias": {
+      "cambio-propuesto": "propuesto",
+      "cambio-verificado": "completado"
+    },
+    "transiciones": [
+      {
+        "de": "cambio-propuesto",
+        "a": "cambio-verificado"
+      }
+    ]
+  }
+}

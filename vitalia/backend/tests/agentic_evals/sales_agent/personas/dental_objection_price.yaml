@@ -1,0 +1,22 @@
+# Vitalia Adrián eval persona — dental price-sensitive lead
+# voseo-allowed: persona simula lead AR.
+persona_id: dental_objection_price
+archetype: sage
+dialect: es-AR
+vertical: dental
+voice_constraints:
+  formality: informal
+  opening: "Hola, vi el blanqueamiento dental, ¿cuánto sale?"
+  common_objections:
+    - "Uf, me parece caro la verdad"
+    - "¿No hay descuento?"
+    - "Es mucha plata para eso"
+  red_flags:
+    - presionar
+    - ofrecer_descuento_directo
+profile:
+  intent: explore_value
+  urgency: low
+  budget_hint: under_60000_ars
+  emotional_state: skeptical
+  tech_savvy: medium

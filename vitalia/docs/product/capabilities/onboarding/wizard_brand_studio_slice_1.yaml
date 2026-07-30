@@ -1,0 +1,200 @@
+---
+capability_id: wizard-brand-studio-slice-1
+module: onboarding
+slug: wizard-brand-studio-slice-1
+status: deprecated
+date_introduced: 2026-05-18
+story_introduced: vitalia-slice-1-onboarding-wizard
+package_version: 0.2.0
+package_path: vitalia/backend/src/modules/vitalia/copilot/ + vitalia/frontend/src/features/onboarding/
+license: proprietary
+brand: vitalia
+vertical: salud-bienestar
+
+# v3 cement 2026-05-27 · 4 dimensiones + dev_preview (ADR-vitalia-005)
+tech_module: onboarding
+agent_owner: onboarding
+functional_area: onboarding.onboarding_clinic
+user_visible: true
+nature: feature
+ui_paradigm: slice-1-superseded  # T-3 reconcile 2026-05-29
+replaced_by_story: vitalia-fase2-lisa-marca  # T-3: story F2 que reconstruye esta cap
+
+user_facing_name: "Wizard del Brand Studio · slice 1"
+user_facing_description: >
+  Wizard conversacional que el dueño de la clínica completa justo después del
+  onboarding inicial. Valeria conduce la conversación y va extrayendo nombre de
+  la clínica, lema, servicios clave, tono de voz y datos de contacto. El proceso
+  toma entre 10 y 20 minutos y deja el tenant con su identidad de marca configurada
+  y listo para usar el agente vendedor Adrián.
+
+dev_preview:
+  route: "/onboarding/wizard"
+  how_to_navigate: "Completar onboarding 3-pasos → el sistema redirige a /onboarding/wizard con Valeria activa"
+  main_component: "vitalia/frontend/src/features/onboarding/components/WizardOnboardingLayout.tsx"
+  api_endpoints:
+    - "GET /api/v1/vitalia/copilot/wizard/drafts/{draft_id}"
+    - "POST /api/v1/vitalia/copilot/wizard/drafts/{id}/extract"
+    - "POST /api/v1/vitalia/copilot/wizard/drafts/{id}/complete"
+  e2e_test: "vitalia/frontend/e2e/specs/vitalia/wizard-onboarding.smoke.spec.ts"
+  fixtures_required: []
+  storybook_url: null
+  loom_demo: null
+
+# Capability ledger v2 (cement 2026-05-27)
+created_in_story: vitalia-slice-1-onboarding-wizard   # v2 cement · mirror of story_introduced
+created_date: 2026-05-18   # v2 cement · mirror of date_introduced
+last_modified: 2026-05-29   # T-3 reconcile 2026-05-29
+parent_cap: null   # v2 cement · mirror of extends_capability
+derives_capabilities: []   # v2 cement · initial empty list
+
+# Capability ledger v2 (cement 2026-05-27)
+
+# Capability change log v2 (cement 2026-05-27)
+change_log:
+  - story_id: vitalia-slice-1-onboarding-wizard
+    date: 2026-05-18
+    type: new
+    summary: "Implementación inicial · migración legacy a schema v2"
+    merge_sha: null
+    status: done
+map_box: onboarding
+
+---
+
+# Wizard Brand Studio Onboarding — Slice 1
+
+> Wizard conversacional agentic chat-LEFT 50/50 con Valeria + voz Adrián REAL backend wire + slot-filling adaptativo NLU + extracción URL/doc (audio Whisper DEFERRED Slice 2 per Chris OQ-3 2026-05-18).
+
+## Goal
+
+Primer login Owner Vitalia → asistente Valeria conduce setup conversacional 5 slots (3 required: name + vertical + location · 2 opcionales: brand.tone_default + offer[0]) + bonus NLU extraídos (team + values + differentiators + contact + offer_catalog_full) en ~10-20 minutos. Voz Adrián simulada REAL (no stub) desde primer setup via personality_service backend. Salida del wizard → app shell operación con tenant.is_onboarded=True.
+
+## Surfaces
+
+### Backend (vitalia/backend/src/modules/vitalia/copilot/)
+
+- **Domain**:
+  - `domain/entities/onboarding_draft.py` (existing — extended)
+  - `domain/entities/brand_studio_draft.py` (NEW)
+  - `domain/entities/wizard_slot.py` (existing)
+  - `domain/repositories/onboarding_progress_repository.py` (NEW interface)
+  - `domain/repositories/brand_studio_draft_repository.py` (NEW interface)
+- **Infrastructure**:
+  - `infrastructure/repositories/onboarding_progress_repository.py` (NEW SqlAlchemy impl)
+  - `infrastructure/repositories/brand_studio_draft_repository.py` (NEW SqlAlchemy impl)
+  - `infrastructure/providers/website_scraper.py` (existing)
+  - `infrastructure/providers/document_extractor.py` (existing)
+- **Persistence**:
+  - `persistence/models/onboarding_progress_model.py` (NEW SQLA 2.0 mapped_column)
+  - `persistence/models/brand_studio_draft_model.py` (NEW SQLA 2.0 mapped_column)
+- **Application services** (all existing post copilot-tools-impl, wire-up only):
+  - `application/services/extract_tenant_context_service.py`
+  - `application/services/onboarding_draft_service.py`
+  - `application/services/simulate_personality_service.py` (throttle 5/min + cache 10min TTL)
+  - `application/services/complete_onboarding_service.py`
+  - `application/services/wizard_orchestrator_service.py`
+  - `application/services/live_preview_service.py` (NEW — orchestrates simulate + landing HTML)
+- **Tools** (existing — R23 OPT-OUT smoke regression):
+  - `tools/extract_tenant_context.py` (134 LOC, @tool, Pydantic v2)
+  - `tools/confirm_slot.py` (123 LOC)
+  - `tools/simulate_personality.py` (112 LOC)
+  - `tools/complete_onboarding.py` (98 LOC)
+- **Workflows** (existing — R23 OPT-OUT regression):
+  - `workflows/wizard_onboarding_state.py` (TypedDict + max-iter 25 guard)
+  - `workflows/wizard_onboarding_graph.py` (StateGraph supervisor + extract_subagent deepagents)
+  - `workflows/wizard_prompt_compiler.py` (5-slot 0-indexed, _CACHE_BREAKPOINT_INDEX=3)
+  - `workflows/wizard_checkpoint_config.py` (AsyncPostgresSaver)
+- **API routes**:
+  - `api/routes/wizard_onboarding_routes.py` (7 endpoints, DI swap AsyncMock → real T-3)
+
+### Database (Postgres)
+
+- `vitalia_onboarding_progress` (migration 011 — existing) — wizard step state
+- `vitalia_brand_studio_drafts` (migration 012 — existing) — partial brand voice + payload pre-commit
+- `tenants` columns: `is_onboarded`, `location_country`, `location_city`, `timezone` (migration 014 — existing)
+- `vitalia_wizard_onboarding_checkpoints` (migration 020 — existing) — LangGraph AsyncPostgresSaver canonical table
+
+### Frontend (vitalia/frontend/src/features/onboarding/)
+
+- **Page**: `app/onboarding/wizard/page.tsx` (Server Component entry)
+- **Layout**: `components/WizardOnboardingLayout.tsx` (chat-LEFT 50% + preview-RIGHT 50%, responsive collapse)
+- **Components** (9):
+  - `WizardChatThread.tsx` (adapter on chat-thread)
+  - `SlotTrackerSticky.tsx` (sticky top showing slots confirmed/pending)
+  - `ModeSelector.tsx` (URL / Documento / Audio[DISABLED tooltip "Disponible próximamente"])
+  - `SlotConfirmInline.tsx` (inline confirm + edit)
+  - `LiveWhatsAppPreview.tsx` (right panel WhatsApp preview)
+  - `LiveLandingSnippetPreview.tsx` (right panel landing HTML preview)
+  - `CloseSetupWarningModal.tsx` (AlertDialog)
+  - `WizardCompletionTransition.tsx` (morph 400ms → completion)
+  - `VitaliaLogo.tsx` (inline component inside layout — TopBar logo + title + subtitle)
+- **Hooks** (6):
+  - `use-wizard-onboarding-state.ts` (TanStack Query GET /drafts/{draft_id})
+  - `use-wizard-slot-extraction.ts` (mutation POST /drafts/{id}/extract)
+  - `use-wizard-live-preview.ts` (mutation POST /drafts/{id}/simulate)
+  - `use-wizard-completion.ts` (mutation POST /drafts/{id}/complete)
+  - `use-wizard-sse-stream.ts` (EventSource GET /drafts/{id}/stream)
+  - `use-wizard-url-state.ts` (nuqs URL state ?draft_id=&step=)
+- **API**: `api/wizard-onboarding-api.ts` (typed wrappers around fetchClient con X-Tenant-ID auto)
+- **Types**: `types/wizard-onboarding.types.ts` (mirror BE Pydantic DTOs camelCase, Zod schemas)
+- **Config**: `config/copy.ts` (Spanish neutro tuteo, 0 voseo)
+
+### Tests (54 FE onboarding + 50+ BE onboarding + 16 wizard goldens + 5 E2E)
+
+- **FE Vitest** (54/54):
+  - `__tests__/components/CloseSetupWarningModal.test.tsx` (11)
+  - `__tests__/components/ModeSelector.test.tsx` (8)
+  - `__tests__/components/SlotTrackerSticky.test.tsx` (8)
+  - `__tests__/components/WizardCompletionTransition.test.tsx` (10)
+  - `__tests__/hooks/use-wizard-onboarding-state.test.ts` (5)
+  - `__tests__/hooks/use-wizard-sse-stream.test.ts` (7)
+  - `__tests__/hooks/use-wizard-url-state.test.ts` (5)
+- **BE pytest** (50+):
+  - `tests/modules/vitalia/copilot/infrastructure/repositories/test_onboarding_progress_repository.py` (~13)
+  - `tests/modules/vitalia/copilot/infrastructure/repositories/test_brand_studio_draft_repository.py` (~14)
+  - `tests/modules/vitalia/copilot/application/services/test_live_preview_service.py` (4)
+  - `tests/modules/vitalia/copilot/api/routes/test_wizard_onboarding_routes.py` (9)
+  - `tests/modules/vitalia/copilot/tools/test_wizard_tools_wiring.py` (6, R23 OPT-OUT)
+  - `tests/integration/copilot/test_wizard_onboarding_graph_e2e.py` (5)
+- **Agentic eval pass^k** (16 trials):
+  - `tests/agentic_evals/copilot/test_wizard_pass_k_evaluation.py` (4 goldens × k=3)
+  - `tests/agentic_evals/copilot/test_wizard_goldens_post_fe_wire.py` (4 smoke regression)
+- **E2E Playwright LIVE** (5/5 V-WIZ-1..V-WIZ-5):
+  - `vitalia/frontend/e2e/specs/vitalia/wizard-onboarding.smoke.spec.ts`
+  - `vitalia/frontend/e2e/pages/wizard-onboarding.page.ts` (POM)
+
+## KPIs (Slice 1 target)
+
+- **Wizard completion rate**: target ≥95% of Owner first-login sessions reach `tenant.is_onboarded=True` within 20 minutes
+- **Cost per session**: ≤$0.10 USD (LLM-token costs including extract + simulate + complete)
+- **Cache hit rate**: ≥30% on iter 2+ within same wizard session (prompt cache 5-slot architecture, _CACHE_BREAKPOINT_INDEX=3)
+- **PII safety**: 100% of `adversarial.yaml` golden scenarios sanitize PII pre-trace (sanitize_payload)
+- **Voice fidelity**: Adrián grader ≥0.85 on `simulate_personality` samples (heredado sales_agent 12 personas evaluation)
+
+## Dependencies (cross-package)
+
+- `core/luana-core-brand-studio/` (style_analyzer LangGraph + personality_service + voice_fidelity grader + brand_data_adapter)
+- `core/luana-core-copilot/` (engine recording + observability + extension SDK)
+- `core/luana-core-observability/` (BaseCallbackHandler + sanitize_payload + cost_recorder)
+- `core/luana-core-extension-sdk/` (EP-3 tool registration, EP-4 graph topology)
+- `core/luana-core-platform/` (tenant locale + AsyncSession + outbox)
+
+## Acceptance criteria (Gherkin scenarios — all PASS post-merge)
+
+- SC-W1 happy URL extraction + slot-filling + simulate + complete (k=3 ✅)
+- SC-W2 negative incomplete input + re-prompts (k=3 ✅)
+- SC-W3 edge browser close + resume via AsyncPostgresSaver (k=3 + integration ✅)
+- SC-W4 adversarial PII/XSS sanitization (k=3 ✅)
+- E2E V-WIZ-1..V-WIZ-5 Playwright LIVE (5/5 ✅)
+
+## Limitations + roadmap
+
+- **Audio Whisper STT**: DEFERRED Slice 2 (per Chris OQ-3 2026-05-18). Currently `extract_tenant_context` ships con URL + text_content únicamente. Audio adapter wire-up + tenant feedback evaluation post Slice 1.
+- **Voice cloning Premium audio**: DEFERRED (ratified D8 — sales_agent voice via personality_service.simulate suffices Slice 1; Premium audio voice cloning Slice 2+)
+- **Multi-tenant company group**: DEFERRED Slice 2 (single-tenant clinic per onboarding session in Slice 1)
+- **Wizard guiado video Valeria TTS**: DEFERRED Slice 2 (text-only conversational Slice 1)
+- **Auto-import patients CSV**: DEFERRED Slice 2
+- **A/B test variants**: DEFERRED Slice 2
+
+16 ideas Slice 2+ documentadas en `01-spec.md` § Slice 2+ — Wizard Brand Studio.

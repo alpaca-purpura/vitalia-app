@@ -1,0 +1,230 @@
+# arquitectura.yaml — el modelo de LA CÉLULA DevHub (P2) como dato (arquitectura-como-dato · I-73 replicado — DH-06)
+#
+# QUÉ ES: el mismo patrón de products/cockpit/arquitectura.yaml (CK-07), para P2. Modela el
+# estado ACTUAL de la consola de delivery (DH-03): binario Go `cockpit` (rename pendiente DH-01)
+# + UI Next embebida + la Torre de Control (DH-05) + el board SDD que F4 convertirá en instancia
+# del descriptor. Curado a eventos de decisión: cada elemento lleva `fichas:` (DH-NN de esta
+# célula, o I-NN/CK-NN cuando cruza). NO se cosecha — su SSoT son las fichas del ledger.
+#
+# QUIÉN LO CONSUME: tooling/scripts/check_arquitectura_celula.py VALIDA (fichas resuelven ·
+# joins · enums del harness-descriptor · rutas) — check-only. El RENDER es la propia torre de
+# DevHub (lente arquitectura, RN-20..RN-26 de specs/torre-arquitectura.md): cada producto SU
+# renderizador (I-75) — este modelo NO emite data.js al shell de P4.
+#
+# CÓMO SE MANTIENE: al firmar una ficha DH-NN que cambia esto, se edita ESTE archivo en el
+# MISMO evento (misma disciplina que I-73). El gate (gen_all.py --check) bloquea fichas rotas.
+
+meta:
+  id: devhub-p2
+  clase: modelo   # I-75 — discriminador de render (RN-22); explícito = dogfood del contrato
+  nombre: "Arquitectura de la célula — DevHub (P2)"
+  version: 0.1.0
+  proposito: >-
+    DevHub = la consola de delivery gobernada por proceso (norte v3, DH-03): proceso-como-dato ·
+    contexto as-code · orquestación de sesiones. Hoy construido: el visor SDD heredado (DH-01),
+    el binario `cockpit` con UI Next embebida, y la Torre de Control read-only (DH-05) — registro
+    3 bandas + colectores 2 ejes (REPO × PROYECTO) + lente arquitectura (DH-06). El board SDD corre
+    sobre la instancia 1 del descriptor de proceso (F4 · I-77/DH-07) y el cockpit de delivery lanza
+    sesiones de agente parametrizadas por ese descriptor con contexto as-code inyectado, vía un
+    sidecar Node supervisado — embrión del instalable (F5 · DH-08).
+
+# ---- PLANOS = las bandas del render ----
+planos:
+  - { id: actores,   nombre: "Roles",                   sub: "quién usa DevHub — operador/CTO global · developer restringido (DH-01)" }
+  - { id: consola,   nombre: "Consola (binario + UI)",   sub: "el runtime N5: binario Go `cockpit` + UI Next embebida vía go:embed" }
+  - { id: torre,     nombre: "Torre de Control",         sub: "la primera vista: registro 3 bandas · colectores 2 ejes · lente arquitectura (DH-04..DH-06)" }
+  - { id: proceso,   nombre: "Proceso SDD",              sub: "board de 10 estados (G1-G8) sobre la instancia 1 del descriptor (I-77/DH-07) + cockpit de delivery: el descriptor parametriza sesiones de agente (DH-08)" }
+  - { id: fronteras, nombre: "Fronteras / contratos",    sub: "cómo DevHub habla con otras células: artefactos gated + Pull API diseñada (CK-08)" }
+
+# ---- TIPOS ----
+tipos:
+  - { id: actor,           label: "Actor (rol humano)" }
+  - { id: modulo,          label: "Módulo de código (Go/TS)" }
+  - { id: vista,           label: "Vista / UI" }
+  - { id: contrato,        label: "Contrato / frontera explícita" }
+  - { id: servicio,        label: "Servicio / runtime" }
+  - { id: sistema-externo, label: "Sistema de otra célula" }
+
+# ---- COMPONENTES ----
+componentes:
+
+  # — actores —
+  - id: rol-operador
+    tipo: actor
+    plano: actores
+    nombre: "Operador / CTO"
+    estado: activo
+    fichas: [DH-01]
+    proposito: "Visión global del ciclo de desarrollo: todas las células, todos los repos, la torre completa."
+  - id: rol-developer
+    tipo: actor
+    plano: actores
+    nombre: "Developer"
+    estado: declarado
+    fichas: [DH-01]
+    proposito: "Restringido a lo asignado (roles/auth = delta hacia la visión, sin construir)."
+
+  # — consola —
+  - id: binario-cockpit
+    tipo: servicio
+    plano: consola
+    nombre: "Binario `cockpit` (rename pendiente)"
+    estado: activo
+    ruta: products/devhub/go
+    fichas: [DH-01]
+    proposito: "El runtime N5: daemon HTTP multi-workspace, 27+ rutas, UI embebida. El nombre `cockpit` es herencia pre-split — rename comercial pendiente (DH-01)."
+  - id: ui-next
+    tipo: modulo
+    plano: consola
+    nombre: "UI Next per-sistema"
+    estado: activo
+    ruta: products/devhub/ui
+    fichas: [DH-01, CK-08]
+    proposito: "Static export embebido vía go:embed. 100% lente sistema desde CK-08 — cero route-group ni import cruzado con Cockpit."
+
+  # — torre de control —
+  - id: registro-sistemas
+    tipo: contrato
+    plano: torre
+    nombre: "Registro de sistemas — 3 bandas"
+    estado: activo
+    ruta: products/devhub/scripts/gen_registro.py
+    fichas: [DH-04, DH-05]
+    proposito: "Espejo del corte OBS-15: curado en la EMPRESA (slugs/refs, jamás rutas — I-39) × config del operador → wire ~/.cockpit/cockpit.yaml; fábrica solo contrato/check/fixture."
+  - id: torre-colectores
+    tipo: modulo
+    plano: torre
+    nombre: "Colectores 2 ejes (torre.go)"
+    estado: activo
+    ruta: products/devhub/go/torre.go
+    fichas: [DH-05]
+    proposito: "Eje REPO (rama · en-vuelo · último tag · gate de fábrica, worktree-aware) × eje PROYECTO (ledger · board · arquitectura). Categorías fijas + nativo al lado; no-medido ≠ rojo."
+  - id: torre-api
+    tipo: contrato
+    plano: torre
+    nombre: "GET /api/torre"
+    estado: activo
+    fichas: [DH-05]
+    proposito: "El shape RN-15: sistemas[] con los 2 ejes + generado_en. Extensiones solo ADITIVAS (la lente arquitectura entró así — RN-25)."
+  - id: torre-vista
+    tipo: vista
+    plano: torre
+    nombre: "Vista /torre (omnigent)"
+    estado: activo
+    ruta: products/devhub/ui/components/sistema/torre/TorreView.tsx
+    fichas: [DH-05]
+    proposito: "Tabla sistemas × eje REPO, fila expandible al eje PROYECTO; cada celda = objeto del dominio con acción sugerida; staleness visible."
+  - id: lente-arquitectura
+    tipo: vista
+    plano: torre
+    nombre: "Lente arquitectura (render por clase)"
+    estado: activo
+    fichas: [DH-06, I-75]
+    proposito: "El renderizador DE DEVHUB para arquitectura-como-dato: lee products/<célula>/arquitectura.yaml, discrimina por meta.clase, rinde tabla por planos. Cada producto su renderizador — el Atlas murió."
+
+  # — consola · delivery —
+  - id: sidecar-delivery
+    tipo: servicio
+    plano: consola
+    nombre: "Sidecar de sesiones de agente (Node)"
+    estado: activo
+    ruta: products/devhub/sidecar
+    fichas: [DH-08]
+    proposito: "devhub-sidecar: proceso Node supervisado por el binario (handshake stdout, muerte por stdin-pipe) que corre sesiones Claude Agent SDK en workspace aislado por sesión — branding propio, auth API-key (dogfood: credencial local, precedente I-76)."
+
+  # — proceso —
+  - id: board-sdd
+    tipo: modulo
+    plano: proceso
+    nombre: "Board SDD (10 estados, G1-G8)"
+    estado: activo
+    ruta: products/devhub/go/gates.go
+    fichas: [DH-01, DH-03, DH-07]
+    proposito: "El ciclo de vida de stories heredado del visor. «Gate» aquí = gates del board (G1-G8), JAMÁS el gate de fábrica. Desde F4 (DH-07) deriva sus tablas del descriptor embebido — firmas intactas, terminalidad por categoría."
+  - id: proceso-descriptor
+    tipo: contrato
+    plano: proceso
+    nombre: "Descriptor de proceso embebido (espejo gated)"
+    estado: activo
+    ruta: products/devhub/go/process/sdd-default.yaml
+    fichas: [I-77, DH-07]
+    proposito: "La instancia 1 del contrato de ecosistema I-77: el kit shipea `process/sdd-default.yaml`, la fábrica valida contra el L0 y emite este espejo GENERADO que el binario embebe (go:embed, fail-fast al boot)."
+  - id: vista-proceso
+    tipo: vista
+    plano: proceso
+    nombre: "Vista /proceso"
+    estado: activo
+    ruta: products/devhub/ui/components/sistema/proceso/ProcesoView.tsx
+    fichas: [DH-07]
+    proposito: "Rinde el descriptor completo desde GET /api/proceso — cero literales de estado: otro descriptor, otra pintura, cero cambio de código."
+  - id: delivery-api
+    tipo: contrato
+    plano: proceso
+    nombre: "API de delivery (plantilla + sesiones)"
+    estado: activo
+    ruta: products/devhub/go/delivery.go
+    fichas: [DH-08]
+    proposito: "GET /api/delivery/plantilla deriva el tramo SOLO del descriptor (siguiente transición de rol + dueño binding + gate/checklist) e inyecta el contexto as-code descubierto por convención (arquitectura.yaml + VISION.md); /api/delivery/sesiones proxy honesto al sidecar (503 sin eufemismo)."
+  - id: vista-delivery
+    tipo: vista
+    plano: proceso
+    nombre: "Vista /delivery (pantalla de prompting)"
+    estado: activo
+    ruta: products/devhub/ui/components/sistema/delivery/DeliveryView.tsx
+    fichas: [DH-08]
+    proposito: "La tesis del norte v3 en una pantalla: prompt PRECARGADO desde el descriptor + as-code, el humano encausa (edita/aprueba) y lanza; eventos de la sesión por polling. La sesión no transiciona estados (RN-31)."
+
+  # — fronteras —
+  - id: arquitectura-como-dato
+    tipo: contrato
+    plano: fronteras
+    nombre: "arquitectura.yaml de célula (gated)"
+    estado: activo
+    ruta: products/devhub/arquitectura.yaml
+    fichas: [I-73, I-75, DH-06]
+    proposito: "El contrato cross-célula que la lente lee: schema L0 + gate de fábrica = contrato de datos; lectura por convención, cero imports (RN-21)."
+  - id: ledger-espejo
+    tipo: contrato
+    plano: fronteras
+    nombre: "ledger.yaml de célula (gated)"
+    estado: activo
+    fichas: [DH-04, DH-05]
+    proposito: "Espejo máquina de LEDGER.md emitido por gen_ledger.py — UN parser del formato, en la fábrica; las células ganaron gate anti-drift de rebote arquitectónico."
+  - id: contrato-directorio
+    tipo: contrato
+    plano: fronteras
+    nombre: "Contrato de datos DevHub→Cockpit"
+    estado: declarado
+    fichas: [CK-08]
+    proposito: "Pull API diseñada (envelope versionado, GET /api/contrato/directorio) SIN código — cero consumidor real hoy. El precedente para cross-binario en runtime."
+  - id: cockpit-externo
+    tipo: sistema-externo
+    plano: fronteras
+    nombre: "Cockpit (P1) — binario `directorio`"
+    estado: activo
+    fichas: [I-74, CK-08]
+    proposito: "Célula independiente (puerto 4100) que consumirá datos de DevHub por el contrato — jamás por import."
+
+# ---- RELACIONES ----
+relaciones:
+  - { from: rol-operador,          to: torre-vista,           tipo: usa }
+  - { from: rol-operador,          to: ui-next,               tipo: usa }
+  - { from: rol-developer,         to: ui-next,               tipo: usa }        # futuro: restringido por roles/auth
+  - { from: ui-next,               to: binario-cockpit,       tipo: compone }    # go:embed
+  - { from: torre-colectores,      to: binario-cockpit,       tipo: compone }
+  - { from: board-sdd,             to: binario-cockpit,       tipo: compone }
+  - { from: torre-api,             to: torre-colectores,      tipo: usa }
+  - { from: torre-vista,           to: torre-api,             tipo: usa }
+  - { from: torre-vista,           to: lente-arquitectura,    tipo: compone }
+  - { from: lente-arquitectura,    to: arquitectura-como-dato, tipo: lee }
+  - { from: torre-colectores,      to: registro-sistemas,     tipo: lee }
+  - { from: torre-colectores,      to: ledger-espejo,         tipo: lee }
+  - { from: contrato-directorio,   to: cockpit-externo,       tipo: adapta }
+  - { from: registro-sistemas,     to: torre-colectores,      tipo: gobierna }   # el curado decide QUÉ se monitorea
+  - { from: board-sdd,             to: proceso-descriptor,    tipo: lee }        # F4: las tablas se derivan del dato
+  - { from: vista-proceso,         to: proceso-descriptor,    tipo: lee }
+  - { from: binario-cockpit,       to: sidecar-delivery,      tipo: gobierna }   # spawn + handshake + muerte ligada (RN-35)
+  - { from: delivery-api,          to: proceso-descriptor,    tipo: lee }        # la capa 1 parametriza la capa 3 (RN-39)
+  - { from: delivery-api,          to: sidecar-delivery,      tipo: usa }
+  - { from: vista-delivery,        to: delivery-api,          tipo: usa }
+  - { from: rol-operador,          to: vista-delivery,        tipo: usa }

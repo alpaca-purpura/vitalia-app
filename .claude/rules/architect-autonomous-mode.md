@@ -1,0 +1,1 @@
+../../core-harness/rules/architect-autonomous-mode.md

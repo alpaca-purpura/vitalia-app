@@ -1,0 +1,122 @@
+"""Telegram channel adapter."""
+
+import logging
+from typing import Any
+
+import httpx
+from luana_core_platform.core.config import settings
+from luana_core_platform.domain.messages import IncomingMessage, OutgoingMessage
+from luana_core_platform.infrastructure.channels.base import BaseChannel
+
+logger = logging.getLogger(__name__)
+
+
+class TelegramChannel(BaseChannel):
+    """Adapter for Telegram Bot API.
+
+    Supports multi-tenant configuration via token injection.
+    """
+
+    def __init__(self, token: str | None = None) -> None:
+        """Initialize with specific bot token.
+
+        If no token provided, falls back to settings.TELEGRAM_BOT_TOKEN (legacy/global mode).
+        """
+        self.token = token or settings.TELEGRAM_BOT_TOKEN
+        if not self.token:
+            logger.warning("TelegramChannel initialized without a token")
+
+    def normalize_payload(self, payload: dict[str, Any]) -> IncomingMessage | None:
+        """Extract message from Telegram webhook update.
+
+        Structure: { "update_id": ..., "message": { "message_id": ..., "from": {...}, "text": ... } }
+        """
+        # We only care about text messages for now
+        message = payload.get("message")
+
+        if not message:
+            # Ignore other updates like edited_message, channel_post, etc.
+            return None
+
+        if "text" not in message:
+            # Ignore non-text messages (photos, stickers) for now
+            return None
+
+        user_data = message.get("from", {})
+        user_id = str(user_data.get("id"))
+        text = message.get("text", "")
+
+        # Extract useful metadata for the agent profile
+        metadata = {
+            "first_name": user_data.get("first_name", ""),
+            "last_name": user_data.get("last_name", ""),
+            "username": user_data.get("username", ""),
+            "language_code": user_data.get("language_code", ""),
+            "source": "telegram",
+        }
+
+        return IncomingMessage(
+            user_id=user_id,
+            text=text,
+            channel_type="telegram",
+            metadata=metadata,
+        )
+
+    async def send_message(self, message: OutgoingMessage) -> dict[str, Any]:
+        """Send text message to Telegram Chat ID.
+
+        Retries without Markdown if it fails (400 Bad Request).
+        """
+        if not self.token:
+            logger.error("Telegram token not configured")
+            return {"error": "configuration_missing"}
+
+        token = self.token.strip()
+        url = f"https://api.telegram.org/bot{token}/sendMessage"
+
+        # Try with Markdown first
+        payload = {
+            "chat_id": message.user_id,
+            "text": message.text,
+            "parse_mode": "Markdown",
+        }
+
+        async with httpx.AsyncClient() as client:
+            try:
+                response = await client.post(url, json=payload, timeout=10.0)
+                response.raise_for_status()
+                logger.info("Message sent to Telegram user %s", message.user_id)
+                return response.json()
+            except httpx.HTTPStatusError as e:
+                # If 400 Bad Request (likely Markdown error), retry as plain text
+                if e.response.status_code == 400:
+                    logger.warning(
+                        "Telegram Markdown send failed (%s), retrying as plain text...",
+                        e,
+                    )
+                    payload.pop("parse_mode")
+                    retry_response = await client.post(url, json=payload, timeout=10.0)
+                    retry_response.raise_for_status()
+                    return retry_response.json()
+                logger.exception("Failed to send Telegram message")
+                raise
+            except httpx.HTTPError:
+                logger.exception("Failed to send Telegram message (Network)")
+                raise
+
+    async def set_typing_status(self, user_id: str) -> None:
+        """Send 'typing' action to Telegram."""
+        if not self.token:
+            return
+
+        token = self.token.strip()
+        url = f"https://api.telegram.org/bot{token}/sendChatAction"
+
+        payload = {"chat_id": user_id, "action": "typing"}
+
+        async with httpx.AsyncClient() as client:
+            try:
+                # Fire and forget
+                await client.post(url, json=payload, timeout=5.0)
+            except httpx.HTTPError as e:
+                logger.warning("Failed to send typing status to Telegram: %s", e)

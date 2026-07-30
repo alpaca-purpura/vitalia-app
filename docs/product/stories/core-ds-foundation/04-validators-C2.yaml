@@ -1,0 +1,173 @@
+# 04-validators-C2.yaml — core-ds-foundation · Fase C · Tramo C2 (SPINE)
+# Technical-story (platform-engineering). T-1/T-2/T-4 = verification_nature: técnica (verificación-por-efecto).
+# T-3 = funcional/ambas (RIESGO VISUAL: la app vitalia debe verse IDÉNTICA post-migración → live-verify + demo).
+# Modelo fijado por ADR-016 (accepted). Bar = el EFECTO observable, NUNCA "build verde" ni "GET 200".
+
+verification_nature: ambas          # mezcla: T-1/T-2/T-4 técnica · T-3 funcional (declarado por ticket abajo)
+demo_required: true                 # SOLO por T-3 (unwind vitalia, riesgo visual). T-1/T-2/T-4 = demo_skip.
+demo_scope: "T-3 únicamente — Chris recorre dev-app vitalia (shell + ≥2 hojas reales) confirmando render IDÉNTICO post-migración + dark toggle. T-1/T-2/T-4 son tooling/engine/kit (revisión = efecto runtime + Storybook), sin demo de flujo."
+
+validators:
+  # ── C2-T1 · catálogo generado + gate de paridad (técnica) ──
+  - id: c2_cat_gen_runs
+    ticket: C2-T1
+    type: shell
+    cmd: "make ui-catalog && test -f core/@luana/ui-kit/catalog.json && node -e \"JSON.parse(require('fs').readFileSync('core/@luana/ui-kit/catalog.json'))\""
+    effect: "catalog.json + catalog.md regeneran del source real · JSON válido"
+    must_pass: true
+  - id: c2_cat_covers_exports
+    ticket: C2-T1
+    type: shell
+    cmd: "node scripts/_check_catalog_parity.mjs --mode=coverage"   # cada `export * from` de index.ts (~156) tiene entrada
+    effect: "el catálogo cubre los 156 exports reales (cero huérfanos de cobertura)"
+    must_pass: true
+  - id: c2_parity_gate_has_teeth
+    ticket: C2-T1
+    type: shell
+    # RED-probe: el gate DEBE fallar con un export `vigente` plantado sin story; sin el plant → verde.
+    cmd: "node scripts/_assert_parity_gate.mjs --plant=export-without-story"
+    effect: "el gate de paridad FALLA ante un export vigente sin story (si no falla, el gate no sirve) · deprecado/retiring exime · allowlist RETIRING_NO_STORY shrink-only"
+    must_pass: true
+    seam: "catalog↔source (tooling) — cubierto por el propio gate contra index.json+storybook-static, no mock"
+  - id: c2_lifecycle_exempts
+    ticket: C2-T1
+    type: shell
+    cmd: "node scripts/_assert_parity_gate.mjs --plant=retiring-no-story"   # AutosaveBadge-like (sin story) NO debe FAIL
+    effect: "un export retiring/allowlisted SIN story NO dispara el gate (AutosaveBadge exento per canon §2.6)"
+    must_pass: true
+
+  # ── C2-T2 · design-tokens = SSoT de valores (técnica) ──
+  - id: c2_shadow_module_exists
+    ticket: C2-T2
+    type: shell
+    cmd: "node -e \"import('@luana/design-tokens').then(m=>{if(!m.SHADOW)process.exit(1)})\""
+    effect: "shadow.ts NEW exporta la escala de elevación compartida (antes no existía)"
+    must_pass: true
+  - id: c2_value_axes_present
+    ticket: C2-T2
+    type: shell
+    cmd: "cd core/@luana/design-tokens && npx vitest run src/__tests__/scale.test.ts"   # extendido: typo-scale + radius-scale + color semantic/contrast = VALUES, no names-only
+    effect: "typography/radius llevan VALUES (no solo names) + color tiene semantic-defaults + contrast contract"
+    must_pass: true
+  - id: c2_no_css_shipped
+    ticket: C2-T2
+    type: shell
+    # canon §6.8: el package NO shipea un .css importable. Guard: no aparece un export .css / @theme en el package.
+    cmd: "node scripts/_assert_no_css_in_tokens_pkg.mjs"
+    effect: "design-tokens sigue TS-only — NO reintroduce el CSS-ship descartado (canon §6.8)"
+    must_pass: true
+  - id: c2_nodrift_guard_extended
+    ticket: C2-T2
+    type: shell
+    # EXTEND del arch-test no-drift existente (nicolify test-ds-single-token-source + vitalia tokens-lock).
+    cmd: "cd nicolify/frontend && npx vitest run src/__tests__/architecture/test-ds-single-token-source.test.ts"
+    effect: "el guard per-brand cubre los nuevos ejes: igualdad para shared-value (shadow/typo/radius), completitud+contraste para color"
+    must_pass: true
+  - id: c2_value_change_visible
+    ticket: C2-T2
+    type: shell
+    # verificación-por-efecto: cambiar un valor compartido se ve en el render de Storybook (no solo en el TS).
+    cmd: "node scripts/_assert_token_value_renders.mjs --token=SHADOW.md"
+    effect: "mutar un valor compartido del package → el render de Storybook lo refleja (SSoT real, no doc muerta)"
+    must_pass: true
+    seam: "token↔render — ejercido contra el Storybook real (componentes reales), no mock"
+
+  # ── C2-T3 · unwind vitalia off dual-system (FUNCIONAL/AMBAS · riesgo visual) ──
+  - id: c2_vitalia_tokens_lock
+    ticket: C2-T3
+    type: shell
+    cmd: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test-ds-tokens-lock.test.ts src/__tests__/architecture/test_no_hardcoded_colors.test.ts"
+    effect: "vitalia @theme proyecta valores de design-tokens (no inventados) + no-hardcoded-colors verde"
+    must_pass: true
+  - id: c2_vitalia_dark_wiring
+    ticket: C2-T3
+    type: shell
+    cmd: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/ -t 'dark'"
+    effect: "el contrato dark (dark: → [data-theme]/.dark + @source escanea ui-kit/src) NO regresiona (canon §2.10)"
+    must_pass: true
+  - id: c2_vitalia_legacy_unwound
+    ticket: C2-T3
+    type: shell
+    # las defs --vitalia-* huérfanas (sin alias canónico ni consumer) se borraron; los consumers migraron al token canónico.
+    cmd: "node scripts/_assert_legacy_tokens_unwound.mjs --brand=vitalia"
+    effect: "cero --vitalia-* huérfano (inventado sin derivar de design-tokens); consumers migrados al token canónico"
+    must_pass: true
+  - id: c2_vitalia_tsc_green
+    ticket: C2-T3
+    type: shell
+    cmd: "cd vitalia/frontend && npx tsc --noEmit"
+    effect: "vitalia compila tras el unwind (sin tokens/clases rotas)"
+    must_pass: true
+  - id: c2_vitalia_visual_parity
+    ticket: C2-T3
+    type: live-verify        # ★ funcional — NO se cierra con verde de gates
+    cmd: "manual: dev-app vitalia (Chrome DevTools MCP) — shell + ≥2 hojas reales que consumían --vitalia-* · antes/después IDÉNTICO + dark toggle conmuta + cero regresión visual"
+    effect: "la app vitalia se ve IDÉNTICA post-migración (refactor de procedencia de valor, no de diseño)"
+    must_pass: true
+    dev_app_verified: true
+    seam: "código↔render real (no unit-testeable) — la live-verify es la ÚNICA cobertura del riesgo visual del unwind"
+    playwright_visual_scope:
+      routes: ["/vitalia shell", "≥2 hojas reales que consumían var(--vitalia-*)/.vt-*"]
+      components_touchable: ["globals.css tokens", "consumers --vitalia-*/.vt-*"]
+      components_forbidden: ["core/@luana/ui-kit/src/** (NO se toca en T-3)", "otras marcas"]
+      assertion: "screenshot antes/después idéntico en los surfaces migrados + dark toggle"
+
+  # ── C2-T4 · superficies de extensión de los 4 tier-2 (técnica) ──
+  - id: c2_tier2_slots_render
+    ticket: C2-T4
+    type: shell
+    # render-smoke existente: las 4 consumer-stories montan + el slot rendea contenido custom (no crash).
+    cmd: "pnpm --filter @luana/ui-kit build-storybook && (npx --yes http-server core/@luana/ui-kit/storybook-static -p 6019 -s -c-1 & SRV=$!; sleep 4; node scripts/_smoke_storybook.mjs --url http://localhost:6019; R=$?; kill $SRV; exit $R)"
+    effect: "las 4 stories-consumidoras (EntityInfoCard/Chart/RichSelect/SmartDatetimePicker) renderean el slot custom sin pageerror"
+    must_pass: true
+    timeout_sec: 300
+    seam: "componente↔consumer — la story ejerce el slot real, no mock"
+  - id: c2_tier2_backcompat
+    ticket: C2-T4
+    type: shell
+    cmd: "cd core/@luana/ui-kit && npx tsc --noEmit && npx vitest run"
+    effect: "los slots son ADITIVOS (opcionales) — tsc + vitest del kit verdes, consumers actuales no rompen"
+    must_pass: true
+  - id: c2_tier2_surface_declared
+    ticket: C2-T4
+    type: shell
+    # cada tier-2 declara su superficie de extensión en su entrada (catálogo/doc) — le da dientes al extension-contract gate de C3.
+    cmd: "node scripts/_check_tier2_extension_surface.mjs"
+    effect: "los 4 tier-2 declaran su slot/render-prop + traen ≥1 story-consumidora (prep del extension-contract gate C3)"
+    must_pass: true
+
+# Gates baseline (siempre)
+technical_gates:
+  baseline:
+    - "cd core/@luana/design-tokens && npx tsc --noEmit && npx vitest run"   # T-2
+    - "cd core/@luana/ui-kit && npx tsc --noEmit && npx vitest run"          # T-4 + paridad
+    - "cd vitalia/frontend && npx tsc --noEmit"                              # T-3
+    - "npx eslint scripts/*.mjs"                                             # tooling T-1
+  mutation:
+    enabled: false
+    reason: "tooling/tokens/config + slots aditivos — sin lógica de negocio mutation-crítica. El riesgo de T-3 lo cubre la live-verify visual, no mutación."
+  default_flip_audit:
+    applies: false
+    reason: "C2 no flipea ningún feature flag side-effect (no toca call-path de events/persistence/LLM). Es tokens/catálogo/kit/CSS."
+
+# seam_coverage (test_construction_plan) — dónde cada costura se cubre con el colaborador REAL, no mock
+seam_coverage:
+  - seam: "catalog ↔ source (index.ts + storybook-static)"
+    test_type: "tooling-integration"
+    covered_by: "c2_parity_gate_has_teeth (RED-probe contra el source real)"
+  - seam: "design-tokens value ↔ component render"
+    test_type: "component-shell / storybook-real"
+    covered_by: "c2_value_change_visible + c2_nodrift_guard_extended"
+  - seam: "vitalia globals ↔ app render (riesgo visual)"
+    test_type: "e2e-live (no unit-testeable)"
+    covered_by: "c2_vitalia_visual_parity (live-verify · ÚNICA cobertura del riesgo visual)"
+  - seam: "tier-2 component ↔ brand extension slot"
+    test_type: "storybook-real (consumer-story)"
+    covered_by: "c2_tier2_slots_render"
+
+regression_guard: |
+  @luana/ui-kit + @luana/design-tokens ya consumidos por las 4 marcas (shell shipped).
+  - T-2 cambia VALORES de tokens → verify nicolify NO regresiona (su @theme guard sigue verde) + su render Storybook igual.
+  - T-3 toca SOLO vitalia → nicolify/comunify/lupulo intactos; el unwind no debe romper el build de vitalia (tsc verde).
+  - T-4 slots ADITIVOS → consumers actuales del kit (vitalia+nicolify) compilan sin cambios (tsc verde ambos).
+  Downstream: tras T-2/T-4 (engine core) correr la regresión cross-brand (cada marca consumidora: tsc + render-smoke / arch-suite).

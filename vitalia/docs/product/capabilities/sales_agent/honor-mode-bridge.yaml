@@ -1,0 +1,66 @@
+---
+capability_id: vitalia.sales_agent.honor-mode-bridge
+module: sales_agent
+tech_module: sales_agent
+slug: honor-mode-bridge
+status: planned                       # planned | beta | live | deprecated | sunset (subí a live SOLO con ≥1 scenario + e2e GREEN)
+license: brand-local
+
+# Dimensiones v3 (4 campos · ADR-vitalia-005)
+agent_owner: adrian                  # caja del mapa — ver SYSTEM-MAP.yaml `zones`
+functional_area: adrian.inbox    # <caja>.<area-kebab> — DEBE existir en SYSTEM-MAP
+user_visible: true
+nature: feature                       # feature | scaffold | extension-point
+
+user_facing_name: "honor-mode-bridge"
+user_facing_description: >
+  # TODO: 2-5 líneas Spanish neutro · qué hace desde la óptica del usuario · sin jerga.
+
+# DEV_PREVIEW (paths null hasta que exista el código · NO inventar → G4 limpio)
+dev_preview:
+  route: null                         # TODO "/TODO-agent/honor-mode-bridge" cuando exista
+  how_to_navigate: null               # TODO pasos verbatim para llegar en dev
+  main_component: null                # TODO path real cuando se construya
+  api_endpoints: []                   # TODO
+  e2e_test: null                      # TODO path spec
+  fixtures_required: []
+  storybook_url: null
+  loom_demo: null
+
+# Ledger
+created_in_story: vitalia-fase2-adrian-canal-inbound
+created_date: 2026-06-21
+last_modified: 2026-06-21
+parent_cap: null
+derives_capabilities: []
+superseded_by: null
+
+change_log:
+  - story_id: vitalia-fase2-adrian-canal-inbound
+    date: 2026-06-21
+    type: new
+    summary: "Honor-mode bridge (decide/consulta/pausa) + operator-instruction runtime para el loop inbound de Adrián (T-BE-3)."
+    scenarios_added: []               # TODO: ≥1 al merge si user_visible:true
+    merge_sha: null
+    status: in-progress
+
+# v3.2 (llenar al merge · REQUIRED si user_visible:true)
+access:
+  entry_points: []                    # TODO
+  forbidden_roles: []
+  authentication: required
+
+scenarios: []                         # TODO: ≥1 scenario (id/name/actor/given/when/then) al merge
+
+business_rules: []                    # TODO
+
+related_capabilities:
+  depends_on: []
+  enables: []
+  similar: []
+  obsoletes: []
+---
+
+# honor-mode-bridge
+
+# TODO: resumen markdown · arquitectura interna · decisiones cardinales · referencias.

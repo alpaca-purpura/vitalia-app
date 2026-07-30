@@ -1,0 +1,27 @@
+{
+  "_metadata": {
+    "schema_version": 1,
+    "story": "luana-sales-agent-engine",
+    "ticket": "T-18",
+    "captured_at": "2026-05-12",
+    "captured_by": "builder-agentic Opus 4.7",
+    "description": "§3 protected surfaces hash-stable snapshot — 13 canonical files lifted verbatim from AISALESHT backend/src/modules/sales_agent/. Post-sed + post-ruff hashes at lift moment. V-AG-8 validator asserts these hashes remain stable as defensive cement against accidental refactor.",
+    "rationale": "Per sales-agent-expert SKILL.md §3 + 03-arch.md §7.8. These files are PRODUCTION-CRITICAL: live ops Closer Studio + WS, SmartBufferService CPM tuned, OutputManager chunking calibrated, enrollment end-to-end, webhook adapters, follow_up cadence math, PromptVersionModel DB-backed override, tool_call_dedup anti-loop. Tocar §3 → preguntar al usuario.",
+    "updated_at": "2026-05-12",
+    "updated_by": "builder-backend Sonnet Batch F (ruff format T-18)",
+    "update_reason": "ruff format reformatted 4 files (whitespace only). No semantic changes to §3 surfaces."
+  },
+  "api/closer_studio.py": "d810bc35861f97296161734a9f10ca2dec77bd29e00e2cd64d48245cf39e7c39",
+  "api/enrollments.py": "e147dea0d79fd321becb9d0358769f29a651c92167fc95166d7f4cbe11805a39",
+  "api/ws.py": "d86ae9120cfaf5b02e5c502fdc818102a5cedb7fb2d39974b34fbb8b2828cdde",
+  "application/orchestrator/smart_debounce_runner.py": "7c4201466c9b2d05ff68889015d069ab154657ea731f7220693e67745c190faa",
+  "application/orchestrator/tool_call_dedup.py": "8a9e3895fe8cc863273ab3a92fbf665b7882b3854be57432900a8425db5ab5be",
+  "application/services/enrollment_service.py": "8dd093007d5a1a0fb3b73b18c13ce920813345435350ea3ab4ed7a6b87ba0451",
+  "application/tools/payment/webhook_providers.py": "9cf3cfd927cec33eabdbe690e5bcab4f1f2a9664a10a75e7feb1777af8261b44",
+  "application/tools/scheduling/webhook_providers.py": "6a4899d95483089e99843529b51ac5b2cf7bed13ccc4366d82cb371ad3bf8a18",
+  "domain/enrollment.py": "e3fa4e4ac39a3fc730634505710d366ee95c859b0a6bf071bac02b927fac46fe",
+  "infrastructure/external/output_manager.py": "1047a8a6efa4298a229532907a91a6d1e56764c6512a269ade1bce61e8983144",
+  "infrastructure/models/enrollment_model.py": "5b18cf7628c9068b5239c2c4252925653f21deca7725e2fc4db07d25f57112d7",
+  "infrastructure/models/prompt_version_model.py": "1d38d2a223e417bad860cf5aa5c9d7a1347e8579dfbcb521aad161fff70f03fc",
+  "workers/follow_up_engine.py": "af9e6603bcdfcf4ff5384779e67256ebbeac36375f4dbd89f412d487035da444"
+}

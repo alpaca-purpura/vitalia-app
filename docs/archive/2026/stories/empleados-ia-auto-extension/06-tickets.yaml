@@ -1,0 +1,160 @@
+story_id: empleados-ia-auto-extension
+brand: platform
+schema_version: v4.1
+authorization: docs/promotion-protocol/proposals/2026-06-02-durable-flows-engine.md  # accepted, ratified Chris 2026-06-02
+scope: two-layer
+autonomous_mode: false   # architect proposes false; Chris ratifies. Engine + cross-brand + HIPAA = stake-asimétrico.
+
+# ════════════════════════════════════════════════════════════════════
+# L1 — BUILD THIS CONVERSATION (accionable)
+# ════════════════════════════════════════════════════════════════════
+tickets:
+
+  - id: T-flows-1
+    title: "Scaffold core/luana-core-flows package + uv workspace registration"
+    phase: L1
+    build_status: actionable
+    depends_on: []
+    surface: backend
+    cites_proposal: docs/promotion-protocol/proposals/2026-06-02-durable-flows-engine.md
+    deliverables:
+      - "core/luana-core-flows/{pyproject.toml, src/luana_core_flows/__init__.py, tests/conftest.py}"
+      - "root pyproject.toml: +member (alphabetical) + [tool.uv.sources] entry"
+      - "uv sync from ROOT → uv.lock updated (no langgraph version bump expected)"
+      - "bump test_workspace_members_alphabetical_story8.py _EXPECTED_COUNT 27→28 + docstring"
+    acceptance:
+      validator_ids: [v_uv_sync_resolves, v_workspace_members, v_lint_flows_pkg]
+    assignment:
+      primary_agent: builder-backend
+      model_preference: sonnet
+      must_load_skills: [backend-expert, ".claude/rules/anti-duplication.md"]
+      must_load_artifacts: [03-arch.md, 03-arch-be.md, "docs/promotion-protocol/proposals/2026-06-02-durable-flows-engine.md"]
+      forbidden_to_touch: ["*/frontend/", "nicolify/", "lupulo/", "core/luana-core-flows/src/luana_core_flows/domain/"]
+      rationale: "Pure scaffold + uv plumbing + arch-test ratchet. Mechanical backend, Sonnet-appropriate. Engine edit authorized by accepted proposal."
+
+  - id: T-flows-2
+    title: "make_durable_checkpointer provider + build_flow_thread_id (core)"
+    phase: L1
+    build_status: actionable
+    depends_on: [T-flows-1]
+    surface: agentic
+    cites_proposal: docs/promotion-protocol/proposals/2026-06-02-durable-flows-engine.md
+    deliverables:
+      - "core/luana-core-flows/src/luana_core_flows/checkpointer/{provider.py, thread_id.py, __init__.py}"
+      - "make_durable_checkpointer (AsyncPostgresSaver + EncryptedSerializer serde when encryption_key + setup() idempotent + lifespan-safe construction O-1)"
+      - "build_flow_thread_id + build_phi_flow_thread_id (tenant-scoped, clinic dual-filter)"
+      - "tests/checkpointer/{test_provider.py, test_thread_id.py} (RED-first) + integration test_setup_idempotent (marker integration)"
+    acceptance:
+      validator_ids: [v_unit_checkpointer_provider, v_unit_thread_id, v_setup_idempotent]
+    assignment:
+      primary_agent: builder-agentic
+      model_preference: opus            # R23 — agentic production code (LangGraph checkpointer/runtime)
+      must_load_skills: [copilot-expert, sales-agent-expert, "LangGraph durable-execution canonical docs", "vitalia/.claude/rules/hipaa-lite.md", ".claude/rules/anti-duplication.md"]
+      must_load_artifacts: [03-arch.md, 03-arch-agentic.md, spike-durable-flows.md, "docs/promotion-protocol/proposals/2026-06-02-durable-flows-engine.md"]
+      forbidden_to_touch: ["*/frontend/", "nicolify/", "lupulo/", "agent_state_checkpoints schema", "core/luana-core-copilot/src/ topology", "core/luana-core-flows/src/luana_core_flows/domain/ (L2)"]
+      rationale: "LangGraph checkpointer wiring + EncryptedSerializer (PHI) + replay semantics = agentic production code per R23 → Opus mandatory."
+
+  - id: T-flows-3
+    title: "Wire 5 brand graphs to core provider + DELETE factory mirror (vitalia + comunify)"
+    phase: L1
+    build_status: actionable
+    depends_on: [T-flows-2]
+    surface: agentic
+    cites_proposal: docs/promotion-protocol/proposals/2026-06-02-durable-flows-engine.md
+    deliverables:
+      - "vitalia: rewire wizard_orchestrator_service + copilot cron_handler + lucas_orchestrator_service (replace inline MemorySaver) to make_durable_checkpointer; +luana-core-flows in vitalia/backend/pyproject.toml"
+      - "comunify: rewire copilot cron_handler + delete inline factory bits in community_engagement/cohort_enrollment workflows; +luana-core-flows in comunify/backend/pyproject.toml"
+      - "DELETE vitalia/.../copilot/workflows/wizard_checkpoint_config.py (build_production_checkpointer + WIZARD_CHECKPOINT_TABLE_PREFIX); re-export CheckpointerProtocol from core if still imported"
+      - "5 build_*_graph signatures + topologies UNCHANGED"
+      - "v_replay_safety integration test (vitalia wizard durable resume)"
+    acceptance:
+      validator_ids: [v_no_brand_mirror, v_no_factory_test_mock, v_replay_safety, v_lint_brands]
+    assignment:
+      primary_agent: builder-agentic
+      model_preference: opus
+      must_load_skills: [copilot-expert, sales-agent-expert, "LangGraph durable-execution canonical docs", ".claude/rules/anti-duplication.md", "vitalia/.claude/rules/hipaa-lite.md"]
+      must_load_artifacts: [03-arch.md, 03-arch-agentic.md, "docs/promotion-protocol/proposals/2026-06-02-durable-flows-engine.md"]
+      forbidden_to_touch: ["*/frontend/", "nicolify/", "lupulo/", "5 build_*_graph signatures/topology", "agent_state_checkpoints"]
+      rationale: "Cross-brand agentic wiring + mirror delete (anti-dup) + replay-safety = agentic production, R23 Opus."
+
+  - id: T-flows-4
+    title: "Checkpoint table migrations (vitalia 037 + comunify 002) — idempotent prereq"
+    phase: L1
+    build_status: actionable
+    depends_on: [T-flows-3]
+    surface: backend
+    cites_proposal: docs/promotion-protocol/proposals/2026-06-02-durable-flows-engine.md
+    deliverables:
+      - "vitalia/backend/alembic/versions/037_vitalia_durable_flow_checkpoints.py (idempotent prereq; LangGraph owns table DDL)"
+      - "comunify/backend/alembic/versions/002_comunify_durable_flow_checkpoints.py"
+      - "prod-clone test confirms idempotent + setup() idempotent (O-2)"
+    acceptance:
+      validator_ids: [v_migration_idempotent]
+    assignment:
+      primary_agent: builder-backend
+      model_preference: sonnet
+      must_load_skills: [backend-expert, ".claude/rules/backend-migrations.md"]
+      must_load_artifacts: [03-arch.md, 03-arch-be.md, "docs/promotion-protocol/proposals/2026-06-02-durable-flows-engine.md"]
+      forbidden_to_touch: ["*/frontend/", "op.create_table for checkpoint internals", "nicolify/", "lupulo/"]
+      rationale: "Idempotent raw-SQL migrations (no checkpoint-internal DDL) = backend plumbing, Sonnet."
+
+  - id: T-flows-5
+    title: "Downstream regression (vitalia + comunify) + live-verify durable persistence (DoD #37)"
+    phase: L1
+    build_status: actionable
+    depends_on: [T-flows-3, T-flows-4]
+    surface: agentic
+    cites_proposal: docs/promotion-protocol/proposals/2026-06-02-durable-flows-engine.md
+    deliverables:
+      - "vitalia + comunify agentic + arch suites GREEN with langgraph-checkpoint-postgres installed (R3)"
+      - "live-verify: wizard_onboarding durable thread → psql shows checkpoints rows (NOT MemorySaver) → backend restart → resume from persisted checkpoint"
+      - "dod_evidence recorded (07-merge § Verificación live)"
+      - "proposal accepted→migrated + core/luana-core-flows/CHANGELOG.md + docs/core-modules/ entry"
+    acceptance:
+      validator_ids: [v_downstream_vitalia, v_downstream_comunify, v_live_verify_durable_persist]
+    assignment:
+      primary_agent: builder-agentic
+      model_preference: opus
+      must_load_skills: [copilot-expert, "chrome-devtools-verify", "LangGraph durable-execution canonical docs"]
+      must_load_artifacts: [03-arch.md, 03-arch-agentic.md, ".claude/rules/definition-of-done-live-verify.md", ".claude/rules/auditor-downstream-regression.md"]
+      forbidden_to_touch: ["*/frontend/", "nicolify/", "lupulo/"]
+      rationale: "Cross-brand downstream regression + live-verify over a real durable graph (agentic) = Opus."
+
+# ════════════════════════════════════════════════════════════════════
+# L2 — DESIGN ONLY (NOT built this conversation)
+# ════════════════════════════════════════════════════════════════════
+l2_tickets:
+  build_status: deferred-next-story
+  note: >
+    These are seeds for the NEXT /architect ready-package (the empleados-IA FlowCompiler story).
+    The auditor + dev do NOT build them now. They cannot be honestly live-verified in one session
+    (DoD #37 prohibits false-done). Reference this story (03-arch.md § L2) as design origin.
+  tickets:
+    - id: T-l2-1
+      title: "FlowDefinition (Pydantic declarative) + domain model"
+      phase: L2-design-only
+      build_status: deferred-next-story
+      design_ref: "03-arch.md § L2.1 + spike §4.1"
+    - id: T-l2-2
+      title: "FlowCompiler.compile (declarative → StateGraph + idempotency-wrapped nodes + outbox final node)"
+      phase: L2-design-only
+      build_status: deferred-next-story
+      design_ref: "03-arch.md § L2.2 + spike §4.2"
+    - id: T-l2-3
+      title: "EP-19 durable_flow_register (Extension SDK, signature-only v0.1.0; range(1,20) + _BACKLOG_EPS)"
+      phase: L2-design-only
+      build_status: deferred-next-story
+      design_ref: "03-arch.md § L2.3 + spike §8 Q2 (NEW EP, not widen EP-4)"
+    - id: T-l2-4
+      title: "Flow observability (copilot_trace_event emission + updates stream) + per-node replay-safety guards"
+      phase: L2-design-only
+      build_status: deferred-next-story
+      design_ref: "03-arch.md § L2.4 + spike §4.3"
+
+# ── DAG (L1) ─────────────────────────────────────────────────────────
+dag:
+  T-flows-1: []
+  T-flows-2: [T-flows-1]
+  T-flows-3: [T-flows-2]
+  T-flows-4: [T-flows-3]
+  T-flows-5: [T-flows-3, T-flows-4]

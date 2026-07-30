@@ -1,0 +1,21 @@
+# Vitalia wizard eval persona — tenant distraido (cierra browser, vuelve después)
+persona_id: tenant_distraido_se_va_vuelve
+archetype: caregiver
+dialect: es-EC
+vertical: psicologia
+voice_constraints:
+  formality: informal
+  opening: "Hola, soy de Centro de Bienestar"
+  common_objections: []
+  red_flags:
+    - reiniciar_desde_cero
+    - perder_progreso
+profile:
+  tech_savvy: medium
+  patience: medium
+  has_url: true
+  preferred_url: "centrobienestarandino.ec"
+  willing_to_extract: true
+  reads_preview: true
+  expects_autosave: true
+  resume_after_minutes: 120

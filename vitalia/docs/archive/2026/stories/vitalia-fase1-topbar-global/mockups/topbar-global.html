@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>F1-S2 · TopBarGlobal mockup — 4 states</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: ['class', '[data-theme="dark"]'],
+    }
+  </script>
+  <style>
+    :root {
+      --background: 0 0% 100%;
+      --foreground: 240 10% 4%;
+      --card: 0 0% 100%;
+      --muted: 240 5% 96%;
+      --muted-foreground: 240 4% 46%;
+      --border: 240 6% 90%;
+      --primary: 198 99% 49%;
+      --accent: 287 53% 37%;
+      --radius: 0.5rem;
+    }
+    [data-theme="dark"] {
+      --background: 240 10% 4%;
+      --foreground: 0 0% 98%;
+      --card: 240 8% 8%;
+      --muted: 240 6% 14%;
+      --muted-foreground: 240 4% 60%;
+      --border: 240 6% 18%;
+      --primary: 198 99% 49%;
+      --accent: 287 53% 60%;
+    }
+    body {
+      background: hsl(var(--muted));
+      color: hsl(var(--foreground));
+      font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+    }
+    /* TopBar isolated container — simulates app shell */
+    .topbar-container {
+      background: hsl(var(--background));
+      color: hsl(var(--foreground));
+      border: 1px solid hsl(var(--border));
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgb(0 0 0 / 0.05);
+    }
+    .topbar-container[data-theme="dark"] {
+      background: hsl(240 10% 4%);
+      color: hsl(0 0% 98%);
+    }
+    .topbar {
+      height: 48px;
+      border-bottom: 1px solid hsl(var(--border));
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1.25rem;
+      position: relative;
+      z-index: 50;
+      background: inherit;
+    }
+    .topbar-container[data-theme="dark"] .topbar {
+      border-bottom-color: hsl(240 6% 18%);
+    }
+    .main-content {
+      padding: 1.5rem 1.25rem;
+      min-height: 240px;
+      font-size: 0.875rem;
+      color: hsl(var(--muted-foreground));
+    }
+    .topbar-container[data-theme="dark"] .main-content {
+      color: hsl(240 4% 60%);
+    }
+    /* Skip link styling */
+    .skip-link {
+      position: absolute;
+      top: -40px;
+      left: 0;
+      padding: 0.5rem 1rem;
+      background: hsl(var(--primary));
+      color: hsl(0 0% 100%);
+      font-size: 0.875rem;
+      z-index: 200;
+      border-radius: 0 0 var(--radius) 0;
+      transition: top 200ms;
+    }
+    .skip-link.show {
+      top: 0;
+    }
+    /* Theme toggle button */
+    .theme-toggle {
+      width: 40px;
+      height: 40px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: var(--radius);
+      background: transparent;
+      color: hsl(var(--foreground));
+      cursor: pointer;
+      border: none;
+      transition: background-color 150ms;
+    }
+    .theme-toggle:hover {
+      background: hsl(var(--accent) / 0.1);
+    }
+    .topbar-container[data-theme="dark"] .theme-toggle {
+      color: hsl(0 0% 98%);
+    }
+    .topbar-container[data-theme="dark"] .theme-toggle:hover {
+      background: hsl(var(--accent) / 0.2);
+    }
+    .label {
+      font-size: 0.75rem;
+      color: hsl(var(--muted-foreground));
+      font-family: ui-monospace, monospace;
+      margin-top: 0.5rem;
+    }
+    /* Mobile viewport simulation */
+    .viewport-mobile {
+      max-width: 375px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .viewport-desktop {
+      max-width: 100%;
+    }
+    /* Page header chrome */
+    body > header {
+      background: hsl(var(--background));
+    }
+  </style>
+</head>
+<body class="min-h-screen">
+
+  <!-- ─── Header ─────────────────────────────────────────── -->
+  <header class="border-b" style="border-color: hsl(var(--border));">
+    <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div>
+        <h1 class="text-lg font-semibold">F1-S2 · TopBarGlobal mockup</h1>
+        <p class="text-sm" style="color: hsl(var(--muted-foreground));">
+          4 states · light/dark × desktop/mobile · assets reales brand Vitalia
+        </p>
+      </div>
+      <div class="text-xs" style="color: hsl(var(--muted-foreground));">
+        v1.1 (assets reales) · 48px (h-12) altura · skip link a11y included
+      </div>
+    </div>
+  </header>
+
+  <!-- ─── Main ───────────────────────────────────────────── -->
+  <main class="max-w-7xl mx-auto px-6 py-12">
+
+    <!-- ─── State 1: Light + Desktop ─────────────── -->
+    <section class="mb-12">
+      <h2 class="text-base font-semibold mb-1">State 1 · Light + Desktop (≥768px)</h2>
+      <p class="text-sm mb-4" style="color: hsl(var(--muted-foreground));">
+        LogoMark variant='full' visible (libélula + wordmark VITALIA navy) · ThemeToggle Moon icon · TenantSwitcherSlot null (gap puro)
+      </p>
+
+      <div class="topbar-container viewport-desktop" data-theme="light">
+        <a href="#main-content-1" class="skip-link sr-only focus:not-sr-only" onfocus="this.classList.add('show')" onblur="this.classList.remove('show')">
+          Saltar al contenido
+        </a>
+        <header role="banner" class="topbar" data-testid="topbar-global">
+          <!-- LogoMark izquierda -->
+          <a href="/" aria-label="Vitalia inicio" class="inline-flex items-center">
+            <img src="assets/vitalia-logo.png" alt="Vitalia" style="height: 32px; width: auto;" />
+          </a>
+          <!-- Right area: ThemeToggle + TenantSwitcherSlot (null) -->
+          <div class="flex items-center gap-2">
+            <button type="button" class="theme-toggle" aria-label="Cambiar tema (actual: claro)" aria-pressed="false">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+              </svg>
+            </button>
+            <!-- TenantSwitcherSlot: returns null — no DOM element -->
+          </div>
+        </header>
+        <div id="main-content-1" class="main-content">
+          <p>Main content placeholder · F1-S2 NO toca esta área</p>
+          <p class="mt-2" style="font-size: 0.75rem;">F1-S4 shell-layout-5050 va a estructurar el split chat/web debajo del TopBar</p>
+        </div>
+      </div>
+      <div class="label">viewport: 1440px · topbar height: 48px · padding: 20px · border-bottom 1px</div>
+    </section>
+
+    <!-- ─── State 2: Light + Mobile ─────────────── -->
+    <section class="mb-12">
+      <h2 class="text-base font-semibold mb-1">State 2 · Light + Mobile (&lt;768px = 375px)</h2>
+      <p class="text-sm mb-4" style="color: hsl(var(--muted-foreground));">
+        Responsive switch automático: LogoMark switch a variant='mark' (solo libélula) · texto VITALIA hidden vía CSS @media
+      </p>
+
+      <div class="topbar-container viewport-mobile" data-theme="light">
+        <a href="#main-content-2" class="skip-link sr-only focus:not-sr-only" onfocus="this.classList.add('show')" onblur="this.classList.remove('show')">
+          Saltar al contenido
+        </a>
+        <header role="banner" class="topbar" data-testid="topbar-global">
+          <a href="/" aria-label="Vitalia inicio" class="inline-flex items-center">
+            <img src="assets/vitalia-ico.png" alt="Vitalia" style="height: 32px; width: 32px;" />
+          </a>
+          <div class="flex items-center gap-2">
+            <button type="button" class="theme-toggle" aria-label="Cambiar tema (actual: claro)" aria-pressed="false">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+              </svg>
+            </button>
+          </div>
+        </header>
+        <div id="main-content-2" class="main-content">
+          <p style="font-size: 0.75rem;">Mobile content · F1-S10 empty-states</p>
+        </div>
+      </div>
+      <div class="label">viewport: 375px · topbar mantiene 48px · LogoMark switch a 'mark' (variant)</div>
+    </section>
+
+    <!-- ─── State 3: Dark + Desktop ─────────────── -->
+    <section class="mb-12">
+      <h2 class="text-base font-semibold mb-1">State 3 · Dark + Desktop (≥768px)</h2>
+      <p class="text-sm mb-4" style="color: hsl(var(--muted-foreground));">
+        Dark mode · LogoMark swap automático a <code class="font-mono">vitalia-logo-dark.png</code> (libélula + wordmark VITALIA white) · ThemeToggle Sun icon · D6 ✓ resuelta
+      </p>
+
+      <div class="topbar-container viewport-desktop" data-theme="dark">
+        <a href="#main-content-3" class="skip-link sr-only focus:not-sr-only" onfocus="this.classList.add('show')" onblur="this.classList.remove('show')">
+          Saltar al contenido
+        </a>
+        <header role="banner" class="topbar" data-testid="topbar-global">
+          <a href="/" aria-label="Vitalia inicio" class="inline-flex items-center">
+            <img src="assets/vitalia-logo-dark.png" alt="Vitalia" style="height: 32px; width: auto;" />
+          </a>
+          <div class="flex items-center gap-2">
+            <button type="button" class="theme-toggle" aria-label="Cambiar tema (actual: oscuro)" aria-pressed="true">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="4"></circle>
+                <path d="M12 2v2"></path>
+                <path d="M12 20v2"></path>
+                <path d="m4.93 4.93 1.41 1.41"></path>
+                <path d="m17.66 17.66 1.41 1.41"></path>
+                <path d="M2 12h2"></path>
+                <path d="M20 12h2"></path>
+                <path d="m6.34 17.66-1.41 1.41"></path>
+                <path d="m19.07 4.93-1.41 1.41"></path>
+              </svg>
+            </button>
+          </div>
+        </header>
+        <div id="main-content-3" class="main-content">
+          <p>Main content · dark mode</p>
+          <p class="mt-2" style="font-size: 0.75rem;">Asset dark real cargado · libélula multicolor + wordmark VITALIA white sobre near-black bg · contraste ~21:1 WCAG AAA</p>
+        </div>
+      </div>
+      <div class="label">viewport: 1440px · dark theme · D6 ✓ resuelta · asset real <code>vitalia-logo-dark.png</code></div>
+    </section>
+
+    <!-- ─── State 4: Dark + Mobile ─────────────── -->
+    <section class="mb-12">
+      <h2 class="text-base font-semibold mb-1">State 4 · Dark + Mobile (&lt;768px)</h2>
+      <p class="text-sm mb-4" style="color: hsl(var(--muted-foreground));">
+        Dark + variant='mark' automático · libélula multicolor funciona en dark sin issue · ThemeToggle Sun
+      </p>
+
+      <div class="topbar-container viewport-mobile" data-theme="dark">
+        <a href="#main-content-4" class="skip-link sr-only focus:not-sr-only" onfocus="this.classList.add('show')" onblur="this.classList.remove('show')">
+          Saltar al contenido
+        </a>
+        <header role="banner" class="topbar" data-testid="topbar-global">
+          <a href="/" aria-label="Vitalia inicio" class="inline-flex items-center">
+            <img src="assets/vitalia-ico.png" alt="Vitalia" style="height: 32px; width: 32px;" />
+          </a>
+          <div class="flex items-center gap-2">
+            <button type="button" class="theme-toggle" aria-label="Cambiar tema (actual: oscuro)" aria-pressed="true">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="4"></circle>
+                <path d="M12 2v2"></path>
+                <path d="M12 20v2"></path>
+                <path d="m4.93 4.93 1.41 1.41"></path>
+                <path d="m17.66 17.66 1.41 1.41"></path>
+                <path d="M2 12h2"></path>
+                <path d="M20 12h2"></path>
+                <path d="m6.34 17.66-1.41 1.41"></path>
+                <path d="m19.07 4.93-1.41 1.41"></path>
+              </svg>
+            </button>
+          </div>
+        </header>
+        <div id="main-content-4" class="main-content">
+          <p style="font-size: 0.75rem;">Mobile dark · libélula multicolor visible sin issue</p>
+        </div>
+      </div>
+      <div class="label">viewport: 375px · dark · variant='mark' efectivo · libélula multicolor sin dependency D6</div>
+    </section>
+
+    <!-- ─── Skip link demo ─────────────── -->
+    <section class="mb-12">
+      <h2 class="text-base font-semibold mb-1">Skip link a11y (WCAG 2.4.1)</h2>
+      <p class="text-sm mb-4" style="color: hsl(var(--muted-foreground));">
+        Click "Saltar al contenido" button para simular focus state · en implementación real aparece al press Tab desde body root
+      </p>
+
+      <div class="topbar-container viewport-desktop" data-theme="light" style="position: relative;">
+        <a href="#main-content-5" id="skip-link-demo" class="skip-link show">
+          Saltar al contenido
+        </a>
+        <header role="banner" class="topbar" data-testid="topbar-global">
+          <a href="/" aria-label="Vitalia inicio" class="inline-flex items-center">
+            <img src="assets/vitalia-logo.png" alt="Vitalia" style="height: 32px; width: auto;" />
+          </a>
+          <div class="flex items-center gap-2">
+            <button type="button" class="theme-toggle" aria-label="Cambiar tema (actual: claro)" aria-pressed="false">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+              </svg>
+            </button>
+          </div>
+        </header>
+        <div id="main-content-5" class="main-content">
+          <p>Skip link visible top-left simulating :focus state</p>
+          <p class="mt-2" style="font-size: 0.75rem;">Real implementación: skip link <code style="font-family: ui-monospace, monospace;">sr-only focus:not-sr-only</code> · appears only on Tab keyboard</p>
+        </div>
+      </div>
+      <div class="label">Skip link · WCAG 2.4.1 Bypass Blocks · keyboard Tab + Enter jumps to #main-content</div>
+    </section>
+
+    <!-- ─── Footer notes ─────────────── -->
+    <section class="cell mt-12" style="background: hsl(var(--muted)); padding: 1.5rem; border-radius: var(--radius); border: 1px solid hsl(var(--border));">
+      <h3 class="text-sm font-semibold mb-3" style="color: hsl(var(--foreground));">Notas mockup</h3>
+      <ul class="text-sm space-y-1 list-disc list-inside" style="color: hsl(var(--muted-foreground));">
+        <li><strong>TopBar altura exacta 48px</strong> (<code class="font-mono">h-12</code> Tailwind) — fixed across todos los states</li>
+        <li><strong>LogoMark izquierda</strong> · <strong>ThemeToggle + TenantSwitcherSlot derecha</strong> (slot retorna null en F1-S2, F1-S3 lo reemplaza)</li>
+        <li><strong>Responsive @media (max-width: 767px)</strong> · LogoMark switch automático desktop full → mobile mark</li>
+        <li><strong>Skip link</strong> <code class="font-mono">sr-only focus:not-sr-only</code> · keyboard Tab activa · jumps a <code class="font-mono">#main-content</code></li>
+        <li><strong>State 3 dark desktop</strong> usa filter CSS como placeholder · implementación real usa <code class="font-mono">vitalia-logo-dark.png</code> (D6 PENDING Chris entrega)</li>
+        <li><strong>State 4 dark mobile</strong> · no requiere D6 asset porque variant='mark' usa <code class="font-mono">vitalia-ico.png</code> (libélula multicolor funciona ambos modes)</li>
+        <li><strong>Border-bottom</strong> · 1px sólido <code class="font-mono">border-border</code> CSS var · separación visual TopBar/main</li>
+        <li><strong>z-50 relative</strong> · TopBar sticky-ish (no scroll-away en esta fase) · F1-S4 puede agregar sticky behavior si necesario</li>
+      </ul>
+    </section>
+
+  </main>
+
+  <!-- ─── Footer ─────────────────────────────────────────── -->
+  <footer class="border-t mt-12" style="border-color: hsl(var(--border)); background: hsl(var(--background));">
+    <div class="max-w-7xl mx-auto px-6 py-4 text-xs" style="color: hsl(var(--muted-foreground));">
+      Mockup per <code class="font-mono">vitalia/.claude/rules/shell-mockup-per-component.md</code> ·
+      story <code class="font-mono">vitalia-fase1-topbar-global</code> · v1.1 (assets reales)
+    </div>
+  </footer>
+
+</body>
+</html>

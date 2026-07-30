@@ -1,0 +1,58 @@
+{
+  "schema_version": "1.0",
+  "pr_folder": "/home/chalreme/Proyectos/luana-vitalia/vitalia/docs/product/stories/vitalia-fase2-lisa-servicios",
+  "ticket": "audit-1",
+  "iter": 1,
+  "command": "lisa-servicios-gates-vitalia",
+  "started_at": "2026-06-19T17:06:37Z",
+  "finished_at": "2026-06-19T17:06:37Z",
+  "duration_ms": 0,
+  "exit_code": 0,
+  "raw_log_path": "/home/chalreme/Proyectos/luana-vitalia/vitalia/docs/product/stories/vitalia-fase2-lisa-servicios/gate-logs/audit-1-lisa-servicios-2026-06-19T17:06:37Z.log",
+  "gates": [
+    {
+      "name": "ruff-check-offer",
+      "status": "PASS",
+      "command": "ruff check src/modules/vitalia/offer/",
+      "errors_count": 0,
+      "first_5_errors": []
+    },
+    {
+      "name": "pytest-offer-tests",
+      "status": "PASS",
+      "command": "pytest tests/modules/vitalia/offer/ -q",
+      "errors_count": 0,
+      "test_count": 172,
+      "first_5_errors": []
+    },
+    {
+      "name": "pytest-architecture",
+      "status": "PASS",
+      "command": "pytest tests/architecture/ -q",
+      "errors_count": 0,
+      "test_count": 298,
+      "first_5_errors": []
+    },
+    {
+      "name": "tsc-typecheck",
+      "status": "PASS",
+      "command": "tsc --noEmit",
+      "errors_count": 0,
+      "first_5_errors": []
+    },
+    {
+      "name": "vitest-servicios",
+      "status": "PASS",
+      "command": "vitest run src/features/lisa/components/servicios/ src/__tests__/architecture/test-autosave-value-from-local-state.test.ts",
+      "errors_count": 0,
+      "test_count": 164,
+      "first_5_errors": []
+    }
+  ],
+  "overall": {
+    "any_fail": false,
+    "fail_gate_names": [],
+    "summary": "All gates passed: ruff ✓ · pytest offer (172) ✓ · pytest architecture (298) ✓ · tsc ✓ · vitest servicios (164) ✓"
+  },
+  "notes": "lisa-servicios audit-1: BE offer module + FE servicios feature + arch fitness all passing"
+}

@@ -1,0 +1,1318 @@
+# 06-tickets.yaml — F2-S1 vitalia-fase2-valeria-agenda
+# Owner: /architect orchestrator (single-shot full-stack)
+# Schema v4.1 — must_load_skills enforceable per ticket
+#
+# DAG: 16 tickets total · BE foundations → FE foundations → components → tests → goldens
+# Service-deps gate: vitalia-payment-adapter-mvp (refined) + vitalia-fiscal-emission-pe (refining) NOT developed
+#   → DEFAULT Option A: /dev-team uses stubs + MSW per 03-arch § 8.6 + 05-guidelines § Service-deps gate
+#   → Stubs annotated /* DEPRECATED: replace when service-blocker story=done */ + tracked
+#
+# Owner pool: all tickets non-agentic → [qwen-opencode, claude-sonnet, claude-opus]
+#   (claude_opus_required: false — story has zero surface=AGENTIC tickets)
+#
+# Estimación total: ~62 hours · 6-7 dev-days
+#
+# Convención IDs:
+#   T-1..T-5    BE foundations (migration + domain + repos + services + ports)
+#   T-6..T-8    BE API routers (agenda + charge + fiscal + notify)
+#   T-9         BE arch tests NEW
+#   T-10..T-12  FE foundations (Shadcn install + types + api hooks + page)
+#   T-13..T-16  FE components (calendar + drawer + subform + filters + crear-cita)
+#   T-17..T-19  E2E + a11y + visual goldens
+
+---
+story_id: vitalia-fase2-valeria-agenda
+brand: vitalia
+sprint: F2-S1
+pi: fase-2
+generated_at: 2026-05-27T00:00:00Z
+generated_by: /architect (Opus 4.7 single-shot)
+schema_version: v4.1
+total_tickets: 19
+estimated_total_hours: 62
+hipaa_lite_overlay: true
+
+# ── Resumen pila (alto nivel) ─────────────────────────────────────
+summary:
+  - id: T-1
+    title: "BE migration f2_s1_vitalia_agenda — payments + fiscal_documents + clinic_map + growth_studio_event"
+    surface: BE
+    owner_pool: [qwen-opencode, claude-sonnet, claude-opus]
+    state: draft
+    blocks: [T-2, T-3, T-4]
+    estimate_hours: 2
+  - id: T-2
+    title: "BE scheduling domain — enums + dataclasses (AgendaSlot, AppointmentPayment, AppointmentOrigin, etc.)"
+    surface: BE
+    owner_pool: [qwen-opencode, claude-sonnet, claude-opus]
+    state: draft
+    blocked_by: [T-1]
+    blocks: [T-3, T-4, T-5]
+    estimate_hours: 2
+  - id: T-3
+    title: "BE scheduling infrastructure — SQLA models + AgendaGridRepository + AppointmentPaymentRepository (optimistic lock + idempotency)"
+    surface: BE
+    owner_pool: [qwen-opencode, claude-sonnet, claude-opus]
+    state: draft
+    blocked_by: [T-1, T-2]
+    blocks: [T-4, T-6]
+    estimate_hours: 5
+  - id: T-4
+    title: "BE scheduling application — services (agenda_grid + appointment_detail + appointment_status + create_appointment + notify) + ports interfaces"
+    surface: BE
+    owner_pool: [qwen-opencode, claude-sonnet, claude-opus]
+    state: draft
+    blocked_by: [T-1, T-2, T-3]
+    blocks: [T-5, T-6, T-7]
+    estimate_hours: 4
+  - id: T-5
+    title: "BE charge orchestrator saga + port impls (payments + fiscal) + stubs (service-blocker pattern)"
+    surface: BE
+    owner_pool: [qwen-opencode, claude-sonnet, claude-opus]
+    state: draft
+    blocked_by: [T-2, T-3, T-4]
+    blocks: [T-6, T-7]
+    estimate_hours: 5
+  - id: T-6
+    title: "BE API — agenda_router (GET grid + aggregates + detail + POST create + PATCH status)"
+    surface: BE
+    owner_pool: [qwen-opencode, claude-sonnet, claude-opus]
+    state: draft
+    blocked_by: [T-3, T-4]
+    blocks: [T-9, T-12]
+    estimate_hours: 3
+  - id: T-7
+    title: "BE API — payments/charge_router + fiscal/emit_router (consume ports + audit log + idempotency)"
+    surface: BE
+    owner_pool: [qwen-opencode, claude-sonnet, claude-opus]
+    state: draft
+    blocked_by: [T-4, T-5]
+    blocks: [T-9, T-12]
+    estimate_hours: 3
+  - id: T-8
+    title: "BE API — notify_router (template-only WhatsApp + ComplianceService guard + audit)"
+    surface: BE
+    owner_pool: [qwen-opencode, claude-sonnet, claude-opus]
+    state: draft
+    blocked_by: [T-4]
+    blocks: [T-9, T-12]
+    estimate_hours: 2
+  - id: T-9
+    title: "BE arch tests NEW — test_scheduling_module_ddd + test_no_phi_in_url_params + test_audit_log_row_per_phi_endpoint"
+    surface: BE
+    owner_pool: [qwen-opencode, claude-sonnet, claude-opus]
+    state: draft
+    blocked_by: [T-6, T-7, T-8]
+    blocks: []
+    estimate_hours: 3
+  - id: T-10
+    title: "FE Shadcn primitives install + tenant-locale helper extend + telemetry lib"
+    surface: FE
+    owner_pool: [qwen-opencode, claude-sonnet, claude-opus]
+    state: draft
+    blocks: [T-11, T-13, T-14, T-15, T-16]
+    estimate_hours: 1
+  - id: T-11
+    title: "FE types + Zod schemas (agenda.types.ts + agenda-schema.ts discriminated union)"
+    surface: FE
+    owner_pool: [qwen-opencode, claude-sonnet, claude-opus]
+    state: draft
+    blocked_by: [T-10]
+    blocks: [T-12, T-13, T-14, T-15, T-16]
+    estimate_hours: 2
+  - id: T-12
+    title: "FE api hooks + zustand stores + page Server Component + ValeriaAgendaView root"
+    surface: FE
+    owner_pool: [qwen-opencode, claude-sonnet, claude-opus]
+    state: draft
+    blocked_by: [T-6, T-7, T-8, T-11]
+    blocks: [T-13, T-14, T-15, T-16]
+    estimate_hours: 4
+  - id: T-13
+    title: "FE AgendaCalendar + DayCalendar + WeekCalendar + MonthCalendar + AgendaSlot + FreshnessIndicator"
+    surface: FE
+    owner_pool: [qwen-opencode, claude-sonnet, claude-opus]
+    state: draft
+    blocked_by: [T-11, T-12]
+    blocks: [T-17]
+    estimate_hours: 6
+  - id: T-14
+    title: "FE AppointmentDrawer (Sheet + 5 acordeones + resize + stale banner + skeleton)"
+    surface: FE
+    owner_pool: [qwen-opencode, claude-sonnet, claude-opus]
+    state: draft
+    blocked_by: [T-11, T-12]
+    blocks: [T-15, T-17]
+    estimate_hours: 4
+  - id: T-15
+    title: "FE CobrarSaldoSubform (★ corazón valor) — RHF + Zod discriminated union + saga handling"
+    surface: FE
+    owner_pool: [qwen-opencode, claude-sonnet, claude-opus]
+    state: draft
+    blocked_by: [T-11, T-14]
+    blocks: [T-17]
+    estimate_hours: 5
+  - id: T-16
+    title: "FE AgendaPresetFilters + CrearCitaButton + CrearCitaForm + PatientAutocomplete + MobileBottomSheet"
+    surface: FE
+    owner_pool: [qwen-opencode, claude-sonnet, claude-opus]
+    state: draft
+    blocked_by: [T-11, T-12]
+    blocks: [T-17]
+    estimate_hours: 4
+  - id: T-17
+    title: "FE E2E Playwright — fixtures + 4 POMs + 11 scenarios (per test_construction_plan)"
+    surface: FE
+    owner_pool: [qwen-opencode, claude-sonnet, claude-opus]
+    state: draft
+    blocked_by: [T-13, T-14, T-15, T-16]
+    blocks: [T-18, T-19]
+    estimate_hours: 8
+  - id: T-18
+    title: "FE a11y axe spec + WCAG 2.1 AA verification (calendar + drawer + subform)"
+    surface: FE
+    owner_pool: [qwen-opencode, claude-sonnet, claude-opus]
+    state: draft
+    blocked_by: [T-17]
+    blocks: []
+    estimate_hours: 2
+  - id: T-19
+    title: "FE visual goldens (~14 snapshots: 3 views × 2 themes + drawer + subform states + mobile) + cleanup AgendaPlaceholder"
+    surface: FE
+    owner_pool: [qwen-opencode, claude-sonnet, claude-opus]
+    state: draft
+    blocked_by: [T-17]
+    blocks: []
+    estimate_hours: 3
+
+
+# ── Tickets detail ────────────────────────────────────────────────
+
+tickets:
+
+  T-1:
+    id: T-1
+    title: "BE migration f2_s1_vitalia_agenda — payments + fiscal_documents + clinic_map + growth_studio_event"
+    type: backend
+    surface: BE
+    production_code: true
+    state: draft
+    owner_eligibility:
+      qwen_opencode: true
+      claude_sonnet: true
+      claude_opus_required: false
+    priority: 1
+    estimate_hours: 2
+    decisions_applicable: [A1, A4, A12]
+    inputs:
+      spec: "../01-spec.md"
+      arch_doc: "../03-arch.md"
+      rules: [".claude/rules/backend-migrations.md", ".claude/rules/tenant-isolation.md", "vitalia/.claude/rules/hipaa-lite.md"]
+    must_load_skills:
+      - backend-expert
+      - .claude/rules/tenant-isolation.md
+      - .claude/rules/backend-ddd.md
+      - .claude/rules/backend-migrations.md
+      - .claude/rules/anti-duplication.md
+      - .claude/rules/tdd-mandatory.md
+      - vitalia/.claude/rules/hipaa-lite.md
+      - tessl__pytest-api-testing
+    deliverables:
+      - "vitalia/backend/alembic/versions/XXXX_f2_s1_vitalia_agenda.py (idempotent raw SQL — 4 tables + indexes per 03-arch § 9.1)"
+      - "Verify migration runs twice no-op (prod-clone test per 03-arch § 9.2)"
+    out_of_scope:
+      - "Schema changes to engine appointments table (NO core modify)"
+      - "Domain entities (T-2)"
+      - "Repositories (T-3)"
+    acceptance:
+      - { id: A1, description: "alembic upgrade head succeeds idempotent", verifier: { type: shell, cmd: "cd vitalia/backend && docker exec luana-vitalia-backend-dev alembic upgrade head && docker exec luana-vitalia-backend-dev alembic upgrade head" } }
+      - { id: A2, description: "4 tables created with composite indexes", verifier: { type: shell, cmd: "docker exec luana-vitalia-postgres-dev psql -U postgres -d vitalia_dev -c \"\\\\dt vitalia_*\" | grep -E 'appointment_payments|fiscal_documents|appointment_clinic_map|growth_studio_event'" } }
+    gherkin_coverage: []
+    gherkin_coverage_note: "Migration ticket; scenarios SC-1..SC-11 cubiertos por tickets BE+FE downstream."
+    quality_gates:
+      - "be_arch_fitness GREEN"
+      - "Migration idempotent (second run = no-op)"
+    depends_on: []
+    blocks: [T-2, T-3, T-4]
+
+  T-2:
+    id: T-2
+    title: "BE scheduling domain — enums + dataclasses"
+    type: backend
+    surface: BE
+    production_code: true
+    state: draft
+    owner_eligibility:
+      qwen_opencode: true
+      claude_sonnet: true
+      claude_opus_required: false
+    priority: 1
+    estimate_hours: 2
+    decisions_applicable: [A1]
+    inputs:
+      spec: "../01-spec.md"
+      arch_doc: "../03-arch.md"
+      rules: [".claude/rules/backend-ddd.md", ".claude/rules/anti-duplication.md"]
+    must_load_skills:
+      - backend-expert
+      - .claude/rules/backend-ddd.md
+      - .claude/rules/anti-duplication.md
+      - .claude/rules/tdd-mandatory.md
+      - .claude/rules/master-data.md
+      - .claude/rules/currency-handling.md
+      - tessl__pytest-api-testing
+    deliverables:
+      - "vitalia/backend/src/modules/vitalia/scheduling/domain/{agenda_filter, appointment_origin, agenda_view, slot_payment_status}.py (StrEnum)"
+      - "vitalia/backend/src/modules/vitalia/scheduling/domain/{agenda_slot, appointment_payment}.py (@dataclass frozen)"
+      - "vitalia/backend/src/modules/vitalia/fiscal/domain/fiscal_document.py"
+      - "vitalia/backend/src/modules/vitalia/payments/domain/payment_method.py + fiscal_doc_type.py"
+      - "vitalia/backend/tests/modules/vitalia/scheduling/test_agenda_slot_domain.py (TDD RED → GREEN)"
+    out_of_scope:
+      - "SA 2.0 models (T-3)"
+      - "Services (T-4)"
+    acceptance:
+      - { id: A1, description: "All enums + dataclasses defined + tested", verifier: { type: pytest, cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/scheduling/test_agenda_slot_domain.py -v" } }
+      - { id: A2, description: "No cross-module imports (DDD layer purity)", verifier: { type: shell, cmd: "! grep -rn 'from src.modules.vitalia.crm\\|from src.modules.vitalia.clinics' vitalia/backend/src/modules/vitalia/scheduling/domain/" } }
+    gherkin_coverage: []
+    gherkin_coverage_note: "Domain layer foundation; scenarios cubiertos por T-5 (orchestrator) + T-15 (subform)"
+    quality_gates:
+      - "be_lint GREEN"
+      - "be_format GREEN"
+      - "be_arch_fitness scheduling_module_ddd GREEN (parcial — domain only)"
+    depends_on: [T-1]
+    blocks: [T-3, T-4, T-5]
+
+  T-3:
+    id: T-3
+    title: "BE scheduling infrastructure — SQLA 2.0 models + AgendaGridRepository + AppointmentPaymentRepository"
+    type: backend
+    surface: BE
+    production_code: true
+    state: draft
+    owner_eligibility:
+      qwen_opencode: true
+      claude_sonnet: true
+      claude_opus_required: false
+    priority: 1
+    estimate_hours: 5
+    decisions_applicable: [A1, A7, A8, A12]
+    inputs:
+      spec: "../01-spec.md"
+      arch_doc: "../03-arch.md"
+      rules: [".claude/rules/backend-ddd.md", ".claude/rules/tenant-isolation.md", "vitalia/.claude/rules/hipaa-lite.md"]
+    must_load_skills:
+      - backend-expert
+      - .claude/rules/backend-ddd.md
+      - .claude/rules/tenant-isolation.md
+      - vitalia/.claude/rules/hipaa-lite.md
+      - .claude/rules/anti-duplication.md
+      - .claude/rules/tdd-mandatory.md
+      - .claude/rules/master-data.md
+      - tessl__pytest-api-testing
+      - tessl__fastapi
+    deliverables:
+      - "vitalia/backend/src/modules/vitalia/scheduling/persistence/models/{appointment_payment_model, appointment_clinic_map_model}.py (SA 2.0 mapped_column)"
+      - "vitalia/backend/src/modules/vitalia/fiscal/infrastructure/models/fiscal_document_model.py"
+      - "vitalia/backend/src/modules/vitalia/scheduling/infrastructure/repositories/{agenda_grid_repository, agenda_grid_repository_impl, appointment_detail_repository, appointment_payment_repository, appointment_aggregates_repository}.py (heredan PhiRepositoryBase + dual filter)"
+      - "vitalia/backend/src/modules/vitalia/fiscal/infrastructure/repositories/fiscal_document_repository.py"
+      - "Optimistic lock pattern en AppointmentPaymentRepository.lock_for_charge() (UPDATE WHERE balance_version=expected, rowcount=0 raise BalanceAlreadyChargedError)"
+      - "Idempotency lookup find_by_idempotency_key() via UNIQUE index (tenant_id, clinic_id, external_payment_id)"
+      - "Tests: test_agenda_grid_repository.py (dual filter + JOIN + preset_filter) + test_appointment_payment_repository.py (optimistic lock + idempotency)"
+    out_of_scope:
+      - "Services (T-4)"
+      - "API routers (T-6, T-7)"
+      - "Engine appointments table modify (NO core)"
+    acceptance:
+      - { id: A1, description: "Dual filter HIPAA en cada query (PhiRepositoryBase)", verifier: { type: pytest, cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/architecture/test_phi_dual_filter.py -v" } }
+      - { id: A2, description: "Repos pass unit tests (JOIN + filter + projection)", verifier: { type: pytest, cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/scheduling/test_agenda_grid_repository.py tests/modules/vitalia/scheduling/test_appointment_payment_repository.py -v" } }
+      - { id: A3, description: "Cross-clinic query returns empty (404 substrate)", verifier: { type: pytest, cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/scheduling/test_agenda_grid_repository.py -v -k 'cross_clinic'" } }
+      - { id: A4, description: "Optimistic lock raises BalanceAlreadyChargedError on stale version", verifier: { type: pytest, cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/scheduling/test_appointment_payment_repository.py -v -k 'optimistic_lock'" } }
+      - { id: A5, description: "Idempotency lookup returns prior payment on key repeat", verifier: { type: pytest, cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/scheduling/test_appointment_payment_repository.py -v -k 'idempotency'" } }
+    gherkin_coverage:
+      - scenario: "SC-4 adversarial cross-clinic query returns 404 substrate (repo layer)"
+        tests:
+          - "vitalia/backend/tests/modules/vitalia/scheduling/test_agenda_grid_repository.py::test_cross_clinic_returns_empty"
+      - scenario: "SC-5 race_condition optimistic lock (repo layer)"
+        tests:
+          - "vitalia/backend/tests/modules/vitalia/scheduling/test_appointment_payment_repository.py::test_lock_for_charge_optimistic"
+    quality_gates:
+      - "be_arch_fitness GREEN (phi_dual_filter + scheduling_module_ddd)"
+      - "be_lint + be_format GREEN"
+      - "arch_tenant_isolation_grep GREEN"
+    depends_on: [T-1, T-2]
+    blocks: [T-4, T-6]
+
+  T-4:
+    id: T-4
+    title: "BE scheduling application — services + ports interfaces"
+    type: backend
+    surface: BE
+    production_code: true
+    state: draft
+    owner_eligibility:
+      qwen_opencode: true
+      claude_sonnet: true
+      claude_opus_required: false
+    priority: 1
+    estimate_hours: 4
+    decisions_applicable: [A1, A3, A5, A9]
+    inputs:
+      spec: "../01-spec.md"
+      arch_doc: "../03-arch.md"
+    must_load_skills:
+      - backend-expert
+      - .claude/rules/backend-ddd.md
+      - .claude/rules/tenant-isolation.md
+      - vitalia/.claude/rules/hipaa-lite.md
+      - .claude/rules/anti-duplication.md
+      - .claude/rules/tdd-mandatory.md
+      - tessl__fastapi
+      - tessl__pytest-api-testing
+    deliverables:
+      - "vitalia/backend/src/modules/vitalia/scheduling/application/services/{agenda_grid_service, appointment_detail_service, appointment_status_service, create_appointment_service, notify_service}.py"
+      - "vitalia/backend/src/modules/vitalia/scheduling/application/ports/{payment_charge_port, fiscal_emit_port}.py (ABC interfaces)"
+      - "vitalia/backend/src/modules/vitalia/_shared/phi_masking.py (NEW shared util: mask_name, mask_dni, mask_phone, mask_email)"
+      - "vitalia/backend/src/modules/vitalia/_shared/telemetry/{growth_studio_emitter, amount_bucket}.py"
+      - "PHI masking aplicada en project() de cada service (mask_name + mask_dni + mask_phone + mask_email)"
+      - "Audit log sync write antes response en TODOS PHI services (read_appointment_detail, status_change, send_notification, create_appointment)"
+      - "Tests: test_agenda_grid_service.py + test_appointment_detail_service.py + test_appointment_status_service.py + test_notify_service.py"
+    out_of_scope:
+      - "Charge orchestrator (T-5 — saga complejidad amerita ticket separado)"
+      - "API routers (T-6, T-7, T-8)"
+    acceptance:
+      - { id: A1, description: "PHI masking aplicada en projecciones DTO", verifier: { type: pytest, cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/scheduling/test_appointment_detail_service.py -v -k 'phi_mask'" } }
+      - { id: A2, description: "Audit log sync write antes response", verifier: { type: pytest, cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/scheduling/test_appointment_detail_service.py -v -k 'audit_log'" } }
+      - { id: A3, description: "Cross-clinic returns 404", verifier: { type: pytest, cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/scheduling/test_appointment_detail_service.py -v -k 'cross_clinic_404'" } }
+      - { id: A4, description: "Notify service blocks PHI per ComplianceService", verifier: { type: pytest, cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/scheduling/test_notify_service.py -v" } }
+    gherkin_coverage:
+      - scenario: "SC-4 adversarial cross-clinic 404 (service layer)"
+        tests:
+          - "vitalia/backend/tests/modules/vitalia/scheduling/test_appointment_detail_service.py::test_cross_clinic_returns_404"
+    quality_gates:
+      - "be_unit_agenda_grid_service GREEN"
+      - "be_unit_appointment_detail_service GREEN"
+      - "be_arch_fitness GREEN"
+    depends_on: [T-1, T-2, T-3]
+    blocks: [T-5, T-6, T-7]
+
+  T-5:
+    id: T-5
+    title: "BE charge orchestrator saga + port implementations + stubs (service-blocker pattern)"
+    type: backend
+    surface: BE
+    production_code: true
+    state: draft
+    owner_eligibility:
+      qwen_opencode: true
+      claude_sonnet: true
+      claude_opus_required: false
+    priority: 1
+    estimate_hours: 5
+    decisions_applicable: [A3, A6, A7, A8, A13]
+    inputs:
+      spec: "../01-spec.md"
+      arch_doc: "../03-arch.md"
+      tessl_skills: [tessl__graceful-degradation]
+    must_load_skills:
+      - backend-expert
+      - .claude/rules/backend-ddd.md
+      - .claude/rules/tenant-isolation.md
+      - vitalia/.claude/rules/hipaa-lite.md
+      - .claude/rules/anti-duplication.md
+      - .claude/rules/tdd-mandatory.md
+      - .claude/rules/currency-handling.md
+      - tessl__fastapi
+      - tessl__pytest-api-testing
+      - tessl__graceful-degradation
+    deliverables:
+      - "vitalia/backend/src/modules/vitalia/scheduling/application/services/charge_orchestrator.py (★ saga payment + fiscal + audit + compensation per 03-arch § 7.2)"
+      - "vitalia/backend/src/modules/vitalia/payments/application/payment_charge_port_impl.py (selector tenant.payment_gateway → wraps existing scaffolds stripe_connect_adapter.py / mercadopago_adapter.py — NO modify scaffolds, only adapt)"
+      - "vitalia/backend/src/modules/vitalia/payments/application/stubs/stub_payment_charge_port.py (★ DEPRECATED: replace when vitalia-payment-adapter-mvp state=done — service-blocker pattern Option A)"
+      - "vitalia/backend/src/modules/vitalia/fiscal/application/fiscal_emit_port_impl.py (selector tenant.country → nubefact/afip-stub/sat-stub)"
+      - "vitalia/backend/src/modules/vitalia/fiscal/application/stubs/stub_fiscal_emit_port.py (★ DEPRECATED: replace when vitalia-fiscal-emission-pe state=done)"
+      - "Tests: test_charge_orchestrator.py (happy + 503 payment + 503 fiscal + 409 + idempotency + audit log per branch)"
+    out_of_scope:
+      - "Real Stripe/MP/Nubefact integration (waits for service-blockers developed)"
+      - "API routers (T-7 wires this)"
+      - "Modify existing payment adapters (scaffolds preserved as-is)"
+    notes_for_downstream:
+      service_deps_gate: |
+        BEFORE /dev-team picks up T-5: verify vitalia-payment-adapter-mvp + vitalia-fiscal-emission-pe states.
+        DEFAULT (Option A per 03-arch § 8.6): use stubs + MSW. Real adapter wiring lifted when service-blockers developed.
+        Stubs MUST be annotated # DEPRECATED: replace when vitalia-{X} state=done + tracked in commit body.
+        Architecture test test_no_stub_in_prod_path.py introduced post-story-merge ratchet enforces stub-free prod by story=done.
+    acceptance:
+      - { id: A1, description: "Saga happy path: charge + fiscal emit + 2 audit log rows", verifier: { type: pytest, cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/scheduling/test_charge_orchestrator.py -v -k 'happy_path'" } }
+      - { id: A2, description: "Payment 503 → charge_failed audit + no fiscal emit + no payment row persisted", verifier: { type: pytest, cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/scheduling/test_charge_orchestrator.py -v -k 'payment_503'" } }
+      - { id: A3, description: "Fiscal 503 post-charge → charge persisted + warning + retry-emit standalone", verifier: { type: pytest, cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/scheduling/test_charge_orchestrator.py -v -k 'fiscal_503_post_charge'" } }
+      - { id: A4, description: "Concurrent charge (race) → BalanceAlreadyChargedError → 409 caller", verifier: { type: pytest, cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/scheduling/test_charge_orchestrator.py -v -k 'concurrent_charge_optimistic_lock'" } }
+      - { id: A5, description: "Idempotency key → return prior response (no double charge)", verifier: { type: pytest, cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/scheduling/test_charge_orchestrator.py -v -k 'idempotency'" } }
+    gherkin_coverage:
+      - scenario: "SC-1 happy: cobro saldo end-to-end (orchestrator layer)"
+        tests:
+          - "vitalia/backend/tests/modules/vitalia/scheduling/test_charge_orchestrator.py::test_happy_path_pe_boleta"
+      - scenario: "SC-2 negative: payment-adapter caído"
+        tests:
+          - "vitalia/backend/tests/modules/vitalia/scheduling/test_charge_orchestrator.py::test_payment_adapter_503"
+      - scenario: "SC-5 race_condition: concurrent charge"
+        tests:
+          - "vitalia/backend/tests/modules/vitalia/scheduling/test_charge_orchestrator.py::test_concurrent_charge_optimistic_lock"
+    quality_gates:
+      - "be_unit_charge_orchestrator GREEN"
+      - "be_arch_fitness GREEN"
+    depends_on: [T-2, T-3, T-4]
+    blocks: [T-6, T-7]
+
+
+  T-6:
+    id: T-6
+    title: "BE API — agenda_router (GET grid + aggregates + detail + POST create + PATCH status)"
+    type: backend
+    surface: BE
+    production_code: true
+    state: draft
+    owner_eligibility:
+      qwen_opencode: true
+      claude_sonnet: true
+      claude_opus_required: false
+    priority: 1
+    estimate_hours: 3
+    decisions_applicable: [A1, A5, A9, A10]
+    inputs:
+      spec: "../01-spec.md"
+      arch_doc: "../03-arch.md"
+    must_load_skills:
+      - backend-expert
+      - .claude/rules/backend-ddd.md
+      - .claude/rules/tenant-isolation.md
+      - vitalia/.claude/rules/hipaa-lite.md
+      - .claude/rules/anti-duplication.md
+      - .claude/rules/tdd-mandatory.md
+      - tessl__fastapi
+      - tessl__pytest-api-testing
+    deliverables:
+      - "vitalia/backend/src/modules/vitalia/scheduling/api/agenda_router.py (5 endpoints — grid, aggregates, detail, create, patch_status)"
+      - "vitalia/backend/src/modules/vitalia/scheduling/api/dtos/agenda_dtos.py (AgendaGridResponseDTO, AgendaSlotDTO, AppointmentDetailDTO, CreateAppointmentRequestDTO, PatchAppointmentRequestDTO)"
+      - "Query-param whitelist enforcement (ALLOWED_GRID_PARAMS) + suspicious_request audit row (NO PHI content)"
+      - "require_phi_access(roles=...) decorator dependency"
+      - "response_model= mandatory en cada endpoint"
+      - "Include router en main.py app"
+      - "Tests: test_phi_url_protection.py + test_dual_filter_clinic_isolation.py + test_audit_log_drawer.py + test_create_appointment_router.py + test_patch_status_router.py"
+    out_of_scope:
+      - "Charge router (T-7)"
+      - "Notify router (T-8)"
+    acceptance:
+      - { id: A1, description: "GET /agenda/grid PHI URL params rejected + suspicious audit row", verifier: { type: pytest, cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/scheduling/test_phi_url_protection.py -v" } }
+      - { id: A2, description: "Cross-clinic query returns 404 + cross_clinic_attempt audit row", verifier: { type: pytest, cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/scheduling/test_dual_filter_clinic_isolation.py -v" } }
+      - { id: A3, description: "PATCH status emits status_change audit row with from→to", verifier: { type: pytest, cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/scheduling/test_patch_status_router.py -v" } }
+      - { id: A4, description: "POST create emits create_appointment audit row + persists clinic_map", verifier: { type: pytest, cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/scheduling/test_create_appointment_router.py -v" } }
+      - { id: A5, description: "response_model= en cada endpoint", verifier: { type: pytest, cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/architecture/test_response_model_required.py -v" } }
+    gherkin_coverage:
+      - scenario: "SC-4 adversarial — PHI en URL bloqueado + cross-clinic 404"
+        tests:
+          - "vitalia/backend/tests/modules/vitalia/scheduling/test_phi_url_protection.py::test_patient_dni_query_param_rejected"
+          - "vitalia/backend/tests/modules/vitalia/scheduling/test_dual_filter_clinic_isolation.py::test_cross_clinic_returns_404"
+    quality_gates:
+      - "be_arch_fitness GREEN (response_model + phi_dual_filter + no_phi_url + audit_row)"
+      - "be_integration_phi_url_protection GREEN"
+      - "be_integration_dual_filter GREEN"
+      - "be_integration_audit_log_drawer GREEN"
+    depends_on: [T-3, T-4]
+    blocks: [T-9, T-12]
+
+  T-7:
+    id: T-7
+    title: "BE API — payments/charge_router + fiscal/emit_router"
+    type: backend
+    surface: BE
+    production_code: true
+    state: draft
+    owner_eligibility:
+      qwen_opencode: true
+      claude_sonnet: true
+      claude_opus_required: false
+    priority: 1
+    estimate_hours: 3
+    decisions_applicable: [A2, A3, A6, A8]
+    inputs:
+      spec: "../01-spec.md"
+      arch_doc: "../03-arch.md"
+    must_load_skills:
+      - backend-expert
+      - .claude/rules/backend-ddd.md
+      - .claude/rules/tenant-isolation.md
+      - vitalia/.claude/rules/hipaa-lite.md
+      - .claude/rules/anti-duplication.md
+      - .claude/rules/tdd-mandatory.md
+      - .claude/rules/currency-handling.md
+      - tessl__fastapi
+      - tessl__pytest-api-testing
+      - tessl__graceful-degradation
+    deliverables:
+      - "vitalia/backend/src/modules/vitalia/payments/api/charge_router.py (POST /api/v1/payments/charge)"
+      - "vitalia/backend/src/modules/vitalia/payments/api/dtos/charge_dtos.py (ChargeRequestDTO, ChargeResponseDTO, ChargeConflict409DTO)"
+      - "vitalia/backend/src/modules/vitalia/fiscal/api/emit_router.py (POST /api/v1/fiscal/emit)"
+      - "vitalia/backend/src/modules/vitalia/fiscal/api/dtos/emit_dtos.py"
+      - "FastAPI DI factory for ChargeOrchestrator (port impls + payment_repo + audit_writer + compliance)"
+      - "409 Conflict response handling + retry-After header"
+      - "Include routers en main.py"
+      - "Tests: test_drawer_charge_flow.py (end-to-end charge happy + 503 + 409 + idempotency via FastAPI testclient)"
+    out_of_scope:
+      - "Real adapter integration (uses stubs by default per service-blocker gate)"
+      - "Notify router (T-8)"
+    acceptance:
+      - { id: A1, description: "POST /charge happy → 200 + ChargeResponseDTO + audit log row + grid invalidation triggered", verifier: { type: pytest, cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/scheduling/test_drawer_charge_flow.py -v -k 'happy_path_pe_boleta'" } }
+      - { id: A2, description: "POST /charge payment 503 → 503 + ChargeConflict409DTO NOT returned + audit charge_failed", verifier: { type: pytest, cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/scheduling/test_drawer_charge_flow.py -v -k 'payment_503_no_fiscal_emit'" } }
+      - { id: A3, description: "POST /charge concurrent (race) → 409 ChargeConflict409DTO", verifier: { type: pytest, cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/scheduling/test_drawer_charge_flow.py -v -k '409_conflict'" } }
+      - { id: A4, description: "POST /charge idempotency_key dedup", verifier: { type: pytest, cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/scheduling/test_drawer_charge_flow.py -v -k 'idempotency_dedup'" } }
+      - { id: A5, description: "POST /fiscal/emit standalone retry post-charge-fail scenario", verifier: { type: pytest, cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/scheduling/test_drawer_charge_flow.py -v -k 'fiscal_retry_standalone'" } }
+    gherkin_coverage:
+      - scenario: "SC-1 happy: cobro saldo (API layer)"
+        tests:
+          - "vitalia/backend/tests/modules/vitalia/scheduling/test_drawer_charge_flow.py::test_happy_path_pe_boleta"
+      - scenario: "SC-2 negative: payment 503 (API layer)"
+        tests:
+          - "vitalia/backend/tests/modules/vitalia/scheduling/test_drawer_charge_flow.py::test_payment_503_no_fiscal_emit"
+      - scenario: "SC-5 race_condition: concurrent → 409 (API layer)"
+        tests:
+          - "vitalia/backend/tests/modules/vitalia/scheduling/test_drawer_charge_flow.py::test_409_conflict_returns_typed_response"
+    quality_gates:
+      - "be_arch_fitness GREEN"
+      - "be_integration_drawer_charge_flow GREEN"
+    depends_on: [T-4, T-5]
+    blocks: [T-9, T-12]
+
+  T-8:
+    id: T-8
+    title: "BE API — notify_router (template-only WhatsApp + ComplianceService + audit)"
+    type: backend
+    surface: BE
+    production_code: true
+    state: draft
+    owner_eligibility:
+      qwen_opencode: true
+      claude_sonnet: true
+      claude_opus_required: false
+    priority: 2
+    estimate_hours: 2
+    decisions_applicable: [A1, A9]
+    inputs:
+      spec: "../01-spec.md"
+      arch_doc: "../03-arch.md"
+    must_load_skills:
+      - backend-expert
+      - .claude/rules/backend-ddd.md
+      - .claude/rules/tenant-isolation.md
+      - vitalia/.claude/rules/hipaa-lite.md
+      - .claude/rules/anti-duplication.md
+      - .claude/rules/tdd-mandatory.md
+      - .claude/rules/spanish-text.md
+      - tessl__fastapi
+      - tessl__pytest-api-testing
+    deliverables:
+      - "vitalia/backend/src/modules/vitalia/scheduling/api/notify_router.py (POST /api/v1/scheduling/appointments/{id}/notify)"
+      - "vitalia/backend/src/modules/vitalia/scheduling/api/dtos/notify_dtos.py (SendNotificationRequestDTO + response)"
+      - "Template catalog seed (3 templates: recordatorio-mañana, confirma-asistencia-24h, reagendar-opciones) en `vitalia/backend/src/modules/vitalia/_shared/notify_templates.yaml` or DB"
+      - "ComplianceService.validate_outbound_message guard + BlockedChannelError handler"
+      - "Audit log row action=send_notification"
+      - "Tests: test_notify_compliance_guard.py (template-only enforce + PHI block + audit row)"
+    out_of_scope:
+      - "Editor de templates inline (F2-S22 config-avanzado)"
+      - "Real WhatsApp channel adapter dispatch (uses existing core/luana-core-channels infrastructure)"
+    acceptance:
+      - { id: A1, description: "Free-text template NOT in catalog → 400 BadRequest", verifier: { type: pytest, cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/scheduling/test_notify_compliance_guard.py -v -k 'free_text_rejected'" } }
+      - { id: A2, description: "Template contains PHI fields → ComplianceService.BlockedChannelError → 422", verifier: { type: pytest, cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/scheduling/test_notify_compliance_guard.py -v -k 'phi_blocked'" } }
+      - { id: A3, description: "Happy path → send + audit row", verifier: { type: pytest, cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/scheduling/test_notify_compliance_guard.py -v -k 'happy_path'" } }
+    gherkin_coverage: []
+    gherkin_coverage_note: "WhatsApp notify mencionado AC-30; scenarios SC-1..SC-11 NO cubren notify específicamente (out-of-loop F2-S1 happy flow). Coverage via dedicated test_notify_compliance_guard.py."
+    quality_gates:
+      - "be_unit_notify_compliance_guard GREEN"
+      - "be_arch_fitness GREEN"
+    depends_on: [T-4]
+    blocks: [T-9, T-12]
+
+  T-9:
+    id: T-9
+    title: "BE arch tests NEW — scheduling_module_ddd + no_phi_in_url_params + audit_log_row_per_phi_endpoint + (post-merge) no_stub_in_prod_path"
+    type: tests
+    surface: BE
+    production_code: false                     # R23 — tests/architecture only
+    state: draft
+    owner_eligibility:
+      qwen_opencode: true
+      claude_sonnet: true
+      claude_opus_required: false
+    priority: 1
+    estimate_hours: 3
+    decisions_applicable: [A1, A10, A11, A13]
+    inputs:
+      spec: "../01-spec.md"
+      arch_doc: "../03-arch.md"
+    must_load_skills:
+      - backend-expert
+      - .claude/rules/backend-ddd.md
+      - .claude/rules/anti-duplication.md
+      - .claude/rules/tdd-mandatory.md
+      - tessl__pytest-api-testing
+    deliverables:
+      - "vitalia/backend/tests/architecture/test_scheduling_module_ddd.py (DDD layers + naming + no cross-module imports)"
+      - "vitalia/backend/tests/architecture/test_no_phi_in_url_params.py (whitelist + grep PHI field names en router signatures + FastAPI Path/Query params scan)"
+      - "vitalia/backend/tests/architecture/test_audit_log_row_per_phi_endpoint.py (grep audit.write invocation per PHI route handler — defense-in-depth complementing test_audit_log_sync_write.py)"
+      - "vitalia/backend/tests/architecture/test_no_stub_in_prod_path.py (★ NEW ratchet — enforces stub paths NOT imported by router/__init__.py in prod tree; story-merge gate)"
+    out_of_scope:
+      - "Arch tests for other modules"
+    acceptance:
+      - { id: A1, description: "All 4 new arch tests GREEN with current scheduling/payments/fiscal code", verifier: { type: pytest, cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/architecture/test_scheduling_module_ddd.py tests/architecture/test_no_phi_in_url_params.py tests/architecture/test_audit_log_row_per_phi_endpoint.py -v" } }
+      - { id: A2, description: "Ratchet test_no_stub_in_prod_path FAILS while stubs imported in prod (negative test — confirms ratchet shrinks)", verifier: { type: pytest, cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/architecture/test_no_stub_in_prod_path.py -v" } }
+    gherkin_coverage: []
+    gherkin_coverage_note: "Arch tests support SC-4 adversarial (PHI URL + cross-clinic) defense; functional coverage in T-6/T-7."
+    quality_gates:
+      - "be_arch_fitness ALL GREEN"
+    depends_on: [T-6, T-7, T-8]
+    blocks: []
+
+  T-10:
+    id: T-10
+    title: "FE Shadcn primitives install + tenant-locale helper extend + telemetry lib"
+    type: frontend
+    surface: FE
+    production_code: true
+    state: draft
+    owner_eligibility:
+      qwen_opencode: true
+      claude_sonnet: true
+      claude_opus_required: false
+    priority: 1
+    estimate_hours: 1
+    decisions_applicable: [A14]
+    inputs:
+      spec: "../01-spec.md"
+      arch_doc: "../03-arch.md"
+    must_load_skills:
+      - frontend-expert
+      - .claude/rules/frontend-fsd.md
+      - .claude/rules/spanish-text.md
+      - .claude/rules/currency-handling.md
+      - tessl__shadcn-ui
+      - tessl__tailwind
+      - tessl__react-patterns
+    deliverables:
+      - "Run `npx shadcn@latest add sheet accordion calendar popover select form sonner` en vitalia/frontend"
+      - "vitalia/frontend/src/components/ui/{sheet,accordion,calendar,popover,select,form,sonner}.tsx (Shadcn copy-paste)"
+      - "vitalia/frontend/src/lib/tenant-locale.ts EXTEND if absent (useTenantLocale + formatTenantMoney(amountCents, currency, locale))"
+      - "vitalia/frontend/src/lib/telemetry.ts (NEW — amountBucket() mirror BE + emitGrowthEvent() helper)"
+    out_of_scope:
+      - "Component implementations (T-13..T-16)"
+    acceptance:
+      - { id: A1, description: "7 Shadcn primitives installed + typecheck GREEN", verifier: { type: shell, cmd: "cd vitalia/frontend && ls src/components/ui/{sheet,accordion,calendar,popover,select,form,sonner}.tsx && npx tsc --noEmit" } }
+      - { id: A2, description: "formatTenantMoney handles per-transaction currency override", verifier: { type: shell, cmd: "cd vitalia/frontend && npx vitest run src/lib/__tests__/tenant-locale.test.ts" } }
+    gherkin_coverage: []
+    gherkin_coverage_note: "Foundation only; consumed by T-13..T-16."
+    quality_gates:
+      - "fe_typecheck GREEN"
+      - "fe_lint GREEN"
+    depends_on: []
+    blocks: [T-11, T-13, T-14, T-15, T-16]
+
+  T-11:
+    id: T-11
+    title: "FE types + Zod schemas (agenda.types.ts + agenda-schema.ts discriminated union)"
+    type: frontend
+    surface: FE
+    production_code: true
+    state: draft
+    owner_eligibility:
+      qwen_opencode: true
+      claude_sonnet: true
+      claude_opus_required: false
+    priority: 1
+    estimate_hours: 2
+    decisions_applicable: [A5, A14]
+    inputs:
+      spec: "../01-spec.md"
+      arch_doc: "../03-arch.md"
+    must_load_skills:
+      - frontend-expert
+      - .claude/rules/frontend-fsd.md
+      - .claude/rules/currency-handling.md
+      - tessl__zod
+      - tessl__react-patterns
+    deliverables:
+      - "vitalia/frontend/src/features/valeria/types/agenda.types.ts (AgendaSlot, AppointmentDetail, Payment, AgendaView, AgendaPresetFilter, AppointmentOrigin types — mirror Pydantic DTOs camelCase)"
+      - "vitalia/frontend/src/features/valeria/types/agenda-schema.ts (Zod chargeSchema discriminated union por currency PEN/ARS/MXN/USD/COP/CLP + createAppointmentSchema + patchStatusSchema + sendNotificationSchema)"
+      - "Tests vitest schema parse happy + error paths (validation messages spanish neutro)"
+    out_of_scope:
+      - "API hooks (T-12)"
+      - "Components (T-13..T-16)"
+    acceptance:
+      - { id: A1, description: "Schema discriminated union validates all 6 currencies", verifier: { type: shell, cmd: "cd vitalia/frontend && npx vitest run src/features/valeria/types/__tests__/agenda-schema.test.ts" } }
+      - { id: A2, description: "emitInvoice=true requires fiscalDocType (refine)", verifier: { type: shell, cmd: "cd vitalia/frontend && npx vitest run src/features/valeria/types/__tests__/agenda-schema.test.ts -t 'emitInvoice refine'" } }
+    gherkin_coverage:
+      - scenario: "SC-11 i18n: multi-currency override (schema layer)"
+        tests:
+          - "vitalia/frontend/src/features/valeria/types/__tests__/agenda-schema.test.ts::test_currency_discriminated_union"
+    quality_gates:
+      - "fe_typecheck GREEN"
+      - "fe_lint GREEN"
+    depends_on: [T-10]
+    blocks: [T-12, T-13, T-14, T-15, T-16]
+
+  T-12:
+    id: T-12
+    title: "FE api hooks + zustand stores + page Server Component + ValeriaAgendaView root client"
+    type: frontend
+    surface: FE
+    production_code: true
+    state: draft
+    owner_eligibility:
+      qwen_opencode: true
+      claude_sonnet: true
+      claude_opus_required: false
+    priority: 1
+    estimate_hours: 4
+    decisions_applicable: [A5, A14]
+    inputs:
+      spec: "../01-spec.md"
+      arch_doc: "../03-arch.md"
+    must_load_skills:
+      - frontend-expert
+      - .claude/rules/frontend-fsd.md
+      - .claude/rules/spanish-text.md
+      - tessl__react-patterns
+      - tessl__nextjs-app-router-modularization
+      - tessl__vitest
+    deliverables:
+      - "vitalia/frontend/src/features/valeria/api/agenda.ts (useAgendaGrid + useAggregates + useAppointmentDetail React Query hooks)"
+      - "vitalia/frontend/src/features/valeria/api/agenda-server.ts (getInitialAgendaState SSR fetch)"
+      - "vitalia/frontend/src/features/valeria/api/payments.ts (useChargeMutation)"
+      - "vitalia/frontend/src/features/valeria/api/fiscal.ts (useFiscalEmitMutation)"
+      - "vitalia/frontend/src/features/valeria/api/notify.ts (useSendNotificationMutation)"
+      - "vitalia/frontend/src/features/valeria/hooks/{useAgendaFilters, useDrawerWidth, useFreshness}.ts"
+      - "vitalia/frontend/src/features/valeria/store/{drawer-store, filters-store}.ts (zustand local feature)"
+      - "vitalia/frontend/src/app/[tenantId]/(shell-organism)/valeria/agenda/page.tsx (Server Component, NEW segment takes precedence over [agent]/[subtab])"
+      - "vitalia/frontend/src/features/valeria/components/agenda/ValeriaAgendaView.tsx (client root)"
+      - "vitalia/frontend/src/features/valeria/index.ts MODIFY public API exports"
+      - "vitalia/frontend/src/test-utils/msw/handlers/agenda-handlers.ts (MSW mocks for charge + fiscal + notify with success/503/409 variants)"
+      - "Tests: api hooks (agenda.test.ts) + store unit (drawer-store, filters-store) + ValeriaAgendaView composition test"
+    out_of_scope:
+      - "Calendar components (T-13)"
+      - "Drawer + subform (T-14, T-15)"
+      - "Filters + crear-cita (T-16)"
+    acceptance:
+      - { id: A1, description: "Page Server Component renders ValeriaAgendaView with initialData", verifier: { type: shell, cmd: "cd vitalia/frontend && npx vitest run src/features/valeria/components/agenda/__tests__/ValeriaAgendaView.test.tsx -t 'initialData'" } }
+      - { id: A2, description: "useAgendaGrid hook + invalidations work correctly", verifier: { type: shell, cmd: "cd vitalia/frontend && npx vitest run src/features/valeria/api/__tests__/agenda.test.ts" } }
+      - { id: A3, description: "useChargeMutation invalidates grid + appointment keys on success", verifier: { type: shell, cmd: "cd vitalia/frontend && npx vitest run src/features/valeria/api/__tests__/payments.test.ts" } }
+      - { id: A4, description: "MSW handlers respond per scenario fixture", verifier: { type: shell, cmd: "cd vitalia/frontend && npx vitest run src/test-utils/msw/__tests__/agenda-handlers.test.ts" } }
+    gherkin_coverage: []
+    gherkin_coverage_note: "Foundation hooks/page/MSW; functional scenarios cubiertos por T-13..T-19."
+    quality_gates:
+      - "fe_typecheck GREEN"
+      - "fe_lint GREEN"
+      - "fe_arch_fitness GREEN"
+    depends_on: [T-6, T-7, T-8, T-11]
+    blocks: [T-13, T-14, T-15, T-16]
+
+
+  T-13:
+    id: T-13
+    title: "FE AgendaCalendar + DayCalendar + WeekCalendar + MonthCalendar + AgendaSlot + AgendaHeader + FreshnessIndicator"
+    type: frontend
+    surface: FE
+    production_code: true
+    state: draft
+    owner_eligibility:
+      qwen_opencode: true
+      claude_sonnet: true
+      claude_opus_required: false
+    priority: 1
+    estimate_hours: 6
+    decisions_applicable: [D3, D4, D12, D13, A5]
+    inputs:
+      spec: "../01-spec.md"
+      arch_doc: "../03-arch.md"
+      mockups: ["mockups/agenda-day.html", "mockups/agenda-week.html", "mockups/agenda-month.html", "mockups/slot-states-matrix.html"]
+    must_load_skills:
+      - frontend-expert
+      - .claude/rules/frontend-fsd.md
+      - .claude/rules/spanish-text.md
+      - vitalia/.claude/rules/shell-mockup-per-component.md
+      - tessl__react-patterns
+      - tessl__shadcn-ui
+      - tessl__tailwind
+      - tessl__vitest
+    deliverables:
+      - "vitalia/frontend/src/features/valeria/components/agenda/AgendaCalendar.tsx (dispatcher day/week/month)"
+      - "vitalia/frontend/src/features/valeria/components/agenda/DayCalendar.tsx (timeline 8-22h × N doctores · react-window FixedSizeList when >50 slots)"
+      - "vitalia/frontend/src/features/valeria/components/agenda/WeekCalendar.tsx (grid 7d × 9-21h default view)"
+      - "vitalia/frontend/src/features/valeria/components/agenda/MonthCalendar.tsx (grid 5 semanas con dots aggregates, consume /api/v1/scheduling/agenda/aggregates)"
+      - "vitalia/frontend/src/features/valeria/components/agenda/AgendaSlot.tsx (★ molécula — border-status 3px + origin-badge + PHI-masked + ARIA + focus-visible)"
+      - "vitalia/frontend/src/features/valeria/components/agenda/AgendaHeader.tsx (view-toggle + date-picker + freshness indicator + refresh button)"
+      - "vitalia/frontend/src/features/valeria/components/agenda/FreshnessIndicator.tsx (Actualizado hace Xs + refresh manual)"
+      - "vitalia/frontend/src/features/valeria/components/agenda/SkeletonCalendar.tsx (idle pre-fetch placeholder)"
+      - "Tests: AgendaCalendar.test.tsx + AgendaSlot.test.tsx (border-status + origin badge + click + ARIA + keyboard nav focus-visible)"
+    out_of_scope:
+      - "Drawer (T-14)"
+      - "Subform cobrar saldo (T-15)"
+      - "Crear cita button (T-16)"
+    acceptance:
+      - { id: A1, description: "WeekCalendar default + URL params persist view/date", verifier: { type: shell, cmd: "cd vitalia/frontend && npx vitest run src/features/valeria/components/agenda/__tests__/AgendaCalendar.test.tsx -t 'WeekCalendar'" } }
+      - { id: A2, description: "AgendaSlot border-l-3px applies per payment_status", verifier: { type: shell, cmd: "cd vitalia/frontend && npx vitest run src/features/valeria/components/agenda/__tests__/AgendaSlot.test.tsx -t 'border-status'" } }
+      - { id: A3, description: "AgendaSlot origin badge renders + ARIA label", verifier: { type: shell, cmd: "cd vitalia/frontend && npx vitest run src/features/valeria/components/agenda/__tests__/AgendaSlot.test.tsx -t 'aria'" } }
+      - { id: A4, description: "DayCalendar virtualizes when >50 slots (react-window)", verifier: { type: shell, cmd: "cd vitalia/frontend && npx vitest run src/features/valeria/components/agenda/__tests__/AgendaCalendar.test.tsx -t 'virtualization'" } }
+      - { id: A5, description: "MonthCalendar consumes /aggregates not bulk grid", verifier: { type: shell, cmd: "cd vitalia/frontend && npx vitest run src/features/valeria/components/agenda/__tests__/AgendaCalendar.test.tsx -t 'MonthCalendar aggregates'" } }
+      - { id: A6, description: "FreshnessIndicator updates on dataUpdatedAt + refresh button invalidates", verifier: { type: shell, cmd: "cd vitalia/frontend && npx vitest run src/features/valeria/components/agenda/__tests__/AgendaCalendar.test.tsx -t 'FreshnessIndicator'" } }
+    gherkin_coverage:
+      - scenario: "SC-9 large_dataset: react-window virtualization (component layer)"
+        tests:
+          - "vitalia/frontend/src/features/valeria/components/agenda/__tests__/AgendaCalendar.test.tsx::test_day_view_uses_react_window_when_slots_gt_50"
+      - scenario: "SC-10 accessibility: keyboard nav + aria-label (component layer)"
+        tests:
+          - "vitalia/frontend/src/features/valeria/components/agenda/__tests__/AgendaSlot.test.tsx::test_aria_label_phi_masked_keyboard_focus"
+    quality_gates:
+      - "fe_unit_agenda_calendar GREEN"
+      - "fe_unit_agenda_slot GREEN"
+      - "fe_typecheck GREEN"
+      - "fe_lint GREEN"
+    depends_on: [T-11, T-12]
+    blocks: [T-17]
+
+  T-14:
+    id: T-14
+    title: "FE AppointmentDrawer (Sheet + 5 acordeones + resize handle + stale banner + skeleton)"
+    type: frontend
+    surface: FE
+    production_code: true
+    state: draft
+    owner_eligibility:
+      qwen_opencode: true
+      claude_sonnet: true
+      claude_opus_required: false
+    priority: 1
+    estimate_hours: 4
+    decisions_applicable: [D5, D6, D7, D8, D12, A5]
+    inputs:
+      spec: "../01-spec.md"
+      arch_doc: "../03-arch.md"
+      mockups: ["mockups/appointment-drawer.html"]
+    must_load_skills:
+      - frontend-expert
+      - .claude/rules/frontend-fsd.md
+      - .claude/rules/spanish-text.md
+      - vitalia/.claude/rules/shell-mockup-per-component.md
+      - tessl__react-patterns
+      - tessl__shadcn-ui
+      - tessl__tailwind
+      - tessl__vitest
+    deliverables:
+      - "vitalia/frontend/src/features/valeria/components/agenda/AppointmentDrawer.tsx (Sheet wrapper · 5 acordeones · resize handle 440-640px · disabled 'Ver ficha' tooltip · Dialogs Cancelar/No-show · stale banner)"
+      - "vitalia/frontend/src/features/valeria/components/agenda/AppointmentDrawerSkeleton.tsx (loading state durante fetch detail)"
+      - "useDrawerWidth hook persists localStorage 440-640px"
+      - "useDrawerStore zustand state (selectedSlotId + isOpen + drawerWidth + staleDetected)"
+      - "5 acordeones: turno (expanded), pago (expanded — placeholder donde T-15 monta subform), historico (collapsed), notas (collapsed), acciones-avanzadas (collapsed)"
+      - "ARIA: role=dialog, aria-modal, aria-labelledby, focus trap (Sheet builtin)"
+      - "Tests: AppointmentDrawer.test.tsx (open/close + acordeones + resize + stale banner + ARIA + keyboard Esc)"
+    out_of_scope:
+      - "CobrarSaldoSubform inside pago acordeón (T-15)"
+      - "Visual goldens (T-19)"
+    acceptance:
+      - { id: A1, description: "Drawer opens on slot click + ARIA role=dialog + aria-modal", verifier: { type: shell, cmd: "cd vitalia/frontend && npx vitest run src/features/valeria/components/agenda/__tests__/AppointmentDrawer.test.tsx -t 'aria-modal'" } }
+      - { id: A2, description: "Acordeones turno+pago expanded default, resto collapsed", verifier: { type: shell, cmd: "cd vitalia/frontend && npx vitest run src/features/valeria/components/agenda/__tests__/AppointmentDrawer.test.tsx -t 'acordeones default'" } }
+      - { id: A3, description: "Resize handle persists localStorage 440-640px bounds", verifier: { type: shell, cmd: "cd vitalia/frontend && npx vitest run src/features/valeria/components/agenda/__tests__/AppointmentDrawer.test.tsx -t 'resize'" } }
+      - { id: A4, description: "Esc closes + focus returns to slot trigger", verifier: { type: shell, cmd: "cd vitalia/frontend && npx vitest run src/features/valeria/components/agenda/__tests__/AppointmentDrawer.test.tsx -t 'Esc closes focus return'" } }
+      - { id: A5, description: "Stale banner renders + recargar button invalidates query", verifier: { type: shell, cmd: "cd vitalia/frontend && npx vitest run src/features/valeria/components/agenda/__tests__/AppointmentDrawer.test.tsx -t 'stale banner'" } }
+      - { id: A6, description: "Cancelar + No-show buttons open Dialog confirm flow", verifier: { type: shell, cmd: "cd vitalia/frontend && npx vitest run src/features/valeria/components/agenda/__tests__/AppointmentDrawer.test.tsx -t 'Dialog confirm'" } }
+      - { id: A7, description: "Ver ficha completa disabled + Tooltip 'Próximamente'", verifier: { type: shell, cmd: "cd vitalia/frontend && npx vitest run src/features/valeria/components/agenda/__tests__/AppointmentDrawer.test.tsx -t 'ver ficha disabled'" } }
+    gherkin_coverage:
+      - scenario: "SC-6 concurrent_users: stale banner (component layer)"
+        tests:
+          - "vitalia/frontend/src/features/valeria/components/agenda/__tests__/AppointmentDrawer.test.tsx::test_stale_banner_renders_on_remote_update"
+      - scenario: "SC-10 accessibility: drawer ARIA + focus trap (component layer)"
+        tests:
+          - "vitalia/frontend/src/features/valeria/components/agenda/__tests__/AppointmentDrawer.test.tsx::test_aria_dialog_modal_focus_trap"
+    quality_gates:
+      - "fe_unit_appointment_drawer GREEN"
+      - "fe_typecheck GREEN"
+      - "fe_lint GREEN"
+    depends_on: [T-11, T-12]
+    blocks: [T-15, T-17]
+
+  T-15:
+    id: T-15
+    title: "FE CobrarSaldoSubform (★ corazón valor) — RHF + Zod + saga handling"
+    type: frontend
+    surface: FE
+    production_code: true
+    state: draft
+    owner_eligibility:
+      qwen_opencode: true
+      claude_sonnet: true
+      claude_opus_required: false
+    priority: 1
+    estimate_hours: 5
+    decisions_applicable: [D2, D14, A3, A5, A6, A8]
+    inputs:
+      spec: "../01-spec.md"
+      arch_doc: "../03-arch.md"
+      mockups: ["mockups/cobrar-saldo-subform.html"]
+    must_load_skills:
+      - frontend-expert
+      - .claude/rules/frontend-fsd.md
+      - .claude/rules/spanish-text.md
+      - .claude/rules/currency-handling.md
+      - vitalia/.claude/rules/shell-mockup-per-component.md
+      - tessl__react-patterns
+      - tessl__shadcn-ui
+      - tessl__zod
+      - tessl__vitest
+      - tessl__graceful-degradation
+    deliverables:
+      - "vitalia/frontend/src/features/valeria/components/agenda/CobrarSaldoSubform.tsx (RHF + chargeSchema discriminated union)"
+      - "10 states: collapsed / expanded × 4 currency (PEN/ARS/USD/MXN) / submitting / success / error_payment / error_fiscal / conflict_409 (per mockup)"
+      - "Submit handler invokes useChargeMutation"
+      - "Success: Sonner toast 'Cobro {currency} {amount} registrado · {doc_type} emitida' + link Ver comprobante PDF nueva pestaña + invalidate grid + appointment + slot border update via re-render + form reset"
+      - "Error payment 5xx: Alert variant=destructive + Reintentar button (re-submit con MISMA idempotencyKey)"
+      - "Error fiscal post-payment-OK: Alert variant=warning + Reintentar emisión button (invokes useFiscalEmitMutation standalone)"
+      - "409 conflict: Alert + auto-collapse subform + invalidate query (UI muestra estado fresh)"
+      - "Currency override: read appointment.currency_override → preseed Select + show both options (tenant default + override)"
+      - "Telemetry emit charge_initiated/succeeded/failed events per § 10.3"
+      - "Tests: CobrarSaldoSubform.test.tsx (happy + 409 + fiscal warning + multi-currency preseed + idempotency key reuse + Spanish neutro labels)"
+    out_of_scope:
+      - "Drawer composition wrapper (T-14 — subform mounted dentro acordeón pago)"
+    acceptance:
+      - { id: A1, description: "Happy path PE boleta: form submit → success toast + slot border green", verifier: { type: shell, cmd: "cd vitalia/frontend && npx vitest run src/features/valeria/components/agenda/__tests__/CobrarSaldoSubform.test.tsx -t 'happy_path_pe'" } }
+      - { id: A2, description: "Payment 503 → Alert + Reintentar with same idempotencyKey", verifier: { type: shell, cmd: "cd vitalia/frontend && npx vitest run src/features/valeria/components/agenda/__tests__/CobrarSaldoSubform.test.tsx -t 'payment_503_retry'" } }
+      - { id: A3, description: "Fiscal fail post-charge → warning + Reintentar emisión standalone", verifier: { type: shell, cmd: "cd vitalia/frontend && npx vitest run src/features/valeria/components/agenda/__tests__/CobrarSaldoSubform.test.tsx -t 'fiscal_warning'" } }
+      - { id: A4, description: "409 conflict → Alert + auto-collapse + invalidate", verifier: { type: shell, cmd: "cd vitalia/frontend && npx vitest run src/features/valeria/components/agenda/__tests__/CobrarSaldoSubform.test.tsx -t 'handles_409_conflict'" } }
+      - { id: A5, description: "Currency override AR tenant USD turista preseed select", verifier: { type: shell, cmd: "cd vitalia/frontend && npx vitest run src/features/valeria/components/agenda/__tests__/CobrarSaldoSubform.test.tsx -t 'renders_tenant_default_and_override_currency_select'" } }
+      - { id: A6, description: "All currency variants validate (PEN/ARS/MXN/USD/COP/CLP)", verifier: { type: shell, cmd: "cd vitalia/frontend && npx vitest run src/features/valeria/components/agenda/__tests__/CobrarSaldoSubform.test.tsx -t 'currency_variants'" } }
+      - { id: A7, description: "Spanish neutro labels (no voseo, no léxico regional)", verifier: { type: shell, cmd: "cd vitalia/frontend && npx vitest run src/features/valeria/components/agenda/__tests__/CobrarSaldoSubform.test.tsx -t 'spanish_neutro'" } }
+    gherkin_coverage:
+      - scenario: "SC-1 happy: cobro saldo end-to-end (subform layer)"
+        tests:
+          - "vitalia/frontend/src/features/valeria/components/agenda/__tests__/CobrarSaldoSubform.test.tsx::test_happy_path_pe_boleta"
+      - scenario: "SC-2 negative: payment 503 (subform layer)"
+        tests:
+          - "vitalia/frontend/src/features/valeria/components/agenda/__tests__/CobrarSaldoSubform.test.tsx::test_payment_503_retry"
+      - scenario: "SC-5 race_condition: 409 graceful handling"
+        tests:
+          - "vitalia/frontend/src/features/valeria/components/agenda/__tests__/CobrarSaldoSubform.test.tsx::test_handles_409_conflict"
+      - scenario: "SC-11 i18n: multi-currency override"
+        tests:
+          - "vitalia/frontend/src/features/valeria/components/agenda/__tests__/CobrarSaldoSubform.test.tsx::test_renders_tenant_default_and_override_currency_select"
+    quality_gates:
+      - "fe_unit_cobrar_saldo_subform GREEN"
+      - "fe_typecheck GREEN"
+      - "fe_lint GREEN"
+    depends_on: [T-11, T-14]
+    blocks: [T-17]
+
+  T-16:
+    id: T-16
+    title: "FE AgendaPresetFilters + CrearCitaButton + CrearCitaForm + PatientAutocomplete + MobileBottomSheet"
+    type: frontend
+    surface: FE
+    production_code: true
+    state: draft
+    owner_eligibility:
+      qwen_opencode: true
+      claude_sonnet: true
+      claude_opus_required: false
+    priority: 1
+    estimate_hours: 4
+    decisions_applicable: [D9, D10, D11]
+    inputs:
+      spec: "../01-spec.md"
+      arch_doc: "../03-arch.md"
+      mockups: ["mockups/preset-filters.html", "mockups/crear-cita-dropdown.html", "mockups/mobile-drawer-fullscreen.html"]
+    must_load_skills:
+      - frontend-expert
+      - .claude/rules/frontend-fsd.md
+      - .claude/rules/spanish-text.md
+      - vitalia/.claude/rules/shell-mockup-per-component.md
+      - tessl__react-patterns
+      - tessl__shadcn-ui
+      - tessl__zod
+      - tessl__vitest
+    deliverables:
+      - "vitalia/frontend/src/features/valeria/components/agenda/AgendaPresetFilters.tsx (5 chips single-select · ARIA switch · URL param sync via useAgendaFilters)"
+      - "vitalia/frontend/src/features/valeria/components/agenda/CrearCitaButton.tsx (DropdownMenu 3 opciones desktop + FAB mobile UP-direction)"
+      - "vitalia/frontend/src/features/valeria/components/agenda/CrearCitaForm.tsx (Dialog wrapper con 3 variants walk-in / telefono / desde-existente)"
+      - "vitalia/frontend/src/features/valeria/components/agenda/PatientAutocomplete.tsx (Combobox debounced search /api/v1/crm/patients?q= · PHI masked results · ARIA combobox)"
+      - "vitalia/frontend/src/features/valeria/components/agenda/MobileBottomSheet.tsx (<md responsive wrapper · Sheet side=bottom 95vh · drag handle top)"
+      - "Tests: AgendaPresetFilters.test.tsx + CrearCitaButton.test.tsx (dropdown + form variants + autocomplete debounce)"
+    out_of_scope:
+      - "Drawer (T-14)"
+      - "Subform (T-15)"
+      - "Calendar (T-13)"
+    acceptance:
+      - { id: A1, description: "5 chips single-select toggle URL param + visual active state", verifier: { type: shell, cmd: "cd vitalia/frontend && npx vitest run src/features/valeria/components/agenda/__tests__/AgendaPresetFilters.test.tsx" } }
+      - { id: A2, description: "Crear cita dropdown 3 opciones + form variants render", verifier: { type: shell, cmd: "cd vitalia/frontend && npx vitest run src/features/valeria/components/agenda/__tests__/CrearCitaButton.test.tsx" } }
+      - { id: A3, description: "PatientAutocomplete debounced search + PHI-masked results", verifier: { type: shell, cmd: "cd vitalia/frontend && npx vitest run src/features/valeria/components/agenda/__tests__/CrearCitaButton.test.tsx -t 'patient_autocomplete'" } }
+      - { id: A4, description: "Mobile FAB position + dropdown UP direction", verifier: { type: shell, cmd: "cd vitalia/frontend && npx vitest run src/features/valeria/components/agenda/__tests__/CrearCitaButton.test.tsx -t 'mobile_fab'" } }
+    gherkin_coverage:
+      - scenario: "SC-1 mobile responsive: FAB + bottom-sheet (component layer)"
+        tests:
+          - "vitalia/frontend/src/features/valeria/components/agenda/__tests__/CrearCitaButton.test.tsx::test_mobile_fab"
+    quality_gates:
+      - "fe_unit_agenda_preset_filters GREEN"
+      - "fe_unit_crear_cita_button GREEN"
+      - "fe_typecheck GREEN"
+      - "fe_lint GREEN"
+    depends_on: [T-11, T-12]
+    blocks: [T-17]
+
+
+  T-17:
+    id: T-17
+    title: "FE E2E Playwright — fixtures + 4 POMs + 11 spec.ts (per test_construction_plan)"
+    type: frontend
+    surface: FE
+    production_code: true
+    state: draft
+    owner_eligibility:
+      qwen_opencode: true
+      claude_sonnet: true
+      claude_opus_required: false
+    priority: 1
+    estimate_hours: 8
+    decisions_applicable: [A5, A6, A13]
+    inputs:
+      spec: "../01-spec.md"
+      arch_doc: "../03-arch.md"
+      validators: "../04-validators.yaml"
+    must_load_skills:
+      - frontend-expert
+      - playwright-expert
+      - .claude/rules/e2e-testing.md
+      - .claude/rules/spanish-text.md
+      - tessl__react-patterns
+      - tessl__nextjs-app-router-modularization
+    deliverables:
+      - "Run npx playwright install before any spec (E2E preflight)"
+      - "vitalia/frontend/e2e/regression/vitalia-fase2-valeria-agenda/fixtures/valeria-agenda.fixture.ts (authedAsValeria + tenant PE setup + DB seed appointments(N=20, clinic_id))"
+      - "fixtures/mock-payment-adapter.ts (MSW handlers POST /api/v1/payments/charge variants 200/503/409 + idempotency lookup)"
+      - "fixtures/mock-fiscal-emission.ts (MSW handlers POST /api/v1/fiscal/emit variants 200/503)"
+      - "fixtures/network-failure.ts (page.route abort helper for grid timeout SC-7)"
+      - "poms/agenda-view-page.pom.ts"
+      - "poms/appointment-drawer-page.pom.ts"
+      - "poms/cobrar-saldo-subform-page.pom.ts"
+      - "poms/crear-cita-button-page.pom.ts"
+      - "11 spec.ts files per scenario_to_test mapping en 04-validators.yaml: valeria-agenda-{cobro, tenant-switch, concurrent-users, network, empty, large-dataset, keyboard, i18n, mobile, conflict-409}.spec.ts"
+      - "Construction order per 04-validators.yaml test_construction_plan steps 1-18"
+    out_of_scope:
+      - "Visual goldens (T-19)"
+      - "axe a11y dedicated spec (T-18)"
+    acceptance:
+      - { id: A1, description: "All 11 e2e spec files pass smoke project", verifier: { type: playwright, cmd: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/vitalia-fase2-valeria-agenda/ --project=smoke" } }
+      - { id: A2, description: "Mobile project pass for valeria-agenda-mobile.spec.ts", verifier: { type: playwright, cmd: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/vitalia-fase2-valeria-agenda/valeria-agenda-mobile.spec.ts --project=mobile" } }
+      - { id: A3, description: "Construction order followed (fixtures + POMs before spec files)", verifier: { type: shell, cmd: "ls vitalia/frontend/e2e/regression/vitalia-fase2-valeria-agenda/fixtures/ vitalia/frontend/e2e/regression/vitalia-fase2-valeria-agenda/poms/" } }
+    gherkin_coverage:
+      - scenario: "SC-1 happy: cobro saldo end-to-end (E2E)"
+        tests:
+          - "vitalia/frontend/e2e/regression/vitalia-fase2-valeria-agenda/valeria-agenda-cobro.spec.ts::test_happy_path_pen_boleta_end_to_end"
+      - scenario: "SC-2 negative: payment-adapter 503 (E2E)"
+        tests:
+          - "vitalia/frontend/e2e/regression/vitalia-fase2-valeria-agenda/valeria-agenda-cobro.spec.ts::test_payment_adapter_503"
+      - scenario: "SC-3 edge: tenant switch (E2E)"
+        tests:
+          - "vitalia/frontend/e2e/regression/vitalia-fase2-valeria-agenda/valeria-agenda-tenant-switch.spec.ts::test_tenant_switch_invalidates_cache_resets_drawer"
+      - scenario: "SC-5 race: 409 conflict (E2E FE handling)"
+        tests:
+          - "vitalia/frontend/e2e/regression/vitalia-fase2-valeria-agenda/valeria-agenda-conflict-409.spec.ts::test_409_conflict_graceful_banner_auto_collapse"
+      - scenario: "SC-6 concurrent_users polling 30s (E2E)"
+        tests:
+          - "vitalia/frontend/e2e/regression/vitalia-fase2-valeria-agenda/valeria-agenda-concurrent-users.spec.ts::test_staff_b_cancel_reflects_staff_a_polling"
+      - scenario: "SC-7 network_failure (E2E)"
+        tests:
+          - "vitalia/frontend/e2e/regression/vitalia-fase2-valeria-agenda/valeria-agenda-network.spec.ts::test_grid_timeout_3_retries_empty_state_manual_retry"
+      - scenario: "SC-8 empty_state (E2E)"
+        tests:
+          - "vitalia/frontend/e2e/regression/vitalia-fase2-valeria-agenda/valeria-agenda-empty.spec.ts::test_empty_day_renders_empty_state_cta"
+      - scenario: "SC-9 large_dataset (E2E)"
+        tests:
+          - "vitalia/frontend/e2e/regression/vitalia-fase2-valeria-agenda/valeria-agenda-large-dataset.spec.ts::test_day_240_slots_virtualizes_under_100ms"
+      - scenario: "SC-10 accessibility keyboard (E2E)"
+        tests:
+          - "vitalia/frontend/e2e/regression/vitalia-fase2-valeria-agenda/valeria-agenda-keyboard.spec.ts::test_keyboard_nav_slot_drawer_esc_focus_return"
+      - scenario: "SC-11 i18n multi-currency (E2E)"
+        tests:
+          - "vitalia/frontend/e2e/regression/vitalia-fase2-valeria-agenda/valeria-agenda-i18n.spec.ts::test_currency_override_usd_on_ar_tenant"
+    quality_gates:
+      - "e2e_happy_cobro GREEN"
+      - "e2e_negative_payment_503 GREEN"
+      - "e2e_tenant_switch GREEN"
+      - "e2e_concurrent_charge_same_slot GREEN"
+      - "e2e_concurrent_users_polling GREEN"
+      - "e2e_network_failure GREEN"
+      - "e2e_empty_state GREEN"
+      - "e2e_large_dataset_virtualization GREEN"
+      - "e2e_keyboard_a11y GREEN (without axe — that's T-18)"
+      - "e2e_i18n_multicurrency GREEN"
+      - "e2e_mobile_responsive GREEN"
+    depends_on: [T-13, T-14, T-15, T-16]
+    blocks: [T-18, T-19]
+
+  T-18:
+    id: T-18
+    title: "FE a11y axe spec + WCAG 2.1 AA verification (calendar + drawer + subform)"
+    type: tests
+    surface: FE
+    production_code: false                     # R23 — tests only
+    state: draft
+    owner_eligibility:
+      qwen_opencode: true
+      claude_sonnet: true
+      claude_opus_required: false
+    priority: 2
+    estimate_hours: 2
+    decisions_applicable: [D8, A5]
+    inputs:
+      spec: "../01-spec.md"
+      arch_doc: "../03-arch.md"
+    must_load_skills:
+      - frontend-expert
+      - playwright-expert
+      - .claude/rules/e2e-testing.md
+      - .claude/rules/spanish-text.md
+    deliverables:
+      - "vitalia/frontend/e2e/a11y/valeria-agenda-a11y.spec.ts (axe-core wcag2aa — calendar + drawer + subform 3 checkpoints)"
+      - "Contrast ratio assertions (≥4.5:1 text, ≥3:1 UI components) via axe rules"
+      - "Focus visible assertions (`:focus-visible:ring`) en 5 components críticos"
+    out_of_scope:
+      - "Functional E2E (T-17)"
+      - "Visual goldens (T-19)"
+    acceptance:
+      - { id: A1, description: "axe-core finds zero critical/serious violations en calendar", verifier: { type: playwright, cmd: "cd vitalia/frontend && npx playwright test e2e/a11y/valeria-agenda-a11y.spec.ts -g 'calendar'" } }
+      - { id: A2, description: "axe-core finds zero critical/serious violations en drawer", verifier: { type: playwright, cmd: "cd vitalia/frontend && npx playwright test e2e/a11y/valeria-agenda-a11y.spec.ts -g 'drawer'" } }
+      - { id: A3, description: "axe-core finds zero critical/serious violations en subform", verifier: { type: playwright, cmd: "cd vitalia/frontend && npx playwright test e2e/a11y/valeria-agenda-a11y.spec.ts -g 'subform'" } }
+    gherkin_coverage:
+      - scenario: "SC-10 accessibility: axe wcag2aa pass"
+        tests:
+          - "vitalia/frontend/e2e/a11y/valeria-agenda-a11y.spec.ts::test_calendar_no_violations"
+          - "vitalia/frontend/e2e/a11y/valeria-agenda-a11y.spec.ts::test_drawer_no_violations"
+          - "vitalia/frontend/e2e/a11y/valeria-agenda-a11y.spec.ts::test_subform_no_violations"
+    quality_gates:
+      - "a11y_axe GREEN"
+    depends_on: [T-17]
+    blocks: []
+
+  T-19:
+    id: T-19
+    title: "FE visual goldens (~14 snapshots) + cleanup AgendaPlaceholder + capability YAML registration"
+    type: frontend
+    surface: FE
+    production_code: true                      # touches src (delete placeholder) + docs (capability YAML)
+    state: draft
+    owner_eligibility:
+      qwen_opencode: true
+      claude_sonnet: true
+      claude_opus_required: false
+    priority: 2
+    estimate_hours: 3
+    decisions_applicable: [D1, A5]
+    inputs:
+      spec: "../01-spec.md"
+      arch_doc: "../03-arch.md"
+      mockups_dir: "mockups/"
+    must_load_skills:
+      - frontend-expert
+      - playwright-expert
+      - vitalia/.claude/rules/shell-mockup-per-component.md
+      - .claude/rules/brand-docs-schema.md
+    deliverables:
+      - "vitalia/frontend/e2e/visual/valeria-agenda-visual.spec.ts (Playwright toHaveScreenshot maxDiffPixelRatio: 0.001)"
+      - "~14 visual goldens vitalia/frontend/e2e/__screenshots__/agenda/: week-{light,dark}.png · day-{light,dark}.png · month-{light,dark}.png · drawer-open-{light,dark}.png · drawer-cobrar-saldo-{expanded,success,error,conflict409}-light.png · slot-matrix-{light,dark}.png · mobile-day-bottom-sheet-light.png"
+      - "Visual fidelity gate per shell-mockup-per-component.md: snapshot side-by-side React component vs mockup HTML"
+      - "DELETE vitalia/frontend/src/features/valeria/components/placeholders/AgendaPlaceholder.tsx + AgendaPlaceholder.test.tsx + remove import from features/valeria/index.ts + SubTabContent.tsx PLACEHOLDER_MAP (replace with sentinel comment 'moved to dedicated route /valeria/agenda')"
+      - "vitalia/docs/product/capabilities/scheduling/valeria-agenda.yaml (NEW per 03-arch § 13.1) — POST-MERGE auto-included"
+      - "MODIFY vitalia/docs/product/modules/scheduling.md sección Capabilities (auto-list block regen via scripts/reconcile_capabilities.py --brand vitalia)"
+    out_of_scope:
+      - "Functional/e2e tests (T-17)"
+      - "axe a11y (T-18)"
+    acceptance:
+      - { id: A1, description: "All ~14 visual goldens generated + ratchet locked", verifier: { type: shell, cmd: "ls vitalia/frontend/e2e/__screenshots__/agenda/*.png | wc -l | xargs -I{} test {} -ge 14" } }
+      - { id: A2, description: "Visual fidelity spec passes", verifier: { type: playwright, cmd: "cd vitalia/frontend && npx playwright test e2e/visual/valeria-agenda-visual.spec.ts" } }
+      - { id: A3, description: "AgendaPlaceholder DELETED + SubTabContent.tsx PLACEHOLDER_MAP updated", verifier: { type: shell, cmd: "! test -f vitalia/frontend/src/features/valeria/components/placeholders/AgendaPlaceholder.tsx" } }
+      - { id: A4, description: "capability YAML registered + modules/scheduling.md regenerated", verifier: { type: shell, cmd: "test -f vitalia/docs/product/capabilities/scheduling/valeria-agenda.yaml && grep -q 'valeria-agenda' vitalia/docs/product/modules/scheduling.md" } }
+      - { id: A5, description: "Mockup ratchet shrink-only enforced (no re-ratify silenciosamente)", verifier: { type: shell, cmd: "git diff main -- vitalia/frontend/e2e/__screenshots__/agenda/ | head -1" } }
+    gherkin_coverage:
+      - scenario: "SC-1 happy: visual golden drawer cobrar saldo success light"
+        tests:
+          - "vitalia/frontend/e2e/visual/valeria-agenda-visual.spec.ts::test_drawer_cobrar_saldo_success_light"
+      - scenario: "SC-2 negative: visual golden drawer error state"
+        tests:
+          - "vitalia/frontend/e2e/visual/valeria-agenda-visual.spec.ts::test_drawer_cobrar_saldo_error_light"
+      - scenario: "SC-6 concurrent_users: stale banner visual"
+        tests:
+          - "vitalia/frontend/e2e/visual/valeria-agenda-visual.spec.ts::test_drawer_stale_banner_light"
+      - scenario: "SC-8 empty_state visual"
+        tests:
+          - "vitalia/frontend/e2e/visual/valeria-agenda-visual.spec.ts::test_empty_state_day_light"
+    quality_gates:
+      - "visual_fidelity_calendar GREEN"
+      - "visual_drawer_cobrar_saldo GREEN"
+      - "visual_mobile_drawer GREEN"
+      - "responsive_breakpoints GREEN"
+    depends_on: [T-17]
+    blocks: []
+
+# ── Service-deps blockers ────────────────────────────────────────
+
+service_deps_blockers:
+  - story: vitalia-payment-adapter-mvp
+    state_required: developed
+    current_state: refined
+    affects_tickets: [T-5, T-7, T-15, T-17]
+    builder_default_action: |
+      Per 03-arch § 8.6 Option A + 05-guidelines § Service-deps gate:
+      Use stubs (vitalia/backend/src/modules/vitalia/payments/application/stubs/stub_payment_charge_port.py)
+      + MSW handler mock-payment-adapter.ts. Annotate stub with # DEPRECATED + tracked replacement ticket.
+    escalate_alternative: |
+      /dev-team emits state: blocked + escalate /pm-vitalia to sequence service-blocker first.
+      Default: Option A unless Chris ratifies Option B.
+
+  - story: vitalia-fiscal-emission-pe
+    state_required: developed
+    current_state: refining
+    affects_tickets: [T-5, T-7, T-15, T-17]
+    builder_default_action: |
+      Per 03-arch § 8.6 Option A: use stubs + MSW.
+      stub_fiscal_emit_port.py returns FiscalDocument(doc_number=f"STUB-{seq}", doc_url=None, status="emitted").
+    escalate_alternative: idem above.
+
+# ── Architecture decisions index (for commit body "Decisions honored") ──
+
+decisions_index:
+  spec_decisions:
+    D1: "1 grid TOC + 8 standalone mockups (parity F1-S10)"
+    D2: "Cobrar saldo full inline (end-to-end payment + fiscal)"
+    D3: "Calendar default Semana + URL params persist + lastView localStorage"
+    D4: "Slot matrix 4×3 + 4 estados interactivos = 16 cells total"
+    D5: "Drawer width resizable 440-640px + localStorage persist"
+    D6: "Drawer sections acordeones colapsables (Turno+Pago expanded default)"
+    D7: "Ver ficha completa botón disabled + Tooltip 'Próximamente'"
+    D8: "Action gates Cancelar + No-show → Dialog Shadcn confirm"
+    D9: "5 chips preset filters single-select"
+    D10: "Crear cita DropdownMenu 3 opciones"
+    D11: "Mobile vista Día only + bottom-sheet 95vh + chip carousel + FAB"
+    D12: "Realtime polling 30s + manual refresh + FreshnessIndicator"
+    D13: "Large dataset virtualización react-window (Day) + aggregates endpoint mes"
+    D14: "i18n per-transaction currency_override"
+    D15: "WhatsApp notify template-only + ComplianceService + audit log"
+    D16: "7 telemetry events críticos"
+  arch_decisions:
+    A1: "NEW módulo scheduling/ brand-extension (NO mirror)"
+    A2: "NEW módulos payments/ + fiscal/ separados (NO mezclar con payment/ scaffold)"
+    A3: "PaymentChargePort + FiscalEmitPort ABCs Dependency Inversion"
+    A4: "Sink telemetry NEW vitalia_growth_studio_event (separado copilot_trace_event)"
+    A5: "Slot DTO PHI-masked server-side projection (no FE masking trust)"
+    A6: "Charge saga NOT same-DB-transaction with fiscal emit (compensation)"
+    A7: "Optimistic lock via balance_version (no SELECT FOR UPDATE)"
+    A8: "Idempotency key client-generated UUID en charge + fiscal/emit"
+    A9: "Audit log via AsyncAuditWriter mismo AsyncSession (transactional)"
+    A10: "NEW arch test test_no_phi_in_url_params.py"
+    A11: "NEW arch test test_audit_log_row_per_phi_endpoint.py"
+    A12: "vitalia_appointment_clinic_map brand-local FK to engine appointments (NO engine modify)"
+    A13: "Service-blocker pattern Option A (stub + MSW) por default"
+    A14: "Module scheduling registers via Extension SDK opt-in EPs si aplica"
+

@@ -1,0 +1,61 @@
+{
+  "schema_version": "1.0",
+  "command": "test-vitalia (scoped audit-3: marketing/connections/workers + FE marketing)",
+  "command_alias": "test-vitalia",
+  "iter": "audit-3",
+  "started_at": "2026-05-20T19:50:00Z",
+  "finished_at": "2026-05-20T19:50:56.550371Z",
+  "duration_ms": 8500,
+  "exit_code": 0,
+  "raw_log_path": "/home/chalreme/Proyectos/luana-vitalia/vitalia/docs/product/stories/vitalia-slice-1-marketing/gate-logs/iter-audit-3-test-vitalia-20260520.log",
+  "gates": [
+    {
+      "name": "ruff_lint",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": []
+    },
+    {
+      "name": "ruff_format",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": []
+    },
+    {
+      "name": "pytest_architecture",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": []
+    },
+    {
+      "name": "pytest_marketing_connections_workers",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": []
+    },
+    {
+      "name": "tsc_strict",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": []
+    },
+    {
+      "name": "eslint_marketing",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": []
+    },
+    {
+      "name": "vitest_marketing",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": []
+    }
+  ],
+  "overall": {
+    "any_fail": false,
+    "fail_gate_names": [],
+    "summary": "ALL GATES PASS \u2014 ruff 0 errors, pytest (arch 270 pass + marketing 158 pass 1 skip), tsc 0 errors, eslint 0 errors, vitest 116 pass"
+  },
+  "notes": "Audit iteration 3 \u2014 all gates GREEN after T-mk-be-6 fix-loop iter 2 (commit 86def4f0). Previous iter archived as gate-output.audit-2.json."
+}

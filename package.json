@@ -1,0 +1,30 @@
+{
+  "name": "luana-platform",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@9.15.9",
+  "scripts": {
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "build": "turbo run build"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.0"
+  },
+  "pnpm": {
+    "patchedDependencies": {
+      "zustand": "patches/zustand.patch"
+    },
+    "overrides": {
+      "storybook": "10.4.6",
+      "@storybook/react": "10.4.6",
+      "@storybook/react-dom-shim": "10.4.6",
+      "@storybook/react-vite": "10.4.6",
+      "@storybook/nextjs": "10.4.6",
+      "@storybook/nextjs-vite": "10.4.6",
+      "@storybook/addon-docs": "10.4.6",
+      "@storybook/addon-a11y": "10.4.6",
+      "@storybook/addon-themes": "10.4.6"
+    }
+  }
+}

@@ -1,0 +1,139 @@
+---
+capability_id: vitalia-lucas-daily-analysis
+module: agentic
+slug: lucas-daily-analysis
+status: deprecated
+date_introduced: 2026-05-18
+story_introduced: vitalia-copilot-tools-impl
+package_version: 0.2.0
+package_path: vitalia/backend/src/modules/vitalia/agentic/lucas
+license: proprietary
+
+# v3 cement 2026-05-27 · 4 dimensiones + dev_preview (ADR-vitalia-005)
+tech_module: agentic
+agent_owner: lucas
+functional_area: lucas.recomendaciones
+user_visible: true
+nature: feature
+ui_paradigm: slice-1-superseded  # T-3 reconcile 2026-05-29
+replaced_by_story: vitalia-fase2-lucas-resultados  # T-3: story F2 que reconstruye esta cap
+
+user_facing_name: "Lucas · análisis diario con cron y LangGraph"
+user_facing_description: >
+  Pipeline diario cron-invocado de Lucas que orquesta 3 herramientas
+  (recomendaciones por etapa, matriz de atribución y leaderboard de
+  referidos) en un grafo ReAct de LangGraph con máximo 5 iteraciones
+  por ejecución. El análisis es idempotente por tenant+fecha y respeta
+  el presupuesto de costo configurado en brand.yaml.
+
+dev_preview:
+  route: "/lucas/analisis-diario"
+  how_to_navigate: "BE-only · cron 5 AM tenant-TZ · ver resultados via sub-tab Marketing de Lucas en la UI."
+  main_component: null
+  api_endpoints: []
+  e2e_test: null
+  fixtures_required: []
+  storybook_url: null
+  loom_demo: null
+
+# Capability ledger v2 (cement 2026-05-27)
+created_in_story: vitalia-copilot-tools-impl   # v2 cement · mirror of story_introduced
+created_date: 2026-05-18   # v2 cement · mirror of date_introduced
+last_modified: 2026-05-29   # T-3 reconcile 2026-05-29
+parent_cap: null   # v2 cement · mirror of extends_capability
+derives_capabilities: []   # v2 cement · initial empty list
+
+# Capability ledger v2 (cement 2026-05-27)
+
+# Capability change log v2 (cement 2026-05-27)
+change_log:
+  - story_id: vitalia-copilot-tools-impl
+    date: 2026-05-18
+    type: new
+    summary: "Implementación inicial · migración legacy a schema v2"
+    merge_sha: null
+    status: done
+map_box: lucas
+
+---
+
+# vitalia-lucas-daily-analysis
+
+Lucas agent — daily analysis cron-invoked LangGraph ReAct topology. 3 tools (compute_stage_recommendation, compute_attribution_matrix, compute_referrals_leaderboard) orquestados ReAct loop con max 5 iterations per cron run. Idempotent re-run mismo (tenant, date).
+
+## Surface
+
+### Tools (`vitalia/backend/src/modules/vitalia/agentic/lucas/tools/`)
+
+- `compute_stage_recommendation.py` — LangChain @tool async
+- `compute_attribution_matrix.py`
+- `compute_referrals_leaderboard.py`
+
+### Workflows (`vitalia/backend/src/modules/vitalia/agentic/lucas/workflows/`)
+
+- `lucas_react_graph.py` — ReAct LangGraph (agent node → tool node → loop until done)
+- `lucas_state.py` — TypedDict state (tenant_id, run_date TZ-aware, tools_called, intermediate_results, final_summary, messages)
+- `lucas_checkpoint_config.py` — AsyncPostgresSaver namespace `lucas_daily/{tenant_id}/{run_date}`
+- `lucas_prompt_compiler.py` — composes cacheable slots (slot_0 + slot_1_persona + slot_2_role + slot_3_constraints + slot_4_session)
+
+### Application (`vitalia/backend/src/modules/vitalia/agentic/lucas/application/services/`)
+
+- `lucas_orchestrator_service.py::run_daily_analysis(tenant_id) -> AnalysisReport` — computes `run_date` via TenantLocale, builds graph, streams ReAct loop, returns final summary
+
+### Cron (`vitalia/backend/src/modules/vitalia/agentic/lucas/cron/`)
+
+- `daily_analysis_job.py` — entry point, iterates active tenants, calls `lucas_orchestrator_service.run_daily_analysis()` per tenant, idempotent via `idempotent_cron` decorator OR local idempotency_key `lucas_daily:{tenant_id}:{date}`
+
+### Prompts (`vitalia/backend/src/modules/vitalia/agentic/lucas/prompts/`)
+
+- `lucas_persona.md` — Slot persona Lucas analytics
+- `lucas_role.md` — Slot 2 daily analysis role
+- `analysis_constraints.md` — TZ-aware, data privacy, no PII en output
+
+### Personas (`vitalia/backend/src/modules/vitalia/agentic/lucas/personas/`)
+
+- `lucas_analytics.yaml` — schema (archetype, dialect=neutro-latam, voice_constraints, common_outputs)
+
+## Test coverage
+
+- Unit: `tests/unit/modules/vitalia/agentic/lucas/tools/test_*.py` (3 tools) + `workflows/test_lucas_state.py` + `test_lucas_prompt_compiler.py`
+- Integration: `tests/integration/modules/vitalia/agentic/lucas/workflows/test_lucas_daily_analysis_graph.py` (ReAct loop with mock LLM)
+- Agentic eval: `tests/agentic_evals/agentic/lucas/test_lucas_smoke.py` (cron→graph→services E2E + idempotency + BudgetGuard skipped)
+
+## Dependencies
+
+- `core/luana-core-platform.domain.locale.TenantLocale` (TZ-aware `run_date`)
+- `core/luana-core-platform.db` (AsyncPostgresSaver pool)
+- `core/luana-core-billing.BudgetGuard` (per-stage soft cap $0.05; per-tenant daily $0.25)
+- `core/luana-core-idempotency` (IdempotencyKey claim) — soft-fail per tessl__graceful-degradation Rule 5
+- LangGraph ReAct + AsyncPostgresSaver
+
+## KPIs
+
+- Cron schedule: `0 5 * * *` (5 AM tenant-TZ via timezone_from_tenant=True)
+- Max iterations per run: 5
+- Idempotency window: 1h TTL
+- Cost budget per-stage: $0.05 soft cap
+
+## Scenarios live
+
+- SC-L1 Daily analysis cron 5 stages + attribution + referrals (E2E)
+- SC-L2 BudgetGuard exceeded → status='skipped_budget'
+- SC-L3 Re-run same (tenant, date) → status='skipped_already_run' (idempotency)
+
+## Verification commands
+
+```bash
+WS=$(git rev-parse --show-toplevel)
+${WS}/.venv/bin/pytest vitalia/backend/tests/agentic_evals/agentic/lucas/test_lucas_smoke.py -v
+${WS}/.venv/bin/pytest vitalia/backend/tests/integration/modules/vitalia/agentic/lucas/workflows/test_lucas_daily_analysis_graph.py -v
+```
+
+## Promotion candidate
+
+`vitalia/docs/learnings/2026-05-18-idempotent-cron-pattern.md` — `idempotent_cron` decorator lift to `core/luana-core-platform/workers/` (threshold 2 brands; vitalia first, nicolify proposal_followup_72h probable second).
+
+## Referencias
+
+- `vitalia/docs/product/stories/vitalia-copilot-tools-impl/03-arch-agentic.md` § 4.3 + § 5.4 + § 7.2 + § 9
+- `.claude/rules/parallel-safety.md`

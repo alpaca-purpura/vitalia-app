@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>F1-S3 · TenantSwitcher closed mockup — 4 states</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: ['class', '[data-theme="dark"]'],
+    }
+  </script>
+  <style>
+    :root {
+      --background: 0 0% 100%;
+      --foreground: 240 10% 4%;
+      --card: 0 0% 100%;
+      --muted: 240 5% 96%;
+      --muted-foreground: 240 4% 46%;
+      --border: 240 6% 90%;
+      --primary: 198 99% 49%;
+      --accent: 287 53% 37%;
+      --radius: 0.5rem;
+      --ring: 198 99% 49%;
+    }
+    [data-theme="dark"] {
+      --background: 240 10% 4%;
+      --foreground: 0 0% 98%;
+      --card: 240 8% 8%;
+      --muted: 240 6% 14%;
+      --muted-foreground: 240 4% 60%;
+      --border: 240 6% 18%;
+      --primary: 198 99% 49%;
+      --accent: 287 53% 60%;
+      --ring: 198 99% 60%;
+    }
+    body {
+      background: hsl(var(--muted));
+      color: hsl(var(--foreground));
+      font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+    }
+    .topbar-container {
+      background: hsl(var(--background));
+      color: hsl(var(--foreground));
+      border: 1px solid hsl(var(--border));
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgb(0 0 0 / 0.05);
+    }
+    .topbar-container[data-theme="dark"] {
+      background: hsl(240 10% 4%);
+      color: hsl(0 0% 98%);
+    }
+    .topbar {
+      height: 48px;
+      border-bottom: 1px solid hsl(var(--border));
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1.25rem;
+      position: relative;
+      z-index: 50;
+      background: inherit;
+    }
+    .topbar-container[data-theme="dark"] .topbar {
+      border-bottom-color: hsl(240 6% 18%);
+    }
+    .main-content {
+      padding: 1.5rem 1.25rem;
+      min-height: 180px;
+      font-size: 0.875rem;
+      color: hsl(var(--muted-foreground));
+    }
+    .topbar-container[data-theme="dark"] .main-content {
+      color: hsl(240 4% 60%);
+    }
+    .logo-text {
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      color: #1a1a5e;
+      font-size: 14px;
+    }
+    .topbar-container[data-theme="dark"] .logo-text {
+      color: #ffffff;
+    }
+    .dragon-fly {
+      width: 28px;
+      height: 28px;
+      background: conic-gradient(from 45deg, #06b6d4, #a855f7, #d946ef, #f59e0b, #84cc16, #06b6d4);
+      mask: radial-gradient(circle, transparent 30%, black 31%);
+      -webkit-mask: radial-gradient(circle, transparent 30%, black 31%);
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    /* Tenant badge — hash palette */
+    .tenant-badge {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 700;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .badge-cyan    { background: #06b6d4; color: white; }
+    .badge-purple  { background: #a855f7; color: white; }
+    .badge-fuchsia { background: #d946ef; color: white; }
+    .badge-amber   { background: #f59e0b; color: #451a03; }
+    .badge-lime    { background: #84cc16; color: #1a2e05; }
+    .badge-rose    { background: #f43f5e; color: white; }
+    /* Trigger button */
+    .switcher-trigger {
+      height: 36px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 10px;
+      border: 1px solid hsl(var(--border));
+      border-radius: var(--radius);
+      background: hsl(var(--background));
+      color: hsl(var(--foreground));
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s;
+      max-width: 250px;
+    }
+    .switcher-trigger:hover {
+      background: hsl(var(--muted));
+    }
+    .topbar-container[data-theme="dark"] .switcher-trigger {
+      background: hsl(240 10% 4%);
+      color: hsl(0 0% 98%);
+      border-color: hsl(240 6% 18%);
+    }
+    .topbar-container[data-theme="dark"] .switcher-trigger:hover {
+      background: hsl(240 6% 14%);
+    }
+    .trigger-name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 180px;
+    }
+    .chevron {
+      width: 16px;
+      height: 16px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      flex-shrink: 0;
+    }
+    /* Theme toggle (replicated F1-S1) */
+    .theme-toggle {
+      width: 36px;
+      height: 36px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid hsl(var(--border));
+      border-radius: var(--radius);
+      background: hsl(var(--background));
+      color: hsl(var(--foreground));
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .theme-toggle:hover {
+      background: hsl(var(--muted));
+    }
+    .topbar-container[data-theme="dark"] .theme-toggle {
+      background: hsl(240 10% 4%);
+      color: hsl(0 0% 98%);
+      border-color: hsl(240 6% 18%);
+    }
+    .topbar-container[data-theme="dark"] .theme-toggle:hover {
+      background: hsl(240 6% 14%);
+    }
+    .topbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .logo-block {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    /* Annotation labels */
+    .state-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: hsl(var(--muted-foreground));
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 8px;
+    }
+    .state-card {
+      background: hsl(var(--card));
+      border: 1px solid hsl(var(--border));
+      border-radius: 8px;
+      padding: 16px;
+    }
+    /* Tooltip mock (hover state) */
+    .tooltip-mock {
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      margin-top: 6px;
+      background: hsl(240 10% 4%);
+      color: white;
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.15s;
+      z-index: 100;
+    }
+    .switcher-trigger-wrap:hover .tooltip-mock {
+      opacity: 1;
+    }
+    .switcher-trigger-wrap {
+      position: relative;
+    }
+  </style>
+</head>
+<body class="p-8">
+  <div class="max-w-5xl mx-auto">
+    <header class="mb-6">
+      <h1 class="text-2xl font-bold text-slate-800">F1-S3 · TenantSwitcher closed mockup</h1>
+      <p class="text-sm text-slate-600 mt-1">
+        4 states · brand: <strong>vitalia</strong> · path: <code class="bg-slate-100 px-1 py-0.5 rounded text-xs">vitalia/frontend/src/components/shared/shell-organism/TenantSwitcher.tsx</code>
+      </p>
+      <p class="text-xs text-slate-500 mt-2">
+        Trigger anatomy: <code class="bg-slate-100 px-1 py-0.5 rounded">[Badge size-6] + nombre truncate max-w-[180px] + ChevronDown</code> ·
+        aria-label="Cambiar clínica" · title (tooltip nativo) = tenant.name full.
+      </p>
+    </header>
+
+    <!-- State 1: Light + default (Sonrisa Plena active, cyan badge SP) -->
+    <div class="mb-8">
+      <div class="state-label" style="color: #475569;">1. Light + default · active = Sonrisa Plena (Lima)</div>
+      <div class="state-card">
+        <div class="topbar-container" data-theme="light">
+          <div class="topbar">
+            <div class="logo-block">
+              <div class="dragon-fly"></div>
+              <span class="logo-text">VITALIA</span>
+            </div>
+            <div class="topbar-actions">
+              <button class="theme-toggle" aria-label="Cambiar tema">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
+                  <circle cx="12" cy="12" r="4" />
+                  <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+                </svg>
+              </button>
+              <div class="switcher-trigger-wrap">
+                <button class="switcher-trigger" aria-label="Cambiar clínica" title="Sonrisa Plena">
+                  <span class="tenant-badge badge-cyan">SP</span>
+                  <span class="trigger-name">Sonrisa Plena</span>
+                  <svg class="chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9" /></svg>
+                </button>
+                <span class="tooltip-mock">Sonrisa Plena</span>
+              </div>
+            </div>
+          </div>
+          <div class="main-content">
+            <div>Main content area — pánel agéntico/web del shell-organism. (placeholder mockup.)</div>
+          </div>
+        </div>
+        <p class="text-xs text-slate-500 mt-2">
+          Hash determinístico: <code>sum("sonrisa-plena".charCodeAt) % 6</code> → palette index → <strong>cyan-500</strong>. Initials "SP".
+          Hover trigger ⇒ tooltip mock visible (browser nativo).
+        </p>
+      </div>
+    </div>
+
+    <!-- State 2: Light + single tenant (Sonrisa Plena solo) -->
+    <div class="mb-8">
+      <div class="state-label" style="color: #475569;">2. Light + single tenant edge · 1 sola clínica accesible</div>
+      <div class="state-card">
+        <div class="topbar-container" data-theme="light">
+          <div class="topbar">
+            <div class="logo-block">
+              <div class="dragon-fly"></div>
+              <span class="logo-text">VITALIA</span>
+            </div>
+            <div class="topbar-actions">
+              <button class="theme-toggle" aria-label="Cambiar tema">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
+                  <circle cx="12" cy="12" r="4" />
+                  <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+                </svg>
+              </button>
+              <button class="switcher-trigger" aria-label="Cambiar clínica" title="Sonrisa Plena">
+                <span class="tenant-badge badge-cyan">SP</span>
+                <span class="trigger-name">Sonrisa Plena</span>
+                <svg class="chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9" /></svg>
+              </button>
+            </div>
+          </div>
+          <div class="main-content">
+            <div>Trigger sigue funcional aunque solo haya 1 clínica (UX consistente — abre dropdown con 1 item + 2 actions).</div>
+          </div>
+        </div>
+        <p class="text-xs text-slate-500 mt-2">
+          Edge UX común para médico boutique con 1 sola clínica. Scenario 12 cubre interaction.
+        </p>
+      </div>
+    </div>
+
+    <!-- State 3: Dark + default (Sonrisa Plena active, cyan badge SP) -->
+    <div class="mb-8">
+      <div class="state-label" style="color: #475569;">3. Dark + default · active = Sonrisa Plena (Lima)</div>
+      <div class="state-card">
+        <div class="topbar-container" data-theme="dark">
+          <div class="topbar">
+            <div class="logo-block">
+              <div class="dragon-fly"></div>
+              <span class="logo-text">VITALIA</span>
+            </div>
+            <div class="topbar-actions">
+              <button class="theme-toggle" aria-label="Cambiar tema">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
+                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                </svg>
+              </button>
+              <button class="switcher-trigger" aria-label="Cambiar clínica" title="Sonrisa Plena">
+                <span class="tenant-badge badge-cyan">SP</span>
+                <span class="trigger-name">Sonrisa Plena</span>
+                <svg class="chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9" /></svg>
+              </button>
+            </div>
+          </div>
+          <div class="main-content">
+            <div>Dark mode · contrast trigger text vs bg-background ≈ 18.5:1 (WCAG AAA). Badge cyan vs white ≈ 4.94:1 (AA).</div>
+          </div>
+        </div>
+        <p class="text-xs text-slate-500 mt-2">
+          Mismo hash → mismo color cross-mode. Predecible visual identity.
+        </p>
+      </div>
+    </div>
+
+    <!-- State 4: Light + long name truncation test -->
+    <div class="mb-8">
+      <div class="state-label" style="color: #475569;">4. Light + long name · truncate test "Centro Médico Integral Dr. González y Asociados"</div>
+      <div class="state-card">
+        <div class="topbar-container" data-theme="light">
+          <div class="topbar">
+            <div class="logo-block">
+              <div class="dragon-fly"></div>
+              <span class="logo-text">VITALIA</span>
+            </div>
+            <div class="topbar-actions">
+              <button class="theme-toggle" aria-label="Cambiar tema">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
+                  <circle cx="12" cy="12" r="4" />
+                  <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+                </svg>
+              </button>
+              <div class="switcher-trigger-wrap">
+                <button class="switcher-trigger" aria-label="Cambiar clínica"
+                        title="Centro Médico Integral Dr. González y Asociados">
+                  <span class="tenant-badge badge-purple">CM</span>
+                  <span class="trigger-name">Centro Médico Integral Dr. González y Asociados</span>
+                  <svg class="chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9" /></svg>
+                </button>
+                <span class="tooltip-mock">Centro Médico Integral Dr. González y Asociados</span>
+              </div>
+            </div>
+          </div>
+          <div class="main-content">
+            <div>Trigger truncate ellipsis max-w-[180px]. Hover ⇒ tooltip nativo `title` shows full name. A11y preservada.</div>
+          </div>
+        </div>
+        <p class="text-xs text-slate-500 mt-2">
+          D3 decision verified: truncate evita layout breaking en TopBar comprimido + tooltip preserva info acceso.
+        </p>
+      </div>
+    </div>
+
+    <!-- Decisions log -->
+    <section class="mt-12 bg-slate-50 border border-slate-200 rounded-lg p-6">
+      <h2 class="text-sm font-bold text-slate-800 mb-3">Decisiones cementadas /po-ux 2026-05-22</h2>
+      <ul class="text-xs text-slate-700 space-y-1.5">
+        <li><strong>D1 Badge color:</strong> hash determinístico tenant.id → paleta 6 [cyan/purple/fuchsia/amber/lime/rose]. Predecible cross-session. NO field BE.</li>
+        <li><strong>D2 Subtitle:</strong> solo ciudad (Lima · CDMX · Bogotá). BE devuelve {id, name, city}.</li>
+        <li><strong>D3 Trigger:</strong> truncate max-w-[180px] + tooltip nativo `title={tenant.name}`. Hover muestra full.</li>
+        <li><strong>D4 Mockup data LatAm:</strong> Sonrisa Plena (PE, cyan SP) · Dermalia MX (MX, purple DM) · ClíniCare Bogotá (CO, fuchsia CB).</li>
+      </ul>
+    </section>
+
+    <footer class="mt-8 text-xs text-slate-500">
+      Mockup standalone · Tailwind CSS CDN · CSS vars Vitalia inline · Spanish neutro LatAm · ratificable Chris via `python3 -m http.server 8888`.
+    </footer>
+  </div>
+</body>
+</html>

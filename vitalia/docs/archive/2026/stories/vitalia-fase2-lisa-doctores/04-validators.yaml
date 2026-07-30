@@ -1,0 +1,640 @@
+# 04-validators.yaml · vitalia-fase2-lisa-doctores
+# Architect Opus 4.8 · 2026-05-31 · architecture_pattern: ADR-vitalia-004
+# ★ BACKFILL schema v4.1 → v5/D-X4 by architect-orchestrator (Fable 5) · 2026-06-12
+#   (audit /pm-vitalia 2026-06-11: verification_nature/technical_gates/demo_required/
+#    business_rules/regression_guard were ABSENT — pre-proceso-v5 schema). Existing v4.1
+#    validators CONSERVED below; delta validators (D3-*) APPENDED. NOT destroyed.
+# 5 categories: non_functional / functional / visual / architectural_validation / agentic_eval(N/A — bio-gen NOT agentic, see 03-arch D-4)
+story_id: vitalia-fase2-lisa-doctores
+schema_version: v5
+scenario_coverage: 100%   # SC-1..SC-11 (built) + SC-D3A/B/C/D/E/F (delta v3)
+
+# ── D-X4 backfill (proceso v5 · top-level keys) ────────────────────────────────
+verification_nature: ambas        # técnica (gates auto + efecto/logs) + funcional (anti-burbuja e2e + demo Chris)
+
+demo_required: true               # funcional UI → demo manual Chris en G (chris_verify.signoff), ANTES del auditor
+runtime_error_gate: required      # e2e fixtures/base.ts: 0 pageerror / 0 console-error / 0 /api ≥400 / 0 Next overlay
+dev_app_verified:
+  required: true
+  evidence: ""                    # /dev-team llena tras live-verify dev-app (≥1 write real + logs BE + efecto DB)
+
+technical_gates:
+  baseline:                       # corren siempre (todas las superficies del delta)
+    - tsc_noemit
+    - eslint
+    - ruff
+    - mypy
+    - arch_fitness                # incl test-no-native-select (D3-F) + test-no-div-layout + public allowlist
+    - vitest_unit
+    - pytest_unit
+    - jscpd                       # no duplicación (FE consume occurrences SSoT — no re-expandir client-side)
+  mutation:                       # mutmut BE / Stryker FE — diff-scoped sobre líneas NUEVAS
+    mode_by_surface:
+      - surface: "clinics/application/availability_projection_service.py (D3-C/D3-F: byweekday list + interval + range projection)"
+        mode: hard                # 100% mutantes muertos sobre líneas nuevas — proyección = corazón del fix
+      - surface: "alembic/versions/041_*.py + 042_*.py (D3-D/D3-F migración compat backfill)"
+        mode: hard                # backfill compat es crítico (RN-D3F-3 legacy projects idéntico)
+      - surface: "clinics/application/public_doctor_serializer.py (D3-D structured allow-list)"
+        mode: hard                # allow-list = security boundary PHI
+      - surface: "resto del delta (endpoints CRUD, FE componentes)"
+        mode: advisory            # degrada si tool ausente (no rompe ci-parity)
+
+regression_guard:
+  # Tests existentes que NO deben cambiar de comportamiento (el delta es additive).
+  backend_suites_must_stay_green:
+    - "vitalia/backend/tests/modules/vitalia/clinics/**  (23 archivos test · suite clinics existente — D3-* es additive)"
+    - "vitalia/backend/tests/architecture/**  (phi_dual_filter, response_model, migrations_idempotent, public_doctors_allowlist, clinics_domain_no_engine_imports)"
+    - "core/@luana/ui-kit unit suite (EntitySubNavBar.test.tsx + EntityWorkspaceLayout.test.tsx — back-compat: optional picker slot NO rompe adrian/ICPs consumers)"
+  frontend_suites_must_stay_green:
+    - "vitalia/frontend vitest co-located staff/** (49+ tests existentes)"
+    - "vitalia/frontend/src/__tests__/architecture/** (no-div-layout, no-native-select, ribbon-no-shadcn-tabs, fsd_boundaries)"
+  must_not_regress:
+    - "NuevoIntegranteModal infinite-loop fix (regression_2026-06-06) — ya FIXED; re-verify es de /dev-team, NO se re-rompe"
+    - "Calendar week paint para bloques legacy single-day (RN-D3F-3 / SC-D3F-4)"
+    - "Public endpoint existente GET /api/public/clinic/{tenant_slug}/doctors (lista) — el per-doctor route es additive"
+
+business_rules:
+  # RN delta → @rule-tag (gherkin) → SC que lo verifica. Cada RN tiene cobertura.
+  - rule_id: RN-D3A-1
+    tag: "@rule-D3A-picker-server-filter"
+    desc: "Picker lista solo staff del tenant actual (filtro server, jamás client-side de colección completa)"
+    scenarios: [SC-D3A-1, SC-D3A-2]
+  - rule_id: RN-D3A-2
+    tag: "@rule-D3A-inactive-hidden"
+    desc: "Doctor inactivo no aparece en el picker (active=true)"
+    scenarios: [SC-D3A-3]
+  - rule_id: RN-D3B-1
+    tag: "@rule-D3B-delete-not-alter-bio"
+    desc: "Eliminar archivo NO altera la bio/perfil generado previo (snapshot)"
+    scenarios: [SC-D3D-5]      # verif via overwrite-confirm path
+  - rule_id: RN-D3B-2
+    tag: "@rule-D3B-reject-inline"
+    desc: "Archivo rechazado (tipo/tamaño) → feedback inline; jamás subida silenciosa fallida"
+    scenarios: [SC-D3B-3]
+  - rule_id: RN-D3B-3
+    tag: "@rule-D3B-overwrite-confirm"
+    desc: "Regenerar con perfil existente requiere confirmación explícita (pisa ediciones manuales)"
+    scenarios: [SC-D3D-5]
+  - rule_id: RN-D3B-4
+    tag: "@rule-D3B-generated-at-ia-only"
+    desc: "bio_generated_at se actualiza SOLO en generación IA (no en ediciones manuales)"
+    scenarios: [SC-D3D-4]
+  - rule_id: RN-D3D-1
+    tag: "@rule-D3D-public-no-phi-no-insumos"
+    desc: "Página pública expone solo perfil estructurado + datos no-PHI (jamás insumos crudos ni documentos)"
+    scenarios: [SC-D3D-1]
+  - rule_id: RN-D3D-2
+    tag: "@rule-D3D-toggle-off-not-broken"
+    desc: "URL estable (slug); toggle OFF → 'perfil no disponible' (no 404 roto, no leak)"
+    scenarios: [SC-D3D-2]
+  - rule_id: RN-D3D-4
+    tag: "@rule-D3D-material-new-server"
+    desc: "Detección de material nuevo = timestamps insumos vs bio_generated_at (server, no heurística client)"
+    scenarios: [SC-D3D-4]
+  - rule_id: RN-D3D-5
+    tag: "@rule-D3D-idiomas-conditional"
+    desc: "Sección Idiomas se renderiza pública solo si el doctor habla más de un idioma"
+    scenarios: [SC-D3D-3]
+  - rule_id: RN-D3D-6
+    tag: "@rule-D3D-partial-profile-minimum"
+    desc: "Página renderiza con las secciones que existan — mínimo garantizado (identidad); sección vacía se omite (nunca caja vacía)"
+    scenarios: [SC-D3D-9]
+  - rule_id: RN-D3D-7
+    tag: "@rule-D3D-og-tags-whatsapp"
+    desc: "Página emite Open Graph (og:title/description/image) → preview decente en WhatsApp (link de Adrián). Sin PHI en OG"
+    scenarios: [SC-D3D-10]
+  - rule_id: RN-D3D-8
+    tag: "@rule-D3D-missing-photo-fallback"
+    desc: "Sin foto → avatar iniciales + og:image fallback marca (nunca imagen rota)"
+    scenarios: [SC-D3D-11]
+  - rule_id: RN-D3D-9
+    tag: "@rule-D3D-slug-anti-enumeration"
+    desc: "Slug inexistente/apagado/cross-tenant → MISMA vista 'perfil no disponible' (anti-enumeración, indistinguible)"
+    scenarios: [SC-D3D-12, SC-D3D-6]
+  - rule_id: RN-D3E-1
+    tag: "@rule-D3E-month-projection-exact"
+    desc: "Vista mes refleja EXACTAMENTE las ocurrencias proyectadas por el BE (occurrences=2 → 2 fechas)"
+    scenarios: [SC-D3E-1, SC-D3C-1]
+  - rule_id: RN-D3E-2
+    tag: "@rule-D3E-month-read-only"
+    desc: "Sin escritura desde la vista mes (read + navegación) en este MVP"
+    scenarios: [SC-D3E-2]
+  - rule_id: RN-D3C-occurrences
+    tag: "@rule-D3C-views-consume-be-projection"
+    desc: "Ambas vistas (semana+mes) consumen la proyección BE; muere recurrentBlockVisibleInWeek + expansión client-side"
+    scenarios: [SC-D3C-1, SC-D3C-2, SC-D3C-3, SC-D3C-4, SC-D3C-5, SC-D3C-6, SC-D3C-7, SC-D3C-8]
+  - rule_id: RN-D3F-1
+    tag: "@rule-D3F-summary-same-source"
+    desc: "Resumen humano refleja EXACTAMENTE la regla persistida (misma fuente, no texto paralelo)"
+    scenarios: [SC-D3F-3]
+  - rule_id: RN-D3F-2
+    tag: "@rule-D3F-count-occurrences-semantics"
+    desc: "multi-día × occurrences → count cuenta OCURRENCIAS totales (no semanas) — semántica Google"
+    scenarios: [SC-D3F-1]
+  - rule_id: RN-D3F-3
+    tag: "@rule-D3F-legacy-projects-identical"
+    desc: "Bloques legacy (single day) siguen proyectando idéntico post-migración"
+    scenarios: [SC-D3F-4]
+
+categories:
+
+  non_functional:
+    - id: V-NF-1
+      desc: "Cross-tenant doctor view bloqueada (dual filter) -> 404 generico + audit cross_tenant_attempt"
+      scenario: SC-4
+      type: backend_integration
+      path: vitalia/backend/tests/modules/vitalia/clinics/test_doctor_cross_tenant.py
+    - id: V-NF-2
+      desc: "Concurrent dni create -> unique (tenant_id,dni_hash) -> 1 persists, 2nd 409"
+      scenario: SC-5
+      type: backend_integration
+      path: vitalia/backend/tests/modules/vitalia/clinics/test_doctor_dni_race.py
+    - id: V-NF-3
+      desc: "Multi-tenant isolation en directorio (A ve 3, B ve 5, cero leak en grid/search/filter)"
+      scenario: SC-6
+      type: backend_integration + e2e
+      path: vitalia/backend/tests/modules/vitalia/clinics/test_doctors_api.py::test_tenant_isolation_list
+    - id: V-NF-4
+      desc: "Network failure 503/timeout -> error banner + Reintentar (no crash)"
+      scenario: SC-7
+      type: e2e
+      path: vitalia/frontend/e2e/shell-organism/staff-network-failure.spec.ts
+    - id: V-NF-5
+      desc: "Large dataset 1200 doctores -> server-side pagination page_size=24, search/filter <500ms"
+      scenario: SC-9
+      type: backend_integration + e2e
+      path: vitalia/backend/tests/modules/vitalia/clinics/test_doctors_api.py::test_pagination
+    - id: V-NF-6
+      desc: "pgcrypto at-rest: dni/email/phone/credential stored ciphertext (BYTEA), decrypt only via repo"
+      type: arch_fitness
+      path: vitalia/backend/tests/architecture/test_pgcrypto_phi_columns.py
+    - id: V-NF-7
+      desc: "Audit log sync write pre-response en todas las mutations (create/update/deactivate/block-delete/cross-tenant)"
+      type: arch_fitness + integration
+      path: vitalia/backend/tests/architecture/test_audit_log_row_per_phi_endpoint.py
+
+  functional:
+    - id: V-FN-1
+      desc: "Crear doctor + bloque recurrente weekly fecha-fin -> expand via rrule, materialize slots <= fecha_fin, audit doctor.created"
+      scenario: SC-1
+      type: e2e + backend_unit + state_check
+      e2e_path: vitalia/frontend/e2e/regression/vitalia-fase2-lisa-doctores/staff-crear-happy.spec.ts
+      backend_path: vitalia/backend/tests/modules/vitalia/clinics/test_availability_projection.py::test_weekly_end_date
+    - id: V-FN-2
+      desc: "Bloque recurrente quincenal N=6 iteraciones -> exactamente 6 ocurrencias materializadas"
+      scenario: SC-1b
+      type: e2e + backend_unit
+      backend_path: vitalia/backend/tests/modules/vitalia/clinics/test_availability_projection.py::test_biweekly_occurrences
+    - id: V-FN-3
+      desc: "Navegar semana siguiente + bloque puntual (one-off) -> 1 slot fecha puntual, recurrentes visibles en su grilla"
+      scenario: SC-1c
+      type: e2e
+      e2e_path: vitalia/frontend/e2e/regression/vitalia-fase2-lisa-doctores/staff-week-nav-oneoff.spec.ts
+    - id: V-FN-4
+      desc: "Eliminar bloque sin citas -> availability futura retirada, otros bloques intactos, pasado intacto, audit availability_block_deleted"
+      scenario: SC-1d
+      type: e2e + backend_unit
+      backend_path: vitalia/backend/tests/modules/vitalia/clinics/test_availability_block_mutable.py::test_delete_retires_future
+    - id: V-FN-5
+      desc: "Credencial CMP invalida (abc) -> 422 {field:credential}, inline error + focus, NO persiste"
+      scenario: SC-2
+      type: e2e + backend_unit
+      backend_path: vitalia/backend/tests/modules/vitalia/clinics/test_credential_validator.py
+      e2e_path: vitalia/frontend/e2e/regression/vitalia-fase2-lisa-doctores/staff-credencial-invalida.spec.ts
+    - id: V-FN-6
+      desc: "Doctor desactivado con citas futuras -> active=false soft, citas preservadas, excluido de crear-cita, alert UI"
+      scenario: SC-3
+      type: e2e + backend_unit
+      backend_path: vitalia/backend/tests/modules/vitalia/clinics/test_doctors_api.py::test_soft_deactivate_preserves_appointments
+    - id: V-FN-7
+      desc: "Eliminar bloque con cita confirmada -> warning antes de borrar, confirma -> future slots libres, citas confirmadas preservadas, audit preserved_appointments=N"
+      scenario: SC-3b
+      type: e2e + backend_unit
+      backend_path: vitalia/backend/tests/modules/vitalia/clinics/test_availability_block_mutable.py::test_delete_preserves_confirmed
+    - id: V-FN-8
+      desc: "Empty state clinica sin doctores -> illustration + heading + CTA (no tabla vacia, no spinner)"
+      scenario: SC-8
+      type: e2e + vitest
+    - id: V-FN-9
+      desc: "Bio-gen produce 3 secciones SOLO del material aportado (no inventa); LLM fail -> fallback empty + mensaje"
+      type: backend_unit
+      path: vitalia/backend/tests/modules/vitalia/clinics/test_bio_generation_service.py
+    - id: V-FN-10
+      desc: "Avatar upload (proxy -> AssetsService) devuelve {key,url}; PATCH avatar_key; 10MB+image/* enforced"
+      type: backend_unit + e2e
+      path: vitalia/backend/tests/modules/vitalia/clinics/test_doctors_api.py::test_avatar_upload
+    - id: V-FN-11
+      desc: "Endpoint publico: solo visible_en_landing AND active; allow-list (7 campos), NO dni/email/phone/kpis"
+      type: backend_unit + arch_fitness
+      path: vitalia/backend/tests/modules/vitalia/clinics/test_public_doctors_endpoint.py
+    - id: V-FN-12
+      desc: "i18n: credencial label por pais (PE CMP / AR matricula / MX cedula / CL registro), spanish neutro, currency tenant_locale (servicios futuro)"
+      scenario: SC-11
+      type: e2e + backend_unit
+      e2e_path: vitalia/frontend/e2e/regression/vitalia-fase2-lisa-doctores/staff-i18n-credencial.spec.ts
+
+  visual:
+    - id: V-VIS-1
+      desc: "Directorio (grid cards) golden light+dark"
+      type: playwright_visual_golden
+      golden: vitalia/frontend/e2e/__screenshots__/staff/directorio-{light,dark}.png
+      mockup: vitalia/docs/product/stories/vitalia-fase2-lisa-doctores/mockups/doctores.html
+    - id: V-VIS-2
+      desc: "Hoja Perfil (avatar + form + bio repo) golden light+dark"
+      type: playwright_visual_golden
+      golden: vitalia/frontend/e2e/__screenshots__/staff/perfil-{light,dark}.png
+    - id: V-VIS-3
+      desc: "Hoja Horarios (calendario semana + bloques) golden light+dark"
+      type: playwright_visual_golden
+      golden: vitalia/frontend/e2e/__screenshots__/staff/horarios-{light,dark}.png
+    - id: V-VIS-4
+      desc: "Hoja Servicios pendiente placeholder golden (1)"
+      type: playwright_visual_golden
+      golden: vitalia/frontend/e2e/__screenshots__/staff/servicios-pendiente-light.png
+    - max_diff_pixel_ratio: 0.001   # YAML-validity fix 2026-06-12 (was strict-invalid sibling scalar; value preserved)
+
+  architectural_validation:
+    - id: V-ARCH-1
+      desc: "DoctorRepository + AvailabilityBlockRepository heredan PhiRepositoryBase (dual filter)"
+      path: vitalia/backend/tests/architecture/test_phi_dual_filter.py
+    - id: V-ARCH-2
+      desc: "Todo endpoint declara response_model="
+      path: vitalia/backend/tests/architecture/test_response_model_required.py
+    - id: V-ARCH-3
+      desc: "Migration idempotente (IF NOT EXISTS, no op.create_table, no sa.Enum create_type)"
+      path: vitalia/backend/tests/architecture/test_migrations_idempotent.py
+    - id: V-ARCH-4
+      desc: "clinics/domain no importa engine (pure domain)"
+      path: vitalia/backend/tests/architecture/test_clinics_domain_no_engine_imports.py
+    - id: V-ARCH-5
+      desc: "growth_studio_event payload sin PHI"
+      path: vitalia/backend/tests/architecture/test_growth_studio_event_no_phi.py
+    - id: V-ARCH-6
+      desc: "PHI no en URL params (whitelist)"
+      path: vitalia/backend/tests/architecture/test_no_phi_in_url_params.py
+    - id: V-ARCH-7
+      desc: "NEW channel guard: public serializer allow-list (no PHI fields aunque modelo los tenga)"
+      path: vitalia/backend/tests/architecture/test_public_doctors_allowlist.py
+      new: true
+    - id: V-ARCH-8
+      desc: "FE FSD boundaries + no cross-feature imports"
+      path: vitalia/frontend/src/__tests__/architecture/test_fsd_boundaries.test.ts
+    - id: V-ARCH-9
+      desc: "NO Shadcn Tabs internas (rutas-hoja + EntitySubNavBar)"
+      path: vitalia/frontend/src/__tests__/architecture/test-ribbon-no-shadcn-tabs.test.ts
+    - id: V-ARCH-10
+      desc: "Server-First (pages Server Components)"
+      path: vitalia/frontend/src/__tests__/architecture/test_server_first.test.ts
+    - id: V-ARCH-11
+      desc: "No voseo en copy + ui strings"
+      path: vitalia/frontend/src/__tests__/architecture/test_no_voseo_in_copy.test.ts
+    - id: V-ARCH-12
+      desc: "jscpd no duplicacion + ruff + mypy + tsc + eslint clean"
+      type: toolchain
+
+  # agentic_eval: N/A — bio-gen es servicio determinista BE (03-arch.md § D-4), NO runtime agentic.
+  # No eval goldens, no prompt-cache slots, no LangGraph state. Cubierto por V-FN-9 (no-invent guardrail unit test).
+
+  # ════════════════════════════════════════════════════════════════════════════
+  # DELTA v3 validators (D3-A..D3-F) — APPEND · architect-orchestrator (Fable 5) 2026-06-12
+  # ════════════════════════════════════════════════════════════════════════════
+  delta_v3:
+    # ── D3-A switcher ──
+    - id: V-D3A-1
+      desc: "Picker: cambiar doctor desde Horarios de Ana → navega a Horarios de Carlos (hoja PRESERVADA) + contenido del otro renderiza"
+      scenario: SC-D3A-1
+      type: e2e real-backend
+      rule: RN-D3A-1
+    - id: V-D3A-2
+      desc: "Picker: buscar 'zzqx' → 'Sin resultados'; lista filtrada server-side (no client-side full collection)"
+      scenario: SC-D3A-2
+      type: e2e + vitest
+      rule: RN-D3A-1
+    - id: V-D3A-3
+      desc: "Picker: doctor inactivo NO aparece (active=true filter)"
+      scenario: SC-D3A-3
+      type: e2e + backend_integration
+      rule: RN-D3A-2
+    - id: V-D3A-4
+      desc: "Picker a11y: ↑↓/Enter/Esc + focus al search al abrir + axe wcag2aa"
+      scenario: SC-D3A-4
+      type: e2e
+    - id: V-D3A-CORE
+      desc: "EntitySubNavBar/EntityWorkspaceLayout: optional entityIdentitySlot — back-compat (absent → static identity; present → custom node; master mode → no slot)"
+      type: vitest (@luana/ui-kit)
+      path: core/@luana/ui-kit/src/__tests__/EntitySubNavBar.test.tsx
+      gate: "back-compat ratchet — adrian/NewLeadPage + ICPs consumers unchanged"
+    # ── D3-B bio docs ──
+    - id: V-D3B-1
+      desc: "PDF 2MB válido → fila (nombre+tamaño+fecha) + asset persistido R2/DB (state_check) + GET detail trae bioFiles[]"
+      scenario: SC-D3B-1
+      type: e2e real-backend + backend_integration
+      rule: RN-D3B-2
+    - id: V-D3B-2
+      desc: "Eliminar archivo + confirmar → fila desaparece + asset soft-deleted (state_check) + audit doctor.bio_file_deleted"
+      scenario: SC-D3B-2
+      type: e2e + backend_integration
+      rule: RN-D3B-1
+    - id: V-D3B-3
+      desc: "Archivo 15MB o .exe → error inline, NADA se sube"
+      scenario: SC-D3B-3
+      type: e2e + backend_unit
+      rule: RN-D3B-2
+    - id: V-D3B-4
+      desc: "Descarga → status 200 + content-type correcto"
+      scenario: SC-D3B-4
+      type: e2e
+    - id: V-D3B-5
+      desc: "Upload 503 simulado → fila error + Reintentar (no crash)"
+      scenario: SC-D3B-5
+      type: e2e
+    - id: V-D3B-CANON
+      desc: "BioRepoInputs homologado: Textarea/Button atoms (no <textarea>/<button> crudos), links Zod-validated, UNA FloatingAutosaveIndicator (no inline-emoji autosave)"
+      type: vitest + arch_fitness
+      path: vitalia/frontend/src/__tests__/architecture/test-no-div-layout.test.ts
+    # ── D3-C occurrences (FIX) ──
+    - id: V-D3C-1
+      desc: "★REGRESSION (repro Chris): weekly occurrences=2 → BE proyecta EXACTAMENTE 2 fechas · FE semana pinta SOLO 2 semanas · mes 2 chips"
+      scenario: SC-D3C-1
+      type: backend_integration + e2e
+      rule: RN-D3C-occurrences
+      red_first: true             # tdd-mandatory + hotfix-repro: RED reproduce el bug ANTES del fix
+    - id: V-D3C-2
+      desc: "biweekly occurrences=3 → 3 fechas espaciadas 14d (span 6 semanas)"
+      scenario: SC-D3C-2
+      type: backend_integration
+    - id: V-D3C-3
+      desc: "end_date → última ocurrencia INCLUYE el día final (TZ tenant)"
+      scenario: SC-D3C-3
+      type: backend_integration
+    - id: V-D3C-4
+      desc: "open_ended → proyección respeta horizonte 90d (ni corta ni infinita)"
+      scenario: SC-D3C-4
+      type: backend_integration
+    - id: V-D3C-5
+      desc: "editar bloque recurrente post-creación → conteo NO se reinicia ni duplica"
+      scenario: SC-D3C-5
+      type: backend_integration + e2e
+    - id: V-D3C-6
+      desc: "puntual + recurrente solapados mismo día → ambos visibles"
+      scenario: SC-D3C-6
+      type: e2e
+    - id: V-D3C-7
+      desc: "borrar bloque recurrente → desaparecen TODAS las ocurrencias"
+      scenario: SC-D3C-7
+      type: e2e + state_check
+    - id: V-D3C-8
+      desc: "TZ borde medianoche → día correcto en render"
+      scenario: SC-D3C-8
+      type: backend_integration
+    - id: V-D3C-NODUP
+      desc: "recurrentBlockVisibleInWeek + expansión client-side ELIMINADAS (FE consume occurrences endpoint SSoT)"
+      type: arch_fitness + jscpd
+      gate: "grep recurrentBlockVisibleInWeek = 0 matches post-fix"
+    # ── D3-D página pública ──
+    - id: V-D3D-1
+      desc: "Doctor visible+perfil → GET /d/{clinica}/{doctor} SIN auth → secciones estructuradas (Sobre mí→Consultorio), badge colegiatura, CERO PHI, CERO CTA contacto, CERO stats"
+      scenario: SC-D3D-1
+      type: e2e público + backend_integration
+      rule: RN-D3D-1
+    - id: V-D3D-2
+      desc: "Toggle OFF → 'perfil no disponible' (no 404 roto, no leak)"
+      scenario: SC-D3D-2
+      type: e2e + backend_integration
+      rule: RN-D3D-2
+    - id: V-D3D-3
+      desc: "Doctor español-only → sección Idiomas AUSENTE en página pública"
+      scenario: SC-D3D-3
+      type: e2e
+      rule: RN-D3D-5
+    - id: V-D3D-4
+      desc: "Subir archivo nuevo → banner '⚡ material nuevo' + CTA Actualizar VISIBLE; sin material nuevo → banner AUSENTE (server profile_state.material_new)"
+      scenario: SC-D3D-4
+      type: e2e real-backend + backend_integration
+      rule: RN-D3D-4
+    - id: V-D3D-5
+      desc: "Perfil con edición manual + Actualizar → modal confirmación overwrite"
+      scenario: SC-D3D-5
+      type: e2e
+      rule: RN-D3B-3
+    - id: V-D3D-6
+      desc: "★ADVERSARIAL: URL pública de doctor de OTRO tenant/clinica (slug-fuzzing) → no leak cross-tenant (404/no-disponible genérico)"
+      scenario: SC-D3D-6
+      type: e2e + backend_integration + state_check
+      rule: RN-D3D-6-adversarial
+    - id: V-D3D-ARCH
+      desc: "PublicDoctorProfileDTO allow-list: cero campos PHI serializables (aunque modelo los tenga)"
+      type: arch_fitness
+      path: vitalia/backend/tests/architecture/test_public_doctor_profile_allowlist.py
+      new: true
+    - id: V-D3D-ENV
+      desc: "APP_BASE_URL via env var (NEXT_PUBLIC_APP_BASE_URL / APP_BASE_URL) — NUNCA hardcoded dev-app/test-app/app.vitalialat.com"
+      type: arch_fitness + grep
+    - id: V-D3D-MIDDLEWARE
+      desc: "Clerk middleware matcher EXCLUYE /d/** (ruta pública no autenticada) — sin login wall"
+      type: e2e (público, sin auth)
+    # ── D3-D.2 construcción completa de la página (spec § D3-D.2) ──
+    - id: V-D3D-7
+      desc: "Mobile 390×844: layout mobile-first sin overflow horizontal + legible"
+      scenario: SC-D3D-7
+      type: e2e mobile project
+    - id: V-D3D-8
+      desc: "Desktop: misma página degrada bien (centrado, max-width)"
+      scenario: SC-D3D-8
+      type: e2e
+    - id: V-D3D-9
+      desc: "Doctor visible ON, perfil NUNCA generado → mínimo garantizado renderiza, cero cajas vacías"
+      scenario: SC-D3D-9
+      type: e2e real-backend
+      rule: RN-D3D-6
+    - id: V-D3D-10
+      desc: "Fetch HTML → og:title+og:description+og:image presentes y correctos (sin PHI)"
+      scenario: SC-D3D-10
+      type: e2e state_check
+      rule: RN-D3D-7
+    - id: V-D3D-11
+      desc: "Doctor sin foto → avatar iniciales + og:image fallback marca"
+      scenario: SC-D3D-11
+      type: e2e
+      rule: RN-D3D-8
+    - id: V-D3D-12
+      desc: "Slug inexistente → 'perfil no disponible' IDÉNTICO a toggle-OFF (anti-enumeración)"
+      scenario: SC-D3D-12
+      type: e2e + backend_integration
+      rule: RN-D3D-9
+    - id: V-D3D-13
+      desc: "Página pública axe wcag2aa 0 violations + navegable teclado"
+      scenario: SC-D3D-13
+      type: e2e a11y
+    - id: V-D3D-14
+      desc: "Todo copy de la página Spanish neutro (sin voseo)"
+      scenario: SC-D3D-14
+      type: grep + e2e
+    - id: V-D3D-15
+      desc: "Workspace: 'Copiar link' → clipboard URL env-correcta; 'Ver página' → abre la página"
+      scenario: SC-D3D-15
+      type: e2e
+    # ── D3-E vista mes ──
+    - id: V-D3E-1
+      desc: "Bloques occurrences=2 → vista Mes → chips SOLO en las 2 fechas proyectadas (consume occurrences endpoint)"
+      scenario: SC-D3E-1
+      type: e2e
+      rule: RN-D3E-1
+    - id: V-D3E-2
+      desc: "Vista mes → clic día → salta a vista semana de esa semana"
+      scenario: SC-D3E-2
+      type: e2e
+      rule: RN-D3E-2
+    - id: V-D3E-3
+      desc: "Mes sin bloques → empty suave"
+      scenario: SC-D3E-3
+      type: e2e
+    - id: V-D3E-4
+      desc: "30+ bloques/mes → overflow '+N más' + sin jank"
+      scenario: SC-D3E-4
+      type: e2e
+    # ── D3-F recurrencia Google ──
+    - id: V-D3F-1
+      desc: "Custom L+J cada 2 semanas ×8 → BE proyecta 8 ocurrencias (semántica Google count) + calendario pinta 8"
+      scenario: SC-D3F-1
+      type: backend_integration + e2e
+      rule: RN-D3F-2
+    - id: V-D3F-2
+      desc: "'Todos los días' ×7 → 7 días consecutivos"
+      scenario: SC-D3F-2
+      type: backend_integration
+    - id: V-D3F-3
+      desc: "Resumen humano correcto para cada preset + custom (misma fuente que la regla persistida)"
+      scenario: SC-D3F-3
+      type: vitest + backend_unit
+      rule: RN-D3F-1
+    - id: V-D3F-4
+      desc: "★REGRESSION: bloque legacy pre-migración (day_of_week single) proyecta idéntico post-migración"
+      scenario: SC-D3F-4
+      type: backend_integration
+      rule: RN-D3F-3
+      red_first: true
+    - id: V-D3F-5
+      desc: "a11y: chips de días (L-D) navegables por teclado + axe"
+      scenario: SC-D3F-5
+      type: e2e
+    - id: V-D3F-SELECT
+      desc: "Editor 'Repetir' usa Select canónico (no <select> nativo) — test-no-native-select green"
+      type: arch_fitness
+      path: vitalia/frontend/src/__tests__/architecture/test-no-native-select.test.ts
+    # ── Visual goldens delta (ratifica Chris ADR-vitalia-003 en G) ──
+    - id: V-VIS-D3-1
+      desc: "Switcher abierto (EntityPicker dropdown) golden light+dark"
+      type: playwright_visual_golden
+      golden: vitalia/frontend/e2e/__screenshots__/staff/switcher-open-{light,dark}.png
+    - id: V-VIS-D3-2
+      desc: "Hoja Página (editor estructurado + phone preview) golden light+dark"
+      type: playwright_visual_golden
+      golden: vitalia/frontend/e2e/__screenshots__/staff/pagina-{light,dark}.png
+    - id: V-VIS-D3-3
+      desc: "Vista Mes (grilla 6×7 con chips) golden light+dark"
+      type: playwright_visual_golden
+      golden: vitalia/frontend/e2e/__screenshots__/staff/horarios-mes-{light,dark}.png
+    - id: V-VIS-D3-4
+      desc: "Editor recurrencia (Select Repetir + sub-editor custom + resumen) golden light+dark"
+      type: playwright_visual_golden
+      golden: vitalia/frontend/e2e/__screenshots__/staff/recurrencia-editor-{light,dark}.png
+    - id: V-VIS-D3-5
+      desc: "Página pública mobile-first /d/{clinica}/{doctor} (Doctoralia structure) golden light"
+      type: playwright_visual_golden
+      golden: vitalia/frontend/e2e/__screenshots__/public/doctor-page-light.png
+    - delta_max_diff_pixel_ratio: 0.001
+
+playwright_required: true
+
+playwright_visual_scope:
+  story_scope_routes:
+    - "/{tenantId}/lisa/staff"
+    - "/{tenantId}/lisa/staff/[doctor-id]/perfil"
+    - "/{tenantId}/lisa/staff/[doctor-id]/horarios"
+    - "/{tenantId}/lisa/staff/[doctor-id]/servicios"
+    # ── delta v3 routes (APPEND) ──
+    - "/{tenantId}/lisa/staff/[doctor-id]/pagina"      # D3-D nueva 4ª hoja
+    - "/d/[clinica-slug]/[doctor-slug]"                 # D3-D página pública (sin auth, fuera de shell-organism)
+    - "/{tenantId}/lisa/staff/[doctor-id]/horarios (vista Mes)"   # D3-E toggle mes
+  story_scope_components:
+    - features/lisa/components/staff/**
+    - app/d/[clinica-slug]/[doctor-slug]/**            # D3-D public route
+    # ★ RECONCILE 2026-06-12: EntitySubNavBar NO vive en components/shared/shell-organism (stale 03-arch-fe).
+    #   Post-lift (vitalia-shell-core-hardening 3cb9d5a0) vive en core/@luana/ui-kit. vitalia consume via
+    #   EntityWorkspaceLayout import. Edición core SOLO en T-CORE-picker-slot (additive prop + promotion proposal).
+    - "core/@luana/ui-kit/src/EntitySubNavBar.tsx (T-CORE-picker-slot ONLY — additive, gated /pm-luana)"
+    - "core/@luana/ui-kit/src/EntityWorkspaceLayout.tsx (T-CORE-picker-slot ONLY — forward slot prop)"
+  forbidden_visual_changes:
+    - components/shared/shell-organism/SubSubTabsBar.tsx   # NO modificar el N3-static existente
+    - components/shared/shell-organism/Ribbon.tsx
+    - components/shared/shell-organism/SubTabsBar.tsx
+    - components/shared/shell-organism/ValeriaSidebar.tsx
+    - app/[tenantId]/(shell-organism)/lisa/marca/**         # sibling story, no tocar
+    - components/ui/**                                       # átomos compartidos — consumir, no editar
+    - app/layout.tsx                                         # root layout — no tocar
+    - features/adrian/**                                     # otra agente — D3-D solo PROVEE la página; adrian-canal-inbound la envía
+    - "core/@luana/ui-kit/** (salvo EntitySubNavBar/EntityWorkspaceLayout en T-CORE-picker-slot)"
+  out_of_mockup_scope:
+    - "Servicios funcional (catalogo selection) — pendiente, solo placeholder en esta story"
+    - "Tab KPIs — diferido"
+    - "Envío automático del link público por Adrián — vive en vitalia-fase2-adrian-canal-inbound (esta story PROVEE la página + URL)"
+    - "Landing pública de la CLÍNICA — parkeada en lisa-landing-public (distinta de la página del doctor)"
+  non_egoismo_clause: >-
+    Si el builder ve un bug en wrapper shell (Ribbon/SubTabsBar/ValeriaSidebar) o en lisa/marca o en adrian,
+    NO lo arregla en esta story (fuera de scope). Lo documenta en vitalia/docs/observed-bugs/ y sigue.
+    Solo toca features/lisa/components/staff/** + app/.../lisa/staff/** + app/d/** + (T-CORE únicamente)
+    core/@luana/ui-kit EntitySubNavBar/EntityWorkspaceLayout (additive prop, gated /pm-luana).
+
+test_construction_plan:
+  tdd_order: "RED-first per layer (tdd-mandatory.md). BE: domain -> infra -> app -> api/e2e. FE: hook -> component -> store -> e2e."
+  creation_order:
+    # BE (T-BE-2..6)
+    - 1: "domain AvailabilityBlock validation test (recurrence-end-condition-required) RED -> domain impl GREEN"
+    - 2: "credential_validator test (PE/AR/MX/CL) RED -> impl GREEN"
+    - 3: "AvailabilityProjectionService rrule test (weekly/biweekly/end_date/occurrences/one-off/open-ended-90d) RED -> impl GREEN"
+    - 4: "DoctorRepository dual-filter + pgcrypto encrypt/decrypt test RED -> impl GREEN"
+    - 5: "availability_block_mutable test (reproject future, delete preserves confirmed) RED -> impl GREEN"
+    - 6: "bio_generation_service no-invent + fallback test RED -> impl GREEN"
+    - 7: "doctors_api test (response_model, RBAC admin_clinic, masking, pagination, soft-deactivate) RED -> router GREEN"
+    - 8: "cross_tenant + dni_race + public allowlist tests RED -> GREEN"
+    - 9: "migration 036 idempotency test (clone DB 2x) RED -> migration GREEN"
+    # FE (T-FE-*)
+    - 10: "useStaffList/useDoctor/useAvailabilityBlocks hook tests (MSW) RED -> hooks GREEN"
+    - 11: "EntitySubNavBar test (enabled/disabled leaves, a11y roving) RED -> component GREEN"
+    - 12: "StaffCard/StaffDirectoryView/NuevoIntegranteModal vitest RED -> GREEN"
+    - 13: "AvailabilityCalendar/BloquePopover vitest (drag-to-create, recurrence popover) RED -> GREEN"
+    - 14: "BioRepoInputs/GeneratedBioSections/AvatarUploader vitest RED -> GREEN"
+    - 15: "Playwright e2e SC-1..SC-11 + axe wcag2aa + visual goldens (6+1)"
+  scenario_to_test:
+    SC-1: [V-FN-1]
+    SC-1b: [V-FN-2]
+    SC-1c: [V-FN-3]
+    SC-1d: [V-FN-4]
+    SC-2: [V-FN-5]
+    SC-3: [V-FN-6]
+    SC-3b: [V-FN-7]
+    SC-4: [V-NF-1]
+    SC-5: [V-NF-2]
+    SC-6: [V-NF-3]
+    SC-7: [V-NF-4]
+    SC-8: [V-FN-8]
+    SC-9: [V-NF-5]
+    SC-10: [V-VIS-*, axe-embedded]   # accessibility keyboard nav + axe wcag2aa embedded in e2e specs
+    SC-11: [V-FN-12]
+  poms_required:
+    - vitalia/frontend/e2e/pages/StaffDirectoryPage.ts        NEW
+    - vitalia/frontend/e2e/pages/DoctorWorkspacePage.ts       NEW
+    - vitalia/frontend/e2e/pages/AvailabilityCalendarPage.ts  NEW
+  fixtures_required:
+    - "Clerk auth admin_clinic token (playwright-expert)"
+    - "tenant A (3 doctores) + tenant B (5 doctores) seed fixture (SC-6)"
+    - "doctor con citas futuras confirmadas fixture (SC-3, SC-3b)"
+    - "1200-doctor seed fixture (SC-9 pagination)"
+    - "MSW handlers staff.ts (all endpoints, 503 mock for SC-7)"
+    - "LocalStorageStrategy swap for asset upload tests (no live R2)"
+  real_verification_gate: >-
+    Verificacion REAL (test-design-doctrine): los scenarios de write (crear doctor, crear/eliminar bloque,
+    autosave bio) se ejercen con la accion real (POST/PATCH/DELETE) + se observa el efecto en DB
+    (state_check queries del spec) + logs. GET 200 NO es verificacion. E2E NO mockean el backend
+    para los happy-path writes (usan backend real dev stack BE:8002).

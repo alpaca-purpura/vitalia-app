@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vitalia · ValeriaSidebar — state RAIL + COLLAPSED (F1-S5)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --background: 0 0% 100%;
+      --foreground: 240 10% 4%;
+      --card: 0 0% 100%;
+      --card-foreground: 240 10% 4%;
+      --primary: 198 99% 49%;
+      --primary-foreground: 0 0% 100%;
+      --muted: 240 5% 96%;
+      --muted-foreground: 240 4% 46%;
+      --accent: 287 53% 37%;
+      --accent-foreground: 0 0% 100%;
+      --border: 240 6% 90%;
+      --input: 240 6% 90%;
+      --ring: 198 99% 49%;
+      --agent-valeria: 287 53% 37%;
+      --agent-valeria-soft: 287 53% 90%;
+    }
+    .dark {
+      --background: 240 10% 4%;
+      --foreground: 0 0% 98%;
+      --card: 240 8% 8%;
+      --card-foreground: 0 0% 98%;
+      --primary: 198 99% 49%;
+      --primary-foreground: 240 10% 4%;
+      --muted: 240 4% 16%;
+      --muted-foreground: 240 5% 65%;
+      --accent: 287 53% 50%;
+      --accent-foreground: 0 0% 98%;
+      --border: 240 4% 20%;
+      --input: 240 4% 20%;
+      --ring: 198 99% 49%;
+      --agent-valeria: 287 60% 60%;
+      --agent-valeria-soft: 287 40% 25%;
+    }
+    body { font-family: 'Inter', system-ui, sans-serif; background: hsl(var(--background)); color: hsl(var(--foreground)); }
+    .bg-background   { background-color: hsl(var(--background)); }
+    .bg-card         { background-color: hsl(var(--card)); }
+    .bg-muted        { background-color: hsl(var(--muted)); }
+    .bg-accent       { background-color: hsl(var(--accent)); }
+    .bg-valeria      { background-color: hsl(var(--agent-valeria)); }
+    .bg-valeria-soft { background-color: hsl(var(--agent-valeria-soft)); }
+    .text-foreground       { color: hsl(var(--foreground)); }
+    .text-muted-foreground { color: hsl(var(--muted-foreground)); }
+    .text-valeria          { color: hsl(var(--agent-valeria)); }
+    .border-border         { border-color: hsl(var(--border)); }
+    .ring-ring             { --tw-ring-color: hsl(var(--ring)); }
+
+    /* Tooltip estilo Shadcn-like */
+    .tip { position: relative; }
+    .tip > .tip-content {
+      position: absolute;
+      left: calc(100% + 8px);
+      top: 50%;
+      transform: translateY(-50%);
+      background: hsl(var(--foreground));
+      color: hsl(var(--background));
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 120ms;
+      z-index: 50;
+    }
+    .tip:hover > .tip-content { opacity: 1; }
+    .tip > .tip-content::before {
+      content: '';
+      position: absolute;
+      right: 100%;
+      top: 50%;
+      transform: translateY(-50%);
+      border: 4px solid transparent;
+      border-right-color: hsl(var(--foreground));
+    }
+
+    /* Skeleton bubbles animados sutil */
+    @keyframes pulse-soft { 0%, 100% { opacity: 0.45; } 50% { opacity: 0.7; } }
+    .skel { animation: pulse-soft 2.5s ease-in-out infinite; }
+
+    /* Status dot */
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 0 2px hsl(var(--card)); }
+
+    /* Lucide-style icon stroke */
+    .ico { stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+  </style>
+</head>
+<body class="min-h-screen">
+
+  <!-- Header del documento mockup -->
+  <header class="border-b border-border bg-card px-6 py-4 flex items-center justify-between">
+    <div>
+      <h1 class="text-base font-semibold">ValeriaSidebar · estados <code class="text-valeria">rail</code> + <code class="text-valeria">collapsed</code></h1>
+      <p class="text-xs text-muted-foreground mt-1">F1-S5 · vitalia-fase1-valeria-rail-history · 4 botones MVP-only · auto-coupling collapsed↔shellMode='web'</p>
+    </div>
+    <button id="theme-toggle" class="border border-border rounded-md px-3 py-1.5 text-xs hover:bg-muted">
+      <span class="dark:hidden">🌙 Dark</span>
+      <span class="hidden dark:inline">☀️ Light</span>
+    </button>
+  </header>
+
+  <main class="p-6 grid gap-8">
+
+    <!-- ===================== State: RAIL (agentic 50/50) ===================== -->
+    <section>
+      <div class="mb-3">
+        <h2 class="text-sm font-semibold">A) State <code class="text-valeria">rail</code> · shellMode <code>agentic</code> (50/50 split)</h2>
+        <p class="text-xs text-muted-foreground">Rail 60px + ChatSlot 1fr · MIN Valeria = 60 + 300 = 360px</p>
+      </div>
+
+      <!-- Shell preview frame -->
+      <div class="border border-border rounded-lg overflow-hidden bg-background" style="height: 560px;">
+        <!-- TopBarGlobal -->
+        <div class="h-14 border-b border-border bg-card flex items-center justify-between px-4">
+          <div class="flex items-center gap-3">
+            <div class="w-7 h-7 rounded-md bg-valeria flex items-center justify-center text-white text-xs font-bold">V</div>
+            <span class="font-semibold text-sm">Vitalia</span>
+            <span class="text-xs text-muted-foreground">|</span>
+            <span class="text-xs">Clínica San Borja ▾</span>
+          </div>
+          <div class="flex items-center gap-2 text-xs">
+            <span>🌗</span>
+            <div class="w-7 h-7 rounded-full bg-muted"></div>
+          </div>
+        </div>
+
+        <!-- Shell agentic 50/50 -->
+        <div class="grid h-[calc(100%-3.5rem)]" style="grid-template-columns: 1fr 4px 1fr;">
+
+          <!-- ValeriaSidebar [rail] -->
+          <aside role="complementary" aria-label="Panel Valeria" aria-expanded="true" class="grid bg-card border-r border-border overflow-hidden" style="grid-template-columns: 60px 1fr;">
+
+            <!-- Rail 60px -->
+            <div class="flex flex-col items-center gap-2 border-r border-border py-3">
+              <!-- PanelLeftOpen → toggle full -->
+              <div class="tip">
+                <button aria-label="Mostrar historial" class="w-9 h-9 rounded-md hover:bg-muted flex items-center justify-center">
+                  <svg width="18" height="18" viewBox="0 0 24 24" class="ico"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/><path d="M14 9l3 3-3 3"/></svg>
+                </button>
+                <span class="tip-content">Mostrar historial · f</span>
+              </div>
+
+              <!-- Plus → nueva conversación -->
+              <div class="tip">
+                <button aria-label="Nueva conversación" class="w-9 h-9 rounded-md hover:bg-muted flex items-center justify-center">
+                  <svg width="18" height="18" viewBox="0 0 24 24" class="ico"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+                </button>
+                <span class="tip-content">Nueva conversación · n</span>
+              </div>
+
+              <!-- Search → focus composer -->
+              <div class="tip">
+                <button aria-label="Buscar (Cmd+K)" class="w-9 h-9 rounded-md hover:bg-muted flex items-center justify-center">
+                  <svg width="18" height="18" viewBox="0 0 24 24" class="ico"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+                </button>
+                <span class="tip-content">Buscar · ⌘K</span>
+              </div>
+
+              <!-- Spacer -->
+              <div class="flex-1"></div>
+
+              <!-- PanelLeftClose → collapsed (auto shellMode='web') -->
+              <div class="tip">
+                <button aria-label="Cerrar Valeria" class="w-9 h-9 rounded-md hover:bg-muted flex items-center justify-center">
+                  <svg width="18" height="18" viewBox="0 0 24 24" class="ico"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/><path d="M17 9l-3 3 3 3"/></svg>
+                </button>
+                <span class="tip-content">Cerrar · c</span>
+              </div>
+            </div>
+
+            <!-- ChatSlot placeholder (1fr) -->
+            <section role="region" aria-label="Chat con Valeria (próximamente)" class="flex flex-col min-w-0">
+
+              <!-- ChatHeader real -->
+              <div class="h-14 border-b border-border px-4 flex items-center gap-3 shrink-0">
+                <div class="relative">
+                  <div class="w-9 h-9 rounded-full bg-valeria flex items-center justify-center text-white text-sm font-semibold">V</div>
+                  <span class="status-dot absolute bottom-0 right-0"></span>
+                </div>
+                <div class="flex flex-col">
+                  <span class="text-sm font-semibold leading-tight">Valeria</span>
+                  <span class="text-xs text-muted-foreground leading-tight">• En línea</span>
+                </div>
+              </div>
+
+              <!-- Skeleton bubbles body -->
+              <div class="flex-1 min-h-0 flex flex-col gap-2.5 p-4 overflow-hidden relative">
+                <div class="self-start h-10 w-[60%] rounded-md bg-muted skel"></div>
+                <div class="self-end   h-10 w-[45%] rounded-md bg-valeria-soft skel"></div>
+                <div class="self-start h-14 w-[70%] rounded-md bg-muted skel"></div>
+                <div class="self-end   h-9  w-[35%] rounded-md bg-valeria-soft skel"></div>
+                <div class="self-start h-11 w-[55%] rounded-md bg-muted skel"></div>
+
+                <!-- Label flotante placeholder -->
+                <span class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 px-2.5 py-1 rounded-md border border-dashed border-border bg-background/90 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground pointer-events-none">
+                  CHATSLOT · F1-S6
+                </span>
+              </div>
+
+              <!-- Composer skeleton -->
+              <div class="border-t border-border p-3 shrink-0">
+                <div class="h-11 w-full rounded-md bg-muted skel"></div>
+              </div>
+            </section>
+          </aside>
+
+          <!-- Divider -->
+          <div class="bg-border"></div>
+
+          <!-- AppPanel placeholder -->
+          <section class="bg-background flex items-center justify-center text-muted-foreground text-xs">
+            <div class="text-center">
+              <div class="mb-2 opacity-60">[ AppPanel — Ribbon F1-S7 + SubTabs F1-S8 + EmptyStates F1-S10 ]</div>
+              <div class="text-[10px]">50% width · agentic mode</div>
+            </div>
+          </section>
+
+        </div>
+      </div>
+
+      <!-- Keyboard hints -->
+      <div class="mt-3 text-[11px] text-muted-foreground flex gap-4 flex-wrap">
+        <span><code class="bg-muted px-1.5 py-0.5 rounded">f</code> mostrar historial</span>
+        <span><code class="bg-muted px-1.5 py-0.5 rounded">n</code> nueva conversación</span>
+        <span><code class="bg-muted px-1.5 py-0.5 rounded">⌘K</code> focus composer</span>
+        <span><code class="bg-muted px-1.5 py-0.5 rounded">c</code> / <code class="bg-muted px-1.5 py-0.5 rounded">Esc</code> cerrar (→ web mode)</span>
+      </div>
+    </section>
+
+
+    <!-- ===================== State: COLLAPSED (web mode) ===================== -->
+    <section>
+      <div class="mb-3">
+        <h2 class="text-sm font-semibold">B) State <code class="text-valeria">collapsed</code> · shellMode <code>web</code> (auto-coupled)</h2>
+        <p class="text-xs text-muted-foreground">Rail 60px + AppPanel 100% (1fr) · Chat oculto · press <code>r</code> o <code>f</code> vuelve a agentic 50/50</p>
+      </div>
+
+      <div class="border border-border rounded-lg overflow-hidden bg-background" style="height: 420px;">
+        <!-- TopBarGlobal -->
+        <div class="h-14 border-b border-border bg-card flex items-center justify-between px-4">
+          <div class="flex items-center gap-3">
+            <div class="w-7 h-7 rounded-md bg-valeria flex items-center justify-center text-white text-xs font-bold">V</div>
+            <span class="font-semibold text-sm">Vitalia</span>
+            <span class="text-xs text-muted-foreground">|</span>
+            <span class="text-xs">Clínica San Borja ▾</span>
+          </div>
+          <div class="flex items-center gap-2 text-xs">
+            <span>🌗</span>
+            <div class="w-7 h-7 rounded-full bg-muted"></div>
+          </div>
+        </div>
+
+        <!-- Shell web mode -->
+        <div class="grid h-[calc(100%-3.5rem)]" style="grid-template-columns: 60px 1px 1fr;">
+
+          <!-- ValeriaSidebar [collapsed = rail only] -->
+          <aside role="complementary" aria-label="Panel Valeria" aria-expanded="false" class="bg-card flex flex-col items-center gap-2 border-r border-border py-3">
+            <div class="tip">
+              <button aria-label="Mostrar historial" class="w-9 h-9 rounded-md hover:bg-muted flex items-center justify-center">
+                <svg width="18" height="18" viewBox="0 0 24 24" class="ico"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/><path d="M14 9l3 3-3 3"/></svg>
+              </button>
+              <span class="tip-content">Mostrar historial · f</span>
+            </div>
+            <div class="tip">
+              <button aria-label="Nueva conversación" class="w-9 h-9 rounded-md hover:bg-muted flex items-center justify-center">
+                <svg width="18" height="18" viewBox="0 0 24 24" class="ico"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+              </button>
+              <span class="tip-content">Nueva conversación · n</span>
+            </div>
+            <div class="tip">
+              <button aria-label="Buscar (Cmd+K)" class="w-9 h-9 rounded-md hover:bg-muted flex items-center justify-center">
+                <svg width="18" height="18" viewBox="0 0 24 24" class="ico"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+              </button>
+              <span class="tip-content">Buscar · ⌘K</span>
+            </div>
+            <div class="flex-1"></div>
+            <div class="tip">
+              <button aria-label="Cerrar Valeria" class="w-9 h-9 rounded-md hover:bg-muted flex items-center justify-center">
+                <svg width="18" height="18" viewBox="0 0 24 24" class="ico"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/><path d="M17 9l-3 3 3 3"/></svg>
+              </button>
+              <span class="tip-content">Cerrar · c</span>
+            </div>
+          </aside>
+
+          <!-- Divider -->
+          <div class="bg-border"></div>
+
+          <!-- AppPanel 100% -->
+          <section class="bg-background flex items-center justify-center text-muted-foreground text-xs p-8">
+            <div class="text-center">
+              <div class="mb-2 opacity-60">[ AppPanel — Ribbon + SubTabs + Contenido ]</div>
+              <div class="text-[10px]">100% width · web mode (Valeria minimizada)</div>
+              <div class="text-[10px] mt-2 italic">Press <code class="bg-muted px-1 rounded">r</code> o <code class="bg-muted px-1 rounded">f</code> para volver a modo agéntico</div>
+            </div>
+          </section>
+
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="px-6 py-4 border-t border-border text-[11px] text-muted-foreground">
+    <div>SSoT visual F1-S5 · brand-overlay <code>shell-mockup-per-component.md</code> · servir local: <code>cd vitalia/docs/product/stories/vitalia-fase1-valeria-rail-history/mockups && python3 -m http.server 8888</code></div>
+    <div class="mt-1">Pair: <a href="./valeria-history.html" class="text-valeria underline">valeria-history.html</a> (state full + mobile drawer + empty search)</div>
+  </footer>
+
+  <script>
+    const toggle = document.getElementById('theme-toggle');
+    const root = document.documentElement;
+    const saved = localStorage.getItem('mockup-theme');
+    if (saved === 'dark') root.classList.add('dark');
+    toggle?.addEventListener('click', () => {
+      root.classList.toggle('dark');
+      localStorage.setItem('mockup-theme', root.classList.contains('dark') ? 'dark' : 'light');
+    });
+  </script>
+</body>
+</html>

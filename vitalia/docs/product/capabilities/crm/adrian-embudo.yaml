@@ -1,0 +1,285 @@
+---
+# Capability YAML · schema v3.2 (cement 2026-05-28)
+# SSoT: docs/process/capability-protocol.md § Sec 7-13
+# ADR: vitalia/docs/architecture/ADR-vitalia-005-capability-model-4-dimensions.md
+
+# ----------------------------------------------------------------------------
+# IDENTIDAD
+# ----------------------------------------------------------------------------
+capability_id: vitalia.crm.adrian-embudo
+slug: adrian-embudo
+status: live                                    # promovido al merge F.3 (2026-06-11) — scenarios + e2e live + chris_verify.signoff SATISFIED
+license: brand-local
+
+# ----------------------------------------------------------------------------
+# DIMENSIÓN 1 · TÉCNICA
+# ----------------------------------------------------------------------------
+tech_module: crm
+module: crm                                     # EXTEND del módulo crm shipped (Lead/lead_service/lead_repository + FE crm-shared)
+
+# ----------------------------------------------------------------------------
+# DIMENSIÓN 2 · USER-FACING
+# ----------------------------------------------------------------------------
+agent_owner: adrian
+functional_area: adrian.embudo
+
+# ----------------------------------------------------------------------------
+# DIMENSIÓN 3 · VISIBILIDAD
+# ----------------------------------------------------------------------------
+user_visible: true
+
+# ----------------------------------------------------------------------------
+# DIMENSIÓN 4 · NATURALEZA
+# ----------------------------------------------------------------------------
+nature: feature
+
+user_facing_name: "Embudo de Adrián — pipeline de leads clínicos"
+user_facing_description: >
+  Sub-tab Embudo de Adrián = superficie de supervisión sobre Adrián (empleado-IA
+  que vende). Adrián conversa, califica, puntúa y mueve leads por un funnel clínico
+  dental de 6 etapas (Interesado → Calificando → Consulta agendada → Plan presentado
+  → Reservado=depósito → Decidió no); la coordinadora supervisa (tomar control,
+  instrucción oculta, override de etapa con justificación, recuperación de congelados);
+  Valeria coordina. Tablero Kanban/Lista (solo HOT) + sub-tab hermana "Recuperar"
+  (congelados + diagnose). Detalle del lead = página con URL propia (Resumen·Historial
+  en EntitySubNavBar). Alta de lead = ruta-hoja /nuevo. Lead = non-PHI (marketing prospect).
+
+dev_preview:
+  route: "/[tenantId]/adrian/embudo"
+  how_to_navigate: "Shell → Ribbon Adrián → sub-tab Embudo. Detalle: /adrian/embudo/[leadId]/{resumen|historial}. Alta: /adrian/embudo/nuevo. Recuperar: /adrian/recuperar."
+  main_component: "AdrianEmbudoView (features/adrian/components/embudo/) — construido (post-rename inbox→adrian)"
+  api_endpoints:
+    - "GET /api/v1/crm/leads (funnel projection)"
+    - "PATCH /api/v1/crm/leads/{id}/stage (override etapa + razón, optimistic lock version)"
+    - "POST /api/v1/crm/leads (alta)"
+  e2e_test: vitalia/frontend/e2e/regression/vitalia-fase2-adrian-embudo/board-live.spec.ts
+  fixtures_required: ["3-clinic-fixture-latam"]
+  storybook_url: null
+  loom_demo: null
+
+# ----------------------------------------------------------------------------
+# LEDGER v2
+# ----------------------------------------------------------------------------
+created_in_story: vitalia-fase2-adrian-embudo
+created_date: 2026-06-03
+last_modified: 2026-06-11   # demo-bugs fix (spinner + funnel fields persist root-fix repo) · e2e 13/13 live
+package_version: vitalia-fase2-v1.0.0
+package_path: vitalia/backend/src/modules/vitalia/crm/
+
+architecture_pattern: ADR-vitalia-004
+hipaa_lite_overlay: false                       # Lead = non-PHI (crm/domain/lead.py); aplica tenant-isolation + audit, NO full-set hipaa-lite
+
+parent_cap: null
+derives_capabilities: []
+superseded_by: null
+
+change_log:
+  - story_id: vitalia-fase2-adrian-embudo
+    date: 2026-06-03
+    type: new
+    summary: "Embudo de supervisión sobre Adrián: funnel clínico 6 etapas, override manual con justificación que alimenta al agente, auto-freeze por inactividad + Recuperar, página de lead con URL propia, alta ruta-hoja. EXTEND crm + CONSUME sustrato agéntico engine (closer_studio) vía Extension SDK."
+    scenarios_added: [sc-1-adrian-mueve-reservado, sc-1b-override-manual-alimenta-agente, sc-2-override-salto-422-rollback, sc-3-tenant-switch-mid-accion, sc-4-deeplink-cross-tenant-404, sc-5-race-optimistic-lock-409, sc-6-tenants-paralelos-segmentados, sc-7-network-failure-rollback, sc-8-empty-state, sc-9-large-dataset-1200, sc-10-a11y-drag-teclado, sc-11-i18n-currency-neutro, sc-detalle-deeplink-lead, sc-nuevo-alta-lead-highlight, sc-freeze-inactividad-reactivacion]
+    merge_sha: "25e5e76e"
+    status: shipped
+  - story_id: vitalia-fase2-adrian-embudo
+    date: 2026-06-11
+    type: fix
+    summary: "3 bugs demo Chris: (1) botón crear lead sin spinner → Loader2 + disabled; (2) canal/funnel fields no persistían en POST /crm/leads — root fix en LeadRepository.create (+stage/channel/service_interest/estimated_value/currency + marketing_opt_in que nunca se insertaba + stage_entered_at RN-11) y passthrough en lead_service/funnel_service/router; (3) /recuperar vacío = empty-state correcto (no-bug). Regresión repo-level test_lead_repo_funnel_fields.py (RED→GREEN). Verificado live: e2e 13/13 + fila DB channel=whatsapp."
+    scenarios_added: []
+    merge_sha: "59894c99"
+    status: shipped
+map_box: adrian
+
+# Bloque 2 · scenarios (BDD del 01-spec.md § Gherkin · poblados al merge F.3 2026-06-11)
+# status live = test PASS con evidencia (gherkin-matrix 2026-06-11) · wip = e2e deferred
+# (T-E2E-1 follow-up, Chris ratificó proceed-on-live-verify 2026-06-04)
+scenarios:
+  - id: sc-1-adrian-mueve-reservado
+    name: "Adrián mueve lead a Reservado (stub pago) + audit"
+    actor: adrian
+    status: live
+    given: "Lead L1 en etapa listo, operado por Adrián"
+    when: "PATCH /crm/leads/L1/stage {to: reservado, triggered_by: agent} + webhook stub de pago"
+    then: "stage=reservado persistido + lead_stage_transition row + badge depósito + KPI tasa-depósito recalcula"
+    e2e_test: vitalia/backend/tests/modules/vitalia/crm/test_funnel_service.py
+    added_in_story: vitalia-fase2-adrian-embudo
+    added_date: 2026-06-11
+  - id: sc-1b-override-manual-alimenta-agente
+    name: "Override manual (drag + razón) alimenta al agente"
+    actor: coordinadora
+    status: live
+    given: "Lead L1b en calificando operado por Adrián"
+    when: "Coordinadora arrastra a consulta-agendada + escribe razón"
+    then: "Transición triggered_by=manual_override + row con razón + override_context inyectado al checkpoint del agente + Adrián sigue operando sin reiniciar + handover en Historial"
+    e2e_test: vitalia/backend/tests/modules/vitalia/sales_agent/test_manual_override_feeds_agent_context.py
+    added_in_story: vitalia-fase2-adrian-embudo
+    added_date: 2026-06-11
+  - id: sc-2-override-salto-422-rollback
+    name: "Override saltando etapas → 422 + rollback"
+    actor: coordinadora
+    status: live
+    given: "Lead L2 en interesado (allowed_next=[calificando, decidio-no])"
+    when: "Humano arrastra a reservado y confirma"
+    then: "Backend 422 {allowed_next} → rollback visual + toast 'Etapa permitida: Calificando' + audit failed_stage_transition"
+    e2e_test: vitalia/backend/tests/modules/vitalia/crm/test_funnel_api.py
+    added_in_story: vitalia-fase2-adrian-embudo
+    added_date: 2026-06-11
+  - id: sc-3-tenant-switch-mid-accion
+    name: "Tenant switch mid-acción cancela sin leak"
+    actor: coordinadora
+    status: wip
+    given: "Operador en el board"
+    when: "TenantSwitcher redirige"
+    then: "Sin PATCH emitido; board del nuevo tenant; 0 leads del anterior"
+    e2e_test: null
+    added_in_story: vitalia-fase2-adrian-embudo
+    added_date: 2026-06-11
+  - id: sc-4-deeplink-cross-tenant-404
+    name: "Deep-link a lead de otro tenant → 404 sin leak"
+    actor: coordinadora
+    status: live
+    given: "Operador T1 conoce leadId de T2"
+    when: "Navega /{T1}/adrian/embudo/{leadId_T2}/datos"
+    then: "404 'Lead no encontrado' + audit cross_tenant_attempt, sin leak de existencia"
+    e2e_test: vitalia/backend/tests/modules/vitalia/crm/test_cross_tenant_lead_block.py
+    added_in_story: vitalia-fase2-adrian-embudo
+    added_date: 2026-06-11
+  - id: sc-5-race-optimistic-lock-409
+    name: "2 operadores mismo lead → optimistic lock 409"
+    actor: coordinadora
+    status: live
+    given: "Lead L3 con version v"
+    when: "A mueve etapa (→v+1) y B mueve con version v stale"
+    then: "A recibe 200, B recibe 409 + refetch + toast"
+    e2e_test: vitalia/backend/tests/modules/vitalia/crm/test_stage_transition_optimistic_lock.py
+    added_in_story: vitalia-fase2-adrian-embudo
+    added_date: 2026-06-11
+  - id: sc-6-tenants-paralelos-segmentados
+    name: "2 tenants en paralelo ven solo sus leads"
+    actor: coordinadora
+    status: wip
+    given: "T1 y T2 cargan el board simultáneo"
+    when: "Ambos operan"
+    then: "Cada uno solo sus leads; React Query keys segmentadas por tenant"
+    e2e_test: null
+    added_in_story: vitalia-fase2-adrian-embudo
+    added_date: 2026-06-11
+  - id: sc-7-network-failure-rollback
+    name: "Timeout de red — banner en GET, rollback en PATCH"
+    actor: coordinadora
+    status: wip
+    given: "Board cargado"
+    when: "(a) GET timeout (b) PATCH timeout"
+    then: "(a) banner + Reintentar (b) rollback + toast"
+    e2e_test: null
+    added_in_story: vitalia-fase2-adrian-embudo
+    added_date: 2026-06-11
+  - id: sc-8-empty-state
+    name: "Board sin leads — empty state + CTA"
+    actor: coordinadora
+    status: wip
+    given: "Tenant sin leads"
+    when: "Carga el board"
+    then: "6 columnas vacías + empty central + CTA 'Crear primer lead'"
+    e2e_test: null
+    added_in_story: vitalia-fase2-adrian-embudo
+    added_date: 2026-06-11
+  - id: sc-9-large-dataset-1200
+    name: "1200 leads — counts reales + scroll sin congelar"
+    actor: coordinadora
+    status: wip
+    given: "Tenant con 1200 leads"
+    when: "Carga board/lista"
+    then: "Counts reales por columna + Kanban scroll virtualizado / Lista paginada, sin congelar"
+    e2e_test: null
+    added_in_story: vitalia-fase2-adrian-embudo
+    added_date: 2026-06-11
+  - id: sc-10-a11y-drag-teclado
+    name: "Accesibilidad — drag por teclado + tabs"
+    actor: coordinadora
+    status: wip
+    given: "Foco en card/tab"
+    when: "Teclado (drag: Space+flechas+Esc; tabs: Arrow/Home/End)"
+    then: "aria-live anuncia movimiento + mismo efecto que mouse + axe-clean"
+    e2e_test: null
+    added_in_story: vitalia-fase2-adrian-embudo
+    added_date: 2026-06-11
+  - id: sc-11-i18n-currency-neutro
+    name: "i18n — currency por tenant + Spanish neutro"
+    actor: coordinadora
+    status: wip
+    given: "Tenant PEN vs tenant MXN"
+    when: "Render de montos"
+    then: "formatMoney correcto por locale + textos Spanish neutro"
+    e2e_test: null
+    added_in_story: vitalia-fase2-adrian-embudo
+    added_date: 2026-06-11
+  - id: sc-detalle-deeplink-lead
+    name: "Página del lead con URL propia (Resumen·Historial)"
+    actor: coordinadora
+    status: live
+    given: "Board cargado"
+    when: "Clic en card → /adrian/embudo/{id}/resumen · refresh en /{id}/historial"
+    then: "EntitySubNavBar pinta nombre+tabs; Resumen con Datos+Score; refresh renderiza directo (no 404, no board)"
+    e2e_test: vitalia/frontend/e2e/regression/vitalia-fase2-adrian-embudo/resumen-live.spec.ts
+    added_in_story: vitalia-fase2-adrian-embudo
+    added_date: 2026-06-11
+  - id: sc-nuevo-alta-lead-highlight
+    name: "Alta de lead — ruta-hoja + redirect con highlight"
+    actor: coordinadora
+    status: live
+    given: "Board cargado"
+    when: "Clic '+ Nuevo lead' → form en /adrian/embudo/nuevo → submit válido"
+    then: "POST /crm/leads (canal + campos funnel persisten) → redirect a board ?highlight={id} → card resaltada (ring+pulse) + auto-scroll; cancelar vuelve sin crear; botón con spinner + disabled durante el POST"
+    e2e_test: vitalia/frontend/e2e/regression/vitalia-fase2-adrian-embudo/board-live.spec.ts
+    added_in_story: vitalia-fase2-adrian-embudo
+    added_date: 2026-06-11
+  - id: sc-freeze-inactividad-reactivacion
+    name: "Auto-freeze por inactividad + reactivación"
+    actor: adrian
+    status: live
+    given: "Lead L4 en calificando, última respuesta hace 15d (>14d)"
+    when: "Corre el sweep de freeze · luego el lead responde"
+    then: "is_frozen=true + frozen_reason=inactividad_lead + sale del board + aparece en Recuperar + audit; al responder: is_frozen=false + vuelve a calificando + audit reactivated"
+    e2e_test: vitalia/backend/tests/modules/vitalia/crm/test_auto_freeze_and_reactivate.py
+    added_in_story: vitalia-fase2-adrian-embudo
+    added_date: 2026-06-11
+
+---
+
+# Embudo de Adrián — pipeline de leads clínicos
+
+Capacidad brand-local de Vitalia (módulo `crm`, EXTEND) que materializa la sub-tab
+**Embudo** del empleado-IA vendedor (Adrián). Es una **superficie de supervisión**:
+Adrián opera el funnel (califica, puntúa, mueve), la coordinadora supervisa (tomar
+control, instrucción oculta, override de etapa con razón que alimenta al agente,
+recuperación de leads congelados). Valeria coordina.
+
+Sigue ADR-vitalia-004 (shell-feature architecture) + ADR-vitalia-003 (mockup-per-component,
+ratificado `embudo-v3.html`). Lead es **non-PHI** (prospecto de marketing) → tenant-isolation
++ audit log, sin full-set HIPAA-lite.
+
+## Estado
+
+`live` — mergeado 2026-06-11 (Fase F). Auditor APPROVED (Auditor Responsable v5,
+Carril R cerró sync-fix gaps) + `chris_verify.signoff: SATISFIED` (demo Chris:
+spinner crear-lead · canal persiste en detalle · /recuperar empty-state). Live-verify
+DoD #37: e2e 13/13 contra dev real + writes con efecto en DB (POST 201 + PATCH 200 +
+fila `channel=whatsapp`). 8/15 scenarios `live` con test PASS; 7 `wip` (e2e
+T-E2E-1 deferred ratificado 2026-06-04 — follow-up).
+
+## Surface (confirmado por /architect — se materializa al build)
+
+- BE: `vitalia/backend/src/modules/vitalia/crm/` (EXTEND: Lead + lead_service + lead_repository
+  + FunnelService/ScoreService/DiagnoseService + transition con optimistic lock `version`→409 + activity/audit)
+- FE: `vitalia/frontend/src/features/adrian/components/embudo/` (post-rename inbox→adrian) + reuse `crm-shared`/`use-leads`
+  + `EntitySubNavBar` (de doctores) + `ChannelBadge` **EXTEND** (ya existe de adrian-inbox, NO new) + `@dnd-kit/core`
+- Engine: CONSUME `core/luana-core-sales-agent/closer_studio` **read-only** (corre sync con su propia
+  auth — NO mount, NO edit de schema engine). Override-context (RN-4.1) = wire brand-local (event
+  subscriber a sales_agent) que escribe contexto del próximo turno — ticket agentic separado (T-AG-1, Opus R23).
+
+## Referencias
+
+- Story (SSoT funcional): `vitalia/docs/product/stories/vitalia-fase2-adrian-embudo/01-spec.md`
+- ADRs: ADR-vitalia-003 (mockup gate) · ADR-vitalia-004 (shell-feature) · ADR-vitalia-008 (dev-app live-verify)
+- Mockup ratificado: `vitalia/docs/product/stories/vitalia-fase2-adrian-embudo/mockups/embudo-v3.html`

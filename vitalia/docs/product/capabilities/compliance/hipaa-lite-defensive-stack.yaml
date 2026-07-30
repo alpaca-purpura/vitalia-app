@@ -1,0 +1,231 @@
+---
+capability_id: vitalia-hipaa-lite-defensive-stack
+module: compliance
+slug: hipaa-lite-defensive-stack
+status: deprecated
+date_introduced: 2026-05-18
+story_introduced: vitalia-slice-1-infra-cross-cutting
+package_version: 0.1.0
+package_path: vitalia/backend/src/modules/vitalia/compliance
+license: proprietary
+
+# v3 cement 2026-05-27 · 4 dimensiones + dev_preview (ADR-vitalia-005)
+tech_module: compliance
+agent_owner: seguridad-cumplimiento
+functional_area: seguridad-cumplimiento.compliance
+user_visible: false
+nature: feature
+ui_paradigm: slice-1-superseded  # T-3 reconcile 2026-05-29
+replaced_by_story: vitalia-fase2-lisa-compliance  # T-3: story F2 que reconstruye esta cap
+
+user_facing_name: "Stack defensivo HIPAA-lite"
+user_facing_description: >
+  Conjunto de capas defensivas arquitectónicas que protegen los datos sensibles del
+  paciente en toda la plataforma. Incluye doble filtro tenant y clínica en consultas
+  PHI, escritura sincrónica del audit log antes de cada respuesta, decorador RBAC
+  que bloquea roles no autorizados, guard de canal que impide enviar PHI por
+  WhatsApp no encriptado, y cifrado en base de datos vía pgcrypto.
+
+dev_preview:
+  route: "/configurar/compliance"
+  how_to_navigate: "Login como admin_clinic → menú Configurar → Compliance · BE-only para la mayoría de capas; la UI muestra estado de compliance."
+  main_component: null
+  api_endpoints:
+    - "GET /api/v1/vitalia/medical-compliance/events"
+  e2e_test: null
+  fixtures_required: []
+  storybook_url: null
+  loom_demo: null
+
+# Capability ledger v2 (cement 2026-05-27)
+created_in_story: vitalia-slice-1-infra-cross-cutting   # v2 cement · mirror of story_introduced
+created_date: 2026-05-18   # v2 cement · mirror of date_introduced
+last_modified: 2026-05-29   # T-3 reconcile 2026-05-29
+parent_cap: null   # v2 cement · mirror of extends_capability
+derives_capabilities: []   # v2 cement · initial empty list
+
+# Capability ledger v2 (cement 2026-05-27)
+
+# Capability change log v2 (cement 2026-05-27)
+change_log:
+  - story_id: vitalia-slice-1-infra-cross-cutting
+    date: 2026-05-18
+    type: new
+    summary: "Implementación inicial · migración legacy a schema v2"
+    merge_sha: null
+    status: done
+
+access:
+  entry_points:
+    - path: "/configurar/compliance"
+      navigation: "Login como admin_clinic → menú Configurar → Compliance · vista de estado de cumplimiento"
+      requires_role: [admin_clinic]
+      requires_clinic_scope: true
+      entry_type: ui
+    - path: "/api/v1/vitalia/medical-compliance/events"
+      navigation: "API interna (staff_vitalia o sistema) · listar eventos de compliance del tenant"
+      requires_role: [admin_clinic, staff_vitalia]
+      requires_clinic_scope: true
+      entry_type: api
+  forbidden_roles: [patient, marketing, nurse, receptionist]
+  authentication: required
+
+scenarios:
+  - id: phi-query-dual-filter-enforced
+    name: "Toda consulta PHI aplica el doble filtro tenant + clínica"
+    actor: doctor
+    status: live
+    given: "Doctor autenticado en tenant_A solicitando datos del paciente via cualquier repo PHI"
+    when: "Se ejecuta la query en PhiRepositoryBase sin pasar clinic_id"
+    then: "MissingClinicFilterError lanzado antes de llegar a la DB · request falla con 400 · audit log NO creado (query inválida rechazada upstream)"
+    e2e_test: null
+    story_spec_ref: "vitalia/docs/archive/2026/stories/vitalia-slice-1-infra-cross-cutting/01-spec.md"
+    atomic_ref: null
+    edge_cases:
+      - "tenant_A + clinic_B (de tenant distinto) → 404 (no 403) para no revelar existencia del recurso"
+      - "tenant_A + clinic_X (mismo tenant, otra clínica del usuario) → 403 explícito con audit log"
+    added_in_story: vitalia-slice-1-infra-cross-cutting
+    added_date: 2026-05-18
+  - id: audit-log-sync-write-phi-endpoint
+    name: "Audit log se escribe de forma sincrónica antes de la respuesta en endpoints PHI"
+    actor: doctor
+    status: live
+    given: "Endpoint PHI recibe request válido con roles autorizados"
+    when: "La respuesta está lista para enviarse"
+    then: "Audit log row (tenant_id, clinic_id, user_id, action, resource_type, resource_id, from_ip, timestamp) escrito y flush confirmado ANTES de retornar respuesta al cliente"
+    e2e_test: null
+    story_spec_ref: "vitalia/docs/archive/2026/stories/vitalia-slice-1-infra-cross-cutting/01-spec.md"
+    atomic_ref: null
+    edge_cases:
+      - "Fallo en write del audit log → request rechazado con 500 (no silencia el error)"
+      - "Carga alta: audit table particionada por mes para mantener latencia < 10ms en writes"
+    added_in_story: vitalia-slice-1-infra-cross-cutting
+    added_date: 2026-05-18
+  - id: marketing-role-blocked-from-phi
+    name: "Rol marketing no puede acceder a datos PHI de pacientes"
+    actor: marketing
+    status: live
+    given: "Usuario con rol marketing autenticado intenta GET /api/v1/scheduling/appointments"
+    when: "Request llega al endpoint PHI de agenda"
+    then: "PHIAccessDeniedError → 403 Forbidden · audit log registra intento de acceso denegado"
+    e2e_test: null
+    story_spec_ref: "vitalia/docs/archive/2026/stories/vitalia-slice-1-infra-cross-cutting/01-spec.md"
+    atomic_ref: null
+    edge_cases:
+      - "Sales agent con token sistema (no rol humano) → validado via service account scope"
+    added_in_story: vitalia-slice-1-infra-cross-cutting
+    added_date: 2026-05-18
+  - id: whatsapp-free-phi-blocked
+    name: "Canal WhatsApp tier free bloqueado para mensajes con PHI"
+    actor: admin_clinic
+    status: live
+    given: "Admin intenta enviar mensaje con datos médicos del paciente por WhatsApp tier free"
+    when: "VitaliaComplianceAdapter.validate_channel() evalúa el mensaje"
+    then: "BlockedChannelError lanzado · mensaje no enviado · canal sugerido: portal seguro autenticado"
+    e2e_test: null
+    story_spec_ref: "vitalia/docs/archive/2026/stories/vitalia-slice-1-infra-cross-cutting/01-spec.md"
+    atomic_ref: null
+    edge_cases:
+      - "SMS también bloqueado para PHI por el mismo guard"
+      - "WhatsApp Business API (encriptado) puede usarse con template pre-aprobado sin PHI raw"
+    added_in_story: vitalia-slice-1-infra-cross-cutting
+    added_date: 2026-05-18
+
+business_rules:
+  - id: dual-tenant-clinic-filter
+    rule: "Toda query PHI requiere dual filter tenant_id + clinic_id · PhiRepositoryBase.validate_dual_filter() lanza MissingClinicFilterError si falta clinic_id"
+    enforcement:
+      - "vitalia/.claude/rules/hipaa-lite.md"
+      - ".claude/rules/tenant-isolation.md"
+    code_ref: "vitalia/backend/src/modules/vitalia/compliance/infrastructure/persistence/phi_repository_base.py"
+    severity: critical
+    audit_trail: false
+  - id: audit-log-sync-write
+    rule: "Audit log row se escribe de forma sincrónica (await session.execute + flush) ANTES de la respuesta · NO fire-forget · retención 10 años"
+    enforcement:
+      - "vitalia/.claude/rules/hipaa-lite.md"
+    code_ref: "vitalia/backend/src/modules/vitalia/compliance/infrastructure/persistence/audit_log_repository.py"
+    severity: critical
+    audit_trail: true
+  - id: phi-sanitization-mandatory
+    rule: "sanitize_phi_payload() se ejecuta en TODOS los traces/logs/telemetry vitalia · 22 PHI fields configurados en phi_fields.py SSoT"
+    enforcement:
+      - "vitalia/.claude/rules/hipaa-lite.md"
+      - ".claude/rules/anti-duplication.md"
+    code_ref: "vitalia/backend/src/modules/vitalia/compliance/application/phi_fields.py"
+    severity: critical
+    audit_trail: false
+  - id: phi-channel-guard
+    rule: "WhatsApp tier free y SMS bloqueados para mensajes con contains_phi=true · canal seguro obligatorio para PHI"
+    enforcement:
+      - "vitalia/.claude/rules/hipaa-lite.md"
+    code_ref: "vitalia/backend/src/modules/vitalia/compliance/application/compliance_adapter.py"
+    severity: critical
+    audit_trail: true
+
+related_capabilities:
+  depends_on:
+    - iam.luana-core-adoption
+    - auth.clerk-middleware
+  enables:
+    - scheduling.mateo-agenda
+    - patients.nps-tracking
+    - sales_agent.inbox-handler-mode-occ
+    - booking.prepaid-booking-advisory-locks
+  similar: []
+  obsoletes: []
+map_box: seguridad-cumplimiento
+
+---
+
+# vitalia-hipaa-lite-defensive-stack
+
+HIPAA-lite defensive infrastructure architecturally enforced (no human-discipline). Combina dual filter validation, audit log sync writes, PHI sanitization vía engine factory, RBAC decorator pattern, channel guard, encryption-at-rest pgcrypto.
+
+## Surface
+
+- **`PhiRepositoryBase`** (`infrastructure/persistence/phi_repository_base.py`) — base class enforces dual filter tenant_id + clinic_id en toda query PHI. `.validate_dual_filter(tenant_id, clinic_id)` raises `MissingClinicFilterError` si clinic_id missing
+- **`AuditLogRepository`** (`infrastructure/persistence/audit_log_repository.py`) — sync write (await session.execute + flush) antes response, NO fire-forget. `AuditLogEntry` contiene tenant_id, clinic_id, user_id, action, resource_type, resource_id, from_ip, user_agent, timestamp, payload_redacted BYTEA
+- **`KEKClient`** (`infrastructure/encryption/kek_client.py`) — Key Encryption Key from env var only (KEK rotation annually)
+- **`@require_phi_access(roles=["doctor","nurse","admin_clinic"])`** decorator — application layer RBAC gate. `PHIAccessDeniedError` raised si role no autorizado
+- **`VitaliaComplianceAdapter`** (`application/compliance_adapter.py`) — channel guard. Blocks `whatsapp_free` + `sms` para mensajes con PHI. `BlockedChannelError` raised
+- **`sanitize_phi_payload`** — imported from `core/luana-core-observability/src/luana_core_observability/recording/sanitization.py` (NOT mirrored). Vitalia-specific 22 PHI fields configurados en `phi_fields.py` SSoT
+- **pgcrypto BYTEA columns** (T-infra-1): `treatment_plans.notes`, `re_engagement_events.payload_phi`, `channel_sync_state.oauth_token_encrypted`
+
+## Test coverage
+
+- `vitalia/backend/tests/architecture/test_phi_dual_filter.py` (6 tests) — PhiRepositoryBase enforces dual filter
+- `vitalia/backend/tests/architecture/test_audit_log_sync_write.py` (3 tests) — audit log sync write timing
+- `vitalia/backend/tests/architecture/test_pgcrypto_phi_columns.py` — pgcrypto BYTEA columns en schema
+- `vitalia/backend/tests/modules/vitalia/compliance/` (28 unit tests) — full compliance suite
+
+## Dependencies
+
+- `luana-core-observability` (sanitization factory)
+- `luana-core-extension-sdk` (compliance gates registry)
+
+## Scenarios live
+
+- Toda lectura/escritura PHI via PatientRepository (extends PhiRepositoryBase) bloquea queries sin clinic_id
+- Audit log row creada SYNC antes response — verificable via DB query post-request
+- WhatsApp tier free + SMS bloqueados para mensajes con `contains_phi=true`
+- Marketing role queries → PHIAccessDeniedError (no autorizado)
+- PHI fields redacted en traces via sanitize_phi_payload (22 fields)
+
+## Promotion candidate (cross-brand)
+
+Status: **candidate** (ratificado /pm-vitalia 2026-05-18 — ping /pm-luana pending)
+
+Otras brands con potencial HIPAA-lite necesidad:
+- `fitflow` (gym waivers + medical history)
+- `inmoflow` (broker contracts con PII regulated)
+- `guestly` (guest data hotel regulated GDPR/LGPD)
+
+Target core package: `core/luana-core-compliance/` extend con PhiRepositoryBase abstract base. Brand-specific concrete subclasses heredan + configuran `phi_fields` list local.
+
+## Referencias
+
+- Rule: `vitalia/.claude/rules/hipaa-lite.md`
+- Anti-duplication: `.claude/rules/anti-duplication.md` § sanitize_payload row
+- Engine import: `core/luana-core-observability/src/luana_core_observability/recording/sanitization.py`
+- Migrations: `vitalia/backend/alembic/versions/2026_05_18_*.py` (audit_log + pgcrypto columns)

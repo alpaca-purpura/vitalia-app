@@ -1,0 +1,716 @@
+# 04-validators.yaml — F2-S1 vitalia-fase2-valeria-agenda
+# Owner: /architect orchestrator (single-shot full-stack)
+# Schema v4.1 — 5 categories: non_functional / functional / visual / architectural_validation / scenario_coverage
+# agentic_eval: N/A (NO agentic surface — Valeria agenda es sub-tab UI operativa)
+#
+# Convención: ${WS} = workspace root = /home/chalreme/Proyectos/luana-vitalia
+# Native commands ONLY (NUNCA docker exec for lint/tests).
+# BE: cd vitalia/backend + ${WS}/.venv/bin/{ruff,pytest}
+# FE: cd vitalia/frontend + npx {tsc,eslint,vitest,playwright}
+
+---
+story_id: vitalia-fase2-valeria-agenda
+brand: vitalia
+schema_version: v4.1
+generated_at: 2026-05-27T00:00:00Z
+generated_by: /architect
+hipaa_lite_overlay: true
+
+validators:
+  # ════════════════════════════════════════════════════════════════
+  # NON-FUNCTIONAL — code quality (lint, format, type-check, arch fitness)
+  # ════════════════════════════════════════════════════════════════
+
+  - id: be_arch_fitness
+    category: non_functional
+    type: pytest
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/architecture/ -x -q"
+    must_pass: true
+    timeout_sec: 180
+    description: "Vitalia arch fitness (DDD + tenant + PHI dual filter + audit + response_model + extension SDK + NEW tests scheduling/no_phi_url/audit_row)"
+
+  - id: be_lint
+    category: non_functional
+    type: shell
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/ruff check src/modules/vitalia/{scheduling,payments,fiscal,_shared/telemetry,_shared/auth}/ tests/modules/vitalia/scheduling/ --no-cache"
+    must_pass: true
+    timeout_sec: 60
+    description: "Ruff 70+ rules, 0 errors, line-length 120"
+
+  - id: be_format
+    category: non_functional
+    type: shell
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/ruff format --check src/modules/vitalia/{scheduling,payments,fiscal}/ tests/modules/vitalia/scheduling/"
+    must_pass: true
+    timeout_sec: 30
+
+  - id: be_mypy
+    category: non_functional
+    type: shell
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/mypy src/modules/vitalia/{scheduling,payments,fiscal}/ --ignore-missing-imports || true"
+    must_pass: false                         # advisory (mypy not part of vitalia mandatory gates today)
+    timeout_sec: 90
+
+  - id: fe_typecheck
+    category: non_functional
+    type: shell
+    cmd: "cd vitalia/frontend && npx tsc --noEmit"
+    must_pass: true
+    timeout_sec: 120
+
+  - id: fe_lint
+    category: non_functional
+    type: shell
+    cmd: "cd vitalia/frontend && npx eslint src/features/valeria/ src/app/[tenantId]/(shell-organism)/valeria/agenda/ --cache --cache-location .eslintcache"
+    must_pass: true
+    timeout_sec: 90
+
+  - id: fe_arch_fitness
+    category: non_functional
+    type: shell
+    cmd: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/ --reporter=default"
+    must_pass: true
+    timeout_sec: 90
+    description: "FSD-Lite boundaries + ratchet allowlists shrink-only"
+
+  - id: fe_madge_circular
+    category: non_functional
+    type: shell
+    cmd: "cd vitalia/frontend && npx madge --circular --extensions ts,tsx src/features/valeria/"
+    must_pass: true
+    timeout_sec: 30
+    description: "No circular imports valeria feature"
+
+  - id: fe_knip_unused
+    category: non_functional
+    type: shell
+    cmd: "cd vitalia/frontend && npx knip --include files --reporter compact src/features/valeria/components/agenda/"
+    must_pass: false                         # advisory (only fails build if knip flags >0 unused exports)
+    timeout_sec: 60
+
+  # ════════════════════════════════════════════════════════════════
+  # FUNCTIONAL — Gherkin scenarios (BE + FE coverage)
+  # ════════════════════════════════════════════════════════════════
+
+  # BE unit/integration per endpoint
+  - id: be_unit_charge_orchestrator
+    category: functional
+    type: pytest
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/scheduling/test_charge_orchestrator.py -v"
+    must_pass: true
+    timeout_sec: 90
+    scenario_id: happy
+    description: "Charge orchestrator saga happy + payment 503 + fiscal 503 + 409 + idempotency"
+
+  - id: be_unit_agenda_grid_service
+    category: functional
+    type: pytest
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/scheduling/test_agenda_grid_service.py -v"
+    must_pass: true
+    timeout_sec: 60
+
+  - id: be_unit_appointment_detail_service
+    category: functional
+    type: pytest
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/scheduling/test_appointment_detail_service.py -v"
+    must_pass: true
+    timeout_sec: 60
+
+  - id: be_unit_notify_compliance_guard
+    category: functional
+    type: pytest
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/scheduling/test_notify_compliance_guard.py -v"
+    must_pass: true
+    timeout_sec: 60
+    description: "Template-only WhatsApp + ComplianceService BlockedChannelError + audit log"
+
+  - id: be_unit_create_appointment
+    category: functional
+    type: pytest
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/scheduling/test_create_appointment_router.py -v"
+    must_pass: true
+    timeout_sec: 60
+
+  - id: be_unit_patch_status
+    category: functional
+    type: pytest
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/scheduling/test_patch_status_router.py -v"
+    must_pass: true
+    timeout_sec: 60
+
+  - id: be_integration_dual_filter
+    category: functional
+    type: pytest
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/scheduling/test_dual_filter_clinic_isolation.py -v"
+    must_pass: true
+    timeout_sec: 60
+    scenario_id: adversarial
+    description: "Cross-clinic query → 404 + audit log row (SC-4)"
+
+  - id: be_integration_phi_url_protection
+    category: functional
+    type: pytest
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/scheduling/test_phi_url_protection.py -v"
+    must_pass: true
+    timeout_sec: 60
+    scenario_id: adversarial
+    description: "PHI query params rejected via whitelist + suspicious audit (SC-4)"
+
+  - id: be_integration_audit_log_drawer
+    category: functional
+    type: pytest
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/scheduling/test_audit_log_drawer.py -v"
+    must_pass: true
+    timeout_sec: 60
+    description: "Audit log row created for each PHI endpoint (AC-10)"
+
+  - id: be_integration_drawer_charge_flow
+    category: functional
+    type: pytest
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/scheduling/test_drawer_charge_flow.py -v"
+    must_pass: true
+    timeout_sec: 120
+    description: "End-to-end charge happy + 503 + 409 + idempotency (SC-1, SC-2, SC-5 backend)"
+
+  # FE vitest unit per component
+  - id: fe_unit_valeria_agenda_view
+    category: functional
+    type: shell
+    cmd: "cd vitalia/frontend && npx vitest run src/features/valeria/components/agenda/__tests__/ValeriaAgendaView.test.tsx"
+    must_pass: true
+    timeout_sec: 60
+
+  - id: fe_unit_agenda_calendar
+    category: functional
+    type: shell
+    cmd: "cd vitalia/frontend && npx vitest run src/features/valeria/components/agenda/__tests__/AgendaCalendar.test.tsx"
+    must_pass: true
+    timeout_sec: 60
+
+  - id: fe_unit_agenda_slot
+    category: functional
+    type: shell
+    cmd: "cd vitalia/frontend && npx vitest run src/features/valeria/components/agenda/__tests__/AgendaSlot.test.tsx"
+    must_pass: true
+    timeout_sec: 60
+
+  - id: fe_unit_appointment_drawer
+    category: functional
+    type: shell
+    cmd: "cd vitalia/frontend && npx vitest run src/features/valeria/components/agenda/__tests__/AppointmentDrawer.test.tsx"
+    must_pass: true
+    timeout_sec: 60
+
+  - id: fe_unit_cobrar_saldo_subform
+    category: functional
+    type: shell
+    cmd: "cd vitalia/frontend && npx vitest run src/features/valeria/components/agenda/__tests__/CobrarSaldoSubform.test.tsx"
+    must_pass: true
+    timeout_sec: 90
+    description: "★ corazón valor — happy + 409 + fiscal error + multi-currency (SC-1, SC-2, SC-5 FE, SC-11)"
+
+  - id: fe_unit_agenda_preset_filters
+    category: functional
+    type: shell
+    cmd: "cd vitalia/frontend && npx vitest run src/features/valeria/components/agenda/__tests__/AgendaPresetFilters.test.tsx"
+    must_pass: true
+    timeout_sec: 60
+
+  - id: fe_unit_crear_cita_button
+    category: functional
+    type: shell
+    cmd: "cd vitalia/frontend && npx vitest run src/features/valeria/components/agenda/__tests__/CrearCitaButton.test.tsx"
+    must_pass: true
+    timeout_sec: 60
+
+  - id: fe_unit_api_hooks
+    category: functional
+    type: shell
+    cmd: "cd vitalia/frontend && npx vitest run src/features/valeria/api/__tests__/"
+    must_pass: true
+    timeout_sec: 60
+
+  # E2E Playwright scenarios
+  - id: e2e_happy_cobro
+    category: functional
+    type: playwright
+    cmd: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/vitalia-fase2-valeria-agenda/valeria-agenda-cobro.spec.ts --project=smoke"
+    must_pass: true
+    timeout_sec: 300
+    scenario_id: happy
+    description: "SC-1 happy path + SC-2 payment 503 negative"
+
+  - id: e2e_negative_payment_503
+    category: functional
+    type: playwright
+    cmd: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/vitalia-fase2-valeria-agenda/valeria-agenda-cobro.spec.ts -g 'payment adapter 503'"
+    must_pass: true
+    timeout_sec: 180
+    scenario_id: negative
+
+  - id: e2e_tenant_switch
+    category: functional
+    type: playwright
+    cmd: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/vitalia-fase2-valeria-agenda/valeria-agenda-tenant-switch.spec.ts --project=smoke"
+    must_pass: true
+    timeout_sec: 240
+    scenario_id: edge
+    description: "SC-3 tenant switch hard redirect + cache invalidate + drawer reset"
+
+  - id: e2e_concurrent_charge_same_slot
+    category: functional
+    type: playwright
+    cmd: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/vitalia-fase2-valeria-agenda/valeria-agenda-conflict-409.spec.ts --project=smoke"
+    must_pass: true
+    timeout_sec: 180
+    scenario_id: race_condition
+    description: "SC-5 FE handling 409 conflict (BE optimistic lock covered in test_charge_orchestrator)"
+
+  - id: e2e_concurrent_users_polling
+    category: functional
+    type: playwright
+    cmd: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/vitalia-fase2-valeria-agenda/valeria-agenda-concurrent-users.spec.ts --project=smoke"
+    must_pass: true
+    timeout_sec: 300
+    scenario_id: concurrent_users
+    description: "SC-6 2 contexts polling 30s + stale banner"
+
+  - id: e2e_network_failure
+    category: functional
+    type: playwright
+    cmd: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/vitalia-fase2-valeria-agenda/valeria-agenda-network.spec.ts --project=smoke"
+    must_pass: true
+    timeout_sec: 180
+    scenario_id: network_failure
+    description: "SC-7 grid timeout 3 retries + EmptyState error + manual retry"
+
+  - id: e2e_empty_state
+    category: functional
+    type: playwright
+    cmd: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/vitalia-fase2-valeria-agenda/valeria-agenda-empty.spec.ts --project=smoke"
+    must_pass: true
+    timeout_sec: 120
+    scenario_id: empty_state
+    description: "SC-8 empty day + CTA crear cita"
+
+  - id: e2e_large_dataset_virtualization
+    category: functional
+    type: playwright
+    cmd: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/vitalia-fase2-valeria-agenda/valeria-agenda-large-dataset.spec.ts --project=smoke"
+    must_pass: true
+    timeout_sec: 300
+    scenario_id: large_dataset
+    description: "SC-9 240 slots virtualizes <100ms + Lighthouse perf ≥90"
+
+  - id: e2e_keyboard_a11y
+    category: functional
+    type: playwright
+    cmd: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/vitalia-fase2-valeria-agenda/valeria-agenda-keyboard.spec.ts --project=smoke"
+    must_pass: true
+    timeout_sec: 240
+    scenario_id: accessibility
+    description: "SC-10 keyboard nav slot→drawer→Esc + focus trap"
+
+  - id: e2e_i18n_multicurrency
+    category: functional
+    type: playwright
+    cmd: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/vitalia-fase2-valeria-agenda/valeria-agenda-i18n.spec.ts --project=smoke"
+    must_pass: true
+    timeout_sec: 240
+    scenario_id: i18n
+    description: "SC-11 currency_override AR tenant USD turista"
+
+  - id: e2e_mobile_responsive
+    category: functional
+    type: playwright
+    cmd: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/vitalia-fase2-valeria-agenda/valeria-agenda-mobile.spec.ts --project=mobile"
+    must_pass: true
+    timeout_sec: 180
+    description: "<md responsive: day only + bottom-sheet 95vh + chip carousel + FAB"
+
+  # ════════════════════════════════════════════════════════════════
+  # VISUAL — fidelity + a11y axe
+  # ════════════════════════════════════════════════════════════════
+
+  - id: visual_fidelity_calendar
+    category: visual
+    type: playwright
+    cmd: "cd vitalia/frontend && npx playwright test e2e/visual/valeria-agenda-visual.spec.ts -g 'calendar'"
+    capture: screenshots
+    must_pass: true
+    timeout_sec: 300
+    description: "3 views × 2 themes = 6 snapshots calendar"
+
+  - id: visual_drawer_cobrar_saldo
+    category: visual
+    type: playwright
+    cmd: "cd vitalia/frontend && npx playwright test e2e/visual/valeria-agenda-visual.spec.ts -g 'drawer'"
+    capture: screenshots
+    must_pass: true
+    timeout_sec: 240
+    description: "Drawer light+dark (2) + subform expanded/success/error/conflict (4) = 6 snapshots"
+
+  - id: visual_mobile_drawer
+    category: visual
+    type: playwright
+    cmd: "cd vitalia/frontend && npx playwright test e2e/visual/valeria-agenda-visual.spec.ts -g 'mobile' --project=mobile"
+    capture: screenshots
+    must_pass: true
+    timeout_sec: 180
+    description: "Mobile day + bottom-sheet drawer = 2 snapshots"
+
+  - id: responsive_breakpoints
+    category: visual
+    type: playwright
+    cmd: "cd vitalia/frontend && npx playwright test e2e/visual/valeria-agenda-visual.spec.ts --project=mobile,tablet,desktop"
+    must_pass: true
+    timeout_sec: 360
+    description: "Mobile + tablet + desktop breakpoints coverage"
+
+  - id: a11y_axe
+    category: visual
+    type: playwright
+    cmd: "cd vitalia/frontend && npx playwright test e2e/a11y/valeria-agenda-a11y.spec.ts --project=smoke"
+    must_pass: true
+    timeout_sec: 240
+    scenario_id: accessibility
+    description: "axe-core wcag2aa: calendar + drawer + subform (critical/serious violations = fail)"
+
+  # ════════════════════════════════════════════════════════════════
+  # ARCHITECTURAL VALIDATION (★ v4.1 separada de non_functional)
+  # ════════════════════════════════════════════════════════════════
+
+  - id: arch_ddd_boundaries
+    category: architectural_validation
+    type: pytest
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/architecture/test_scheduling_module_ddd.py -v"
+    must_pass: true
+    timeout_sec: 60
+    description: "★ NEW — DDD layers domain→infra→app→api scheduling brand-extension"
+
+  - id: arch_tenant_isolation_grep
+    category: architectural_validation
+    type: shell
+    cmd: "! grep -rn 'select(.*Model)' vitalia/backend/src/modules/vitalia/{scheduling,payments,fiscal}/ | grep -v tenant_id | grep -v test_ | grep -v 'select(func' | grep -v __pycache__"
+    must_pass: true
+    timeout_sec: 10
+    description: "Cada query SQLA filtra tenant_id (regex scan)"
+
+  - id: arch_phi_dual_filter
+    category: architectural_validation
+    type: pytest
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/architecture/test_phi_dual_filter.py -v"
+    must_pass: true
+    timeout_sec: 60
+    description: "EXTEND existing — nuevos repos scheduling heredan PhiRepositoryBase + filter clinic_id"
+
+  - id: arch_no_phi_in_url_params
+    category: architectural_validation
+    type: pytest
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/architecture/test_no_phi_in_url_params.py -v"
+    must_pass: true
+    timeout_sec: 30
+    description: "★ NEW — whitelist query params + grep PHI field names en router signatures"
+
+  - id: arch_audit_log_row_per_phi_endpoint
+    category: architectural_validation
+    type: pytest
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/architecture/test_audit_log_row_per_phi_endpoint.py -v"
+    must_pass: true
+    timeout_sec: 30
+    description: "★ NEW — grep audit.write(...) invocation per PHI route handler"
+
+  - id: arch_audit_log_sync_write
+    category: architectural_validation
+    type: pytest
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/architecture/test_audit_log_sync_write.py -v"
+    must_pass: true
+    timeout_sec: 30
+    description: "EXTEND existing — audit_log sync write antes response per PHI op"
+
+  - id: arch_anti_duplication_scan
+    category: architectural_validation
+    type: shell
+    cmd: |
+      for B in nicolify comunify lupulo; do
+        find vitalia/backend/src/modules/vitalia/scheduling/ vitalia/backend/src/modules/vitalia/payments/ vitalia/backend/src/modules/vitalia/fiscal/ -name '*.py' -exec basename {} \; 2>/dev/null | xargs -I{} find $B/backend/src/ -name '{}' 2>/dev/null
+      done | wc -l | (read n; test "$n" -eq 0 || (echo CROSS-BRAND MIRROR DETECTED; exit 1))
+    must_pass: true
+    timeout_sec: 30
+    description: "Detecta mirrors cross-brand scheduling/payments/fiscal. Match → lift /pm-luana proposal"
+
+  - id: arch_no_cross_brand_imports
+    category: architectural_validation
+    type: shell
+    cmd: "! grep -rn 'from nicolify\\|from comunify\\|from lupulo' vitalia/backend/src/ vitalia/frontend/src/ 2>/dev/null"
+    must_pass: true
+    timeout_sec: 10
+    description: "HARD ban cross-brand imports"
+
+  - id: arch_no_engine_modify
+    category: architectural_validation
+    type: shell
+    cmd: "git diff main --name-only -- 'core/luana-core-*/src/**' | wc -l | xargs -I{} sh -c 'test {} -eq 0 || (echo ENGINE MODIFY DETECTED — REQUIRES /pm-luana PROMOTION PROPOSAL; exit 1)'"
+    must_pass: true
+    timeout_sec: 10
+    description: "Story scope: zero edits a core/luana-core-*/src/. Modify → escalate /pm-luana"
+
+  - id: arch_fsd_boundaries
+    category: architectural_validation
+    type: shell
+    cmd: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test_fsd_boundaries.test.ts || npx vitest run src/__tests__/architecture/"
+    must_pass: true
+    timeout_sec: 60
+    description: "FSD-Lite — features/valeria → shared/ui/lib only"
+
+  - id: arch_extension_sdk_registration
+    category: architectural_validation
+    type: pytest
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/architecture/test_extension_sdk_registration.py -v"
+    must_pass: true
+    timeout_sec: 30
+    description: "extensions.py::register_all sigue contracts EP-1..EP-18 si scheduling registra EP"
+
+# ════════════════════════════════════════════════════════════════
+# Scenario coverage matrix — 11 SC → validators (★ v4.1 sub-categorías)
+# ════════════════════════════════════════════════════════════════
+
+scenario_coverage:
+  - scenario_id: SC-1
+    name: happy_cobro_end_to_end
+    validators:
+      - be_unit_charge_orchestrator
+      - be_integration_drawer_charge_flow
+      - fe_unit_cobrar_saldo_subform
+      - fe_unit_appointment_drawer
+      - e2e_happy_cobro
+      - visual_drawer_cobrar_saldo
+      - a11y_axe
+
+  - scenario_id: SC-2
+    name: negative_payment_adapter_503
+    validators:
+      - be_unit_charge_orchestrator
+      - be_integration_drawer_charge_flow
+      - fe_unit_cobrar_saldo_subform
+      - e2e_negative_payment_503
+      - visual_drawer_cobrar_saldo
+
+  - scenario_id: SC-3
+    name: edge_tenant_switch
+    validators:
+      - e2e_tenant_switch
+      - fe_unit_valeria_agenda_view
+
+  - scenario_id: SC-4
+    name: adversarial_phi_url_and_cross_clinic
+    validators:
+      - be_integration_phi_url_protection
+      - be_integration_dual_filter
+      - arch_phi_dual_filter
+      - arch_no_phi_in_url_params
+
+  - scenario_id: SC-5
+    name: race_condition_concurrent_charge
+    validators:
+      - be_unit_charge_orchestrator
+      - fe_unit_cobrar_saldo_subform
+      - e2e_concurrent_charge_same_slot
+
+  - scenario_id: SC-6
+    name: concurrent_users_polling_stale
+    validators:
+      - e2e_concurrent_users_polling
+      - fe_unit_appointment_drawer
+
+  - scenario_id: SC-7
+    name: network_failure_grid_timeout
+    validators:
+      - e2e_network_failure
+      - fe_unit_valeria_agenda_view
+
+  - scenario_id: SC-8
+    name: empty_state_no_slots_day
+    validators:
+      - e2e_empty_state
+      - visual_fidelity_calendar
+
+  - scenario_id: SC-9
+    name: large_dataset_virtualization
+    validators:
+      - e2e_large_dataset_virtualization
+      - fe_unit_agenda_calendar
+
+  - scenario_id: SC-10
+    name: accessibility_keyboard_screen_reader
+    validators:
+      - e2e_keyboard_a11y
+      - a11y_axe
+      - fe_unit_agenda_slot
+
+  - scenario_id: SC-11
+    name: i18n_multicurrency_override
+    validators:
+      - e2e_i18n_multicurrency
+      - fe_unit_cobrar_saldo_subform
+      - visual_drawer_cobrar_saldo
+
+# ════════════════════════════════════════════════════════════════
+# Test Construction Plan (★ v4.1 cement 2026-05-19)
+# Architect dicta orden + POMs + fixtures + mapping scenario→test.
+# /dev-team CONSTRUYE siguiendo este orden, NO inventa.
+# ════════════════════════════════════════════════════════════════
+
+test_construction_plan:
+  playwright_required: true                    # HARD — story es ui-mixed
+  base_path: "vitalia/frontend/e2e/regression/vitalia-fase2-valeria-agenda/"
+
+  creation_order:
+    - step: 1
+      file: "fixtures/valeria-agenda.fixture.ts"
+      content: "Clerk authedAsValeria + tenant PE setup + DB seed appointments(N=20, clinic_id) + MSW worker setup"
+      depends_on: []
+    - step: 2
+      file: "fixtures/mock-payment-adapter.ts"
+      content: "MSW handlers POST /api/v1/payments/charge variants: 200 / 503 / 409 + idempotency lookup"
+      depends_on: [1]
+    - step: 3
+      file: "fixtures/mock-fiscal-emission.ts"
+      content: "MSW handlers POST /api/v1/fiscal/emit variants: 200 / 503"
+      depends_on: [1]
+    - step: 4
+      file: "fixtures/network-failure.ts"
+      content: "page.route abort helper for grid timeout SC-7"
+      depends_on: [1]
+    - step: 5
+      file: "poms/agenda-view-page.pom.ts"
+      content: "AgendaViewPage POM: getViewToggle, clickView, getDatePicker, getChipPreset, getSlot, getCrearCitaButton, getFreshnessIndicator, waitForLoaded"
+      depends_on: [1]
+    - step: 6
+      file: "poms/appointment-drawer-page.pom.ts"
+      content: "AppointmentDrawerPage POM: open, close, getAccordion, getCobrarSaldoButton, resize, getStaleBanner, getDisabledVerFichaTooltip"
+      depends_on: [1]
+    - step: 7
+      file: "poms/cobrar-saldo-subform-page.pom.ts"
+      content: "CobrarSaldoSubformPage POM: fillAmount, selectMethod, selectFiscalDocType, selectCurrency, toggleEmitInvoice, submit, getErrorAlert, getRetryButton, getSuccessToast, getFiscalWarning"
+      depends_on: [1]
+    - step: 8
+      file: "poms/crear-cita-button-page.pom.ts"
+      content: "CrearCitaButtonPage POM: openDropdown, selectOption, fillPatientNewData, searchPatient (autocomplete), submit"
+      depends_on: [1]
+    - step: 9
+      file: "valeria-agenda-cobro.spec.ts"
+      content: "SC-1 happy + SC-2 negative payment 503"
+      depends_on: [5, 6, 7]
+    - step: 10
+      file: "valeria-agenda-tenant-switch.spec.ts"
+      content: "SC-3 tenant switch invalidate + drawer reset + cache clear"
+      depends_on: [5, 6]
+    - step: 11
+      file: "valeria-agenda-concurrent-users.spec.ts"
+      content: "SC-6 2 BrowserContexts polling 30s + stale banner"
+      depends_on: [5, 6]
+    - step: 12
+      file: "valeria-agenda-network.spec.ts"
+      content: "SC-7 grid timeout 3 retries + EmptyState error + manual retry"
+      depends_on: [5]
+    - step: 13
+      file: "valeria-agenda-empty.spec.ts"
+      content: "SC-8 empty day + CTA crear cita"
+      depends_on: [5, 8]
+    - step: 14
+      file: "valeria-agenda-large-dataset.spec.ts"
+      content: "SC-9 day 240 slots virtualization <100ms + Lighthouse perf ≥90"
+      depends_on: [5]
+    - step: 15
+      file: "valeria-agenda-keyboard.spec.ts"
+      content: "SC-10 keyboard Tab/Enter/Esc/Shift+Tab + focus trap"
+      depends_on: [5, 6, 7]
+    - step: 16
+      file: "valeria-agenda-i18n.spec.ts"
+      content: "SC-11 currency override AR tenant + USD turista preseed"
+      depends_on: [5, 6, 7]
+    - step: 17
+      file: "valeria-agenda-mobile.spec.ts"
+      content: "<md responsive: day only + bottom-sheet 95vh + chip carousel + FAB"
+      depends_on: [5, 6, 7]
+    - step: 18
+      file: "valeria-agenda-conflict-409.spec.ts"
+      content: "SC-5 FE handles 409 conflict (BE optimistic lock in test_charge_orchestrator)"
+      depends_on: [5, 6, 7]
+    - step: 19
+      file: "../a11y/valeria-agenda-a11y.spec.ts"
+      content: "axe-core wcag2aa calendar + drawer + subform"
+      depends_on: [9]
+    - step: 20
+      file: "../visual/valeria-agenda-visual.spec.ts"
+      content: "Visual goldens: 3 views × 2 themes + drawer states + subform states + mobile = ~14 snapshots"
+      depends_on: [9, 10]
+
+  scenario_to_test:
+    - { scenario: "SC-1", file: "valeria-agenda-cobro.spec.ts", function: "test('happy path PEN boleta emit end-to-end'", assertions: "toast success + slot border green + audit log row" }
+    - { scenario: "SC-2", file: "valeria-agenda-cobro.spec.ts", function: "test('payment adapter 503 shows retry'", assertions: "Alert variant=destructive + retry button + slot border unchanged" }
+    - { scenario: "SC-3", file: "valeria-agenda-tenant-switch.spec.ts", function: "test('tenant switch invalidates drawer + cache'", assertions: "drawer closed + agenda fetched tenant B + localStorage updated" }
+    - { scenario: "SC-4", file: "BE only — test_phi_url_protection.py + test_dual_filter_clinic_isolation.py", function: "n/a", assertions: "suspicious params logged + cross-clinic 404" }
+    - { scenario: "SC-5", file: "valeria-agenda-conflict-409.spec.ts", function: "test('409 conflict shows graceful banner + auto-collapse'", assertions: "Alert + query invalidated + subform collapsed" }
+    - { scenario: "SC-6", file: "valeria-agenda-concurrent-users.spec.ts", function: "test('staff B cancel reflects in staff A polling 30s'", assertions: "stale banner + refresh button" }
+    - { scenario: "SC-7", file: "valeria-agenda-network.spec.ts", function: "test('3 retries then EmptyState error + manual retry'", assertions: "EmptyState variant=error + Reintentar manual" }
+    - { scenario: "SC-8", file: "valeria-agenda-empty.spec.ts", function: "test('empty day renders empty state with CTA'", assertions: "EmptyState + CalendarOff icon + CTA crear cita visible" }
+    - { scenario: "SC-9", file: "valeria-agenda-large-dataset.spec.ts", function: "test('day with 240 slots virtualizes under 100ms'", assertions: "render time + Lighthouse perf ≥90" }
+    - { scenario: "SC-10", file: "valeria-agenda-keyboard.spec.ts + a11y spec", function: "test('keyboard nav slot→drawer→Esc returns focus'", assertions: "focus visible + axe no critical violations" }
+    - { scenario: "SC-11", file: "valeria-agenda-i18n.spec.ts", function: "test('currency override USD on AR tenant'", assertions: "formatTenantMoney shows USD + select preseed override" }
+
+  poms_required:
+    - AgendaViewPage
+    - AppointmentDrawerPage
+    - CobrarSaldoSubformPage
+    - CrearCitaButtonPage
+
+  fixtures_required:
+    - authedAsValeria
+    - dbSeedAppointments
+    - mockPaymentAdapter503
+    - mockFiscalEmission503
+    - networkFailure
+    - tenantBSwitcher
+
+# ════════════════════════════════════════════════════════════════
+# Agentic eval — N/A (no agentic surface this story)
+# ════════════════════════════════════════════════════════════════
+
+agentic_eval:
+  applicable: false
+  reason: "F2-S1 es sub-tab UI operativa Valeria, NO surface conversacional LLM. Cero tickets surface=AGENTIC. Si emerge necesidad agentic (Valeria conversacional sobre slot) → escalate separadamente."
+
+# ════════════════════════════════════════════════════════════════
+# Iteration policy
+# ════════════════════════════════════════════════════════════════
+
+iteration:
+  max_iterations: 10
+  on_fail: "fix targeted (NO disable validator + NO skip + NO mockup hack)"
+  on_all_pass:
+    - "developing → developed (auto-handoff per story-closure-gate)"
+  on_cap_reached:
+    - "state: blocked"
+    - "escalate /pm-vitalia con findings + iteration log"
+
+# ════════════════════════════════════════════════════════════════
+# Service-deps gate (★ HARD pre-/dev-team pickup)
+# ════════════════════════════════════════════════════════════════
+
+service_deps_gate:
+  blockers:
+    - story: vitalia-payment-adapter-mvp
+      state_required: developed
+      current_state: refined
+      consumer_path: vitalia/backend/src/modules/vitalia/payments/application/payment_charge_port_impl.py
+    - story: vitalia-fiscal-emission-pe
+      state_required: developed
+      current_state: refining
+      consumer_path: vitalia/backend/src/modules/vitalia/fiscal/application/fiscal_emit_port_impl.py
+  on_blocker_not_developed:
+    default: "Option A — MSW + stub implementation per 03-arch § 8.6. Unblocks F2-S1 BE+FE parallel work. Stubs marked /* DEPRECATED: replace when story=done */ + tracked replacement ticket scheduled when service-blocker developed."
+    escalate_alternative: "Option B — /dev-team state: blocked + escalate /pm-vitalia to sequence service-blockers first"
+  arch_test_post_replace: arch_no_stub_in_prod_path           # NEW ratchet enforces stub paths empty when story=done
+

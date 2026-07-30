@@ -1,0 +1,484 @@
+# F1-S9 vitalia-fase1-routing-shell — work units atómicos
+#
+# 6 tickets · ZERO Opus (FE no-agentic puro + 1-line BE wiring).
+# R23 production_code=true T-1..T-5 (BE + lib + auth layer + routing + cleanup).
+# R23 production_code=true T-6 (Playwright specs ARE production code — gate visual + a11y + i18n).
+# Sequence: T-1 BE wiring (parallelizable with T-2 lib) → T-3 (proxy + auth layer) → T-4 (routing pages) → T-5 (legacy cleanup) → T-6 (E2E).
+#
+# Builder: builder-frontend (Sonnet/opencode/qwen) for FE; builder-backend (Sonnet) for T-1 BE.
+# Auditor: auditor-frontend (Opus) for FE surface; auditor-backend (Opus) for T-1 BE surface.
+# R23 NO aplica (zero AGENTIC). ZERO Opus en build per scope.
+# HIPAA-lite scope=mandatory (audit log row para cross-tenant + no-tenants events per § 15 spec); no PHI in payload.
+# Mockup gate visual N/A esta story (routing puro, justificado spec frontmatter `ratified_visual_by_chris: not_applicable`).
+# Hot-fix repro_verified: false (not a hot-fix; greenfield routing).
+# Anti-default-flip: N/A (no feature flag flips).
+
+story_id: vitalia-fase1-routing-shell
+brand: vitalia
+phase: fase-1
+last_modified: 2026-05-26
+architect_iter: 1
+total_tickets: 6
+parallelizable: true   # T-1 BE || T-2 FE lib (independientes); rest secuencial
+opus_tickets: 0
+sonnet_tickets: 6      # opencode/sonnet/qwen permitidos
+
+tickets:
+
+  # ──────────────────────────────────────────────────────────────
+  # T-1 — BE wiring: mount core auth_router + delete vitalia local /me stub
+  # ──────────────────────────────────────────────────────────────
+  - id: T-1
+    title: "BE: mount core luana_core_iam auth_router + DELETE vitalia local /me stub (anti-duplication)"
+    state: ready
+    surface: backend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: true
+    estimated_loc: 20         # +6 (import + include_router) -1 (legacy import) -1 (legacy mount) + 12 (new pytest) - delete router.py + test_router.py
+    estimated_hours: 1
+    files:
+      new:
+        - vitalia/backend/tests/test_main_iam_routes_mounted.py
+      modify:
+        - vitalia/backend/src/main.py
+      delete:
+        - vitalia/backend/src/modules/vitalia/iam/api/router.py
+        - vitalia/backend/tests/modules/vitalia/iam/test_router.py    # if exists; check first
+    depends_on: []
+    parallel_with: [T-2]
+    acceptance:
+      validator_ids:
+        - val-be-pytest-mount-test
+        - val-be-ruff
+        - val-be-arch-tests
+        - arch-be-response-model
+        - arch-be-redirect-slashes
+    gherkin_coverage:
+      - scenario: "SC-1 happy · BE endpoint /api/v1/iam/users/me/tenants disponible para FE consumer"
+        tests:
+          - "vitalia/backend/tests/test_main_iam_routes_mounted.py::test_core_me_tenants_route_registered"
+          - "vitalia/backend/tests/test_main_iam_routes_mounted.py::test_core_me_tenants_requires_auth"
+      - scenario: "AC-17 verification · vitalia local /me legacy stub eliminated (anti-duplication)"
+        tests:
+          - "vitalia/backend/tests/test_main_iam_routes_mounted.py::test_vitalia_local_me_route_removed"
+    repro_verified: false
+    notes: |
+      - Mirror nicolify/backend/src/main.py:543 pattern verbatim (prefix `/api/v1/iam/users`).
+      - DELETE vitalia local /me stub (anti-duplication + Chris dictum no legacy + zero consumers post-cleanup).
+      - response_model= ya garantizado por core router definition.
+      - HIPAA-lite: /me/tenants returns User + tenant list (NO PHI canonical list).
+      - Engine boundary: NO edit a core/luana-core-iam/src/.
+
+  # ──────────────────────────────────────────────────────────────
+  # T-2 — FE lib: agent-catalog validators EXTEND + lib/iam helpers NEW
+  # ──────────────────────────────────────────────────────────────
+  - id: T-2
+    title: "FE lib: agent-catalog.ts EXTEND (isValidAgent + isValidSubtab) + lib/iam/{api,audit,types}.ts NEW"
+    state: ready
+    surface: frontend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: true
+    estimated_loc: 250
+    estimated_hours: 2
+    files:
+      new:
+        - vitalia/frontend/src/lib/iam/api.ts
+        - vitalia/frontend/src/lib/iam/audit.ts
+        - vitalia/frontend/src/lib/iam/types.ts
+        - vitalia/frontend/src/lib/iam/__tests__/api.test.ts
+        - vitalia/frontend/src/lib/iam/__tests__/audit.test.ts
+      modify:
+        - vitalia/frontend/src/lib/agent-catalog.ts
+        - vitalia/frontend/src/lib/__tests__/agent-catalog.test.ts
+      delete: []
+    depends_on: []
+    parallel_with: [T-1]
+    acceptance:
+      validator_ids:
+        - val-fe-tsc
+        - val-fe-lint
+        - val-fe-prettier
+        - val-fe-vitest-unit-agent-catalog
+        - val-fe-vitest-unit-iam-api
+        - val-fe-vitest-unit-audit-helper
+        - arch-fsd-imports
+        - arch-agent-catalog-ssot
+        - arch-no-cross-brand-mirror
+    gherkin_coverage:
+      - scenario: "SC-1 / SC-2 / SC-3 happy · isValidAgent type guard returns true for 5 agent slugs + 'config'"
+        tests:
+          - "src/lib/__tests__/agent-catalog.test.ts::isValidAgent('lisa') === true"
+          - "src/lib/__tests__/agent-catalog.test.ts::isValidAgent('valeria') === true"
+          - "src/lib/__tests__/agent-catalog.test.ts::isValidAgent('adrian') === true"
+          - "src/lib/__tests__/agent-catalog.test.ts::isValidAgent('lucas') === true"
+          - "src/lib/__tests__/agent-catalog.test.ts::isValidAgent('camila') === true"
+          - "src/lib/__tests__/agent-catalog.test.ts::isValidAgent('config') === true"
+      - scenario: "SC-2 negative · isValidAgent returns false para mateo (transversal, excluido) + unknowns + XSS"
+        tests:
+          - "src/lib/__tests__/agent-catalog.test.ts::isValidAgent('mateo') === false (transversal not in Ribbon)"
+          - "src/lib/__tests__/agent-catalog.test.ts::isValidAgent('foo') === false"
+          - "src/lib/__tests__/agent-catalog.test.ts::isValidAgent('<script>') === false"
+          - "src/lib/__tests__/agent-catalog.test.ts::isValidAgent('') === false"
+      - scenario: "SC-3 edge · isValidSubtab returns true para subtab válido en agent válido"
+        tests:
+          - "src/lib/__tests__/agent-catalog.test.ts::isValidSubtab('lisa','marca') === true"
+          - "src/lib/__tests__/agent-catalog.test.ts::isValidSubtab('camila','reputacion') === true"
+          - "src/lib/__tests__/agent-catalog.test.ts::isValidSubtab('config','avanzado') === true"
+      - scenario: "SC-3 negative · isValidSubtab returns false para subtab inválido + agent sin subtabs"
+        tests:
+          - "src/lib/__tests__/agent-catalog.test.ts::isValidSubtab('camila','foo') === false"
+          - "src/lib/__tests__/agent-catalog.test.ts::isValidSubtab('mateo','any') === false (mateo subtabs empty)"
+          - "src/lib/__tests__/agent-catalog.test.ts::isValidSubtab('lisa','') === false"
+      - scenario: "SC-5 network_failure · fetchUserTenants throws on timeout + 401 + 5xx"
+        tests:
+          - "src/lib/iam/__tests__/api.test.ts::happy 200 returns array"
+          - "src/lib/iam/__tests__/api.test.ts::401 throws {code:'unauthorized',status:401}"
+          - "src/lib/iam/__tests__/api.test.ts::500 throws {code:'unknown',status:500}"
+          - "src/lib/iam/__tests__/api.test.ts::AbortError throws {code:'network_failure'}"
+          - "src/lib/iam/__tests__/api.test.ts::empty response array returns [] (NOT throws — Q6 edge)"
+      - scenario: "SC-4 / SC-8 audit · logCrossTenantAttempt + logNoTenantsAssigned emit console.warn captured"
+        tests:
+          - "src/lib/iam/__tests__/audit.test.ts::logCrossTenantAttempt captures payload via console.warn spy"
+          - "src/lib/iam/__tests__/audit.test.ts::logNoTenantsAssigned captures payload via console.warn spy"
+    repro_verified: false
+    notes: |
+      - TDD RED first: extend tests → run RED → add validators / helpers → GREEN.
+      - lib/iam/ es NEW sub-folder paralelo a lib/api/, lib/format/, lib/zod-schemas/.
+      - api.ts es server-safe (no React hooks) — caller passes Clerk token.
+      - audit.ts F1-S9 transport = console.warn (BE endpoint F2 scope).
+      - 'config' is RibbonTabSlug pero NO está en AGENT_CATALOG (Record AgentSlug); isValidAgent maneja config explícito.
+      - 'mateo' está en AgentSlug pero NO en AGENT_RIBBON_ORDER (transversal); isValidAgent returns false (paridad F1-S7).
+
+  # ──────────────────────────────────────────────────────────────
+  # T-3 — proxy.ts + auth layer (layout tenant validation + network fallback)
+  # ──────────────────────────────────────────────────────────────
+  - id: T-3
+    title: "FE proxy.ts MODIFY + (shell-organism)/layout.tsx tenant validation + NetworkErrorFallback + arch test no-middleware-ts"
+    state: blocked
+    surface: frontend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: true
+    estimated_loc: 220
+    estimated_hours: 2.5
+    files:
+      new:
+        - vitalia/frontend/src/app/[tenantId]/(shell-organism)/_components/NetworkErrorFallback.tsx
+        - vitalia/frontend/src/app/[tenantId]/(shell-organism)/_components/RefreshButton.tsx
+        - vitalia/frontend/src/__tests__/architecture/test-no-middleware-ts.test.ts
+      modify:
+        - vitalia/frontend/src/proxy.ts
+        - vitalia/frontend/src/app/[tenantId]/(shell-organism)/layout.tsx
+      delete: []
+    depends_on: [T-1, T-2]   # needs BE endpoint live + lib/iam/api ready
+    parallel_with: []
+    acceptance:
+      validator_ids:
+        - val-fe-tsc
+        - val-fe-lint
+        - val-fe-prettier
+        - arch-no-middleware-ts
+        - arch-fsd-imports
+        - arch-server-first
+        - arch-skip-link
+        - arch-no-hardcoded-colors
+        - arch-no-voseo
+    gherkin_coverage:
+      - scenario: "SC-1 happy · proxy.ts permite shell routes con sesión (auth.protect default branch)"
+        tests:
+          - "covered by val-fe-e2e-happy-navigation (T-6)"
+      - scenario: "Pre-conditions SC-1..SC-8 · proxy.ts redirige /sign-in sin sesión"
+        tests:
+          - "covered by Clerk auth fixture in T-6"
+      - scenario: "SC-4 adversarial · (shell-organism)/layout.tsx detects cross-tenant attempt → audit log + redirect first valid"
+        tests:
+          - "covered by val-fe-e2e-cross-tenant-blocked (T-6) with mockCrossTenantList fixture"
+      - scenario: "SC-5 network_failure · fetchUserTenants throws → render NetworkErrorFallback inline"
+        tests:
+          - "covered by val-fe-e2e-network-failure (T-6) with mockNetworkFailure fixture"
+      - scenario: "SC-8 edge · fetchUserTenants returns [] → log + sign-out + redirect /sign-in?error=no_tenants_assigned"
+        tests:
+          - "covered by val-fe-e2e-no-tenants-edge (T-6) with mockEmptyTenants fixture"
+      - scenario: "AC-15 verification · NO middleware.ts in repo (Next.js 16 canonical)"
+        tests:
+          - "src/__tests__/architecture/test-no-middleware-ts.test.ts::middleware.ts MUST NOT exist"
+    repro_verified: false
+    notes: |
+      - proxy.ts: MODIFY mínimo (docs anchor + verify matcher). Net diff <10 líneas (comments + add /marketing(.*) explicit).
+      - NetworkErrorFallback es Server Component (no hooks); RefreshButton es Client leaf justificado (useRouter).
+      - Layout tenant validation: import auth() + getToken() from @clerk/nextjs/server; try/catch fetchUserTenants; branch network_failure → <NetworkErrorFallback />; branch unauthorized → redirect /sign-in; branch tenants.length===0 → logNoTenantsAssigned + redirect sign-out; branch !isValidTenant → logCrossTenantAttempt + redirect first valid; else → ShellOrganismLayout.
+      - Arch test test-no-middleware-ts.test.ts: simple existsSync check, ratchet locks future violation.
+      - Unit testing layout server component is costly; rely on E2E SC-4/SC-5/SC-8 (T-6) for behavior coverage.
+      - Spanish neutro strings verbatim per 05-guidelines § 2.6.
+
+  # ──────────────────────────────────────────────────────────────
+  # T-4 — routing pages (new tree + delete catchall + arch test no-dashboard)
+  # ──────────────────────────────────────────────────────────────
+  - id: T-4
+    title: "FE routing pages: [agent]/{layout,page,not-found} + [agent]/[subtab]/page + outer not-found + DELETE [...slug] + arch test no-dashboard"
+    state: blocked
+    surface: frontend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: true
+    estimated_loc: 220
+    estimated_hours: 2.5
+    files:
+      new:
+        - vitalia/frontend/src/app/[tenantId]/(shell-organism)/not-found.tsx
+        - vitalia/frontend/src/app/[tenantId]/(shell-organism)/[agent]/layout.tsx
+        - vitalia/frontend/src/app/[tenantId]/(shell-organism)/[agent]/page.tsx
+        - vitalia/frontend/src/app/[tenantId]/(shell-organism)/[agent]/not-found.tsx
+        - vitalia/frontend/src/app/[tenantId]/(shell-organism)/[agent]/[subtab]/page.tsx
+        - vitalia/frontend/src/__tests__/architecture/test-no-dashboard-route-group.test.ts
+      modify:
+        - vitalia/frontend/src/app/[tenantId]/(shell-organism)/page.tsx
+      delete:
+        - vitalia/frontend/src/app/[tenantId]/(shell-organism)/[...slug]/page.tsx
+        - vitalia/frontend/src/app/[tenantId]/(shell-organism)/[...slug]/   # empty dir post delete
+    depends_on: [T-2, T-3]   # needs isValidAgent/Subtab + layout shell wired
+    parallel_with: []
+    acceptance:
+      validator_ids:
+        - val-fe-tsc
+        - val-fe-lint
+        - val-fe-prettier
+        - arch-server-first
+        - arch-no-voseo
+        - arch-no-hardcoded-colors
+        - arch-no-dashboard-route-group     # initially RED; GREEN post T-5
+    gherkin_coverage:
+      - scenario: "AC-1 / SC-1 happy · /{tenant}/(shell-organism)/ redirect → /{tenant}/valeria/agenda"
+        tests:
+          - "covered by val-fe-e2e-happy-navigation (T-6)"
+      - scenario: "AC-2 / SC-1 happy · /{tenant}/{agent} redirect → /{tenant}/{agent}/{defaultSubtab} (6 agents tested)"
+        tests:
+          - "covered by val-fe-e2e-happy-navigation (T-6)"
+      - scenario: "SC-2 negative · /{tenant}/foo → outer not-found 404 sin chrome"
+        tests:
+          - "covered by val-fe-e2e-not-found-outer (T-6)"
+      - scenario: "SC-3 edge · /{tenant}/camila/foo → inner not-found 404 con chrome contextual"
+        tests:
+          - "covered by val-fe-e2e-not-found-inner (T-6)"
+      - scenario: "AC-13 verification · NO (dashboard)/ + (app)/ existen (post T-5)"
+        tests:
+          - "src/__tests__/architecture/test-no-dashboard-route-group.test.ts::app/(dashboard)/ MUST NOT exist"
+          - "src/__tests__/architecture/test-no-dashboard-route-group.test.ts::app/(app)/ MUST NOT exist"
+    repro_verified: false
+    notes: |
+      - Server Components all except [agent]/not-found.tsx (uses useParams) — justified.
+      - Inner not-found Client Component imports AGENT_CATALOG + AgentSlug from @/lib/agent-catalog; 'config' special case (no AgentDescriptor for config; label 'Configurar', defaultSubtab 'cuenta').
+      - DELETE [...slug] stub: arch test no-dashboard-route-group inicialmente PASS porque sólo checa (dashboard) + (app); pero el RED-GREEN cycle es: test escrito → red porque (dashboard) existe → T-5 borra → test GREEN. T-4 marca test creado pero su pass real depende de T-5.
+      - Next.js 16 not-found resolution: `notFound()` from [agent]/layout.tsx renders OUTER not-found (no agent context). `notFound()` from [agent]/[subtab]/page.tsx renders INNER not-found (agent context retained).
+      - Spanish neutro strings verbatim per 05-guidelines § 2.6.
+
+  # ──────────────────────────────────────────────────────────────
+  # T-5 — legacy cleanup ((dashboard)/ + (app)/ + E2E specs + capability YAMLs)
+  # ──────────────────────────────────────────────────────────────
+  - id: T-5
+    title: "Legacy cleanup: DELETE (dashboard)/ + (app)/ + 5 E2E specs + welcome-state.yaml; MODIFY 6 capability YAMLs + 4 E2E specs; conditional DELETE features/dashboard/"
+    state: blocked
+    surface: mixed-cleanup     # FE files + capability YAMLs (doc-only)
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: true    # deletes + capability YAML updates are tracked source-of-truth changes
+    estimated_loc: 150        # heavy deletes; few additions
+    estimated_hours: 2.5
+    files:
+      new: []
+      modify:
+        - vitalia/frontend/e2e/visual/visual-smoke.spec.ts
+        - vitalia/frontend/e2e/visual/stack-stability/dev-stack-baseline.spec.ts
+        - vitalia/frontend/e2e/mobile/mobile-smoke.spec.ts
+        - vitalia/frontend/e2e/a11y/a11y-smoke.spec.ts
+        - vitalia/docs/product/capabilities/booking/booking-widget-embed.yaml
+        - vitalia/docs/product/capabilities/booking/prepaid-booking-advisory-locks.yaml
+        - vitalia/docs/product/capabilities/compliance/compliance-hipaa-lite-audit.yaml
+        - vitalia/docs/product/capabilities/brand_studio/brand-studio-medical-sections.yaml
+        - vitalia/docs/product/capabilities/offer_studio/medical-services-offer-preset.yaml
+        - vitalia/docs/product/capabilities/patients/patient-records-medical-history.yaml
+        - vitalia/docs/product/capabilities/treatments/treatment-followup-workflow.yaml
+      delete:
+        - vitalia/frontend/src/app/(dashboard)/   # entire dir (~9 sub-routes)
+        - vitalia/frontend/src/app/(app)/         # entire dir (inbox)
+        - vitalia/frontend/src/features/dashboard/    # IF zero consumer post (dashboard) delete (verify before)
+        - vitalia/frontend/e2e/pages/fidelizacion.page.ts
+        - vitalia/frontend/e2e/specs/regression/fidelizacion-follow-up-doctor-vencido.spec.ts
+        - vitalia/frontend/e2e/specs/regression/fidelizacion-adversarial.spec.ts
+        - vitalia/frontend/e2e/specs/regression/fidelizacion-multi-session-happy.spec.ts
+        - vitalia/frontend/e2e/specs/regression/fidelizacion-absence-no-optin.spec.ts
+        - vitalia/frontend/e2e/specs/smoke/fidelizacion.smoke.spec.ts
+        - vitalia/docs/product/capabilities/dashboard/welcome-state.yaml
+        - vitalia/docs/product/capabilities/dashboard/   # empty dir post delete
+    depends_on: [T-4]   # cleanup AFTER new routing tree exists, so dev-app remains buildable
+    parallel_with: [T-6]   # T-6 can start writing specs in parallel; final E2E run after T-5 finishes
+    acceptance:
+      validator_ids:
+        - val-fe-tsc                              # post-delete, build must still pass
+        - val-fe-lint
+        - val-fe-vitest-coverage
+        - arch-no-dashboard-route-group           # T-4 wrote test RED; T-5 makes GREEN
+        - arch-fsd-imports
+        - arch-no-cross-brand-mirror
+    gherkin_coverage:
+      - scenario: "AC-13 verification · (dashboard)/ + (app)/ eliminated"
+        tests:
+          - "src/__tests__/architecture/test-no-dashboard-route-group.test.ts (T-4 test, GREEN post T-5)"
+          - "grep verification: find vitalia/frontend/src/app/\\(dashboard\\) returns empty"
+      - scenario: "AC-14 verification · welcome-state.yaml deleted + 6 capability YAMLs modified + platform/shell-foundation intact"
+        tests:
+          - "test -f vitalia/docs/product/capabilities/dashboard/welcome-state.yaml → exit 1"
+          - "grep -l '(dashboard)' vitalia/docs/product/capabilities/ returns empty"
+          - "grep 'fe_planned_phase2' vitalia/docs/product/capabilities/{booking,compliance,brand_studio,offer_studio,patients,treatments}/*.yaml returns ≥6 matches"
+          - "test -f vitalia/docs/product/capabilities/platform/shell-foundation-shadcn-tailwind-v4.yaml → exit 0 (intact)"
+      - scenario: "AC-13 verification · 5 legacy E2E specs deleted + 4 modified"
+        tests:
+          - "ls vitalia/frontend/e2e/specs/regression/fidelizacion-*.spec.ts returns empty"
+          - "ls vitalia/frontend/e2e/specs/smoke/fidelizacion.smoke.spec.ts → exit 1"
+          - "ls vitalia/frontend/e2e/pages/fidelizacion.page.ts → exit 1"
+          - "grep '(dashboard)' vitalia/frontend/e2e/{visual,mobile,a11y}/*.spec.ts returns empty"
+    repro_verified: false
+    notes: |
+      - Order: (1) verify features/dashboard/ consumers (grep) — if zero post (dashboard) delete, delete feature; if non-zero, leave + document. (2) rm -rf (dashboard)/ + (app)/. (3) Refactor 4 specs (drop dashboard assertions; redirect to /test-stack or (shell-organism)/...). (4) Delete 5 fidelizacion E2E. (5) Delete welcome-state.yaml. (6) Modify 6 capability YAMLs: strip `+ vitalia/frontend/src/app/(dashboard)/{path}` from package_path; add `fe_planned_phase2: vitalia-fase2-{story}` field; status: live UNCHANGED. (7) Verify platform/shell-foundation-shadcn-tailwind-v4.yaml intact. (8) Verify other capability YAMLs (nps-tracking, whatsapp-template-registry, hipaa-lite-defensive-stack) are BE-only (no (dashboard) ref) — if any has dashboard ref, also MODIFY.
+      - Spec § 16 mapping URL legacy → URL shell-organism (Fase 2) documented in spec; T-5 only deletes — no redirects 308 created.
+      - Run reconcile_capabilities.py --brand vitalia --check-mode at end to confirm R3 schema clean.
+      - Lift candidate annotation: write vitalia/docs/learnings/2026-05-26-nextjs16-proxy-pattern.md noting `promotable: candidate` para `core/luana-core-frontend-shared/` cuando otras brands migran a Next.js 16.
+
+  # ──────────────────────────────────────────────────────────────
+  # T-6 — Playwright E2E suite (8 specs + POM + fixtures + visual goldens + axe)
+  # ──────────────────────────────────────────────────────────────
+  - id: T-6
+    title: "Playwright E2E suite: POM RoutingShellPage + 8 spec files (SC-1..SC-8) + fixtures + visual goldens iter 1 + axe scan"
+    state: blocked
+    surface: frontend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: true   # E2E specs ARE production code (gate visual/a11y/i18n)
+    estimated_loc: 800       # 1 POM + 1 fixture + 8 specs + helper utilities
+    estimated_hours: 4
+    files:
+      new:
+        - vitalia/frontend/e2e/pages/RoutingShellPage.ts
+        - vitalia/frontend/e2e/fixtures/routing-shell.fixture.ts
+        - vitalia/frontend/e2e/regression/vitalia-fase1-routing-shell/happy-navigation.spec.ts
+        - vitalia/frontend/e2e/regression/vitalia-fase1-routing-shell/not-found-outer.spec.ts
+        - vitalia/frontend/e2e/regression/vitalia-fase1-routing-shell/not-found-inner.spec.ts
+        - vitalia/frontend/e2e/regression/vitalia-fase1-routing-shell/cross-tenant-blocked.spec.ts
+        - vitalia/frontend/e2e/regression/vitalia-fase1-routing-shell/network-failure-tenant-fetch.spec.ts
+        - vitalia/frontend/e2e/regression/vitalia-fase1-routing-shell/a11y-keyboard-nav.spec.ts
+        - vitalia/frontend/e2e/regression/vitalia-fase1-routing-shell/i18n-spanish-neutro.spec.ts
+        - vitalia/frontend/e2e/regression/vitalia-fase1-routing-shell/no-tenants-edge.spec.ts
+        - vitalia/frontend/e2e/__screenshots__/visual/routing-shell/not-found-outer-light.png
+        - vitalia/frontend/e2e/__screenshots__/visual/routing-shell/not-found-outer-dark.png
+        - vitalia/frontend/e2e/__screenshots__/visual/routing-shell/not-found-outer-mobile.png
+        - vitalia/frontend/e2e/__screenshots__/visual/routing-shell/not-found-inner-light.png
+        - vitalia/frontend/e2e/__screenshots__/visual/routing-shell/not-found-inner-dark.png
+        - vitalia/frontend/e2e/__screenshots__/visual/routing-shell/network-fallback-light.png
+        - vitalia/frontend/e2e/__screenshots__/visual/routing-shell/network-fallback-dark.png
+      modify: []
+      delete: []
+    depends_on: [T-4, T-5]
+    parallel_with: []
+    acceptance:
+      validator_ids:
+        - val-fe-e2e-happy-navigation
+        - val-fe-e2e-not-found-outer
+        - val-fe-e2e-not-found-inner
+        - val-fe-e2e-cross-tenant-blocked
+        - val-fe-e2e-network-failure
+        - val-fe-e2e-a11y-keyboard
+        - val-fe-axe-routing-shell
+        - val-fe-e2e-i18n-spanish-neutro
+        - val-fe-e2e-no-tenants-edge
+        - val-fe-visual-not-found-outer-light
+        - val-fe-visual-not-found-outer-dark
+        - val-fe-visual-not-found-inner-light
+        - val-fe-visual-not-found-inner-dark
+        - val-fe-visual-network-error
+        - val-fe-visual-responsive-not-found
+    gherkin_coverage:
+      - scenario: "SC-1 happy · happy-navigation.spec.ts"
+        tests:
+          - "e2e/regression/vitalia-fase1-routing-shell/happy-navigation.spec.ts::login + redirect default valeria/agenda + click Ribbon Atraer (Lucas) + click SubTab Recursos + URL = /clinic-X/lucas/recursos + Ribbon[active=lucas] + SubTabsBar[active=Recursos] + document.title contains 'Lucas · Recursos'"
+      - scenario: "SC-2 negative · not-found-outer.spec.ts"
+        tests:
+          - "e2e/regression/vitalia-fase1-routing-shell/not-found-outer.spec.ts::navigate /clinic-X/foo → response.status===404 + [data-testid=not-found-shell] visible + Ribbon NOT in DOM + click 'Volver al inicio' navega a /"
+      - scenario: "SC-3 edge · not-found-inner.spec.ts"
+        tests:
+          - "e2e/regression/vitalia-fase1-routing-shell/not-found-inner.spec.ts::navigate /clinic-X/camila/foo → response.status===404 + Ribbon[active=camila] visible + SubTabsBar visible sin tab activa + [data-testid=not-found-agent] visible + click CTA navega /clinic-X/camila/voz"
+      - scenario: "SC-4 adversarial · cross-tenant-blocked.spec.ts"
+        tests:
+          - "e2e/regression/vitalia-fase1-routing-shell/cross-tenant-blocked.spec.ts::mockCrossTenantList → navigate /clinic-B/... → final URL = /clinic-A/valeria/agenda + console.warn '[audit]' contains action=cross_tenant_attempt + NO clinic-B chrome in DOM"
+      - scenario: "SC-5 network_failure · network-failure-tenant-fetch.spec.ts"
+        tests:
+          - "e2e/regression/vitalia-fase1-routing-shell/network-failure-tenant-fetch.spec.ts::page.route('/api/v1/iam/users/me/tenants', delay 6000ms) → response.status===200 + [data-testid=network-error-fallback] visible + [data-testid=network-error-retry] focuseable + click Retry → router.refresh() triggers"
+      - scenario: "SC-6 accessibility · a11y-keyboard-nav.spec.ts"
+        tests:
+          - "e2e/regression/vitalia-fase1-routing-shell/a11y-keyboard-nav.spec.ts::Tab to Ribbon + Arrow to Adrián + Enter → URL = /clinic-X/adrian/inbox + focus on first focusable content area + screen reader title 'Vitalia · Adrián · Inbox'"
+          - "e2e/regression/vitalia-fase1-routing-shell/a11y-keyboard-nav.spec.ts::@axe scan on 22 sub-tab combos + 2 not-found pages + network fallback → 0 WCAG 2.1 AA violations"
+      - scenario: "SC-7 i18n · i18n-spanish-neutro.spec.ts"
+        tests:
+          - "e2e/regression/vitalia-fase1-routing-shell/i18n-spanish-neutro.spec.ts::regex scan rendered HTML (not-found outer/inner, network fallback, sign-in error) for forbidden tokens (vos, tenés, podés, dale, laburo, quilombo, fijate) → 0 matches"
+          - "e2e/regression/vitalia-fase1-routing-shell/i18n-spanish-neutro.spec.ts::verify tildes + ñ + ¿! present in expected copy ('día', 'Camila', 'configuración', '¿', '¡')"
+      - scenario: "SC-8 edge · no-tenants-edge.spec.ts"
+        tests:
+          - "e2e/regression/vitalia-fase1-routing-shell/no-tenants-edge.spec.ts::mockEmptyTenants → navigate /clinic-X/... → console.warn '[audit]' contains action=no_tenants_assigned + Clerk sign-out triggered + final URL contains 'sign-in?error=no_tenants_assigned' + sign-in page shows admin message"
+    repro_verified: false
+    notes: |
+      - Preflight obligatorio: `cd $(git rev-parse --show-toplevel) && bash scripts/e2e-preflight.sh` ANTES run.
+      - Native execution: `cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test --project=regression vitalia-fase1-routing-shell`. NUNCA `make e2e*` (Docker OOM).
+      - REUSE auth.fixture.ts from F1-S3 (Clerk sign-in lifecycle).
+      - NEW routing-shell.fixture.ts: helpers para page.route() interception: mockEmptyTenants({tenants:[]}), mockNetworkFailure(delayMs), mockCrossTenantList([{id:"clinic-A"}]), mockUnauthorized() (status 401).
+      - Visual goldens iter 1: ejecutar `--update-snapshots` POST-Chris ratify final iteration. After ratify → snapshots become shrink-only ratchet (any pixel-diff requires re-ratify).
+      - Axe-core integration: import axe-playwright; `@axe` tag separates a11y-specific assertions from functional flow; run separately if perf matters.
+      - i18n regex scan: usar page.content() raw HTML; matchear contra glosario verbatim de .claude/rules/spanish-text.md § R2.
+      - POM RoutingShellPage methods documented in 04-validators.yaml § test_construction_plan.poms_required.
+      - Audit log assertions: capture console.warn via page.on('console') + filter event.text() startsWith('[audit]') + parse JSON payload.
+
+# ──────────────────────────────────────────────────────────────
+# DAG diagram (visual reference for /dev-team scheduler)
+# ──────────────────────────────────────────────────────────────
+#
+#  T-1 BE (mount + delete legacy stub)  ──┐
+#                                          ├──┐
+#  T-2 FE lib (validators + helpers) ─────┤  │
+#                                             ├── T-3 (proxy + auth layer) ──┐
+#                                             │                               ├── T-4 (routing pages) ──┐
+#                                             │                               │                          ├── T-5 (legacy cleanup) ──┐
+#                                             │                               │                          │                            ├── T-6 (Playwright suite) ──→ DEVELOPED
+#                                             │                               │                          │                            │
+#                                             │                               │                          └── (T-6 specs writable in parallel; final run after T-5)
+#                                             │
+#  Parallelism opportunity: T-1 and T-2 are independent (different surfaces) — can run concurrent.
+#
+# ──────────────────────────────────────────────────────────────
+# Story-level summary
+# ──────────────────────────────────────────────────────────────
+
+story_summary:
+  estimated_total_dev_hours: 14.5    # T-1 1h + T-2 2h + T-3 2.5h + T-4 2.5h + T-5 2.5h + T-6 4h
+  estimated_dev_days_calendar: 3      # accounting for context switches + test runs + auditor iteration
+  surfaces:
+    backend:
+      tickets: 1
+      ticket_ids: [T-1]
+      production_code_count: 1
+    frontend:
+      tickets: 5
+      ticket_ids: [T-2, T-3, T-4, T-5, T-6]
+      production_code_count: 5    # all FE tickets touch production code (lib + routing + cleanup + specs)
+    agentic:
+      tickets: 0    # zero AGENTIC surface
+  parallelism:
+    can_parallel: [[T-1, T-2]]
+    must_sequential: [[T-3, T-4, T-5, T-6]]
+  risks:
+    - "Features/dashboard/ deletion conditional: T-5 must verify grep zero consumers before deleting feature dir. If any consumer remains (e.g., admin test), document + leave feature stub."
+    - "Visual goldens iter 1 require Chris ratify before becoming ratchet shrink-only. /dev-team produces goldens; auditor or PM confirms with Chris before merge."
+    - "Layout server-side validation testing is E2E-only (SC-4/SC-5/SC-8). Unit testing async Server Components requires next-router-mock or similar — costly; accept E2E coverage as sufficient per architect decision."
+    - "auth_router prefix `/api/v1/iam/users` is verbatim from nicolify pattern. If core endpoint paths change later, ripple across all brand consumers; promotion gate handles versioning."
+    - "DELETE vitalia local /me stub requires verifying zero consumers post legacy cleanup. T-1 verifies grep + T-5 ensures DashboardWelcome (last consumer) is gone."
+  exit_criteria:
+    - "All 30 validators GREEN (10 non_functional + 9 functional + 6 visual + 0 agentic + 12 architectural)."
+    - "All 8 Gherkin scenarios covered by Playwright spec files."
+    - "BE: /api/v1/iam/users/me/tenants accessible; /api/v1/iam/me returns 404."
+    - "FE: no middleware.ts, no app/(dashboard)/, no app/(app)/."
+    - "Capability YAMLs: 1 DELETE + 6 MODIFY (fe_planned_phase2 field added) + 1 KEEP (shell-foundation) + reconcile_capabilities --check-mode passes."
+    - "Visual goldens iter 1 generated + ratified by Chris before merge (or PM-vitalia ratifies during Fase F)."
+    - "AUTO-HANDOFF /auditor on state=developed; AUTO-HANDOFF /pm-vitalia on APPROVED."

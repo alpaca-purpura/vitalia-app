@@ -1,0 +1,62 @@
+{
+  "schema_version": "1.0",
+  "pr_folder": "vitalia/docs/product/stories/vitalia-fase1-ribbon-6-tabs",
+  "ticket": null,
+  "iter": 5,
+  "command": "test-frontend",
+  "command_alias": null,
+  "started_at": "2026-05-25T08:17:00Z",
+  "finished_at": "2026-05-25T08:18:30Z",
+  "duration_ms": 90000,
+  "exit_code": 0,
+  "raw_log_path": "vitalia/docs/product/stories/vitalia-fase1-ribbon-6-tabs/gate-logs/iter-5-test-frontend.log",
+  "gates": [
+    {
+      "name": "tsc",
+      "status": "PASS",
+      "exit_code": 0,
+      "errors_count": 0,
+      "first_5_errors": []
+    },
+    {
+      "name": "eslint",
+      "status": "PASS",
+      "exit_code": 0,
+      "errors_count": 0,
+      "first_5_errors": []
+    },
+    {
+      "name": "prettier",
+      "status": "PASS",
+      "exit_code": 0,
+      "errors_count": 0,
+      "first_5_errors": []
+    },
+    {
+      "name": "vitest-unit",
+      "status": "PASS",
+      "exit_code": 0,
+      "tests_count": 1328,
+      "test_files": 137,
+      "errors_count": 0,
+      "first_5_errors": []
+    },
+    {
+      "name": "vitest-arch-fitness",
+      "status": "PASS",
+      "exit_code": 0,
+      "tests_count": 107,
+      "test_files": 18,
+      "errors_count": 0,
+      "first_5_errors": [
+        "[WARN] Inbox UI components sin import INBOX_COPY (FE-A2c advisory): ComposerArea.tsx, ConversationItem.tsx, ConversationList.tsx, InboxPageClient.tsx, ThreadHeader.tsx"
+      ]
+    }
+  ],
+  "overall": {
+    "any_fail": false,
+    "fail_gate_names": [],
+    "summary": "ALL GATES PASS — tsc 0 errors, eslint 0 errors, prettier 0 errors, vitest 1328 unit tests GREEN (137 files), arch fitness 107 tests GREEN (18 files). 1 advisory: inbox copy imports consistency."
+  },
+  "notes": "Iter 5 post-prettier fixes. F1-S7 ribbon 6-tabs + AppPanelSlot integration complete. All validators green. Prettier warnings resolved from prior iter. Ready for audit."
+}

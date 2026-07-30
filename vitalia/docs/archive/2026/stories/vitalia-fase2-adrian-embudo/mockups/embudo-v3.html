@@ -1,0 +1,519 @@
+<!doctype html>
+<!-- voseo-allowed: mockup interno de revisión, no es código de producto user-facing -->
+<!-- EMBUDO DE ADRIÁN · v3.1 (apegado a 01-spec.md v3.1).
+     v3.1 vs v3: Recuperar = sub-tab hermana (2do nivel, no anidada) · back-button = pill peer con flecha (sin "vistas:") ·
+     LeadCard con ScoreDonut + ChannelBadge (ícono+color marca, reutilizable) · drag-drop con justificación que ALIMENTA al agente (RN-4.1) · vista Lista. -->
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Embudo de Adrián · v3.1 — vitalia</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = { darkMode:'class', theme:{ extend:{ colors:{
+    background:'hsl(var(--background))', foreground:'hsl(var(--foreground))',
+    card:'hsl(var(--card))', 'card-foreground':'hsl(var(--card-foreground))',
+    primary:'hsl(var(--primary))', 'primary-foreground':'hsl(var(--primary-foreground))',
+    muted:'hsl(var(--muted))', 'muted-foreground':'hsl(var(--muted-foreground))',
+    accent:'hsl(var(--accent))', border:'hsl(var(--border))', destructive:'hsl(var(--destructive))', ring:'hsl(var(--ring))',
+    'agent-adrian':'hsl(var(--agent-adrian))', 'agent-adrian-soft':'hsl(var(--agent-adrian-soft))',
+    'agent-valeria':'hsl(var(--agent-valeria))', 'agent-camila':'hsl(var(--agent-camila))',
+  }, borderRadius:{ md:'0.5rem' } } } }
+</script>
+<style>
+  :root{ --background:0 0% 100%; --foreground:240 10% 4%; --card:0 0% 100%; --card-foreground:240 10% 4%;
+    --primary:198 99% 49%; --primary-foreground:0 0% 100%; --muted:240 5% 96%; --muted-foreground:240 4% 46%;
+    --accent:287 53% 37%; --destructive:0 84% 60%; --border:240 6% 90%; --ring:198 99% 49%;
+    --agent-adrian:198 99% 49%; --agent-adrian-soft:197 90% 89%; --agent-valeria:287 53% 37%; --agent-camila:244 84% 32%; }
+  .dark{ --background:240 10% 4%; --foreground:0 0% 98%; --card:240 8% 8%; --card-foreground:0 0% 98%;
+    --primary:198 99% 49%; --primary-foreground:240 10% 4%; --muted:240 4% 16%; --muted-foreground:240 5% 65%;
+    --accent:287 53% 50%; --destructive:0 63% 31%; --border:240 4% 20%; --ring:198 99% 49%;
+    --agent-adrian-soft:198 60% 20%; --agent-camila:244 80% 78%; }
+  body{ background:hsl(var(--background)); color:hsl(var(--foreground)); }
+  .scroll::-webkit-scrollbar{ width:6px;height:6px } .scroll::-webkit-scrollbar-thumb{ background:hsl(var(--border)); border-radius:3px }
+  .val-grad{ background:linear-gradient(135deg,hsl(var(--agent-valeria)),hsl(var(--accent))) }
+  .ig-grad{ background:linear-gradient(135deg,#F77737,#E1306C,#833AB4) }
+  @keyframes pop{ from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} } .pop{ animation:pop .25s ease both }
+  @keyframes fade{ from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:none} } .fade{ animation:fade .2s ease both }
+  @keyframes ringpulse{ 0%,100%{ box-shadow:0 0 0 0 hsl(var(--primary)/.0) } 50%{ box-shadow:0 0 0 4px hsl(var(--primary)/.35) } }
+  .highlight{ animation:ringpulse 1.1s ease 3; outline:2px solid hsl(var(--primary)); outline-offset:1px }
+  .col-drop{ outline:2px dashed hsl(var(--primary)); outline-offset:-2px; background:hsl(var(--primary)/.04); border-radius:8px }
+  .dragging{ opacity:.4 }
+</style>
+</head>
+<body class="font-sans text-sm antialiased h-screen flex flex-col overflow-hidden">
+
+<!-- ━━━ TOPBAR ━━━ -->
+<header class="flex items-center justify-between border-b border-border px-4 h-12 bg-card shrink-0">
+  <div class="flex items-center gap-3">
+    <div class="h-6 w-6 rounded-md" style="background:linear-gradient(135deg,hsl(var(--primary)),hsl(var(--accent)))"></div>
+    <span class="font-semibold">Vitalia</span><span class="text-muted-foreground">·</span>
+    <span class="text-muted-foreground">Clínica Sanaré <span class="text-xs">▾</span></span>
+    <span class="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">mockup v3.1 · apegado a spec</span>
+  </div>
+  <div class="flex items-center gap-3 text-xs">
+    <span class="flex items-center gap-1 text-emerald-500"><span class="h-2 w-2 rounded-full bg-emerald-500"></span> en vivo</span>
+    <button onclick="document.documentElement.classList.toggle('dark')" class="rounded-md border border-border px-2 py-1 hover:bg-muted">🌓 tema</button>
+  </div>
+</header>
+
+<div class="flex-1 flex overflow-hidden">
+  <!-- ━━━ VALERIA ━━━ -->
+  <aside class="shrink-0 border-r border-border bg-card flex flex-col" style="width:330px">
+    <div class="flex items-center gap-2.5 px-4 h-14 border-b border-border">
+      <div class="relative"><div class="h-9 w-9 rounded-full val-grad flex items-center justify-center text-white font-semibold">V</div>
+        <span class="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-500 border-2 border-card"></span></div>
+      <div class="leading-tight"><div class="font-semibold">Valeria</div><div class="text-[11px] text-muted-foreground">Supervisora · coordina tu equipo IA</div></div>
+    </div>
+    <div id="valMsgs" class="flex-1 overflow-y-auto scroll p-3 space-y-3 text-xs">
+      <div class="flex gap-2"><div class="h-6 w-6 shrink-0 rounded-full val-grad text-white flex items-center justify-center text-[10px] font-semibold">V</div>
+        <div class="rounded-md rounded-tl-none bg-muted p-2.5 leading-relaxed">Buen día 👋 Hoy <b>Adrián</b> movió 7 leads y cobró 1 depósito. Tienes <b>1 estancada</b> (Rosa, 23 días) y <b>2 congeladas</b> en Recuperar.</div></div>
+    </div>
+    <div class="border-t border-border p-2.5"><div class="flex items-center gap-2 rounded-md border border-border bg-background px-2.5 py-2">
+      <input class="flex-1 bg-transparent outline-none text-xs placeholder:text-muted-foreground" placeholder="Pregúntale a Valeria…" />
+      <span class="text-muted-foreground text-[10px]">⌘K</span><button class="text-primary">➤</button></div></div>
+  </aside>
+
+  <div class="w-px bg-border shrink-0"></div>
+
+  <!-- ━━━ MAIN ━━━ -->
+  <main class="flex-1 flex flex-col overflow-hidden">
+    <!-- ribbon (L2) -->
+    <nav class="flex items-center gap-1 border-b border-border px-3 h-10 bg-background text-xs shrink-0">
+      <span class="px-2 py-1 text-muted-foreground">Lisa</span>
+      <span class="px-2 py-1 rounded-md font-medium text-agent-adrian border-b-2" style="border-color:hsl(var(--agent-adrian))">Adrián</span>
+      <span class="px-2 py-1 text-muted-foreground">Lucas</span><span class="px-2 py-1 text-muted-foreground">Camila</span><span class="px-2 py-1 text-muted-foreground">Mateo</span>
+      <span class="ml-auto px-2 py-1 text-muted-foreground">Configurar</span>
+    </nav>
+    <!-- subtabs (L3) — Recuperar es hermana de Embudo -->
+    <nav id="subtabs" class="flex items-center gap-4 border-b border-border px-3 h-9 bg-background text-xs shrink-0"></nav>
+
+    <!-- navbar (EntitySubNavBar — solo workspace lead/nuevo) -->
+    <div id="navbar" class="flex items-center gap-1.5 border-b border-border px-4 h-11 bg-background text-xs shrink-0 overflow-x-auto"></div>
+
+    <!-- URL chip -->
+    <div class="px-4 py-1.5 border-b border-border bg-muted/40 text-[10px] text-muted-foreground font-mono shrink-0">
+      <span id="urlchip"></span>
+    </div>
+
+    <div id="content" class="flex-1 overflow-y-auto scroll p-4"></div>
+  </main>
+</div>
+
+<div id="toast"></div>
+<div id="modal"></div>
+
+<script>
+// ════ estado ════
+let mode = 'board';          // board | recuperar | lead | nuevo
+let boardLayout = 'kanban';  // kanban | lista
+let openLeadId = null;
+let leaf = 'resumen';        // resumen | historial
+let highlightId = null;
+let pendingMove = null;      // {id, toId, toLabel}
+
+// ════ badges operador + señales ════
+const ADRIAN = `<span class="text-[10px] px-1.5 py-0.5 rounded-full whitespace-nowrap" style="background:hsl(var(--agent-adrian-soft));color:hsl(var(--agent-adrian))">🤖 Adrián</span>`;
+const HUMANO = `<span class="text-[10px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">🙋 Tú</span>`;
+const sigChip = (txt)=>`<span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 whitespace-nowrap">${txt}</span>`;
+const TEMP = { hot:'#f43f5e', warm:'#f59e0b', cold:'#64748b' };
+
+// ════ ChannelBadge — registro reutilizable (§ Registro de canales) ════
+const CHAN = {
+  WhatsApp:{ c:'#25D366', g:'Wa' }, Instagram:{ grad:true, g:'Ig' }, 'Meta Ads':{ c:'#1877F2', g:'f' },
+  Web:{ c:'#475569', g:'We' }, Referido:{ c:'#F59E0B', g:'Re' }
+};
+function channelBadge(name){
+  const m = CHAN[name] || { c:'#94a3b8', g:'?' };
+  const icon = m.grad
+    ? `<span class="h-4 w-4 rounded ig-grad grid place-items-center text-white text-[7px] font-bold shrink-0">${m.g}</span>`
+    : `<span class="h-4 w-4 rounded grid place-items-center text-white text-[7px] font-bold shrink-0" style="background:${m.c}">${m.g}</span>`;
+  return `<span class="inline-flex items-center gap-1">${icon}<span class="text-muted-foreground">${name}</span></span>`;
+}
+
+// ════ ScoreDonut — gráfico de dona compacto (reemplaza la barra) ════
+function donut(score){
+  if(score==null) return '';
+  const r=10, c=2*Math.PI*r, off=c*(1-score/100);
+  const col = score>=70 ? '#10b981' : score>=40 ? '#f59e0b' : '#ef4444';
+  return `<svg width="34" height="34" viewBox="0 0 34 34" class="shrink-0">
+    <circle cx="17" cy="17" r="${r}" fill="none" stroke="hsl(var(--muted))" stroke-width="4"/>
+    <circle cx="17" cy="17" r="${r}" fill="none" stroke="${col}" stroke-width="4" stroke-linecap="round"
+      stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" transform="rotate(-90 17 17)"/>
+    <text x="17" y="17" text-anchor="middle" dominant-baseline="central" font-size="10" font-weight="700" fill="currentColor">${score}</text>
+  </svg>`;
+}
+
+// ════ dataset canónico ════
+const COLS = [
+  { id:'interesado', label:'Interesado', h:'⚪ Interesado', sla:7, leads:[
+    { id:'carlos', n:'Carlos P███', op:ADRIAN, valor:'S/ 4k', canal:'Instagram', score:33, temp:'cold', sla:'9d', slaC:'amber', sigs:[], act:'sin respuesta · hace 4d', by:'🤖' },
+    { id:'sofia',  n:'Sofía R███',  op:ADRIAN, valor:'S/ 12k', canal:'Meta Ads', score:41, temp:'warm', sla:'5d', slaC:'green', sigs:['💬 preguntó precio'], act:'info enviada · hace 1d', by:'🤖' },
+    { id:'maria',  n:'María G███',  op:ADRIAN, valor:'S/ 7k', canal:'WhatsApp', score:48, temp:'warm', sla:'2d', slaC:'green', sigs:['💬 preguntó precio'], act:'saludó · hace 2h', by:'🤖' },
+  ]},
+  { id:'calificando', label:'Calificando', h:'🟢 Calificando', sla:7, leads:[
+    { id:'pedro', n:'Pedro M███', op:HUMANO, valor:'S/ 6k', canal:'WhatsApp', score:52, temp:'warm', sla:'8h', slaC:'green', sigs:[], act:'tomaste el control · hace 20m', by:'🙋' },
+    { id:'ana',   n:'Ana V███',   op:ADRIAN, valor:'S/ 8k', canal:'WhatsApp', score:64, temp:'hot', sla:'3h', slaC:'green', sigs:['⏰ urgencia','💬 presupuesto ok'], act:'movió a Calificando · hace 1h', by:'🤖' },
+  ]},
+  { id:'consulta', label:'Consulta agendada', h:'🔵 Consulta agendada', sla:5, leads:[
+    { id:'jp', n:'JP Méndez███', op:ADRIAN, valor:'S/ 11k', canal:'WhatsApp', score:71, temp:'hot', sla:'1d', slaC:'green', sigs:['📅 jue 5 · 15:00 · Dra. Rojas'], act:'agendó · ayer', by:'🤖' },
+  ]},
+  { id:'plan', label:'Plan presentado', h:'🟡 Plan presentado', sla:14, leads:[
+    { id:'rosa', n:'Rosa V███', op:ADRIAN, valor:'S/ 12k', canal:'Referido', score:78, temp:'hot', sla:'23d · estancado', slaC:'red', sigs:[], act:'seguimiento enviado · hace 3d', by:'🤖' },
+  ]},
+  { id:'reservado', label:'Reservado', h:'🟣 Reservado ⭐', sla:null, leads:[
+    { id:'camilab', n:'Camila B███', op:ADRIAN, valor:'S/ 8k', canal:'WhatsApp', temp:'hot', badge:{cls:'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400', txt:'✅ Depósito recibido · S/ 2k'}, act:'cobró depósito · hoy 09:12', by:'🤖' },
+    { id:'mateol', n:'Mateo L███', op:ADRIAN, valor:'S/ 7k', canal:'Web', temp:'warm', badge:{cls:'bg-amber-500/15 text-amber-600 dark:text-amber-400', txt:'💳 Esperando pago'}, act:'envió link · hace 3h', by:'🤖' },
+  ]},
+];
+const FROZEN = [
+  { n:'Lucía R███', stage:'Calificando', canal:'Instagram', reason:'no responde hace 5 turnos', age:'congelada 16d', diag:'Baja intención. Ofrécele una consulta de evaluación gratuita para reabrir.' },
+  { n:'Diego F███', stage:'Plan presentado', canal:'WhatsApp', reason:'trabado en el precio', age:'congelada 21d', diag:'Sensible al precio. Envíale la opción de financiación en cuotas.' },
+];
+const LOST = [
+  { n:'Iván S███', reason:'precio', cohort:'↻ Camila reactiva en 90d' },
+  { n:'Patricia C███', reason:'sin disponibilidad', cohort:'↻ cohorte de reactivación' },
+];
+const DETAIL = { maria:{ name:'María G███', stage:'⚪ Interesado', score:48, temp:'tibio', tempBadge:'bg-amber-500/15 text-amber-600 dark:text-amber-400', canal:'Instagram', canalFull:'Instagram → WhatsApp', campania:'“Sonrisa 2026”', interes:'Blanqueamiento', valor:'S/ 7k', ultima:'hace 2h' } };
+
+function findCol(id){ return COLS.find(c=>c.leads.some(l=>l.id===id)); }
+function findLead(id){ for(const c of COLS){ const l=c.leads.find(x=>x.id===id); if(l) return l; } return null; }
+
+// ════ subtabs (Recuperar = hermana) ════
+function renderSubtabs(){
+  const tab = (m,label,extra='')=>{
+    const on = (m==='board' && (mode==='board'||mode==='lead'||mode==='nuevo')) || (m==='recuperar' && mode==='recuperar');
+    return `<span onclick="setMode('${m}')" class="cursor-pointer ${on?'font-medium text-foreground border-b-2 pb-2':'text-muted-foreground'}" style="${on?'border-color:hsl(var(--agent-adrian))':''}">${label}${extra}</span>`;
+  };
+  const badge = `<span class="ml-1 text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">2</span>`;
+  document.getElementById('subtabs').innerHTML =
+    `<span class="text-muted-foreground cursor-default">Inbox</span>`
+    + tab('board','Embudo')
+    + tab('recuperar','Recuperar', badge)
+    + `<span class="text-muted-foreground cursor-default">Outbound</span><span class="text-muted-foreground cursor-default">Propuestas</span>`;
+}
+
+// ════ EntitySubNavBar (workspace) ════
+function renderNavbar(){
+  const bar = document.getElementById('navbar');
+  const url = document.getElementById('urlchip');
+  if(mode!=='lead' && mode!=='nuevo'){ bar.style.display='none';
+    url.textContent = mode==='recuperar' ? 'app.vitalia.lat/sanare/adrian/recuperar   ← sub-tab hermana · URL propia' : 'app.vitalia.lat/sanare/adrian/embudo';
+    return;
+  }
+  bar.style.display='flex';
+  // back-button = pill peer con flecha (sin "vistas:")
+  const back = `<button onclick="back()" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md whitespace-nowrap text-muted-foreground hover:text-foreground hover:bg-muted/50"><span class="text-base leading-none">‹</span><span>Embudo</span></button>`;
+  const sep = `<span class="w-px h-4 bg-border shrink-0 mx-0.5"></span>`;
+  if(mode==='nuevo'){
+    bar.innerHTML = back+sep+`<span class="inline-flex items-center gap-1.5 px-1 shrink-0 font-medium">➕ Nuevo lead</span>`;
+    url.textContent = 'app.vitalia.lat/sanare/adrian/embudo/nuevo   ← ruta-hoja propia · alcanzable por Valeria/Adrián';
+  } else {
+    const d = DETAIL[openLeadId];
+    const name = `<span class="inline-flex items-center gap-1.5 px-1 shrink-0"><span class="h-5 w-5 rounded-full flex items-center justify-center text-[9px] font-bold text-white" style="background:hsl(var(--agent-adrian))">M</span><span class="font-medium">${d.name}</span><span class="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">${d.stage}</span></span>`;
+    const tab = (id,icon,label)=>{
+      const on = leaf===id;
+      return `<button onclick="setLeaf('${id}')" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md whitespace-nowrap ${on?'font-medium border':'text-muted-foreground hover:text-foreground hover:bg-muted/50'}" style="${on?'background:hsl(var(--agent-adrian-soft));border-color:hsl(var(--agent-adrian));color:hsl(var(--agent-adrian))':''}"><span>${icon}</span><span>${label}</span></button>`;
+    };
+    bar.innerHTML = back+sep+name+sep+tab('resumen','📋','Resumen')+tab('historial','💬','Historial');
+    url.textContent = `app.vitalia.lat/sanare/adrian/embudo/${openLeadId}/${leaf}   ← URL propia · deep-link · reusable`;
+  }
+}
+
+// ════ KPI strip ════
+function kpiStrip(){
+  const k = (txt)=>`<span class="text-[11px] px-2 py-1 rounded-md bg-card border border-border whitespace-nowrap">${txt}</span>`;
+  return `<div class="flex flex-wrap gap-1.5 mb-3">
+    ${k('<b>9</b> activos')}${k('🤖 <b>8</b> Adrián')}${k('🙋 <b>1</b> tú')}${k('🔥 3 · 🌡️ 4 · ❄️ 2')}${k('score prom <b>55</b>')}${k('⭐ tasa depósito <b>22%</b>')}
+    <button onclick="setMode('recuperar')" class="text-[11px] px-2 py-1 rounded-md bg-card border border-border whitespace-nowrap hover:bg-muted">🧊 <b>2</b> congeladas →</button>
+  </div>`;
+}
+
+// ════ LeadCard (donut + channel + drag) ════
+function leadCard(l, slaMax){
+  const chips = l.sigs||[];
+  const shown = chips.slice(0,2).map(sigChip).join('');
+  const more = chips.length>2 ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">+${chips.length-2}</span>` : '';
+  const slaCls = { green:'text-emerald-600 dark:text-emerald-400', amber:'text-amber-600 dark:text-amber-400', red:'text-red-600 dark:text-red-400' }[l.slaC]||'';
+  const slaDot = { green:'bg-emerald-500', amber:'bg-amber-500', red:'bg-red-500' }[l.slaC]||'';
+  const hl = (highlightId===l.id) ? 'highlight' : '';
+  return `<article draggable="true" ondragstart="dragStart(event,'${l.id}')" ondragend="dragEnd(event)" onclick="openLead('${l.id}')"
+      class="cursor-pointer hover:ring-1 hover:ring-primary/40 rounded-md border border-border bg-card p-2.5 border-l-2 ${hl}" data-lead="${l.id}" style="border-left-color:${TEMP[l.temp]||'#64748b'}">
+    <div class="flex items-start gap-2">
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-1.5"><span class="font-medium truncate">${l.n}</span>${highlightId===l.id?'<span class="text-[10px] text-primary shrink-0">✨ nuevo</span>':''}</div>
+        <div class="mt-1 flex items-center gap-2 text-[11px] flex-wrap">${channelBadge(l.canal)}<span class="text-muted-foreground">· ${l.valor}</span></div>
+        ${chips.length?`<div class="flex flex-wrap gap-1 mt-1.5">${shown}${more}</div>`:''}
+        ${l.sla?`<div class="flex items-center gap-1 mt-1.5 text-[10px] ${slaCls}"><span class="h-2 w-2 rounded-full ${slaDot}"></span> en etapa ${l.sla}${slaMax?` <span class="text-muted-foreground">· SLA ${slaMax}d</span>`:''}</div>`:''}
+        ${l.badge?`<div class="mt-1.5"><span class="text-[10px] px-1.5 py-0.5 rounded-full ${l.badge.cls}">${l.badge.txt}</span></div>`:''}
+      </div>
+      <div class="flex flex-col items-center gap-1 shrink-0">${l.op}${donut(l.score)}</div>
+    </div>
+    ${l.act?`<div class="mt-1.5 pt-1.5 border-t border-border text-[10px] text-muted-foreground truncate">${l.by} ${l.by==='🙋'?'Tú':'Adrián'} · ${l.act}</div>`:''}
+  </article>`;
+}
+
+// ════ Tablero (Kanban) ════
+function kanban(){
+  const cols = COLS.map(c=>{
+    const total = c.leads.reduce((a,l)=>a+(parseInt((l.valor||'').replace(/[^\d]/g,''))||0),0);
+    const isResv = c.id==='reservado';
+    return `<section ondragover="colOver(event,this,'${c.id}')" ondragleave="colLeave(this)" ondrop="dropLead(event,this,'${c.id}','${c.label}')" class="flex flex-col rounded-md p-1">
+      <div class="flex items-center justify-between mb-2 px-1">
+        <span class="font-medium text-xs">${c.h}</span><span class="text-[11px] text-muted-foreground">${c.leads.length} · S/${total}k</span>
+      </div>
+      <div class="space-y-2 min-h-[40px]">${c.leads.map(l=>leadCard(l,c.sla)).join('')||'<div class="text-[11px] text-muted-foreground italic px-1 py-3">— vacío —</div>'}</div>
+      ${isResv?'<div class="text-[9px] text-muted-foreground italic px-1 mt-1">arrastrar aquí = bloqueado (se gana con el depósito)</div>':''}
+    </section>`;
+  }).join('');
+  return `<div class="overflow-x-auto scroll pb-2"><div class="grid grid-cols-5 gap-3 min-w-[1080px]">${cols}</div></div>
+    <p class="text-[11px] text-muted-foreground mt-3">👉 Clic en un lead → su <b>página</b>. · <b>Arrastrá una card</b> a otra columna → te pide justificar → Adrián <b>incorpora</b> tu nota y sigue (RN-4.1). · Arrastrar a Reservado está bloqueado.</p>`;
+}
+
+// ════ Tablero (Lista) ════
+function lista(){
+  const slaCls = { green:'text-emerald-600 dark:text-emerald-400', amber:'text-amber-600 dark:text-amber-400', red:'text-red-600 dark:text-red-400' };
+  const rows = COLS.flatMap(c=>c.leads.map(l=>({l,c}))).map(({l,c})=>`
+    <tr onclick="openLead('${l.id}')" class="border-b border-border hover:bg-muted/40 cursor-pointer">
+      <td class="py-2 px-2 font-medium">${l.n}</td>
+      <td class="py-2 px-2"><span class="text-[11px] px-1.5 py-0.5 rounded-full bg-muted">${c.h}</span></td>
+      <td class="py-2 px-2">${channelBadge(l.canal)}</td>
+      <td class="py-2 px-2">${l.score!=null?`<span class="font-medium ${l.score>=70?'text-emerald-600 dark:text-emerald-400':l.score>=40?'text-amber-600 dark:text-amber-400':'text-red-600 dark:text-red-400'}">${l.score}</span>`:'<span class="text-muted-foreground">—</span>'}</td>
+      <td class="py-2 px-2 text-[11px] ${slaCls[l.slaC]||'text-muted-foreground'}">${l.sla||'—'}</td>
+      <td class="py-2 px-2 text-[11px] text-muted-foreground">${l.act||'—'}</td>
+      <td class="py-2 px-2">${l.op}</td>
+      <td class="py-2 px-2 text-[11px] text-muted-foreground italic">sin asignar</td>
+    </tr>`).join('');
+  const th = (t)=>`<th class="py-2 px-2 text-left font-semibold text-muted-foreground cursor-pointer hover:text-foreground">${t} <span class="text-[9px]">⇅</span></th>`;
+  return `<div class="rounded-md border border-border overflow-hidden">
+    <table class="w-full text-xs"><thead class="bg-muted/40 border-b border-border"><tr>
+      ${th('Lead')}${th('Etapa')}${th('Canal')}${th('Score')}${th('En etapa')}${th('Últ. actividad')}${th('Operador')}${th('Doctor')}
+    </tr></thead><tbody>${rows}</tbody></table>
+    <div class="flex items-center justify-between px-3 py-2 border-t border-border text-[11px] text-muted-foreground">
+      <span>9 de 9 · counts por etapa = total real (no el de la página)</span>
+      <span class="flex gap-1"><button class="px-2 py-0.5 rounded border border-border">‹</button><button class="px-2 py-0.5 rounded border border-border bg-muted">1</button><button class="px-2 py-0.5 rounded border border-border">›</button></span>
+    </div></div>`;
+}
+
+function boardView(){
+  return `${kpiStrip()}
+    <div class="flex items-center justify-between mb-3">
+      <div>
+        <h1 class="text-lg font-semibold flex items-center gap-2">Embudo <span class="text-xs font-normal px-2 py-0.5 rounded-full" style="background:hsl(var(--agent-adrian-soft));color:hsl(var(--agent-adrian))">🤖 operado por Adrián</span></h1>
+        <p class="text-muted-foreground text-xs mt-0.5">Tablero <b>HOT</b> (5 etapas). Orden por antigüedad-en-etapa (lo por vencer arriba). <code class="text-[10px]">Decidió no</code> + congeladas → sub-tab <b>Recuperar</b>.</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <div class="inline-flex rounded-full bg-muted p-0.5 text-[11px]">
+          <span onclick="setLayout('kanban')" class="px-3 py-1 rounded-full cursor-pointer ${boardLayout==='kanban'?'bg-card font-medium shadow-sm':'text-muted-foreground'}">Kanban</span>
+          <span onclick="setLayout('lista')" class="px-3 py-1 rounded-full cursor-pointer ${boardLayout==='lista'?'bg-card font-medium shadow-sm':'text-muted-foreground'}">Lista</span>
+        </div>
+        <span class="text-[11px] text-muted-foreground">Ordenar: <b>Antigüedad en etapa ▾</b></span>
+        <button onclick="openNuevo()" class="rounded-md bg-primary text-primary-foreground px-3 py-1.5 text-xs font-medium">+ Nuevo lead</button>
+      </div>
+    </div>
+    ${boardLayout==='kanban'?kanban():lista()}`;
+}
+
+// ════ Recuperar (sub-tab) ════
+function recuperarView(){
+  const frow = f=>`<div class="rounded-md border border-border bg-card p-3">
+    <div class="flex items-center justify-between"><span class="font-medium flex items-center gap-2">${f.n} <span class="text-[11px] font-normal">${channelBadge(f.canal)}</span></span><span class="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">${f.age}</span></div>
+    <div class="text-[11px] text-muted-foreground mt-1">Se enfrió en <b>${f.stage}</b> · ${f.reason}</div>
+    <div class="mt-2 rounded-md p-2 text-[11px]" style="background:hsl(var(--agent-adrian-soft))"><b style="color:hsl(var(--agent-adrian))">🤖 Diagnóstico de Adrián:</b> ${f.diag}</div>
+    <div class="flex gap-2 mt-2"><button class="text-[11px] rounded-md bg-primary text-primary-foreground px-2.5 py-1">↻ Reactivar</button><button class="text-[11px] rounded-md border border-border bg-card px-2.5 py-1">🙋 Tomar control</button></div>
+  </div>`;
+  const lrow = l=>`<div class="rounded-md border border-border bg-card p-3 flex items-center justify-between">
+    <div><span class="font-medium">${l.n}</span><div class="text-[11px] text-muted-foreground mt-0.5">razón: ${l.reason} · <span style="color:hsl(var(--agent-camila))">${l.cohort}</span></div></div>
+    <button class="text-[11px] rounded-md border border-border bg-card px-2.5 py-1">↻ Reactivar</button></div>`;
+  return `<div class="max-w-3xl fade">
+    <h1 class="text-lg font-semibold flex items-center gap-2 mb-1">Recuperar <span class="text-xs font-normal text-muted-foreground">— sub-tab hermana de Embudo · leads fuera del Tablero hot</span></h1>
+    <p class="text-muted-foreground text-xs mb-4">Recuperación de <b>corto plazo</b> que opera Adrián (recién caídos). Cohortes de 90 días y win-back son de <b style="color:hsl(var(--agent-camila))">Camila</b>.</p>
+    <div class="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-2">🧊 Recién congeladas (${FROZEN.length})</div>
+    <div class="space-y-2 mb-5">${FROZEN.map(frow).join('')}</div>
+    <div class="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-2">🚫 Decidió no reciente (${LOST.length})</div>
+    <div class="space-y-2">${LOST.map(lrow).join('')}</div>
+  </div>`;
+}
+
+// ════ Workspace · página del lead ════
+function leadView(){
+  const d = DETAIL[openLeadId];
+  const header = `<div class="rounded-md border border-border bg-card p-3 mb-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs">
+    <span class="inline-flex items-center gap-1"><span class="text-muted-foreground">canal</span> ${channelBadge(d.canal)}</span>
+    <span><span class="text-muted-foreground">interés</span> <b>${d.interes}</b></span>
+    <span><span class="text-muted-foreground">valor</span> <b>${d.valor}</b></span>
+    <span class="inline-flex items-center gap-1"><span class="text-[10px] px-1.5 py-0.5 rounded ${d.tempBadge}">${d.temp}</span> score <b>${d.score}</b></span>
+    <span class="text-muted-foreground">última actividad ${d.ultima}</span>
+    <button class="ml-auto text-[11px] rounded-md bg-card border border-border px-2.5 py-1">🙋 Tomar control</button></div>`;
+  let body='';
+  if(leaf==='resumen'){
+    body = `<div class="grid md:grid-cols-2 gap-4">
+      <div class="rounded-md border border-border p-4 space-y-2">
+        <div class="font-medium mb-1">Datos del lead</div>
+        <div class="flex justify-between text-xs"><span class="text-muted-foreground">Contacto</span><span>+51 9██ ███ ██4 · WhatsApp</span></div>
+        <div class="flex justify-between text-xs"><span class="text-muted-foreground">Origen</span><span class="inline-flex items-center gap-1">${channelBadge('Instagram')} · ${d.campania}</span></div>
+        <div class="flex justify-between text-xs"><span class="text-muted-foreground">Interés</span><span>${d.interes}</span></div>
+        <div class="flex justify-between text-xs"><span class="text-muted-foreground">Valor estimado</span><span>${d.valor}</span></div>
+        <div class="flex justify-between text-xs"><span class="text-muted-foreground">Doctor</span><span class="text-muted-foreground italic">aún sin asignar</span></div>
+        <div class="flex justify-between text-xs"><span class="text-muted-foreground">Presupuesto</span><span class="text-muted-foreground italic">aún sin presentar</span></div>
+        <div class="flex justify-between text-xs"><span class="text-muted-foreground">Etiquetas</span><span>nuevo · sensible-precio</span></div>
+      </div>
+      <div class="space-y-4">
+        <div class="rounded-md border p-4" style="border-color:hsl(var(--agent-adrian));background:hsl(var(--agent-adrian-soft))">
+          <div class="flex items-center justify-between"><span class="text-xs font-medium flex items-center gap-1" style="color:hsl(var(--agent-adrian))">🤖 Adrián la está atendiendo</span>
+            <button class="text-[11px] rounded-md bg-card border border-border px-2 py-1">🙋 Tomar control</button></div>
+          <div class="text-[11px] text-muted-foreground mt-2"><b>Puede:</b> mover etapa · agendar · enviar info.<br><b>Necesita tu OK:</b> cobrar · descuentos · temas clínicos.</div>
+          <div class="mt-3 flex flex-wrap gap-2"><button class="text-[11px] rounded-md bg-card border border-border px-2 py-1">💬 Instrucción oculta</button><button class="text-[11px] rounded-md bg-card border border-border px-2 py-1">⚡ Nudge</button><button class="text-[11px] rounded-md bg-card border border-border px-2 py-1">↕ Mover de etapa</button></div>
+        </div>
+        <div class="rounded-md border border-border p-4 flex items-center gap-4">
+          ${donut(d.score)}
+          <div class="flex-1">
+            <div class="flex items-center justify-between mb-1"><span class="font-medium">Score ${d.score} <span class="text-muted-foreground font-normal text-xs">/100</span></span><span class="text-[10px] px-1.5 py-0.5 rounded ${d.tempBadge}">${d.temp}</span></div>
+            <div class="space-y-1 text-xs">
+              <div class="flex justify-between"><span class="text-muted-foreground">preguntó por precio</span><span class="text-emerald-600 dark:text-emerald-400">+25</span></div>
+              <div class="flex justify-between"><span class="text-muted-foreground">respondió en &lt;5 min</span><span class="text-emerald-600 dark:text-emerald-400">+15</span></div>
+              <div class="flex justify-between"><span class="text-muted-foreground">vino de campaña pagada</span><span class="text-emerald-600 dark:text-emerald-400">+10</span></div>
+              <div class="flex justify-between"><span class="text-muted-foreground">sin agendar (2 días)</span><span class="text-destructive">−2</span></div>
+            </div>
+            <div class="text-[10px] text-muted-foreground mt-2 pt-2 border-t border-border">Reglas + recencia, sin caja negra.</div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  } else {
+    body = `<div class="rounded-md border border-border p-4 max-w-xl">
+      <div class="font-medium mb-3">Línea de tiempo <span class="text-muted-foreground font-normal text-xs">— conversación + etapas + acciones, atribuido</span></div>
+      <ol class="space-y-3 border-l border-border pl-4 text-xs">
+        <li><span class="text-muted-foreground">hace 2h</span> · <span style="color:hsl(var(--agent-adrian))">🤖 Adrián</span>: “¡Hola María! Te cuento del blanqueamiento ✨”</li>
+        <li><span class="text-muted-foreground">hace 2h</span> · 💬 María: “¿cuánto cuesta?”</li>
+        <li><span class="text-muted-foreground">hace 2h</span> · <span style="color:hsl(var(--agent-adrian))">🤖</span> detectó señal ${sigChip('💬 preguntó precio')}</li>
+        <li><span class="text-muted-foreground">hace 2h</span> · ⚪ ingresó a <b>Interesado</b> <span class="text-muted-foreground">(Adrián)</span></li>
+        <li><a href="#" class="text-primary underline">Abrir conversación completa en el Inbox →</a></li>
+      </ol></div>`;
+  }
+  return `<div class="fade">${header}${body}</div>`;
+}
+
+// ════ Nuevo lead ════
+function nuevoView(){
+  return `<div class="max-w-lg fade">
+    <h1 class="text-lg font-semibold mb-1">Nuevo lead</h1>
+    <p class="text-muted-foreground text-xs mb-4">Ruta-hoja con URL propia (no modal). Valeria o Adrián pueden abrir y pre-cargar este espacio. Al guardar, redirige al Tablero y resalta el lead nuevo.</p>
+    <div class="rounded-md border border-border bg-card p-4 space-y-3">
+      <div><label class="text-xs font-semibold text-muted-foreground">Nombre *</label><input class="w-full mt-1 rounded-md border border-border bg-background px-3 py-2 text-sm" placeholder="Nombre del lead" /></div>
+      <div class="grid grid-cols-2 gap-3">
+        <div><label class="text-xs font-semibold text-muted-foreground">Canal *</label><select class="w-full mt-1 rounded-md border border-border bg-background px-3 py-2 text-sm"><option>WhatsApp</option><option>Instagram</option><option>Meta Ads</option><option>Web</option><option>Referido</option><option>Otro</option></select></div>
+        <div><label class="text-xs font-semibold text-muted-foreground">Etapa inicial</label><select class="w-full mt-1 rounded-md border border-border bg-background px-3 py-2 text-sm"><option>Interesado</option><option>Calificando</option></select></div>
+      </div>
+      <div><label class="text-xs font-semibold text-muted-foreground">Teléfono / Email <span class="font-normal">(al menos uno)</span></label><input class="w-full mt-1 rounded-md border border-border bg-background px-3 py-2 text-sm" placeholder="+51 9██ ███ ███" /></div>
+      <div><label class="text-xs font-semibold text-muted-foreground">Servicio de interés</label><input class="w-full mt-1 rounded-md border border-border bg-background px-3 py-2 text-sm" placeholder="Buscar tratamiento…" /></div>
+      <div><label class="text-xs font-semibold text-muted-foreground">Notas</label><textarea class="w-full mt-1 rounded-md border border-border bg-background px-3 py-2 text-sm" rows="2" placeholder="Contexto inicial…"></textarea></div>
+      <div class="flex justify-end gap-2 pt-1">
+        <button onclick="back()" class="text-xs rounded-md border border-border px-3 py-2">Cancelar</button>
+        <button onclick="submitNuevo()" class="text-xs rounded-md bg-primary text-primary-foreground px-3 py-2 font-medium">Crear lead</button>
+      </div>
+    </div></div>`;
+}
+
+// ════ render + acciones ════
+function render(){
+  renderSubtabs(); renderNavbar();
+  const c = document.getElementById('content');
+  if(mode==='board') c.innerHTML = boardView();
+  else if(mode==='recuperar') c.innerHTML = recuperarView();
+  else if(mode==='lead') c.innerHTML = leadView();
+  else if(mode==='nuevo') c.innerHTML = nuevoView();
+}
+function setMode(m){ mode=m; openLeadId=null; render(); valReset(); }
+function setLayout(l){ boardLayout=l; render(); }
+function openLead(id){ openLeadId = DETAIL[id]?id:'maria'; mode='lead'; leaf='resumen'; render(); valContext(); }
+function back(){ mode='board'; openLeadId=null; render(); valReset(); }
+function openNuevo(){ mode='nuevo'; openLeadId=null; render(); valReset(); }
+function setLeaf(id){ leaf=id; render(); }
+
+// ── drag-drop ──
+let _dragId=null;
+function dragStart(ev,id){ _dragId=id; ev.dataTransfer.effectAllowed='move'; const el=ev.currentTarget; el.classList.add('dragging'); ev.stopPropagation(); }
+function dragEnd(ev){ ev.currentTarget.classList.remove('dragging'); }
+function colOver(ev,el,colId){ ev.preventDefault(); el.classList.add('col-drop'); }
+function colLeave(el){ el.classList.remove('col-drop'); }
+function dropLead(ev,el,colId,label){
+  ev.preventDefault(); el.classList.remove('col-drop');
+  const id=_dragId; _dragId=null; if(!id) return;
+  const from=findCol(id); if(!from || from.id===colId) return;
+  if(colId==='reservado'){ toast('🔒 Reservado se alcanza con el depósito (RN-4) — movimiento bloqueado','warn'); return; }
+  pendingMove={ id, toId:colId, toLabel:label, fromLabel:from.label, name:findLead(id).n };
+  openJustify();
+}
+function openJustify(){
+  const p=pendingMove;
+  document.getElementById('modal').innerHTML = `<div class="fixed inset-0 z-[100] flex items-center justify-center" style="background:rgba(15,23,42,.5)">
+    <div class="bg-card rounded-md border border-border shadow-xl w-[420px] p-5 pop">
+      <div class="font-semibold mb-1">Mover «${p.name}» a <span style="color:hsl(var(--agent-adrian))">${p.toLabel}</span></div>
+      <div class="text-xs text-muted-foreground mb-3">De <b>${p.fromLabel}</b> → <b>${p.toLabel}</b>. Justificá el movimiento: Adrián lo <b>incorpora</b> y ajusta su próximo paso (no se reinicia).</div>
+      <textarea id="reasonBox" class="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" rows="2" placeholder="Ej.: ya coordinamos la cita por teléfono…"></textarea>
+      <div class="flex justify-end gap-2 mt-3">
+        <button onclick="closeJustify()" class="text-xs rounded-md border border-border px-3 py-2">Cancelar</button>
+        <button onclick="confirmMove()" class="text-xs rounded-md bg-primary text-primary-foreground px-3 py-2 font-medium">Mover y avisar a Adrián</button>
+      </div></div></div>`;
+  setTimeout(()=>{ const b=document.getElementById('reasonBox'); if(b) b.focus(); },50);
+}
+function closeJustify(){ document.getElementById('modal').innerHTML=''; pendingMove=null; }
+function confirmMove(){
+  const p=pendingMove; const reason=(document.getElementById('reasonBox').value||'').trim()||'(sin nota)';
+  // mover en data
+  const from=findCol(p.id); const idx=from.leads.findIndex(l=>l.id===p.id); const lead=from.leads.splice(idx,1)[0];
+  lead.act = `moviste a ${p.toLabel} · recién — «${reason}»`; lead.by='🙋';
+  lead.sla='recién'; lead.slaC='green';
+  const to=COLS.find(c=>c.id===p.toId); to.leads.unshift(lead);
+  highlightId=p.id;
+  closeJustify();
+  if(mode!=='board'){ mode='board'; boardLayout='kanban'; }
+  render();
+  toast(`✅ Movido a ${p.toLabel}. Adrián tomó nota y ajusta su próximo paso.`);
+  valOverride(p.name, p.toLabel, reason);
+  setTimeout(()=>{ highlightId=null; if(mode==='board') render(); }, 3600);
+  pendingMove=null;
+}
+
+// ── submit nuevo ──
+function submitNuevo(){
+  highlightId='lucianueva';
+  COLS[0].leads.unshift({ id:'lucianueva', n:'Lucía Nueva███', op:ADRIAN, valor:'S/ 5k', canal:'WhatsApp', score:20, temp:'cold', sla:'recién', slaC:'green', sigs:[], act:'creaste el lead · recién', by:'🙋' });
+  mode='board'; boardLayout='kanban'; openLeadId=null; render(); valReset();
+  toast('✅ Lead creado · redirigido al Tablero, resaltado en Interesado');
+  setTimeout(()=>{ highlightId=null; if(mode==='board') render(); }, 3600);
+}
+
+// ── toast ──
+function toast(msg, kind){
+  const col = kind==='warn' ? '#f59e0b' : 'hsl(var(--primary))';
+  document.getElementById('toast').innerHTML = `<div class="fixed bottom-4 right-4 z-[110] rounded-md border border-border bg-card shadow-lg px-4 py-3 text-xs max-w-xs pop" style="border-left:3px solid ${col}">${msg}</div>`;
+  setTimeout(()=>{ document.getElementById('toast').innerHTML=''; }, 3400);
+}
+
+// ── Valeria reacciones ──
+function valContext(){
+  const wrap=document.getElementById('valMsgs');
+  if(document.getElementById('val-ctx')){ wrap.scrollTop=wrap.scrollHeight; return; }
+  const el=document.createElement('div'); el.id='val-ctx'; el.className='flex gap-2 pop';
+  el.innerHTML = `<div class="h-6 w-6 shrink-0 rounded-full val-grad text-white flex items-center justify-center text-[10px] font-semibold">V</div>
+    <div class="rounded-md rounded-tl-none p-2.5 leading-relaxed border" style="border-color:hsl(var(--agent-adrian));background:hsl(var(--agent-adrian-soft))">
+      Abriste la página de <b>María G.</b> — score 48, tibia, preguntó precio pero no agendó. ¿Le ofrezco la <b>promo de blanqueamiento</b>?
+      <div class="flex flex-wrap gap-1.5 mt-2"><button class="rounded-md bg-primary text-primary-foreground px-2 py-1 text-[11px]">Sí, ofrécela</button><button class="rounded-md border border-border bg-card px-2 py-1 text-[11px]">🙋 Tomar control</button></div></div>`;
+  wrap.appendChild(el); wrap.scrollTop=wrap.scrollHeight;
+}
+function valOverride(name, toLabel, reason){
+  const wrap=document.getElementById('valMsgs'); valReset();
+  const el=document.createElement('div'); el.id='val-ctx'; el.className='flex gap-2 pop';
+  el.innerHTML = `<div class="h-6 w-6 shrink-0 rounded-full flex items-center justify-center text-[10px] font-semibold text-white" style="background:hsl(var(--agent-adrian))">A</div>
+    <div class="rounded-md rounded-tl-none p-2.5 leading-relaxed border" style="border-color:hsl(var(--agent-adrian));background:hsl(var(--agent-adrian-soft))">
+      <b style="color:hsl(var(--agent-adrian))">🤖 Adrián:</b> Anotado — moviste a <b>${name.split(' ')[0]}</b> a <b>${toLabel}</b> porque «${reason}». <b>No reinicio</b> la conversación: ajusto mi próximo mensaje con eso.</div>`;
+  wrap.appendChild(el); wrap.scrollTop=wrap.scrollHeight;
+}
+function valReset(){ const c=document.getElementById('val-ctx'); if(c) c.remove(); }
+
+render();
+</script>
+</body>
+</html>

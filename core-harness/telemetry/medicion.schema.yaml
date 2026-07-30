@@ -1,0 +1,75 @@
+# medicion.schema.yaml — contrato de TELEMETRÍA del pipeline SDD  ·  L0 · DOMINIO
+#
+# Una TRAZA = un run completo del pipeline SDD (un engagement, o un fixture-golden).
+# Un SPAN = la invocación de UN nodo del proceso (discovery → spec → diseño → delivery);
+# spans anidados = tool-calls, sub-agentes, retrieval del cerebro nichos/. Modelo OTel:
+# traza = árbol de spans (alineado a OpenTelemetry GenAI semantic conventions).
+#
+# La EMISIÓN (la instrumentación que produce estas instancias) se EMBEBE en el kit
+# (products/kit/core-harness/telemetry/) y ejecuta en el DATA-PLANE del cliente. El ANÁLISIS
+# es operador-only (control-plane), FUERA de este repo (Opción A — I-53/H-18). Por eso
+# `instancias_externas: true`: las trazas viven en el data-plane del cliente / infra del
+# operador, NUNCA en la fábrica (I-39: cero data de cliente).
+#
+# LA LLAVE (borde de egreso): sólo el ESTRATO SEGURO cruza el borde de la red del cliente
+# (tokens · scores · tamaños · hashes · ids); el ESTRATO SENSIBLE (prompts/outputs/contenido
+# del cliente) se queda local u opt-in por contrato. El campo `egreso` marca cada bloque.
+
+meta:
+  nombre: medicion
+  version: 1
+  capa: "L0 · dominio"
+  aplica_a: "<data-plane>/telemetry/*.otlp (trazas OTLP emitidas por el kit; data-plane cliente / infra operador)"
+  instancias_externas: true   # I-39/H-18: las trazas viven FUERA de la fábrica (data-plane cliente) → aplica_a es descriptivo
+  ssot: true
+  naturaleza: "telemetría emitida por el kit (OTel GenAI semconv); NO se genera — se captura en runtime"
+  render: "sin render en la fábrica — el ANÁLISIS (Pareto/TQR) corre en infra del operador, fuera del repo"
+
+enums:
+
+  # ---- estrato de egreso = LA LLAVE (Opción A): qué cruza el borde de la red del cliente ----
+  egreso:
+    seguro:   "métrica/score/tamaño/hash/id — egresa por default (sin contenido del cliente)"
+    sensible: "prompt/output/contenido — se queda local u opt-in por contrato (NO egresa por default)"
+
+  # ---- tipo de token (paridad con claude_code.token.usage + tarifa Claude por tipo) ----
+  token_tipo: [input, output, cache_read, cache_creation]
+
+# ---- la traza (un run del pipeline) ----
+traza:
+  id:       { tipo: str,  requerido: true }                   # trace_id (OTel)
+  pipeline: { tipo: str,  requerido: true }                   # qué pipeline SDD (discovery|delivery|…)
+  fixture:  { tipo: str,  requerido: false }                  # si es un run de eval: qué fixture-golden (→ eval.schema)
+  spans:    { tipo: list, requerido: true }                   # árbol de spans (cada item = span)
+
+# ---- el span (la invocación de UN nodo) ----
+span:
+  id:          { tipo: str, requerido: true }                 # span_id (OTel)
+  parent:      { tipo: str, requerido: false }                # parent_span_id (ausente = raíz)
+  nodo:        { tipo: str, requerido: true }                 # qué nodo SDD (discovery|spec|diseno-etapa|retrieval|…)
+  modelo:      { tipo: str, requerido: false }                # gen_ai.request.model
+  tokens:      { tipo: obj, requerido: true,  egreso: seguro }   # tokenomics {input,output,cache_read,cache_creation} (claude_code.token.usage)
+  costo:       { tipo: obj, requerido: false, egreso: seguro }   # costo derivado (token × tarifa por tipo)
+  manifest:    { tipo: obj, requerido: true,  egreso: seguro }   # context manifest (composición — ver abajo)
+  latencia_ms: { tipo: int, requerido: false, egreso: seguro }
+  prompt:      { tipo: str, requerido: false, egreso: sensible } # gen_ai.prompt — NO egresa por default
+  output:      { tipo: str, requerido: false, egreso: sensible } # gen_ai.completion — NO egresa por default
+  output_hash: { tipo: str, requerido: false, egreso: seguro }   # hash del output (regresión sin exponer contenido)
+
+# ---- context manifest — la COMPOSICIÓN del contexto inyectado (Context Payload Efficiency) ----
+# Instrumenta el ENSAMBLAJE, no sólo la inferencia: qué se cargó, de dónde, cuánto, cuánto cache-hit.
+# Es lo que habilita ablación ("este card de 800 tok ¿cambió el output?") SIN exponer contenido.
+manifest:
+  total_context_tokens: { tipo: int,  requerido: true,  egreso: seguro }
+  cache_hit_tokens:     { tipo: int,  requerido: false, egreso: seguro }   # cache_read / total = eficiencia de caché
+  system_prompt:        { tipo: obj,  requerido: false, egreso: seguro }   # {tokens, hash}
+  loaded_files:         { tipo: list, requerido: false, egreso: seguro }   # [{path, tokens, hash}]
+  retrieved_cards:      { tipo: list, requerido: false, egreso: seguro }   # [{id, tokens, confianza}] — del cerebro nichos/
+  upstream_outputs:     { tipo: list, requerido: false, egreso: seguro }   # [{from_nodo, tokens}] — propagación entre nodos
+
+# ---- invariantes (los hará cumplir el validador cuando se active el puerto evaluar_pipeline) ----
+invariantes:
+  - "ningún bloque `egreso: sensible` cruza el borde de egreso sin opt-in explícito (LA LLAVE — Opción A)"
+  - "span.tokens.* ≥ 0 · cache_hit_tokens ≤ total_context_tokens"
+  - "manifest.total_context_tokens ≈ Σ (system_prompt + loaded_files + retrieved_cards + upstream_outputs).tokens"
+  - "span.parent resuelve a otro span.id de la misma traza (o ausente = raíz)"

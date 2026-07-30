@@ -1,0 +1,32 @@
+---
+# Release schema (v2 cement 2026-05-27)
+# Doc: docs/process/release-protocol.md
+# Path canónico: vitalia/docs/product/releases/F8.yaml
+
+release_id: F8
+brand: vitalia
+name: "Tail · marketing extension + finanzas + low prio"
+description: "Tail · Lucas mercado + resultados (analytics deep) + Camila reputación + pricing decision + service stories low prio."
+status: planning
+target_date: null
+shipped_date: null
+order: 8
+created_at: 2026-05-27T18:25:23-05:00
+created_by: scripts/migrate_to_release_schema.py
+
+stories:
+  - vitalia-pricing-decision
+
+---
+
+# F8 · Tail · marketing extension + finanzas + low prio
+
+> Tail · Lucas mercado + resultados (analytics deep) + Camila reputación + pricing decision + service stories low prio.
+
+## Stories incluidas
+
+<!-- Auto-poblado durante migración Phase 3 desde checkpoints reales -->
+
+## Notas del release
+
+(libre · Chris escribe aquí contexto adicional · decisiones · gotchas)

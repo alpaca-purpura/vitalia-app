@@ -1,0 +1,148 @@
+---
+capability_id: vitalia-lucas-recommendation-tool
+module: agentic
+slug: lucas-recommendation-tool
+status: deprecated
+date_introduced: 2026-05-20
+story_introduced: vitalia-slice-1-fidelizacion
+package_version: 0.1.0
+package_path: vitalia/backend/src/modules/vitalia/agentic/lucas/tools/compute_re_engagement_recommendation.py
+license: proprietary
+
+# v3 cement 2026-05-27 · 4 dimensiones + dev_preview (ADR-vitalia-005)
+tech_module: agentic
+agent_owner: lucas
+functional_area: lucas.recomendaciones
+user_visible: true
+nature: extension-point
+ui_paradigm: slice-1-superseded  # T-3 reconcile 2026-05-29
+replaced_by_story: vitalia-fase2-lucas-lanzar  # T-3: story F2 que reconstruye esta cap
+
+user_facing_name: "Lucas · herramienta de recomendaciones de reactivación"
+user_facing_description: >
+  Herramienta agentic exclusiva de Lucas (Opus 4.7) que agrega patrones
+  de fidelización por clínica y etapa, y genera recomendaciones accionables
+  de reactivación (multi-sesión, seguimiento, mantenimiento, ausencia, NPS).
+  Los resultados son siempre datos agregados, nunca datos personales de
+  pacientes individuales. Alimenta el análisis diario de Lucas.
+
+dev_preview:
+  route: "/lucas/marketing"
+  how_to_navigate: "BE-only (extension-point) · ver via tests agentic eval + análisis diario Lucas cron."
+  main_component: null
+  api_endpoints: []
+  e2e_test: null
+  fixtures_required: []
+  storybook_url: null
+  loom_demo: null
+
+# Capability ledger v2 (cement 2026-05-27)
+created_in_story: vitalia-slice-1-fidelizacion   # v2 cement · mirror of story_introduced
+created_date: 2026-05-20   # v2 cement · mirror of date_introduced
+last_modified: 2026-05-29   # T-3 reconcile 2026-05-29
+parent_cap: null   # v2 cement · mirror of extends_capability
+derives_capabilities: []   # v2 cement · initial empty list
+
+# Capability ledger v2 (cement 2026-05-27)
+
+# Capability change log v2 (cement 2026-05-27)
+change_log:
+  - story_id: vitalia-slice-1-fidelizacion
+    date: 2026-05-20
+    type: new
+    summary: "Implementación inicial · migración legacy a schema v2"
+    merge_sha: null
+    status: done
+map_box: lucas
+
+---
+
+# vitalia-lucas-recommendation-tool
+
+`compute_re_engagement_recommendation` — Lucas agentic tool (R23 `production_code=true` AGENTIC → **Opus 4.7 EXCLUSIVE**). Composite ReAct-like pipeline que agrega patrones de fidelización per clinic+stage y produce recomendaciones accionables (multi_session, follow_up, maintenance, absence, nps). Output aggregate-only — NUNCA PHI per-patient en respuesta.
+
+Soporta Lucas Daily Analysis cron job + Lucas analysis state graph (LangGraph) — ver [[lucas-daily-analysis]] para orquestación pipeline completo. T-10 de Ola 1 fidelización.
+
+## Surface
+
+### Agentic tool (`vitalia/backend/src/modules/vitalia/agentic/lucas/tools/`)
+- **`compute_re_engagement_recommendation.py`** — LangChain `@tool` async. Inputs (Pydantic args_schema): `tenant_id`, `clinic_id`, `period_start`, `period_end`. Outputs aggregate-only:
+  ```json
+  {
+    "tenant_id": "<uuid>",
+    "clinic_id": "<uuid>",
+    "stage": "fidelizacion",
+    "recommendations": [
+      {"pattern": "multi_session|follow_up|maintenance|absence|nps", "priority": "high|medium|low", "action": "<accion espanol neutro>", "expected_impact_pct": 1-100, "rationale": "<por que>"}
+    ]
+  }
+  ```
+
+### Pipeline (3 steps, deterministic + 1 LLM call)
+1. **Tenant boundary check** — `ctx_tenant_id == input.tenant_id` (defensive guard, RaiseTenantMismatchError).
+2. **`LucasReEngagementService.run()`** (`application/services/lucas_re_engagement_service.py`):
+   - `aggregate_patterns()` — DB query via `stage_recommendation_repository` (dual filter tenant + clinic).
+   - `detect_clusters()` — Python deterministic (no LLM). Heurística por umbrales (ej: >40% pacientes con tratamiento incompleto → cluster multi_session).
+   - `generate_recommendations()` — 1 LLM call (Kimi vía LiteLLM proxy) + `sanitize_payload` defense-in-depth post-LLM.
+3. **Best-effort trace event emission** — NUNCA breaks tool turn (R23 resilience). Trace payload omits recommendation bodies (action/rationale); solo counts + period + clinic_id + status.
+
+### Application service (`vitalia/backend/src/modules/vitalia/agentic/lucas/application/services/`)
+- **`lucas_re_engagement_service.py`** — `LucasReEngagementService` (Opus 4.7 production code).
+- **`lucas_stage_recommendation_service.py`** — sibling para stage attribution.
+
+### Persistence (`vitalia/backend/src/modules/vitalia/agentic/lucas/infrastructure/repositories/`)
+- `stage_recommendation_repository.py` — dual filter tenant + clinic.
+
+### Prompt + workflow (`vitalia/backend/src/modules/vitalia/agentic/lucas/{prompts,workflows}/`)
+- `prompts/` — Lucas slot architecture (heredada de [[lucas-daily-analysis]])
+- `workflows/lucas_analysis_state.py` + `lucas_daily_analysis_graph.py` — LangGraph state + graph
+- `workflows/lucas_prompt_compiler.py` — compila slots con cache prefix
+
+## Test coverage
+
+- Unit tool (`vitalia/backend/tests/unit/modules/vitalia/agentic/lucas/tools/test_compute_re_engagement_recommendation.py`).
+- Application service unit (`tests/unit/modules/vitalia/agentic/lucas/application/services/test_lucas_re_engagement_service.py`).
+- Workflows + state: `tests/unit/modules/vitalia/agentic/lucas/workflows/test_lucas_analysis_state.py` + `test_lucas_prompt_compiler.py`.
+- Integration graph: `tests/integration/modules/vitalia/agentic/lucas/workflows/test_lucas_daily_analysis_graph.py`.
+- Smoke eval: `tests/agentic_evals/agentic/lucas/test_lucas_smoke.py`.
+- Sibling tools: `test_compute_attribution_matrix.py` + `test_compute_referrals_leaderboard.py` + `test_compute_stage_recommendation.py` (mismo Lucas namespace).
+
+## Dependencies
+
+- `vitalia/backend/src/modules/vitalia/fidelizacion/` — re_engagement_event_repository + treatment_plan_repository ([[adrian-reengagement-tool]] sibling data sources)
+- `vitalia/backend/src/modules/vitalia/crm/` — Patient + Conversation dual filter ([[crm-scaffold-slice-1]])
+- `core/luana-core-observability` — `sanitize_payload` ENGINE SSoT (NUNCA mirror per anti-duplication.md) + cost recorder + trace event emit
+- `core/luana-core-llm` — LiteLLM proxy router (Kimi alias for Lucas analysis LLM call)
+- `core/luana-core-sales-agent` — engine state base extended
+- `core/luana-core-extension-sdk` — EP-3 ToolDef registration
+
+## Scenarios live
+
+- Happy aggregate — clínica con 40% pacientes multi_session incompleto → tool detecta cluster + recomienda follow_up campaign con `expected_impact_pct: 35`.
+- Adversarial cross-tenant — request con `tenant_A` + `clinic_id` de tenant_B → 404 (dual filter enforced at repo layer).
+- Smoke eval: golden produce output schema válido + ningún PHI per-patient en payload.
+
+## KPIs
+
+- Tool execution latency p95: < 30s (1 LLM call + DB aggregates)
+- Cost budget per-clinic daily: Opus 4.7 × cron job once/day = configurado en `vitalia/config/brand.yaml`
+- Trace event success rate: 100% best-effort (failures NUNCA rompen turn)
+- Recommendation accuracy (manual review sample): target ≥ 70% actionable
+
+## Verification commands
+
+```bash
+WS=$(git rev-parse --show-toplevel)
+cd ${WS}/vitalia/backend && ${WS}/.venv/bin/pytest tests/unit/modules/vitalia/agentic/lucas/ -v
+cd ${WS}/vitalia/backend && ${WS}/.venv/bin/pytest tests/integration/modules/vitalia/agentic/lucas/ -v
+cd ${WS}/vitalia/backend && ${WS}/.venv/bin/pytest tests/agentic_evals/agentic/lucas/test_lucas_smoke.py -v
+```
+
+## Referencias
+
+- Spec: `vitalia/docs/archive/2026/stories/vitalia-slice-1-fidelizacion/01-spec-extract.md` § T-10
+- Arch agentic: `vitalia/docs/archive/2026/stories/vitalia-slice-1-fidelizacion/03-arch-agentic.md` § 2.2 + § 4.2 + § 7
+- Merge artifact: `vitalia/docs/archive/2026/stories/vitalia-slice-1-fidelizacion/07-merge.md` § 3
+- HIPAA-lite: `vitalia/.claude/rules/hipaa-lite.md` § aggregate-only outputs + sanitize_payload
+- R23 hard rule: `CLAUDE.md` § cost-routing — agentic production_code Opus 4.7 SIEMPRE
+- Sister caps: [[lucas-daily-analysis]] · [[adrian-reengagement-tool]] · [[medical-agentic-tools]] · [[state-overlay-langgraph]]

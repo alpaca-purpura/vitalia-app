@@ -1,0 +1,1 @@
+../../core-harness/rules/claude-md-overlay.md

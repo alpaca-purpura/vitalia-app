@@ -1,0 +1,162 @@
+# vitalia/docker-compose.dev.yml
+# Brand-specific services para Vitalia (salud y bienestar).
+# Siempre se usa combinado con el compose raiz:
+#   docker compose -f docker-compose.dev.yml -f vitalia/docker-compose.dev.yml up -d
+# O mas facil: make dev-vitalia
+# SSoT puertos/DB/etc: vitalia/config/brand.yaml::infra
+#
+# S-DOCKER-DEV-MULTIBRAND T-2 — 2026-05-15
+# Decisions: D2, D4, D5, D6
+
+name: luana-dev  # mismo name que raiz para compartir network/volumes
+
+services:
+  vitalia_backend_dev:
+    build:
+      context: .  # contexto = raiz monorepo (accede a core/ y vitalia/backend/)
+      dockerfile: vitalia/backend/Dockerfile
+      target: dev
+    restart: unless-stopped
+    env_file:
+      - path: vitalia/.env.dev  # gitignored; copiado desde vitalia/.env.dev.template
+        required: false  # compose config --quiet pasa aunque el archivo no exista aun
+    environment:
+      DATABASE_URL: "postgresql+asyncpg://postgres:password@luana_postgres_dev:5432/vitalia_dev"
+      REDIS_URL: "redis://luana_redis_dev:6379/1"
+      QDRANT_HOST: "luana_qdrant_dev"
+      QDRANT_COLLECTION_PREFIX: "vitalia_"
+      PORT: "8002"
+      # uv run desde /workspace/vitalia/backend (subproject sin workspace member) crearía
+      # su propio .venv local. Forzamos el venv workspace root donde sí están las deps
+      # runtime (uvicorn, sqlalchemy, asyncpg, alembic, luana_core_*).
+      UV_PROJECT_ENVIRONMENT: "/workspace/.venv"
+      # VITALIA_PHI_KEK viene del env_file (vitalia/.env.dev). NO redeclararla aquí:
+      # `environment:` pisa al env_file y "${VITALIA_PHI_KEK}" interpola del SHELL
+      # (vacío salvo export manual) → KEK vacío → 500 en todo endpoint PHI (bug 2026-06-11).
+    volumes:
+      - .:/workspace:rw  # bind mount monorepo completo (hot-reload)
+      # Named volume protege el venv del container en la ruta donde el Dockerfile lo crea
+      # (workspace root, NO en {brand}/backend/.venv). Docker populates the empty named volume
+      # from the image's /workspace/.venv on first start (built-in init behavior).
+      - vitalia_backend_venv:/workspace/.venv
+    ports:
+      - "127.0.0.1:8002:8002"
+    networks:
+      - luana_dev_net
+    depends_on:
+      luana_postgres_dev:
+        condition: service_healthy
+    command: >
+      sh -c "cd /workspace/vitalia/backend &&
+      uv run alembic upgrade head &&
+      uv run uvicorn src.main:app
+      --host 0.0.0.0
+      --port 8002
+      --proxy-headers
+      --forwarded-allow-ips '*'
+      --reload
+      --reload-dir /workspace/vitalia/backend/src
+      --reload-dir /workspace/core"
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  vitalia_frontend_dev:
+    build:
+      context: .
+      dockerfile: vitalia/frontend/Dockerfile
+      target: dev
+    restart: unless-stopped
+    env_file:
+      - path: vitalia/.env.dev
+        required: false
+    environment:
+      PORT: "3002"
+      NEXT_PUBLIC_API_URL: "http://127.0.0.1:8002"
+    volumes:
+      # Bind mount al path donde el Dockerfile pone WORKDIR + pnpm install (/app/vitalia/frontend),
+      # NO en /app raíz (eso sobrescribiría /app/node_modules + /app/pnpm-workspace.yaml del image).
+      - ./vitalia/frontend:/app/vitalia/frontend:rw
+      # ★ vitalia-cockpit-live-reconciliation T-1 (2026-05-29): montar core/ workspace para que el
+      # linking pnpm de @luana/* resuelva fresco (los paquetes @luana/* horneados en la imagen quedan
+      # stale al bump de versión, ej. @luana/hooks@0.2.0 → export use-store-hydration → 500 en :3002).
+      # Causa raíz: el container nunca montó core/, así futuros bumps rompían silenciosamente.
+      - ./core:/app/core:rw
+      # Anonymous volumes enmascaran node_modules host-only (symlinks pnpm) exponiendo los del image.
+      - /app/vitalia/frontend/node_modules
+      - /app/core/node_modules
+    ports:
+      - "127.0.0.1:3002:3002"
+    networks:
+      - luana_dev_net
+    deploy:
+      resources:
+        # HB-78 turbopack: vitalia's heavy /[tenantId] shell compile spikes RSS to
+        # ~4GB (JS heap + turbopack Rust/tokio native, which NODE_OPTIONS does NOT
+        # bound). The old 4G ceiling cgroup-OOM-killed next-server mid-compile →
+        # restart loop. 6G fits the transient spike; it settles to ~2GB once compiled.
+        limits:
+          memory: 6G
+
+  vitalia_admin_dev:
+    # Streamlit admin panel for vitalia — port 8502 (per 03-arch-be.md § 5)
+    # Password-gated (bcrypt). Requires VITALIA_ADMIN_PASSWORD env var.
+    # Run standalone: make dev-vitalia-admin
+    profiles: [admin]  # opt-in: make dev-vitalia-admin
+    build:
+      context: .
+      dockerfile: vitalia/backend/Dockerfile
+      target: dev
+    restart: unless-stopped
+    env_file:
+      - path: vitalia/.env.dev
+        required: false
+    environment:
+      STREAMLIT_SERVER_PORT: "8502"
+      STREAMLIT_SERVER_HEADLESS: "true"
+      STREAMLIT_BROWSER_GATHER_USAGE_STATS: "false"
+      PYTHONPATH: "/workspace/vitalia/backend/src"
+    command: >
+      bash -c "cd /workspace && .venv/bin/streamlit run
+      vitalia/backend/src/modules/vitalia/admin/app.py
+      --server.port 8502
+      --server.address 0.0.0.0
+      --server.headless true"
+    volumes:
+      - .:/workspace:rw
+      - vitalia_backend_venv:/workspace/.venv:ro
+    ports:
+      - "127.0.0.1:8502:8502"
+    depends_on:
+      - vitalia_backend_dev
+    networks:
+      - luana_dev_net
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  vitalia_cloudflared_dev:
+    image: cloudflare/cloudflared:latest
+    profiles: [tunnel]  # opt-in: make dev-vitalia-tunnel
+    restart: unless-stopped
+    # Locally-managed tunnel: usa dev-config.yml versionado + credentials.json gitignored.
+    # NO usar TUNNEL_TOKEN aqui (eso seria remotely-managed mode, mutuamente excluyente).
+    command: tunnel --config /etc/cloudflared/dev-config.yml --no-autoupdate run
+    volumes:
+      - ./vitalia/deploy/cloudflared/dev-config.yml:/etc/cloudflared/dev-config.yml:ro
+      - ./vitalia/deploy/cloudflared/.credentials/dev-tunnel.json:/etc/cloudflared/dev-tunnel.json:ro
+    depends_on:
+      - vitalia_backend_dev
+      - vitalia_frontend_dev
+    networks:
+      - luana_dev_net
+
+volumes:
+  vitalia_backend_venv:
+    name: vitalia_backend_venv
+  # vitalia_frontend_node_modules: removido (reemplazado por anonymous volume en el servicio,
+  # ver vitalia_frontend_dev.volumes — Docker maneja el lifecycle automáticamente)
+
+# NOTA: network luana_dev_net es definida en el compose raiz (docker-compose.dev.yml).

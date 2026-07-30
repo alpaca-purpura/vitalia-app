@@ -1,0 +1,35 @@
+---
+# Release schema (v2 cement 2026-05-27)
+# Doc: docs/process/release-protocol.md
+# Path canónico: vitalia/docs/product/releases/F2.yaml
+
+release_id: F2
+brand: vitalia
+name: "Migración progresiva · primer valor Valeria + Lisa"
+description: "Fase 2 inicial · primer valor end-to-end. F2-S1 valeria-agenda LIVE, F2-S7 lisa-marca LIVE. Sigue mateo-pacientes + adrián primer valor + onboarding-clinica + lisa-landing-public."
+status: in_progress
+target_date: null
+shipped_date: null
+order: 2
+created_at: 2026-05-27T18:25:23-05:00
+created_by: scripts/migrate_to_release_schema.py
+
+stories:
+  - vitalia-compliance-audit-rbac-gap
+  - vitalia-fase2-lisa-marca
+  - vitalia-fase2-valeria-agenda
+  - vitalia-fase2-mateo-pacientes
+  - vitalia-crm-phi-base-tables-migration   # done 2026-05-30 (PHI base tables + pgcrypto + commit-gap fix)
+---
+
+# F2 · Migración progresiva · primer valor Valeria + Lisa
+
+> Fase 2 inicial · primer valor end-to-end. F2-S1 valeria-agenda LIVE, F2-S7 lisa-marca LIVE. Sigue mateo-pacientes + adrián primer valor + onboarding-clinica + lisa-landing-public.
+
+## Stories incluidas
+
+<!-- Auto-poblado durante migración Phase 3 desde checkpoints reales -->
+
+## Notas del release
+
+(libre · Chris escribe aquí contexto adicional · decisiones · gotchas)

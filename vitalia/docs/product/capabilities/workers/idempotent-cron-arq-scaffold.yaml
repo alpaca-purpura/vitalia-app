@@ -1,0 +1,172 @@
+---
+capability_id: vitalia-idempotent-cron-arq-scaffold
+module: workers
+slug: idempotent-cron-arq-scaffold
+status: live
+date_introduced: 2026-05-18
+story_introduced: vitalia-slice-1-infra-cross-cutting
+package_version: 0.1.0
+package_path: vitalia/backend/src/modules/vitalia/_shared/workers
+license: proprietary
+
+# v3 cement 2026-05-27 · 4 dimensiones + dev_preview (ADR-vitalia-005)
+tech_module: workers
+agent_owner: seguridad-cumplimiento
+functional_area: seguridad-cumplimiento.scaffolding
+user_visible: false
+nature: scaffold
+ui_paradigm: infra-only  # T-3 reconcile 2026-05-29
+
+user_facing_name: "Scaffold de cron workers idempotentes"
+user_facing_description: >
+  Sistema de cron jobs idempotentes con Arq (Redis). El decorator idempotent_cron
+  envuelve trabajos asíncronos con deduplicación de 10 minutos, trazas OTel,
+  audit log estructurado y captura Sentry. Incluye once scaffolds de jobs
+  (seguimientos, recordatorios, NPS, retención audit log) que crecen con las
+  stories de cada agente.
+
+dev_preview:
+  route: null
+  how_to_navigate: "Infra scaffolding · no navegable directamente"
+  main_component: null
+  api_endpoints: []
+  e2e_test: null
+  fixtures_required: []
+  storybook_url: null
+  loom_demo: null
+
+# Capability ledger v2 (cement 2026-05-27)
+created_in_story: vitalia-slice-1-infra-cross-cutting   # v2 cement · mirror of story_introduced
+created_date: 2026-05-18   # v2 cement · mirror of date_introduced
+parent_cap: null   # v2 cement · mirror of extends_capability
+derives_capabilities: []   # v2 cement · initial empty list
+
+# Capability ledger v2 (cement 2026-05-27)
+
+# Capability change log v2 (cement 2026-05-27)
+change_log:
+  - story_id: vitalia-slice-1-infra-cross-cutting
+    date: 2026-05-18
+    type: new
+    summary: "Implementación inicial · migración legacy a schema v2"
+    merge_sha: null
+    status: done
+  - story_id: vitalia-stub-caps-scenario-backfill
+    date: 2026-05-30
+    type: extend
+    summary: "backfill scenario+e2e → verified-live (deployed-visible)"
+    scenarios_added: 2
+    status: done
+
+last_modified: 2026-05-30
+
+scenarios:
+  - id: cron-envelope-usado-en-todos-los-crons
+    name: "Arch fitness verifica que todos los cron jobs de Vitalia usan @cron_envelope del engine"
+    actor: sistema
+    status: live
+    given: "Los archivos workers/jobs/*.py de Vitalia contienen 11 funciones cron decoradas"
+    when: "Se corre test_cron_envelope_used.py que escanea decoradores y verifica que solo se usa @cron_envelope importado de luana_core_platform.workers.cron_envelope"
+    then: "Ninguna función cron usa decorator alternativo (@idempotent_cron, @cron_job, etc.); el ratchet KNOWN_LEGACY_CRONS no ha crecido; exit 0"
+    e2e_test: "vitalia/backend/tests/architecture/test_cron_envelope_used.py"
+    verification_method: pytest-backend-justified
+    story_spec_ref: "vitalia/docs/product/stories/vitalia-stub-caps-scenario-backfill/01-spec.md"
+    atomic_ref: null
+    added_in_story: vitalia-stub-caps-scenario-backfill
+    added_date: 2026-05-30
+  - id: arq-settings-declara-11-cron-jobs
+    name: "WorkerSettings ARQ declara 11 cron jobs con nombres explícitos y configuración válida"
+    actor: sistema
+    status: live
+    given: "vitalia/backend/src/modules/vitalia/_shared/workers/arq_settings.py existe con WorkerSettings"
+    when: "Se corre tests/workers/test_arq_settings.py que verifica la configuración ARQ"
+    then: "WorkerSettings declara 11 funciones + 11 cron_jobs con redis_settings, keep_result, max_jobs, health_check_interval; todas las cron() calls usan name= explícito; exit 0"
+    e2e_test: "vitalia/backend/tests/workers/test_arq_settings.py"
+    verification_method: pytest-backend-justified
+    story_spec_ref: "vitalia/docs/product/stories/vitalia-stub-caps-scenario-backfill/01-spec.md"
+    atomic_ref: null
+    added_in_story: vitalia-stub-caps-scenario-backfill
+    added_date: 2026-05-30
+map_box: seguridad-cumplimiento
+
+---
+
+# vitalia-idempotent-cron-arq-scaffold
+
+ARQ workers scaffold con `idempotent_cron` decorator que wraps engine `luana_core_idempotency.IdempotentStore` + OTel cron_span + structlog audit + Sentry capture/re-raise. 11 cron job scaffolds raise NotImplementedError (fail-loud, no silent no-op).
+
+## Surface
+
+- **`workers/base.py::idempotent_cron`** decorator — wraps async cron jobs con:
+  - Idempotency via `luana_core_idempotency.IdempotentStore` (TTL 600s = 10min dedup window per cron guard)
+  - OTel `cron_span` context manager (from T-infra-5)
+  - structlog audit trail (info-level antes/después execution + error capture)
+  - Sentry capture/re-raise para production alerting
+  - Soft-fail si Redis unavailable (via `_get_idem_store()` mockable function)
+- **`workers/arq_settings.py::WorkerSettings`** — 11 functions + 11 cron_jobs + `redis_settings` from env + `keep_result=3600` + `max_jobs=50` + `health_check_interval=30`. Todas las `arq.cron()` calls usan explicit `name=` (avoids default `cron:fn_name` prefix breaking test assertions)
+- **11 scaffold job files** (`workers/jobs/*.py`) — todos raise NotImplementedError con story citations:
+  - `followup_24h` (fidelizacion story)
+  - `reactivation_45d` (fidelizacion story)
+  - `maintenance_90d` (treatments story)
+  - `deposit_reminder_24h` (agenda story)
+  - `appointment_reminder_24h` (agenda story)
+  - `appointment_reminder_2h` (agenda story)
+  - `nps_request_24h` (fidelizacion story)
+  - `brand_studio_audit_30d` (marketing story)
+  - `lucas_weekly_recommendations` (copilot story)
+  - `channel_sync_state_15min` (inbox story)
+  - `audit_log_retention_sweep_monthly` (compliance — this story's enforcer)
+
+## Test coverage
+
+- 8 base decorator tests (`test_idempotent_cron.py`)
+- 9 arq_settings tests (`test_arq_settings.py`)
+- 55 parametrized job scaffold tests (`test_jobs_scaffolds.py` — verifies each raises NotImplementedError con story citation)
+- Total: 73 tests PASS
+
+## Dependencies
+
+- `luana-core-idempotency` (engine — IdempotentStore wrapped)
+- `vitalia/.../observability/cron_spans.py` (T-infra-5 — cron_span context manager)
+- `arq` (async Redis-backed job queue)
+- `redis` (graceful fallback if unavailable)
+
+## Scenarios live
+
+- Job invocation con misma idem key dentro 600s window → no-op + structlog log "duplicate cron invocation, skipping"
+- Job exception → Sentry capture + structlog error + re-raise (arq retries per policy)
+- Redis unavailable → `_get_idem_store()` returns SoftFailIdemStore (allows invocation, logs warning)
+- Sentry SDK absent → `_SentrySentinel` no-op fallback (no test failure)
+- arq invokes a job not-yet-implemented (NotImplementedError) → fail-loud con story citation visible en traceback
+
+## Cron schedule (declarative, env-configurable)
+
+```yaml
+followup_24h:                 "0 9 * * *"      # daily 9am
+reactivation_45d:             "0 10 * * 0"     # weekly Sun 10am
+maintenance_90d:              "0 11 1 * *"     # monthly 1st 11am
+deposit_reminder_24h:         "0 8 * * *"      # daily 8am
+appointment_reminder_24h:     "0 7 * * *"      # daily 7am
+appointment_reminder_2h:      "*/15 * * * *"   # every 15min (windowed lookup)
+nps_request_24h:              "0 12 * * *"     # daily 12pm
+brand_studio_audit_30d:       "0 0 1 * *"      # monthly 1st midnight
+lucas_weekly_recommendations: "0 9 * * 1"      # Monday 9am
+channel_sync_state_15min:     "*/15 * * * *"   # every 15min
+audit_log_retention_sweep_monthly: "0 1 1 * *" # monthly 1st 1am
+```
+
+## Promotion candidate (cross-brand)
+
+Status: **candidate** (ratificado /pm-vitalia 2026-05-18 — ping /pm-luana pending)
+
+Razón: TODAS las brands eventualmente tendrán cron jobs. Wrapping `IdempotentStore` con OTel + Sentry + structlog es pattern repetible. Lift candidate a:
+- Nuevo package `core/luana-core-workers/` (greenfield), o
+- Extender `core/luana-core-platform/workers/` (incremental)
+
+Learning to write: `vitalia/docs/learnings/2026-05-18-idempotent-cron-decorator.md` con `promotable: candidate`.
+
+## Referencias
+
+- Engine import: `core/luana-core-idempotency/src/luana_core_idempotency/`
+- Observability consumer: [[otel-sentry-graceful-degradation]]
+- HIPAA-lite audit retention sweep (job `audit_log_retention_sweep_monthly`): [[hipaa-lite-defensive-stack]]

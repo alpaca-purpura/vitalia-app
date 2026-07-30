@@ -1,0 +1,72 @@
+# vitalia/deploy/Dockerfile.admin
+# Vitalia Admin Streamlit — super-admin panel (tenants + usuarios pages).
+#
+# Scope: 2 pages only (tenants, usuarios) — D2 ratified.
+# Auth: bcrypt env-var VITALIA_ADMIN_PASSWORD_HASH — D8 ratified.
+# Deploy: container K8s separado (not same pod FE+BE) — D7 ratified.
+#
+# Build:
+#   docker build -f vitalia/deploy/Dockerfile.admin \
+#     -t ghcr.io/alpacapurpura/vitalia-admin:latest \
+#     vitalia/backend/
+#
+# Run locally (for development):
+#   docker run --env-file vitalia/.env.dev \
+#     -p 8501:8501 \
+#     ghcr.io/alpacapurpura/vitalia-admin:latest
+#
+# Arch ref: vitalia-auth-base-functional T-5 D7 — admin container separado
+
+FROM python:3.12-slim
+
+# --- Security: non-root user ---
+RUN groupadd --gid 1001 vitalia && \
+    useradd --uid 1001 --gid vitalia --shell /bin/bash --create-home vitalia
+
+# --- System deps (minimal) ---
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        curl \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# --- Python deps ---
+# Pinned for reproducibility. Streamlit + passlib (bcrypt admin auth) +
+# clerk-backend-api (user creation via Clerk API) + SQLAlchemy async (DB ops)
+COPY pyproject.toml ./
+
+RUN pip install --no-cache-dir \
+        streamlit==1.43.2 \
+        passlib[bcrypt]==1.7.4 \
+        clerk-backend-api==1.4.0 \
+        sqlalchemy[asyncio]==2.0.30 \
+        asyncpg==0.29.0 \
+        structlog==24.4.0 \
+        pydantic==2.7.4
+
+# --- Application code ---
+# Copy only the admin module + shared deps (not full backend to keep image small)
+COPY src/ ./src/
+
+# --- Non-root user ---
+USER vitalia
+
+# Streamlit port
+EXPOSE 8501
+
+# --- Health check for Kubernetes liveness probe ---
+# Streamlit has a native /healthz endpoint on its server port.
+HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
+    CMD curl -fsS http://localhost:8501/healthz || exit 1
+
+# --- Entrypoint ---
+# Per admin-panel.md: app.py is the single entry point with st.set_page_config.
+# --server.headless=true prevents browser auto-open.
+# --server.enableCORS=false: ingress handles CORS at gateway level.
+CMD ["streamlit", "run", \
+     "src/modules/vitalia/admin/app.py", \
+     "--server.port=8501", \
+     "--server.address=0.0.0.0", \
+     "--server.headless=true", \
+     "--server.enableCORS=false", \
+     "--server.enableXsrfProtection=true"]

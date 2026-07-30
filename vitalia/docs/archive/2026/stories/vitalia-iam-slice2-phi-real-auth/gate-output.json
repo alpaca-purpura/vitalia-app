@@ -1,0 +1,49 @@
+{
+  "schema_version": "1.0",
+  "pr_folder": "vitalia/docs/product/stories/vitalia-iam-slice2-phi-real-auth/",
+  "ticket": null,
+  "iter": 1,
+  "command": "cd vitalia/backend && pytest tests/integration/test_phi_real_auth.py tests/architecture/test_auth_stub_env_gate.py tests/modules/vitalia/inbox/api/ -v && ruff check src/modules/vitalia/{iam,crm,marketing,inbox}/ && ruff format --check && pytest tests/architecture/ -x -q",
+  "command_alias": "test-vitalia (BE backend full suite)",
+  "started_at": "2026-05-30T00:00:00Z",
+  "finished_at": "2026-05-30T00:02:00Z",
+  "duration_ms": 120000,
+  "exit_code": 0,
+  "raw_log_path": "/home/chalreme/Proyectos/luana-vitalia/vitalia/docs/product/stories/vitalia-iam-slice2-phi-real-auth/gate-logs/iter-1-test-backend-2026-05-30T000000Z.log",
+  "gates": [
+    {
+      "name": "pytest-integration-and-modules",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": [],
+      "details": "53 tests passed (test_phi_real_auth.py + test_auth_stub_env_gate.py + inbox API router tests)"
+    },
+    {
+      "name": "ruff-lint",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": [],
+      "details": "All checks passed across vitalia/{iam,crm,marketing,inbox}/ modules"
+    },
+    {
+      "name": "ruff-format-check",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": [],
+      "details": "105 files already formatted (no changes needed)"
+    },
+    {
+      "name": "arch-fitness",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": [],
+      "details": "277 architecture tests passed; DDD boundaries, tenant isolation (dual filter), PHI audit log, response_model validation all verified"
+    }
+  ],
+  "overall": {
+    "any_fail": false,
+    "fail_gate_names": [],
+    "summary": "ALL GATES PASSED: 53 integration/module tests + 277 arch-fitness + ruff clean"
+  },
+  "notes": "Backend test-vitalia gate PASSED. Scope: IAM Slice 2 PHI real auth (decoder/resolver + crm/marketing/inbox repos-wire). PHI dual-tenant+clinic filter verified in arch tests. Inbox module tests (routers, cross-tenant denial, auth stub gate) green. Ready for auditor phase."
+}

@@ -1,0 +1,15 @@
+{
+  "story": "vitalia-shell-dual-mount-a11y-fix",
+  "brand": "vitalia",
+  "surface": "frontend",
+  "command": "test-frontend (scoped: shell-organism + changed files)",
+  "generated_at": "2026-06-01T11:55:00-05:00",
+  "generated_by": "/auditor orchestrator (direct, focused bugfix)",
+  "gates": {
+    "tsc_noemit": { "status": "pass", "exit": 0 },
+    "eslint_changed": { "status": "pass", "exit": 0, "files": ["src/components/shared/shell-organism/ShellOrganismLayoutClient.tsx", "e2e/regression/vitalia-shell-dual-mount-a11y-fix/single-slot-live.spec.ts"] },
+    "vitest_shell_organism": { "status": "pass", "exit": 0, "test_files": 31, "tests": 501 },
+    "playwright_live_verify": { "status": "pass", "exit": 0, "spec": "e2e/regression/vitalia-shell-dual-mount-a11y-fix/single-slot-live.spec.ts", "passed": 6, "note": "live against real stack, no backend mocks; setup(2)+live(4)" }
+  },
+  "overall": { "any_fail": false }
+}

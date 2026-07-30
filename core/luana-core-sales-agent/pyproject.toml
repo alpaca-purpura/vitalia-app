@@ -1,0 +1,70 @@
+[project]
+name = "luana-core-sales-agent"
+version = "0.2.0"
+requires-python = ">=3.12"
+dependencies = [
+    "pydantic>=2.0",
+    "sqlalchemy>=2.0",
+    "fastapi>=0.115",
+    "structlog>=24.0",
+    "httpx>=0.27",
+    "langgraph>=0.2",              # StateGraph supervisor specialist routing
+    "langchain-core>=0.3",
+    "langchain-openai>=0.2",       # for OpenAI-protocol providers
+    "arq>=0.26",                   # workers (follow_up_engine, appointment_reminder, verify_pending_*)
+    "jinja2>=3.1",                 # prompts templates (specialist_*, supervisor_routing.j2)
+    "tiktoken>=0.7",               # token counter
+    "litellm>=1.40",
+    "fastembed==0.5.1",            # T-12 batch 4 — semantic_router.py local embeddings. PINNED (ESC-16 2026-06-22): >=0.2.0 floated to 0.8.0 whose ONNX layout drops model_optimized.onnx → NoSuchFile. 0.5.1 ships the expected layout for paraphrase-multilingual-MiniLM-L12-v2.
+    "luana-core-platform",
+    "luana-core-iam",
+    "luana-core-observability",
+    "luana-core-llm",
+    "luana-core-channels",
+    "luana-core-events",
+    "luana-core-idempotency",
+    "luana-core-billing",
+    "luana-core-compliance",
+    "luana-core-extraction",
+    "luana-core-brand-studio",     # D-T3 BrandVoicePort consumer (T-11/T-12 thread)
+    "luana-core-offer-studio",
+    "luana-core-crm",              # LeadModel SQLA mapper resolution
+    "luana-core-copilot",          # for copilot_provider/provider.py subclass (T-15)
+]
+
+[project.entry-points."nicolify.copilot_providers"]
+sales_agent = "luana_core_sales_agent.copilot_provider:provider"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/luana_core_sales_agent"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+asyncio_mode = "auto"
+
+# Story 7 T-8+ — ruff per-file-ignores for lifted AISALESHT artifacts.
+# Tests inherit a permissive AISALESHT pattern: forward-reference imports
+# placed mid-file for cycle-avoidance, ambiguous variable names `l` in
+# comprehensions over labels lists, long lines in mock fixtures, etc.
+# These tolerances match AISALESHT's `[tool.ruff.lint.per-file-ignores]`
+# pattern. When the workspace-level ruff config (luana-platform/pyproject.toml)
+# is upgraded to include more rules, this block lifts those overrides
+# back to workspace level.
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = [
+    "E402",    # module-level imports after env setup or markers
+    "E501",    # long mock patch targets / fixture strings / anchor docs
+    "E741",    # `l` in comprehensions over `labels` lists is idiomatic
+]
+# Story 7 T-9 — forward-reference imports below function definitions
+# (deliberate AISALESHT pattern in tools.py to break circular deps
+# between sales agents subgraph and tools/{payment,scheduling}/registry).
+"src/luana_core_sales_agent/application/agents/sales/tools.py" = ["E402"]
+# Story 7 T-10 — forward-reference re-export aliases below class definitions
+# (deliberate AISALESHT pattern in payment/providers.py to expose
+# PaymentWebhookEvent type for tests via canonical webhook_providers.py).
+"src/luana_core_sales_agent/application/tools/payment/providers.py" = ["E402"]

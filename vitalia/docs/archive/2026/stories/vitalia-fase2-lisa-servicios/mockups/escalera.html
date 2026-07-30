@@ -1,0 +1,125 @@
+<!--
+  Mockup vitalia-fase2-lisa-servicios · sub-tab Servicios → vista Escalera de valor
+  Shell wrapper VERBATIM de lisa-marca v2.1. Peldaños FIJOS + autoexplicativo.
+  Cambio Chris 2026-06-06: rungs fijos, sin drawer de override; cada peldaño explica
+  qué va ahí + ejemplos si está vacío. Drag = mover servicio de peldaño.
+-->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Servicios · Escalera — shell</title>
+<link rel="stylesheet" href="_shared.css" />
+</head>
+<body>
+<div class="shell-root">
+
+  <header class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-logo"><div class="topbar-logo-mark">V</div><span>Vitalia</span></div>
+      <span class="topbar-breadcrumb">› Lisa · Servicios · Escalera</span>
+    </div>
+    <div class="topbar-right">
+      <div class="splitter-control"><button class="splitter-btn" data-state="chat-collapsed">◧</button><button class="splitter-btn" data-state="chat-narrow">◨</button><button class="splitter-btn" data-state="50-50" data-active="true">⬓</button></div>
+      <button class="topbar-icon-btn" id="theme-toggle" title="Tema">🌓</button>
+      <button class="tenant-chip"><span class="tenant-chip-avatar">SP</span><span>Sonrisa Plena</span><span style="color:hsl(var(--muted-foreground));font-size:.625rem;">▾</span></button>
+      <div class="avatar bg-agent-valeria" style="width:28px;height:28px;font-size:.6875rem;">CL</div>
+    </div>
+  </header>
+
+  <div class="shell-body" data-splitter-state="50-50" id="shell-body">
+
+    <aside class="chat-side">
+      <div class="chat-rail-only"><div class="rail-btn active">💬</div><div class="rail-btn">📜</div><div class="rail-btn">＋</div></div>
+      <div class="chat-content">
+        <header class="chat-header"><div class="chat-avatar-wrap"><div class="chat-avatar">V</div><span class="chat-status-dot"></span></div><div class="chat-meta"><span class="chat-name">Valeria</span><span class="chat-role">En línea · Tu secretaria virtual</span></div><span class="chat-mode-pill">🤖 Modo agente</span></header>
+        <div class="chat-history-strip">📜 Hoy 09:10 · Adrián cerró a Sofía Mendoza · Ayer 18:00 · Confirmación Carlos Ramos</div>
+        <div class="chat-messages">
+          <div class="msg-row" data-role="bot"><div class="msg-bubble">La escalera ordena tus servicios por su rol en el recorrido del paciente. Te faltan servicios en <strong>Premium</strong> y <strong>Plan</strong> — abajo te dejo ejemplos de qué podrías crear ahí.</div><span class="msg-time">Valeria · 09:13</span></div>
+        </div>
+        <footer class="chat-composer"><div class="composer-row"><div class="composer-adornos"><button class="composer-adorno-btn">📎</button><button class="composer-adorno-btn">🎙️</button><button class="composer-adorno-btn">⚡</button></div><textarea class="composer-textarea" rows="1" placeholder="Escribe a Valeria…"></textarea><button class="composer-send">Enviar</button></div><p class="composer-hint"><span class="kbd">Cmd</span> + <span class="kbd">K</span> enfoca el composer.</p></footer>
+      </div>
+    </aside>
+
+    <main class="panel-side">
+      <nav class="ribbon" aria-label="Agentes">
+        <button class="ribbon-tab" data-active="true" data-color="lisa"><span class="ribbon-tab-avatar bg-agent-lisa" data-color="lisa">L</span><span>Lisa <span style="font-size:.625rem;color:hsl(var(--muted-foreground));font-weight:400;">· Servicios</span></span></button>
+        <button class="ribbon-tab" data-color="lucas"><span class="ribbon-tab-avatar bg-agent-lucas" data-color="lucas">Lc</span><span>Lucas</span></button>
+        <button class="ribbon-tab" data-color="adrian"><span class="ribbon-tab-avatar bg-agent-adrian" data-color="adrian">A</span><span>Adrián</span></button>
+        <button class="ribbon-tab" data-color="valeria"><span class="ribbon-tab-avatar bg-agent-valeria" data-color="valeria">V</span><span>Valeria</span></button>
+        <button class="ribbon-tab" data-color="camila"><span class="ribbon-tab-avatar bg-agent-camila" data-color="camila">Ca</span><span>Camila</span></button>
+        <button class="ribbon-tab" data-color="config"><span class="ribbon-tab-avatar" data-color="config" style="background:hsl(var(--muted));color:hsl(var(--muted-foreground));">⚙</span><span>Configurar</span></button>
+      </nav>
+      <nav class="subtabs-bar">
+        <button class="subtab-btn" data-color="lisa">Marca</button>
+        <button class="subtab-btn" data-color="lisa">Especialistas</button>
+        <button class="subtab-btn" data-active="true" data-color="lisa">Servicios</button>
+        <button class="subtab-btn" data-color="lisa">Compliance</button>
+      </nav>
+      <nav class="subsubtabs-bar">
+        <button class="subsubtab-btn" onclick="location.href='catalogo.html'">🗂️ Catálogo</button>
+        <button class="subsubtab-btn" data-active="true">📈 Escalera de valor</button>
+      </nav>
+
+      <div class="panel-content">
+        <div class="panel-inner">
+          <div class="section-header">
+            <div>
+              <h1 class="section-title">Escalera de valor</h1>
+              <p class="section-subtitle">Tus servicios ordenados por su rol en el recorrido del paciente: del primer contacto gratis al tratamiento de mayor valor. Arrastra un servicio para cambiarlo de peldaño.</p>
+            </div>
+            <button class="btn btn-primary" onclick="location.href='nuevo-servicio.html'">+ Nuevo servicio</button>
+          </div>
+
+          <div class="ladder">
+            <!-- 1 · fila full-width arriba (★ Chris 2026-06-12) -->
+            <div class="rung-col rung-row">
+              <div class="rung-head"><span class="rung-num">PELDAÑO 1</span><span class="rung-badge rung-magnet">Gancho gratuito</span><span class="rung-explain">Capta. Algo gratis que abre la conversación (no vende todavía).</span></div>
+              <div class="lad-card" style="border-left:3px solid hsl(var(--rung-magnet));" onclick="location.href='servicio-workspace.html'"><span>Evaluación inicial</span><span class="lad-price text-agent-lisa">Gratis</span></div>
+              <div class="rung-create" onclick="location.href='nuevo-servicio.html'">+ Crear aquí</div>
+            </div>
+            <!-- 2 -->
+            <div class="rung-col">
+              <div class="rung-head"><span class="rung-num">PELDAÑO 2</span><span class="rung-badge rung-primera">Primera visita</span><span class="rung-explain">Convierte. Primer "sí" de bajo riesgo y precio accesible.</span></div>
+              <div class="lad-card" style="border-left:3px solid hsl(var(--rung-primera));" onclick="location.href='servicio-workspace.html'"><span>Limpieza dental</span><span class="lad-price">S/ 120</span></div>
+              <div class="rung-create" onclick="location.href='nuevo-servicio.html'">+ Crear aquí</div>
+            </div>
+            <!-- 3 -->
+            <div class="rung-col">
+              <div class="rung-head"><span class="rung-num">PELDAÑO 3</span><span class="rung-badge rung-principal">Tratamiento principal</span><span class="rung-explain">El grueso de tu ingreso. La transformación central.</span></div>
+              <div class="lad-card" style="border-left:3px solid hsl(var(--rung-principal));" onclick="location.href='servicio-workspace.html'"><span>Diseño de sonrisa</span><span class="lad-price">desde S/ 4,500</span></div>
+              <div class="lad-card" style="border-left:3px solid hsl(var(--rung-principal));" onclick="location.href='servicio-workspace.html'"><span>Implante dental</span><span class="lad-price">desde S/ 2,400</span></div>
+              <div class="lad-card" style="border-left:3px solid hsl(var(--rung-principal));" onclick="location.href='servicio-workspace.html'"><span>Botox facial ↻</span><span class="lad-price">desde S/ 950</span></div>
+              <div class="rung-create" onclick="location.href='nuevo-servicio.html'">+ Crear aquí</div>
+            </div>
+            <!-- 4 VACÍO autoexplicativo -->
+            <div class="rung-col" data-empty="true">
+              <div class="rung-head"><span class="rung-num">PELDAÑO 4</span><span class="rung-badge rung-premium">Premium</span><span class="rung-explain">Sube el ticket. Tu opción de mayor valor para quien quiere lo mejor.</span></div>
+              <div class="rung-empty-hint">Aún no tienes un servicio premium. En la <strong>biblioteca estándar</strong> puedes encontrar:<br>• Carillas de porcelana (ficha completa incluida)<br>• Ortodoncia invisible premium<br>• Rehabilitación oral completa</div>
+              <div class="rung-create" onclick="location.href='nuevo-servicio.html'">+ Crear desde la biblioteca</div>
+            </div>
+            <!-- 5 VACÍO autoexplicativo · fila full-width abajo (★ Chris 2026-06-12) -->
+            <div class="rung-col rung-row" data-empty="true">
+              <div class="rung-head"><span class="rung-num">PELDAÑO 5</span><span class="rung-badge rung-plan">Plan / convenio</span><span class="rung-explain">Recurrente o B2B. Mantiene al paciente en el tiempo.</span></div>
+              <div class="rung-empty-hint">Aún no tienes un plan. En la <strong>biblioteca estándar</strong> puedes encontrar:<br>• Plan de mantenimiento anual (incluye ficha de riesgos y cuidados)<br>• Membresía familiar<br>• Convenio con empresa</div>
+              <div class="rung-create" onclick="location.href='nuevo-servicio.html'">+ Crear desde la biblioteca</div>
+            </div>
+          </div>
+
+          <p class="hint" style="margin-top:1rem;">💡 No tienes que llenar todos los peldaños. Pero un recorrido completo (gancho → primera visita → tratamiento → premium → plan) hace que Adrián tenga siempre algo para ofrecer en cada momento de la conversación.</p>
+        </div>
+      </div>
+
+      <div class="footer-meta"><span>📈 3 de 5 peldaños con servicios · Adrián ofrece según el momento del paciente</span><span>Última edición: <strong>Dra. Camila Llerena</strong></span></div>
+    </main>
+  </div>
+</div>
+
+<script>
+  const shellBody = document.getElementById('shell-body');
+  document.querySelectorAll('.splitter-btn').forEach(btn => btn.addEventListener('click', () => { document.querySelectorAll('.splitter-btn').forEach(b => b.removeAttribute('data-active')); btn.setAttribute('data-active','true'); shellBody.setAttribute('data-splitter-state', btn.dataset.state); }));
+  document.getElementById('theme-toggle').addEventListener('click', () => document.documentElement.classList.toggle('dark'));
+</script>
+</body>
+</html>

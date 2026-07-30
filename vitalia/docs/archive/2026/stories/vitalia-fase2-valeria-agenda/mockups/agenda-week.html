@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>F2-S1 · WeekCalendar (default view) — Vitalia</title>
+<link rel="stylesheet" href="_shared.css">
+<style>
+  .agenda-shell {
+    background: var(--bg-app);
+    min-height: 100vh;
+  }
+  .agenda-header-row {
+    background: var(--bg-panel);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .agenda-filters-row {
+    background: var(--bg-panel);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 24px;
+  }
+  .agenda-grid-wrap {
+    padding: 16px 24px;
+  }
+  .week-grid {
+    display: grid;
+    grid-template-columns: 56px repeat(7, 1fr);
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    overflow: hidden;
+  }
+  .week-header-cell {
+    padding: 10px 8px;
+    text-align: center;
+    background: var(--bg-elevated);
+    border-bottom: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+  }
+  .week-header-cell:last-child { border-right: none; }
+  .week-header-cell.today {
+    background: var(--c-adrian-soft);
+  }
+  [data-theme="dark"] .week-header-cell.today { background: rgba(1, 178, 248, 0.15); }
+  .week-day-name { font-size: 10px; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.05em; }
+  .week-day-num { font-size: 18px; font-weight: 700; color: var(--text-primary); }
+  .week-day-num.today { color: var(--c-adrian); }
+  .week-time-label {
+    padding: 10px 6px 6px 6px;
+    font-size: 10px;
+    color: var(--text-muted);
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    text-align: right;
+    background: var(--bg-elevated);
+  }
+  .week-cell {
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    min-height: 56px;
+    padding: 3px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .week-cell:nth-child(8n+1) { display: none; } /* nope */
+  .week-cell:last-child { border-right: none; }
+  .week-cell.today-col { background: rgba(1, 178, 248, 0.03); }
+  [data-theme="dark"] .week-cell.today-col { background: rgba(1, 178, 248, 0.08); }
+  .summary-footer {
+    margin-top: 16px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    flex-wrap: wrap;
+    font-size: 12px;
+  }
+  .summary-metric { display: flex; align-items: center; gap: 8px; }
+  .summary-metric strong { font-size: 16px; }
+</style>
+</head>
+<body>
+
+<!-- Theme toggle floating -->
+<button class="theme-btn" onclick="toggleTheme()" style="position:fixed;top:16px;right:16px;z-index:100">🌓 Tema</button>
+
+<div class="agenda-shell">
+
+  <!-- TopBar simulado -->
+  <div class="shell-topbar">
+    <strong style="font-size:15px">🏥 Vitalia</strong>
+    <span class="muted">|</span>
+    <span class="secondary">Clínica Sonrisa <span class="muted">· Lima, PE</span></span>
+    <div style="flex:1"></div>
+    <span class="muted text-xs">valeria.assistant@sonrisa.pe</span>
+  </div>
+
+  <!-- Ribbon -->
+  <div class="shell-ribbon">
+    <div class="ribbon-tab"><span style="color:var(--c-lisa)">●</span> Lisa</div>
+    <div class="ribbon-tab"><span style="color:var(--c-adrian)">●</span> Adrián</div>
+    <div class="ribbon-tab"><span style="color:var(--c-camila)">●</span> Camila</div>
+    <div class="ribbon-tab"><span style="color:var(--c-lucas)">●</span> Lucas</div>
+    <div class="ribbon-tab active"><span style="color:var(--c-valeria)">●</span> Valeria</div>
+    <div class="ribbon-tab" style="margin-left:auto"><span class="muted">⚙</span></div>
+  </div>
+
+  <!-- SubTabs -->
+  <div class="shell-subtabs">
+    <div class="subtab-link active">Agenda</div>
+    <div class="subtab-link">Pacientes</div>
+    <div class="subtab-link">Mensajes</div>
+    <div class="subtab-link">Reportes</div>
+  </div>
+
+  <!-- Header row: title + view toggle + date + freshness -->
+  <div class="agenda-header-row">
+    <div class="flex items-center gap-4">
+      <span class="page-title" style="margin:0">Agenda</span>
+      <div class="freshness">
+        <span class="freshness-dot"></span>
+        Actualizado hace 12s
+      </div>
+      <button class="btn btn-ghost btn-sm" aria-label="Actualizar agenda ahora">🔄</button>
+    </div>
+    <div class="flex items-center gap-3">
+      <!-- View toggle -->
+      <div class="toggle-pill">
+        <div class="toggle-pill-option">Día</div>
+        <div class="toggle-pill-option active">Semana</div>
+        <div class="toggle-pill-option">Mes</div>
+      </div>
+      <!-- Date picker -->
+      <button class="btn btn-outline btn-sm">📅 24-30 May 2026</button>
+      <div class="divider-v"></div>
+      <!-- Crear cita -->
+      <button class="btn btn-primary">+ Crear cita ▾</button>
+    </div>
+  </div>
+
+  <!-- Chips preset filters -->
+  <div class="agenda-filters-row">
+    <div class="chip-row">
+      <span class="section-label" style="margin:0">Filtros rápidos:</span>
+      <button class="chip active">📅 Hoy</button>
+      <button class="chip">⏰ Por confirmar mañana</button>
+      <button class="chip">↩️ Re-agendar pendientes</button>
+      <button class="chip">🚫 No-shows del día</button>
+      <button class="chip">💰 Saldos pendientes</button>
+    </div>
+  </div>
+
+  <!-- Calendar grid -->
+  <div class="agenda-grid-wrap">
+    <div class="week-grid">
+      <!-- Header row: time + 7 days -->
+      <div class="week-header-cell" style="background:var(--bg-elevated)"></div>
+      <div class="week-header-cell">
+        <div class="week-day-name">Lun</div>
+        <div class="week-day-num">24</div>
+      </div>
+      <div class="week-header-cell">
+        <div class="week-day-name">Mar</div>
+        <div class="week-day-num">25</div>
+      </div>
+      <div class="week-header-cell today">
+        <div class="week-day-name">Mié</div>
+        <div class="week-day-num today">26</div>
+      </div>
+      <div class="week-header-cell">
+        <div class="week-day-name">Jue</div>
+        <div class="week-day-num">27</div>
+      </div>
+      <div class="week-header-cell">
+        <div class="week-day-name">Vie</div>
+        <div class="week-day-num">28</div>
+      </div>
+      <div class="week-header-cell">
+        <div class="week-day-name">Sáb</div>
+        <div class="week-day-num">29</div>
+      </div>
+      <div class="week-header-cell">
+        <div class="week-day-name">Dom</div>
+        <div class="week-day-num">30</div>
+      </div>
+
+      <!-- Row 09:00 -->
+      <div class="week-time-label">09:00</div>
+      <div class="week-cell">
+        <div class="agenda-slot paid">
+          <span class="slot-origin">👤</span>
+          <div class="slot-title">P. Hernández</div>
+          <div class="slot-meta">Limpieza · Dr. García</div>
+        </div>
+      </div>
+      <div class="week-cell"></div>
+      <div class="week-cell today-col">
+        <div class="agenda-slot deposit">
+          <span class="slot-origin">📞</span>
+          <div class="slot-title">M. Quispe</div>
+          <div class="slot-meta">Endodoncia · Dr. Ríos</div>
+        </div>
+      </div>
+      <div class="week-cell">
+        <div class="agenda-slot unpaid">
+          <span class="slot-origin">🤖</span>
+          <div class="slot-title">A. Torres</div>
+          <div class="slot-meta">Consulta · Dra. Vega</div>
+        </div>
+      </div>
+      <div class="week-cell"></div>
+      <div class="week-cell"></div>
+      <div class="week-cell"></div>
+
+      <!-- Row 10:00 -->
+      <div class="week-time-label">10:00</div>
+      <div class="week-cell"></div>
+      <div class="week-cell">
+        <div class="agenda-slot noshow">
+          <span class="slot-origin">👤</span>
+          <div class="slot-title">R. Silva</div>
+          <div class="slot-meta">No-show · Dr. García</div>
+        </div>
+      </div>
+      <div class="week-cell today-col">
+        <div class="agenda-slot paid">
+          <span class="slot-origin">👤</span>
+          <div class="slot-title">L. Mendoza</div>
+          <div class="slot-meta">Blanqueamiento · Dr. Ríos</div>
+        </div>
+      </div>
+      <div class="week-cell">
+        <div class="agenda-slot paid">
+          <span class="slot-origin">📞</span>
+          <div class="slot-title">C. Vargas</div>
+          <div class="slot-meta">Control · Dra. Vega</div>
+        </div>
+      </div>
+      <div class="week-cell">
+        <div class="agenda-slot deposit">
+          <span class="slot-origin">🤖</span>
+          <div class="slot-title">F. Rojas</div>
+          <div class="slot-meta">Ortodoncia · Dr. García</div>
+        </div>
+      </div>
+      <div class="week-cell"></div>
+      <div class="week-cell"></div>
+
+      <!-- Row 11:00 -->
+      <div class="week-time-label">11:00</div>
+      <div class="week-cell">
+        <div class="agenda-slot paid selected">
+          <span class="slot-origin">👤</span>
+          <div class="slot-title">J. Castro</div>
+          <div class="slot-meta">Limpieza · Dr. García</div>
+        </div>
+      </div>
+      <div class="week-cell">
+        <div class="agenda-slot deposit">
+          <span class="slot-origin">🤖</span>
+          <div class="slot-title">N. Paredes</div>
+          <div class="slot-meta">Endodoncia · Dr. Ríos</div>
+        </div>
+      </div>
+      <div class="week-cell today-col"></div>
+      <div class="week-cell">
+        <div class="agenda-slot paid">
+          <span class="slot-origin">👤</span>
+          <div class="slot-title">D. Flores</div>
+          <div class="slot-meta">Consulta · Dra. Vega</div>
+        </div>
+      </div>
+      <div class="week-cell"></div>
+      <div class="week-cell"></div>
+      <div class="week-cell"></div>
+
+      <!-- Row 12:00 -->
+      <div class="week-time-label">12:00</div>
+      <div class="week-cell">
+        <div class="agenda-slot paid">
+          <span class="slot-origin">📞</span>
+          <div class="slot-title">G. Ramírez</div>
+          <div class="slot-meta">Control · Dr. García</div>
+        </div>
+      </div>
+      <div class="week-cell"></div>
+      <div class="week-cell today-col">
+        <div class="agenda-slot unpaid">
+          <span class="slot-origin">👤</span>
+          <div class="slot-title">B. Suárez</div>
+          <div class="slot-meta">Limpieza · Dr. Ríos</div>
+        </div>
+      </div>
+      <div class="week-cell"></div>
+      <div class="week-cell">
+        <div class="agenda-slot paid">
+          <span class="slot-origin">🤖</span>
+          <div class="slot-title">H. Pérez</div>
+          <div class="slot-meta">Ortodoncia · Dra. Vega</div>
+        </div>
+      </div>
+      <div class="week-cell"></div>
+      <div class="week-cell"></div>
+
+      <!-- Row 13:00 (almuerzo, mostly vacío) -->
+      <div class="week-time-label">13:00</div>
+      <div class="week-cell"></div><div class="week-cell"></div><div class="week-cell today-col"></div><div class="week-cell"></div><div class="week-cell"></div><div class="week-cell"></div><div class="week-cell"></div>
+
+      <!-- Row 14:00 -->
+      <div class="week-time-label">14:00</div>
+      <div class="week-cell"></div>
+      <div class="week-cell">
+        <div class="agenda-slot paid">
+          <span class="slot-origin">👤</span>
+          <div class="slot-title">S. Aguilar</div>
+          <div class="slot-meta">Control · Dr. García</div>
+        </div>
+      </div>
+      <div class="week-cell today-col">
+        <div class="agenda-slot deposit">
+          <span class="slot-origin">📞</span>
+          <div class="slot-title">V. Cabrera</div>
+          <div class="slot-meta">Endodoncia · Dr. Ríos</div>
+        </div>
+      </div>
+      <div class="week-cell"></div>
+      <div class="week-cell"></div>
+      <div class="week-cell"></div>
+      <div class="week-cell"></div>
+
+      <!-- Row 15:00 -->
+      <div class="week-time-label">15:00</div>
+      <div class="week-cell"></div>
+      <div class="week-cell"></div>
+      <div class="week-cell today-col">
+        <div class="agenda-slot paid">
+          <span class="slot-origin">👤</span>
+          <div class="slot-title">E. Bermúdez</div>
+          <div class="slot-meta">Blanqueamiento · Dra. Vega</div>
+        </div>
+      </div>
+      <div class="week-cell">
+        <div class="agenda-slot noshow">
+          <span class="slot-origin">🤖</span>
+          <div class="slot-title">K. Salinas</div>
+          <div class="slot-meta">No-show · Dr. García</div>
+        </div>
+      </div>
+      <div class="week-cell"></div>
+      <div class="week-cell"></div>
+      <div class="week-cell"></div>
+    </div>
+
+    <!-- Footer summary (Adrián + Lucas) -->
+    <div class="summary-footer">
+      <div class="summary-metric">
+        <span class="status-pill success"></span>
+        <span class="muted">Pagados hoy:</span>
+        <strong>6</strong>
+      </div>
+      <div class="summary-metric">
+        <span class="status-pill warning"></span>
+        <span class="muted">Depósito parcial:</span>
+        <strong>3</strong>
+      </div>
+      <div class="summary-metric">
+        <span class="status-pill destructive"></span>
+        <span class="muted">Sin pago:</span>
+        <strong>2</strong>
+      </div>
+      <div class="summary-metric">
+        <span class="status-pill muted"></span>
+        <span class="muted">No-shows:</span>
+        <strong>2</strong>
+      </div>
+      <div style="flex:1"></div>
+      <div class="summary-metric">
+        <span class="muted">Ingresos día:</span>
+        <strong style="color:var(--c-success)">PEN 1.480</strong>
+      </div>
+      <div class="summary-metric">
+        <span class="muted">Saldo pendiente:</span>
+        <strong style="color:var(--c-warning)">PEN 320</strong>
+      </div>
+    </div>
+  </div>
+
+  <!-- Back to cockpit -->
+  <div style="text-align:center;padding:24px">
+    <a href="agenda-cockpit-grid.html" class="muted text-sm">← Volver al cockpit índice</a>
+  </div>
+
+</div>
+
+<script>
+function toggleTheme() {
+  const html = document.documentElement;
+  const current = html.getAttribute('data-theme');
+  html.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark');
+}
+
+// Demo: chips interaction
+document.querySelectorAll('.chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+  });
+});
+
+// Demo: slot selection
+document.querySelectorAll('.agenda-slot').forEach(slot => {
+  slot.addEventListener('click', () => {
+    document.querySelectorAll('.agenda-slot').forEach(s => s.classList.remove('selected'));
+    slot.classList.add('selected');
+  });
+});
+
+// Demo: view toggle
+document.querySelectorAll('.toggle-pill-option').forEach(opt => {
+  opt.addEventListener('click', () => {
+    document.querySelectorAll('.toggle-pill-option').forEach(o => o.classList.remove('active'));
+    opt.classList.add('active');
+  });
+});
+</script>
+
+</body>
+</html>

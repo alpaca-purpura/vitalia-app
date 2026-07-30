@@ -1,0 +1,137 @@
+# 06-tickets.yaml — copilot-chat-mountable (technical-story, approach C)
+# Engine refactor. NO FE, NO agentic. owner = builder-backend / workhorse (no R23 flagship).
+# DAG: T-1 → T-2 → {T-3, T-4} → T-5
+
+story_id: copilot-chat-mountable
+brand: platform
+story_type: technical-story
+semver:
+  - package: core/luana-core-platform
+    bump: minor
+  - package: core/luana-core-copilot
+    bump: minor
+
+tickets:
+  - id: T-1
+    title: "config.py lazy get_settings() + shim back-compat + database.py engine/redis lazy"
+    surface: BE
+    production_code: true
+    depends_on: []
+    blocks: [T-2]
+    description: >
+      core/luana-core-platform/core/config.py: agregar `@lru_cache get_settings()` + shim módulo-level
+      `__getattr__('settings')` deprecado (DeprecationWarning). core/.../core/database.py: diferir los 3
+      inits eager a module-load (async engine línea ~32, sync engine ~22, redis_client líneas 45-59) a
+      funciones `@lru_cache` (`get_async_engine`/`get_engine`/`get_redis_client`) que llaman get_settings()
+      dentro. rate_limit.py consume get_redis_client() (mantener graceful-degrade None si Redis caído).
+    owner_eligibility: [workhorse, flagship]
+    assignment:
+      primary_agent: builder-backend
+      model_preference: workhorse
+      must_load_skills:
+        - backend-expert
+        - .claude/rules/tdd-mandatory.md
+        - .claude/rules/anti-duplication.md
+        - .claude/rules/backend-ddd.md
+      forbidden_to_touch:
+        - "{brand}/frontend/**"
+        - "core/luana-core-*/src/**/{copilot,sales_agent}/**/{tools,workflows,personas,goldens}/**"  # agentic runtime
+        - "vitalia/** nicolify/** comunify/** lupulo/**"  # brands (boot-verify es T-5, no edición)
+      rationale: "Refactor BE mecánico-cuidadoso del root lazy. Sin agentic → workhorse."
+    acceptance:
+      validator_ids: [be_platform_lint, be_platform_arch, be_platform_unit, v_no_eager_module_settings]
+    verification_by_effect: "importar config.py + database.py NO instancia Settings ni engine/redis a module-load (test v_no_eager_module_settings RED→GREEN)"
+
+  - id: T-2
+    title: "Migrar el import-path transitivo de chat.py a get_settings() (driver: verificación-por-efecto)"
+    surface: BE
+    production_code: true
+    depends_on: [T-1]
+    blocks: [T-3, T-4]
+    description: >
+      Driver = test que importa luana_core_copilot.api.chat con SOLO env multibrand (monkeypatch borra
+      POSTGRES_*/WHATSAPP_*/QDRANT_URL, deja DATABASE_URL+LITELLM_*) y asserta NO ValidationError. RED al
+      inicio. Migrar módulo por módulo del import-path (context.py, rate_limit.py, iam/api/dependencies.py,
+      copilot.application.orchestrator.chat + lo que el test revele) de `from config import settings`
+      module-level → get_settings() dentro de función, hasta GREEN. El test nombra cada módulo que falte.
+    owner_eligibility: [workhorse, flagship]
+    assignment:
+      primary_agent: builder-backend
+      model_preference: workhorse
+      must_load_skills:
+        - backend-expert
+        - copilot-expert      # toca el import-path del orquestador copilot
+        - .claude/rules/tdd-mandatory.md
+      forbidden_to_touch:
+        - "{brand}/frontend/**"
+        - "vitalia/** nicolify/** comunify/** lupulo/**"
+      rationale: "Migración del hot-path guiada por test de efecto. copilot-expert por el orquestador."
+    acceptance:
+      validator_ids: [v_chat_import_multibrand_env, be_copilot_unit, be_iam_unit, be_platform_arch]
+    verification_by_effect: "import chat.py con env multibrand-only → sin ValidationError (RED→GREEN)"
+
+  - id: T-3
+    title: "chat.py contract finalize + bump copilot+platform minor + CHANGELOG + core-modules doc"
+    surface: BE
+    production_code: true
+    depends_on: [T-2]
+    blocks: [T-5]
+    description: >
+      Verificar/limpiar chat.py para exponer el router import-clean (sin imports module-level que arrastren
+      settings). Bump core/luana-core-platform + core/luana-core-copilot pyproject minor. CHANGELOG por
+      paquete. Documentar el contrato del router brand-mountable en docs/core-modules/luana-core-copilot.md.
+    owner_eligibility: [workhorse, flagship]
+    assignment:
+      primary_agent: builder-backend
+      model_preference: workhorse
+      must_load_skills: [backend-expert, copilot-expert]
+      forbidden_to_touch: ["{brand}/frontend/**", "vitalia/** nicolify/** comunify/** lupulo/**"]
+      rationale: "Cierre de contrato + semver + doc. Mecánico."
+    acceptance:
+      validator_ids: [be_copilot_lint, be_copilot_arch, v_changelog_bumped]
+
+  - id: T-4
+    title: "Completar approach C — migrar ~48 consumers off-path a get_settings() + deprecar shim"
+    surface: BE
+    production_code: true
+    depends_on: [T-2]
+    blocks: [T-5]
+    description: >
+      Migración mecánica de los consumers off-path restantes del global `settings` a get_settings()
+      (connections 13, copilot resto, sales-agent 5, assets 5, llm 3, campaigns 3, analytics 2, scheduling 2,
+      events 1, brand-studio 1, tenant-domains 1, iam/platform resto). End-state Chris: sin global mutable.
+      Al terminar, el shim queda deprecado (warning) — retirarlo es opcional/release siguiente.
+    owner_eligibility: [workhorse, flagship]
+    assignment:
+      primary_agent: builder-backend
+      model_preference: workhorse
+      must_load_skills: [backend-expert, .claude/rules/anti-duplication.md]
+      forbidden_to_touch:
+        - "{brand}/frontend/**"
+        - "core/luana-core-*/src/**/{copilot,sales_agent}/**/{tools,workflows,personas,goldens}/**"
+        - "vitalia/** nicolify/** comunify/** lupulo/**"
+      rationale: "Migración mecánica masiva (48 files). Shim como red. Sin agentic → workhorse."
+    acceptance:
+      validator_ids: [v_no_global_settings_import, be_all_touched_pkgs_lint, be_all_touched_pkgs_unit]
+    notes: "Con el shim, T-4 NO bloquea el unblock de comunify (T-1+T-2+T-3 ya lo desbloquean). T-4 = completar C."
+
+  - id: T-5
+    title: "R3 downstream — 4 marcas boot + arch + /chat 401/200 verificación-por-efecto"
+    surface: BE
+    production_code: false   # tests/verificación, no runtime nuevo
+    depends_on: [T-3, T-4]
+    blocks: []
+    description: >
+      Correr suite de paquetes tocados (platform/copilot/iam/connections + resto). Bootear las 4 marcas
+      con su env multibrand (sin vars legacy) → sin crash. Montar el /chat en un BE de marca + asserts:
+      401 sin auth, 200 stream con auth. arch-suite de las 4 marcas verde. Esto es el R3 + DoD técnica.
+    owner_eligibility: [workhorse, flagship]
+    assignment:
+      primary_agent: builder-backend
+      model_preference: workhorse
+      must_load_skills: [backend-expert, playwright-expert, .claude/rules/auditor-downstream-regression.md]
+      forbidden_to_touch: ["core/luana-core-*/src/** (runtime — solo si R3 revela bug → fix en T-1..T-4)"]
+      rationale: "Verificación R3 + por-efecto. playwright-expert si el 401/200 se ejerce por HTTP real."
+    acceptance:
+      validator_ids: [v_4brands_boot, v_chat_401_200, be_downstream_4brands_arch]
+    verification_by_effect: "4 marcas bootean con env multibrand-only + /chat montado responde 401/200 (no GET-vacío — ejercer el endpoint)"

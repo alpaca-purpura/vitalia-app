@@ -1,0 +1,174 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*.*.*']
+
+jobs:
+  validate-tag:
+    name: validate-tag
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.parse.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: parse
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          VERSION="${TAG#v}"
+          # validate SemVer
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.-]+)?$ ]]; then
+            echo "::error::Tag '$TAG' is not valid SemVer"
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+  build-python:
+    needs: validate-tag
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+      - run: uv sync --all-packages --frozen
+      - name: Build all Python packages
+        run: |
+          for pkg in core/luana-core-* apps/test-brand; do
+            if [ -f "$pkg/pyproject.toml" ]; then
+              echo "Building $pkg"
+              uv build --package $(basename "$pkg") --out-dir dist/
+            fi
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: python-dist
+          path: dist/
+          retention-days: 7
+
+  build-typescript:
+    needs: validate-tag
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm -r --filter "./core/@luana/*" build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: typescript-dist
+          path: core/@luana/*/dist/
+          retention-days: 7
+
+  publish-python:
+    needs: [validate-tag, build-python, build-typescript]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - uses: actions/download-artifact@v4
+        with:
+          name: python-dist
+          path: dist/
+      - name: Publish to GitHub Packages
+        env:
+          UV_PUBLISH_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN || secrets.GITHUB_TOKEN }}
+          UV_PUBLISH_URL: https://pypi.pkg.github.com/alpacapurpura/
+        run: |
+          # Fail-fast: if no token, error explicitly with actionable hint
+          if [ -z "$UV_PUBLISH_TOKEN" ]; then
+            echo "::error::No GH Packages token. Set GH_PACKAGES_TOKEN secret OR ensure GITHUB_TOKEN has write:packages scope. See docs/process/release-procedure-v0.1.0.md §Token-setup"
+            exit 1
+          fi
+          # Publish each wheel/sdist atomically (per-package, fail-fast)
+          for f in dist/*.tar.gz dist/*.whl; do
+            echo "Publishing $f"
+            uv publish "$f" || { echo "::error::Publish failed for $f. Verify GITHUB_TOKEN has write:packages scope OR set GH_PACKAGES_TOKEN secret per docs/process/release-procedure-v0.1.0.md §Token-setup"; exit 1; }
+          done
+
+  publish-typescript:
+    needs: [validate-tag, build-typescript, publish-python]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: "https://npm.pkg.github.com/"
+          scope: "@luana"
+      - uses: actions/download-artifact@v4
+        with:
+          name: typescript-dist
+          path: core/@luana/
+      - run: pnpm install --frozen-lockfile
+      - name: Publish @luana/* to GitHub Packages
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN || secrets.GITHUB_TOKEN }}
+        run: |
+          pnpm -r --filter "./core/@luana/*" publish \
+            --registry=https://npm.pkg.github.com/ \
+            --no-git-checks \
+            --access restricted
+
+  create-github-release:
+    needs: [validate-tag, publish-python, publish-typescript]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Extract changelog section
+        id: changelog
+        run: |
+          VERSION="${{ needs.validate-tag.outputs.version }}"
+          # Extract section from CHANGELOG.md between '## [VERSION]' and next '## ['
+          awk -v ver="$VERSION" '
+            /^## \[/ {if (found) exit; if ($0 ~ "\\[" ver "\\]") found=1; next}
+            found {print}
+          ' CHANGELOG.md > release_notes.md
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ needs.validate-tag.outputs.version }}"
+          gh release create "v${VERSION}" \
+            --title "v${VERSION}" \
+            --notes-file release_notes.md \
+            --target main
+
+  smoke-test-published:
+    needs: [validate-tag, publish-python, publish-typescript]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: "https://npm.pkg.github.com/"
+          scope: "@luana"
+      - name: Run smoke test against published packages
+        env:
+          UV_PUBLISH_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN || secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN || secrets.GITHUB_TOKEN }}
+        run: bash scripts/publish_smoke_test.sh "${{ needs.validate-tag.outputs.version }}"

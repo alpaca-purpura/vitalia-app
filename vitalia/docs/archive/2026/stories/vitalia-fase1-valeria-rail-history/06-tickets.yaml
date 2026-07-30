@@ -1,0 +1,582 @@
+# F1-S5 vitalia-fase1-valeria-rail-history — work units atómicos
+#
+# 8 tickets · ZERO Opus (FE no-agentic puro). R23 production_code true T-1..T-7, false T-8 (tests only).
+# Cada ticket cita validator_ids + gherkin_coverage explícito (★ v4.1 mandatory post 2026-05-18).
+# Sequence: hook foundation → mock data → átomos+moléculas → ValeriaHistory → ValeriaSidebar organism → TopBar MODIFY → integration MODIFY+cleanup → Playwright E2E + visual goldens.
+#
+# Builders: builder-frontend (Sonnet/opencode/qwen).
+# Auditor: auditor-frontend (Opus).
+# R23 NO aplica (no AGENTIC).
+
+story_id: vitalia-fase1-valeria-rail-history
+brand: vitalia
+phase: fase-1
+last_modified: 2026-05-24
+architect_iter: 1
+total_tickets: 8
+parallelizable: true   # T-6 paralelo con T-3/T-4/T-5 (no comparte files con cadena de organism)
+opus_tickets: 0        # ZERO Opus (FE no-agentic puro)
+sonnet_tickets: 8      # opencode/sonnet/qwen permitidos
+
+tickets:
+
+  # ──────────────────────────────────────────────────────────────
+  # T-1 — useKeyboardShortcuts hook (foundation, no deps)
+  # ──────────────────────────────────────────────────────────────
+  - id: T-1
+    title: "useKeyboardShortcuts hook con hardened guard (IME + input focus + mod+key cross-platform) + cleanup"
+    state: pushed
+    push_commit_sha: "2ffb9200"
+    transitions:
+      - from: ready
+        to: pushed
+        at: "2026-05-23T20:32:21Z"
+        by: claude-sonnet
+    surface: frontend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: true
+    estimated_loc: 100
+    estimated_hours: 1.5
+    files:
+      new:
+        - vitalia/frontend/src/hooks/useKeyboardShortcuts.ts
+        - vitalia/frontend/src/hooks/__tests__/useKeyboardShortcuts.test.ts
+      modify: []
+      delete: []
+    depends_on: []
+    acceptance:
+      validator_ids: [val-fe-tsc, val-fe-lint, val-fe-vitest-unit, val-fe-arch-server-first]
+    gherkin_coverage:
+      - scenario: "SC-1 happy · keyboard cycle de estados (foundation)"
+        tests:
+          - "vitalia/frontend/src/hooks/__tests__/useKeyboardShortcuts.test.ts::dispatches bare lowercase key handler"
+          - "vitalia/frontend/src/hooks/__tests__/useKeyboardShortcuts.test.ts::dispatches Escape exact match handler"
+          - "vitalia/frontend/src/hooks/__tests__/useKeyboardShortcuts.test.ts::dispatches mod+k via metaKey"
+          - "vitalia/frontend/src/hooks/__tests__/useKeyboardShortcuts.test.ts::dispatches mod+k via ctrlKey (cross-platform)"
+      - scenario: "SC-2 negative · typing en composer NO dispara shortcuts"
+        tests:
+          - "vitalia/frontend/src/hooks/__tests__/useKeyboardShortcuts.test.ts::skips dispatch when focus en INPUT element"
+          - "vitalia/frontend/src/hooks/__tests__/useKeyboardShortcuts.test.ts::skips dispatch when focus en TEXTAREA element"
+          - "vitalia/frontend/src/hooks/__tests__/useKeyboardShortcuts.test.ts::skips dispatch when focus en [contenteditable=true] element"
+          - "vitalia/frontend/src/hooks/__tests__/useKeyboardShortcuts.test.ts::modifier shortcuts (Cmd+K) BYPASS focus-in-input guard"
+      - scenario: "SC-3 edge · IME composition skip shortcuts"
+        tests:
+          - "vitalia/frontend/src/hooks/__tests__/useKeyboardShortcuts.test.ts::skips dispatch when e.isComposing=true"
+      - scenario: "(infrastructure) cleanup contract"
+        tests:
+          - "vitalia/frontend/src/hooks/__tests__/useKeyboardShortcuts.test.ts::removeEventListener on unmount"
+          - "vitalia/frontend/src/hooks/__tests__/useKeyboardShortcuts.test.ts::registers fresh handler when shortcuts dict identity changes"
+    spec_anchor: "01-spec.md § 0 D4 + § 5 useKeyboardShortcuts hook · 03-arch.md § 2.3"
+
+  # ──────────────────────────────────────────────────────────────
+  # T-2 — _mock-conversations data + types (no deps, no dedicated test)
+  # ──────────────────────────────────────────────────────────────
+  - id: T-2
+    title: "_mock-conversations.ts: 8 items verbatim spec § 5 + MockConversation type (data + types)"
+    state: ready
+    surface: frontend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: true
+    estimated_loc: 30
+    estimated_hours: 0.5
+    files:
+      new:
+        - vitalia/frontend/src/components/shared/shell-organism/_mock-conversations.ts
+      modify: []
+      delete: []
+    depends_on: []
+    acceptance:
+      validator_ids: [val-fe-tsc, val-fe-lint]
+      note: "Pure data + types module — no dedicated test. Consumer types verify via T-3 (ValeriaRail no usa) y T-4 (ValeriaHistory consume) unit tests + tsc."
+    gherkin_coverage:
+      - scenario: "SC-9 i18n · cero PHI patterns en mock data"
+        tests:
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/i18n-spanish-neutro.spec.ts::8 items zero patient_name/diagnosis/dosage references"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/i18n-spanish-neutro.spec.ts::Spanish neutro verbatim spec § 5"
+        note: "Cross-validated por T-8 i18n spec (data hardcoded inspect)."
+    spec_anchor: "01-spec.md § 0 D8 + § 5 mock data shape (verbatim) · 03-arch.md § 2.5 _mock-conversations.ts"
+
+  # ──────────────────────────────────────────────────────────────
+  # T-3 — Átomos + moléculas low-level (ValeriaRail + ValeriaChatSlot + HistoryItem + HistoryGroup + EmptyStateInline)
+  # ──────────────────────────────────────────────────────────────
+  - id: T-3
+    title: "ValeriaRail (4 buttons MVP) + ValeriaChatSlot placeholder + HistoryItem + HistoryGroup + EmptyStateInline — átomos+moléculas low-level"
+    state: ready
+    surface: frontend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: true
+    estimated_loc: 280
+    estimated_hours: 3
+    files:
+      new:
+        - vitalia/frontend/src/components/shared/shell-organism/ValeriaRail.tsx
+        - vitalia/frontend/src/components/shared/shell-organism/ValeriaRail.test.tsx
+        - vitalia/frontend/src/components/shared/shell-organism/ValeriaChatSlot.tsx
+        - vitalia/frontend/src/components/shared/shell-organism/ValeriaChatSlot.test.tsx
+        - vitalia/frontend/src/components/shared/shell-organism/HistoryItem.tsx
+        - vitalia/frontend/src/components/shared/shell-organism/HistoryGroup.tsx
+        - vitalia/frontend/src/components/shared/shell-organism/EmptyStateInline.tsx
+      modify: []
+      delete: []
+    depends_on: []   # átomos/moléculas independientes — pueden ir en paralelo con T-1/T-2
+    acceptance:
+      validator_ids: [val-fe-tsc, val-fe-lint, val-fe-prettier, val-fe-vitest-unit, val-fe-arch-fsd, val-fe-arch-no-hex, val-fe-arch-no-voseo, val-fe-arch-server-first, val-fe-arch-no-default-export]
+    gherkin_coverage:
+      - scenario: "SC-1 happy · keyboard cycle (ValeriaRail buttons dispatchean handler correcto)"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaRail.test.tsx::renders 4 buttons MVP-only (toggle + new + search + close)"
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaRail.test.tsx::F2 buttons (anclados/tareas/notas) NO render (hidden completamente)"
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaRail.test.tsx::click PanelLeftOpen dispatches onToggleHistory handler"
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaRail.test.tsx::click Plus dispatches onNewConversation"
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaRail.test.tsx::click Search dispatches onSearch"
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaRail.test.tsx::click PanelLeftClose dispatches onCollapse"
+      - scenario: "SC-7 a11y · aria-labels Spanish neutro + tooltips con keyboard hints"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaRail.test.tsx::aria-labels match spec § 6 (Mostrar historial / Nueva conversación / Buscar (Cmd+K) / Cerrar Valeria)"
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaRail.test.tsx::tooltips contain keyboard hints (· f / · n / · ⌘K / · c)"
+      - scenario: "(visual baseline) ValeriaChatSlot placeholder shape"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaChatSlot.test.tsx::ChatHeader avatar Valeria + nombre 'Valeria' + status dot + 'En línea'"
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaChatSlot.test.tsx::4 skeleton bubbles alternated self-start/self-end"
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaChatSlot.test.tsx::composer placeholder con id='valeria-composer-placeholder' tabIndex=0"
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaChatSlot.test.tsx::label flotante 'CHATSLOT · F1-S6'"
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaChatSlot.test.tsx::section role='region' aria-label='Chat con Valeria (próximamente)'"
+      - scenario: "(infrastructure) HistoryItem + HistoryGroup + EmptyStateInline shape verified via integration ValeriaHistory.test.tsx (T-4)"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaHistory.test.tsx::HistoryItem render verified within ValeriaHistory"
+        note: "Átomos puros (HistoryItem/HistoryGroup/EmptyStateInline) sin test dedicado — cubiertos en T-4 (ValeriaHistory.test.tsx) y T-5 (ValeriaSidebar.test.tsx). Smoke type-check via tsc + ESLint suffices."
+    spec_anchor: "01-spec.md § 0 D5 + D6 + § 5 (ValeriaRail/ValeriaChatSlot/HistoryItem/HistoryGroup/EmptyStateInline) · 03-arch.md § 2.5"
+
+  # ──────────────────────────────────────────────────────────────
+  # T-4 — ValeriaHistory molécula (depende T-2 + T-3 átomos)
+  # ──────────────────────────────────────────────────────────────
+  - id: T-4
+    title: "ValeriaHistory molécula: header + search input + filter/group logic + EmptyStateInline + HistoryGroup × 3"
+    state: pushed
+    push_commit_sha: "a3494da1"
+    transitions:
+      - from: ready
+        to: pushed
+        at: "2026-05-23T20:45:00Z"
+        by: claude-sonnet
+    surface: frontend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: true
+    estimated_loc: 180
+    estimated_hours: 2
+    files:
+      new:
+        - vitalia/frontend/src/components/shared/shell-organism/ValeriaHistory.tsx
+        - vitalia/frontend/src/components/shared/shell-organism/ValeriaHistory.test.tsx
+      modify: []
+      delete: []
+    depends_on: [T-2, T-3]
+    acceptance:
+      validator_ids: [val-fe-tsc, val-fe-lint, val-fe-prettier, val-fe-vitest-unit, val-fe-arch-fsd, val-fe-arch-no-hex, val-fe-arch-no-voseo, val-fe-arch-server-first]
+    gherkin_coverage:
+      - scenario: "SC-1 happy · history visible con 8 mock items grouped 3+2+3"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaHistory.test.tsx::renders header 'Conversaciones' + quick actions (Plus + PanelLeftClose)"
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaHistory.test.tsx::renders 8 mock items grouped Hoy(3)+Ayer(2)+Esta semana(3)"
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaHistory.test.tsx::group labels en Spanish neutro (Hoy / Ayer / Esta semana)"
+      - scenario: "SC-6 empty_state · búsqueda sin resultados"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaHistory.test.tsx::input search updates searchQuery on change"
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaHistory.test.tsx::filter case-insensitive (match 'reseñas' returns Hoy item 1)"
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaHistory.test.tsx::filter trim whitespace ('  reseñas  ' equals 'reseñas')"
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaHistory.test.tsx::empty state shows EmptyStateInline when 0 matches"
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaHistory.test.tsx::groups con 0 items NO renderizan label (Hoy/Ayer/Esta semana hidden)"
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaHistory.test.tsx::EmptyStateInline copy: 'Sin resultados' + 'Intenta con otra palabra' (Spanish neutro)"
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaHistory.test.tsx::Press Escape en search con query → setSearchQuery('') NO colapsa Valeria (handler local stopPropagation)"
+      - scenario: "SC-9 i18n · header + group labels + search placeholder verbatim"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaHistory.test.tsx::search input placeholder 'Buscar conversación...'"
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaHistory.test.tsx::search input aria-label 'Buscar conversación'"
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaHistory.test.tsx::nav aria-label 'Historial conversaciones'"
+      - scenario: "(integration) HistoryItem click activa con bg-agent-valeria-soft"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaHistory.test.tsx::click HistoryItem updates active state local"
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaHistory.test.tsx::active item has aria-current='true' + className includes 'bg-agent-valeria-soft'"
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaHistory.test.tsx::only one active item at a time"
+    spec_anchor: "01-spec.md § 3 ValeriaHistory estados + § 5 data flow filter logic + § 6 microcopy · 03-arch.md § 2.5 ValeriaHistory"
+
+  # ──────────────────────────────────────────────────────────────
+  # T-5 — ValeriaSidebar organism root (depende T-1 + T-3 + T-4)
+  # ──────────────────────────────────────────────────────────────
+  - id: T-5
+    title: "ValeriaSidebar organism: aside + grid 2-col + useShellStore + useKeyboardShortcuts + auto-coupling + adversarial guard + mobile drawer + focus trap"
+    state: pushed
+    push_commit_sha: "3b4db9c6"
+    transitions:
+      - from: ready
+        to: pushed
+        at: "2026-05-23T21:00:00Z"
+        by: claude-sonnet
+    surface: frontend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: true
+    estimated_loc: 320
+    estimated_hours: 4
+    files:
+      new:
+        - vitalia/frontend/src/components/shared/shell-organism/ValeriaSidebar.tsx
+        - vitalia/frontend/src/components/shared/shell-organism/ValeriaSidebar.test.tsx
+      modify: []
+      delete: []
+    depends_on: [T-1, T-3, T-4]
+    acceptance:
+      validator_ids: [val-fe-tsc, val-fe-lint, val-fe-prettier, val-fe-vitest-unit, val-fe-arch-fsd, val-fe-arch-no-hex, val-fe-arch-no-voseo, val-fe-arch-server-first, val-fe-arch-shell-store-readonly]
+    gherkin_coverage:
+      - scenario: "SC-1 happy · keyboard cycle de estados (r/f/c/Esc/r) con auto-coupling shellMode"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaSidebar.test.tsx::press 'r' sets valeriaState rail + shellMode agentic"
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaSidebar.test.tsx::press 'f' sets valeriaState full + shellMode agentic"
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaSidebar.test.tsx::press 'c' sets valeriaState collapsed + shellMode web AUTO-COUPLED"
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaSidebar.test.tsx::press Escape (no input focus) idem 'c'"
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaSidebar.test.tsx::press 'n' calls window.alert mock (próximamente)"
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaSidebar.test.tsx::press Cmd+K calls focus on valeria-composer-placeholder"
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaSidebar.test.tsx::press Ctrl+K calls focus on valeria-composer-placeholder (cross-platform)"
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaSidebar.test.tsx::idempotency: press 'c' twice → no-op"
+      - scenario: "SC-1 happy · render aside con role + aria + grid dinamico"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaSidebar.test.tsx::aside role='complementary' aria-label='Panel Valeria' data-testid='valeria-sidebar'"
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaSidebar.test.tsx::aria-expanded reflects valeriaState !== 'collapsed'"
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaSidebar.test.tsx::grid columns 60/1fr cuando state='rail'"
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaSidebar.test.tsx::grid columns 280/1fr cuando state='full'"
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaSidebar.test.tsx::renders ValeriaRail cuando state='rail' (history NOT rendered)"
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaSidebar.test.tsx::renders ValeriaHistory cuando state='full' (rail NOT rendered)"
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaSidebar.test.tsx::ValeriaChatSlot rendered en cualquier state visible"
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaSidebar.test.tsx::transition class 'motion-reduce:transition-none' applied"
+      - scenario: "SC-4 adversarial · shell-store tampering setState INVALID"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaSidebar.test.tsx::useShellStore.setState({valeriaState:'INVALID'}) → console.warn called + fallback render no crash"
+      - scenario: "SC-7 a11y · live region updates per state"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaSidebar.test.tsx::live region role='status' aria-live='polite' aria-atomic='true' sr-only"
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaSidebar.test.tsx::live region text 'Valeria cerrada' cuando state='collapsed'"
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaSidebar.test.tsx::live region text 'Valeria abierta' cuando state='rail'"
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaSidebar.test.tsx::live region text 'Valeria con historial' cuando state='full'"
+      - scenario: "SC-8 a11y · mobile drawer aria-modal + focus trap (smoke via Vitest, full coverage en T-8 Playwright)"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaSidebar.test.tsx::mobile viewport + isExpanded=true → aria-modal='true' set"
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaSidebar.test.tsx::mobile viewport + isExpanded=true → backdrop rendered data-testid='valeria-drawer-backdrop'"
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaSidebar.test.tsx::mobile backdrop click → setValeriaState('collapsed') (NO setShellMode)"
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaSidebar.test.tsx::mobile drawer close X button data-testid='valeria-drawer-close' visible cuando isExpanded mobile"
+    spec_anchor: "01-spec.md § 0 D1+D2+D4 + § 1 Scenarios + § 5 handlers · 03-arch.md § 2.5 ValeriaSidebar + § 2.7 mobile drawer"
+
+  # ──────────────────────────────────────────────────────────────
+  # T-6 — TopBarGlobal MODIFY (add hamburger <md) — paralelo con T-3/T-4/T-5
+  # ──────────────────────────────────────────────────────────────
+  - id: T-6
+    title: "TopBarGlobal MODIFY: add hamburger Menu button visible <md viewport + useShellStore consumer (Convert to 'use client')"
+    state: pushed
+    push_commit_sha: "5d68436b"
+    transitions:
+      - from: ready
+        to: pushed
+        at: "2026-05-23T20:33:00Z"
+        by: claude-sonnet
+    surface: frontend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: true
+    estimated_loc: 60
+    estimated_hours: 1
+    files:
+      new: []
+      modify:
+        - vitalia/frontend/src/components/shared/shell-organism/TopBarGlobal.tsx
+        - vitalia/frontend/src/components/shared/shell-organism/TopBarGlobal.test.tsx
+      delete: []
+    depends_on: []   # parallelizable con T-3/T-4/T-5 (no comparte files con cadena organism)
+    acceptance:
+      validator_ids: [val-fe-tsc, val-fe-lint, val-fe-prettier, val-fe-vitest-unit, val-fe-arch-fsd, val-fe-arch-no-voseo, val-fe-arch-server-first]
+    gherkin_coverage:
+      - scenario: "SC-8 a11y mobile drawer · hamburger TopBar opens drawer"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/TopBarGlobal.test.tsx::hamburger button rendered con className 'md:hidden' (visible <md viewport solo)"
+          - "vitalia/frontend/src/components/shared/shell-organism/TopBarGlobal.test.tsx::hamburger aria-label 'Abrir panel Valeria' + data-testid 'topbar-hamburger'"
+          - "vitalia/frontend/src/components/shared/shell-organism/TopBarGlobal.test.tsx::hamburger icon Menu (Lucide) aria-hidden='true'"
+          - "vitalia/frontend/src/components/shared/shell-organism/TopBarGlobal.test.tsx::click hamburger dispatches setValeriaState('full') + setShellMode('agentic')"
+      - scenario: "SC-9 i18n · aria-label hamburger Spanish neutro"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/TopBarGlobal.test.tsx::aria-label 'Abrir panel Valeria' (sin voseo, sin 'abrí')"
+      - scenario: "(regression) TopBarGlobal logic preservada (LogoMark + TenantSwitcher + ThemeToggle)"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/TopBarGlobal.test.tsx::LogoMark rendered (heredado F1-S2)"
+          - "vitalia/frontend/src/components/shared/shell-organism/TopBarGlobal.test.tsx::TenantSwitcher rendered (heredado F1-S3)"
+          - "vitalia/frontend/src/components/shared/shell-organism/TopBarGlobal.test.tsx::ThemeToggle rendered (heredado F1-S1)"
+          - "vitalia/frontend/src/components/shared/shell-organism/TopBarGlobal.test.tsx::header data-testid='topbar-global' h-12 z-50 preservado"
+    spec_anchor: "01-spec.md § 0 D7 + § 5 handlers · 03-arch.md § 2.6 TopBarGlobal MODIFY ADD-ONLY"
+
+  # ──────────────────────────────────────────────────────────────
+  # T-7 — Integration MODIFY ShellOrganismLayoutClient + cleanup + arch tests extend (depende T-5 + T-6)
+  # ──────────────────────────────────────────────────────────────
+  - id: T-7
+    title: "Integration: MODIFY ShellOrganismLayoutClient (MIN_VALERIA_PX + slot replace) + DELETE ValeriaSidebarSlot{,.test}.tsx + extend arch tests (3 modify) + NEW arch test shell-store-readonly"
+    state: pushed
+    push_commit_sha: "42ed35b3"
+    transitions:
+      - from: ready
+        to: pushed
+        at: "2026-05-24T00:00:00Z"
+        by: claude-sonnet
+    surface: frontend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: true   # ShellOrganismLayoutClient.tsx es production code, arch tests separados son tests-only pero ticket trata ambos
+    estimated_loc: 120
+    estimated_hours: 1.5
+    files:
+      new:
+        - vitalia/frontend/src/__tests__/architecture/test-shell-store-schema-readonly-f1-s5.test.ts
+      modify:
+        - vitalia/frontend/src/components/shared/shell-organism/ShellOrganismLayoutClient.tsx
+        - vitalia/frontend/src/components/shared/shell-organism/ShellOrganismLayout.test.tsx
+        - vitalia/frontend/src/__tests__/architecture/test-no-cross-brand-shell-mirror.test.ts
+        - vitalia/frontend/src/__tests__/architecture/test_server_first.test.ts
+      delete:
+        - vitalia/frontend/src/components/shared/shell-organism/ValeriaSidebarSlot.tsx
+        - vitalia/frontend/src/components/shared/shell-organism/ValeriaSidebarSlot.test.tsx
+    depends_on: [T-5, T-6]
+    acceptance:
+      validator_ids: [val-fe-tsc, val-fe-lint, val-fe-prettier, val-fe-vitest-unit, val-fe-arch-fsd, val-fe-arch-no-cross-brand-mirror, val-fe-arch-shell-store-readonly, val-fe-arch-server-first, val-fe-arch-skip-link]
+    gherkin_coverage:
+      - scenario: "(integration) ShellOrganismLayoutClient replaces ValeriaSidebarSlot → ValeriaSidebar real"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/ShellOrganismLayout.test.tsx::renders ValeriaSidebar (data-testid='valeria-sidebar') no longer ValeriaSidebarSlot"
+          - "vitalia/frontend/src/components/shared/shell-organism/ShellOrganismLayout.test.tsx::import ValeriaSidebar from './ValeriaSidebar' (no longer ValeriaSidebarSlot)"
+      - scenario: "(integration) MIN_VALERIA_PX = 580 cuando valeriaState='full' (D3)"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/ShellOrganismLayout.test.tsx::MIN_VALERIA_PX computation produce 580 cuando full, 360 cuando rail"
+        note: "Verify via test que monta layout en jsdom + lee constante runtime via DevTools/imports — fallback: literal grep en archivo modify diff."
+      - scenario: "(architectural) shell-store schema invariant F1-S5 read-only"
+        tests:
+          - "vitalia/frontend/src/__tests__/architecture/test-shell-store-schema-readonly-f1-s5.test.ts::exports ValeriaState union 'collapsed'|'rail'|'full' (regression guard)"
+          - "vitalia/frontend/src/__tests__/architecture/test-shell-store-schema-readonly-f1-s5.test.ts::exports ShellMode union 'agentic'|'web'"
+          - "vitalia/frontend/src/__tests__/architecture/test-shell-store-schema-readonly-f1-s5.test.ts::SHELL_STORAGE_KEY equals 'vitalia-shell-state'"
+          - "vitalia/frontend/src/__tests__/architecture/test-shell-store-schema-readonly-f1-s5.test.ts::useShellStore exposes setValeriaState + setShellMode + cycleValeriaState"
+          - "vitalia/frontend/src/__tests__/architecture/test-shell-store-schema-readonly-f1-s5.test.ts::default valeriaState='full' shellMode='agentic' (F1-S4 cementado)"
+      - scenario: "(architectural) anti-duplication cross-brand mirror extended"
+        tests:
+          - "vitalia/frontend/src/__tests__/architecture/test-no-cross-brand-shell-mirror.test.ts::no matches for ValeriaSidebar in nicolify/comunify/lupulo"
+          - "vitalia/frontend/src/__tests__/architecture/test-no-cross-brand-shell-mirror.test.ts::no matches for ValeriaRail across brands"
+          - "vitalia/frontend/src/__tests__/architecture/test-no-cross-brand-shell-mirror.test.ts::no matches for ValeriaHistory across brands"
+          - "vitalia/frontend/src/__tests__/architecture/test-no-cross-brand-shell-mirror.test.ts::no matches for ValeriaChatSlot across brands"
+          - "vitalia/frontend/src/__tests__/architecture/test-no-cross-brand-shell-mirror.test.ts::no matches for HistoryItem across brands"
+          - "vitalia/frontend/src/__tests__/architecture/test-no-cross-brand-shell-mirror.test.ts::no matches for HistoryGroup across brands"
+          - "vitalia/frontend/src/__tests__/architecture/test-no-cross-brand-shell-mirror.test.ts::no matches for EmptyStateInline across brands"
+          - "vitalia/frontend/src/__tests__/architecture/test-no-cross-brand-shell-mirror.test.ts::no matches for useKeyboardShortcuts across brands"
+      - scenario: "(cleanup) ValeriaSidebarSlot files deleted"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaSidebarSlot.tsx FILE DELETED"
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaSidebarSlot.test.tsx FILE DELETED"
+        note: "Verificable via git diff post-T-7 commit."
+    spec_anchor: "01-spec.md § 0 D3 + § 5 (replace slot) + § 12 deliverables MODIFY+DELETE · 03-arch.md § 2.6 + § 3.3"
+
+  # ──────────────────────────────────────────────────────────────
+  # T-8 — Playwright POM + 9 functional specs + visual goldens (depende T-1..T-7)
+  # ──────────────────────────────────────────────────────────────
+  - id: T-8
+    title: "Playwright POM ValeriaSidebarPage + 9 functional E2E specs (1:1 scenarios) + visual goldens (13 PNGs)"
+    state: pushed
+    push_commit_sha: "pending"
+    surface: frontend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: false   # tests-only
+    estimated_loc: 950
+    estimated_hours: 6
+    files:
+      new:
+        - vitalia/frontend/e2e/pages/ValeriaSidebarPage.ts
+        - vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/keyboard-cycle.spec.ts
+        - vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/typing-guard.spec.ts
+        - vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/ime-composition.spec.ts
+        - vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/store-tampering.spec.ts
+        - vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/click-collapse.spec.ts
+        - vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/history-empty-search.spec.ts
+        - vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/a11y-keyboard.spec.ts
+        - vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/a11y-mobile-drawer.spec.ts
+        - vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/i18n-spanish-neutro.spec.ts
+        - vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/visual-goldens.spec.ts
+        - vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/visual-goldens.spec.ts-snapshots/valeria-rail-light-1280x800.png
+        - vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/visual-goldens.spec.ts-snapshots/valeria-rail-dark-1280x800.png
+        - vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/visual-goldens.spec.ts-snapshots/valeria-collapsed-light-1280x800.png
+        - vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/visual-goldens.spec.ts-snapshots/valeria-collapsed-dark-1280x800.png
+        - vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/visual-goldens.spec.ts-snapshots/valeria-full-light-1280x800.png
+        - vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/visual-goldens.spec.ts-snapshots/valeria-full-dark-1280x800.png
+        - vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/visual-goldens.spec.ts-snapshots/valeria-history-empty-light-1280x800.png
+        - vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/visual-goldens.spec.ts-snapshots/valeria-history-empty-dark-1280x800.png
+        - vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/visual-goldens.spec.ts-snapshots/valeria-drawer-mobile-375x667.png
+      modify:
+        - vitalia/frontend/e2e/fixtures/shell-theme.fixture.ts   # extend addInitScript helpers (REUSE F1-S4 + new state setup)
+      delete: []
+    depends_on: [T-1, T-2, T-3, T-4, T-5, T-6, T-7]
+    acceptance:
+      validator_ids:
+        - val-fe-e2e-keyboard-cycle
+        - val-fe-e2e-typing-guard
+        - val-fe-e2e-ime-composition
+        - val-fe-e2e-store-tampering
+        - val-fe-e2e-click-collapse
+        - val-fe-e2e-history-empty-search
+        - val-fe-e2e-a11y-keyboard
+        - val-fe-axe
+        - val-fe-e2e-a11y-mobile-drawer
+        - val-fe-axe-mobile
+        - val-fe-e2e-i18n-spanish-neutro
+        - val-fe-visual-rail-light
+        - val-fe-visual-rail-dark
+        - val-fe-visual-collapsed-light
+        - val-fe-visual-collapsed-dark
+        - val-fe-visual-full-light
+        - val-fe-visual-full-dark
+        - val-fe-visual-history-empty-light
+        - val-fe-visual-history-empty-dark
+        - val-fe-visual-drawer-mobile
+    gherkin_coverage:
+      - scenario: "SC-1 happy · keyboard cycle r→f→c→Esc→r + auto-coupling shellMode + localStorage persist"
+        tests:
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/keyboard-cycle.spec.ts::press r transitions agentic rail [Rail 60 | Chat 1fr]"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/keyboard-cycle.spec.ts::press f transitions agentic full [History 280 | Chat 1fr]"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/keyboard-cycle.spec.ts::press c sets collapsed + AUTO shellMode='web' [Rail 60 | 1px | AppPanel 1fr]"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/keyboard-cycle.spec.ts::press Escape idempotente cuando ya collapsed"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/keyboard-cycle.spec.ts::press r tras collapsed restores shellMode='agentic'"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/keyboard-cycle.spec.ts::localStorage vitalia-shell-state persists valeriaState + shellMode"
+      - scenario: "SC-2 negative · typing 'COMPRAR' en composer NO transita estado"
+        tests:
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/typing-guard.spec.ts::focus textarea + type COMPRAR → valeriaState stays 'full'"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/typing-guard.spec.ts::full text 'COMPRAR' preserved en textarea (todas letras)"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/typing-guard.spec.ts::press Enter en input search no transita estado"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/typing-guard.spec.ts::Cmd+K en textarea BYPASS guard (focus jumps)"
+      - scenario: "SC-3 edge · IME composition skip shortcuts"
+        tests:
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/ime-composition.spec.ts::focus textarea + dispatch composition events + press r → no state change"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/ime-composition.spec.ts::IME composition continues sin interrupción"
+      - scenario: "SC-4 adversarial · shell-store tampering setState INVALID"
+        tests:
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/store-tampering.spec.ts::useShellStore.setState({valeriaState:'INVALID'}) via page.evaluate → cero crash"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/store-tampering.spec.ts::[data-testid=valeria-sidebar] renders without throwing"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/store-tampering.spec.ts::console.warn emitido 'Invalid valeriaState ignored'"
+      - scenario: "SC-5 edge · click rail PanelLeftClose mientras agentic"
+        tests:
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/click-collapse.spec.ts::click PanelLeftClose → setValeriaState('collapsed') + setShellMode('web')"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/click-collapse.spec.ts::shell layout transition 50/50 → [60px Rail | 1px | AppPanel 1fr] con animación"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/click-collapse.spec.ts::chat oculto, rail visible 4 MVP buttons"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/click-collapse.spec.ts::click PanelLeftOpen returns to agentic"
+      - scenario: "SC-6 empty_state · search 'xyzabc123' → EmptyStateInline + grupos hidden"
+        tests:
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/history-empty-search.spec.ts::type 'xyzabc123' filters 8 items to 0"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/history-empty-search.spec.ts::[data-testid=history-empty-state] visible con copy 'Sin resultados' + 'Intenta con otra palabra'"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/history-empty-search.spec.ts::group labels Hoy/Ayer/Esta semana NO visibles (0 items each)"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/history-empty-search.spec.ts::input search retiene texto 'xyzabc123'"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/history-empty-search.spec.ts::press Esc en search con query → clears query NO colapsa Valeria"
+      - scenario: "SC-7 a11y · keyboard navigation completo + axe wcag2aa"
+        tests:
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/a11y-keyboard.spec.ts::Tab order TopBar → Rail buttons (PanelLeftOpen → Plus → Search → PanelLeftClose) → ChatSlot composer"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/a11y-keyboard.spec.ts::rail buttons aria-label legibles spec § 6"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/a11y-keyboard.spec.ts::aside aria-expanded reflects valeriaState"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/a11y-keyboard.spec.ts::live region role='status' aria-live='polite' updates text per state change @axe"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/a11y-keyboard.spec.ts::axe wcag2aa 0 violations state collapsed light @axe"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/a11y-keyboard.spec.ts::axe wcag2aa 0 violations state rail dark @axe"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/a11y-keyboard.spec.ts::axe wcag2aa 0 violations state full light @axe"
+      - scenario: "SC-8 a11y · mobile drawer aria-modal + focus trap + restoration"
+        tests:
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/a11y-mobile-drawer.spec.ts::viewport 375x667 + tap hamburger → drawer opens aria-modal='true'"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/a11y-mobile-drawer.spec.ts::focus auto-moves al primer interactive (input search si full)"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/a11y-mobile-drawer.spec.ts::Tab cycle dentro drawer no escapa background"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/a11y-mobile-drawer.spec.ts::backdrop click → drawer closes"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/a11y-mobile-drawer.spec.ts::press Esc cierra drawer + focus restoration al hamburger"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/a11y-mobile-drawer.spec.ts::axe wcag2aa 0 violations modal pattern @axe"
+      - scenario: "SC-9 i18n · Spanish neutro LatAm rendered + cero PHI"
+        tests:
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/i18n-spanish-neutro.spec.ts::all visible strings match Spanish neutro verbatim spec § 6 (28 strings)"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/i18n-spanish-neutro.spec.ts::regex glossary cero matches en rendered DOM (vos|sos|tenés|podés|querés|sabés|dale|mirá|fijate)"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/i18n-spanish-neutro.spec.ts::aria-labels spanish neutro (Panel Valeria, Mostrar historial, etc)"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/i18n-spanish-neutro.spec.ts::press n → window.alert con 'Nueva conversación (próximamente)' (verbatim)"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/i18n-spanish-neutro.spec.ts::mock data 8 conversaciones zero PHI patterns (no patient names, diagnoses, dosages)"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/i18n-spanish-neutro.spec.ts::cero placeholders sin traducir tipo 'TODO' / 'Lorem ipsum' / 'Search...' (inglés)"
+      - scenario: "(visual) 13 PNGs match mockups ratificados Chris"
+        tests:
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/visual-goldens.spec.ts::rail light 1280x800 matches mockup valeria-rail.html"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/visual-goldens.spec.ts::rail dark 1280x800 matches mockup valeria-rail.html dark"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/visual-goldens.spec.ts::collapsed light 1280x800 matches mockup (shellMode='web', solo rail 60 + AppPanel)"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/visual-goldens.spec.ts::collapsed dark 1280x800 matches mockup"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/visual-goldens.spec.ts::full light 1280x800 matches mockup valeria-history.html"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/visual-goldens.spec.ts::full dark 1280x800 matches mockup valeria-history.html dark"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/visual-goldens.spec.ts::history empty light 1280x800 matches mockup empty search state"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/visual-goldens.spec.ts::history empty dark 1280x800 matches"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-valeria-rail-history/visual-goldens.spec.ts::drawer mobile 375x667 matches mockup mobile drawer pattern"
+    spec_anchor: "01-spec.md § 1 Gherkin scenarios 1-9 + § 11 Visual Goldens mapping · 03-arch.md § 3.2"
+    notes: |
+      Iter 1 visual goldens generation: builder T-8 monta mockups en
+      `python3 -m http.server 8888 vitalia/docs/product/stories/vitalia-fase1-valeria-rail-history/mockups/`
+      side-by-side con componente real `localhost:3002/test-stack/shell-layout`. Asegurar valeriaState +
+      shellMode initial set via addInitScript en shell-theme.fixture.ts antes de cada snapshot. Solo cuando
+      Chris valida side-by-side OK (para los 9 logical states que mapean a 13 PNGs), builder corre:
+      `cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test --project=visual --update-snapshots regression/vitalia-fase1-valeria-rail-history/visual-goldens.spec.ts`
+      Post-ratify, PNGs committeados + ratchet shrink-only enforced.
+      Si Chris encuentra diferencia visual blocking → STOP, fix componente
+      (no actualizar mockup salvo nueva ratificación visual dedicated).
+
+      IME composition simulation (Scenario 3): usar `page.evaluate` para dispatch CustomEvent('compositionstart')
+      y CustomEvent('compositionend') manualmente sobre el textarea, intercalando press 'r' durante composition
+      window. Playwright nativo no soporta IME real, pero el handler verifica `e.isComposing` que es property
+      del KeyboardEvent — sim via dispatching `new KeyboardEvent('keydown', { isComposing: true })`.
+
+      Store tampering (Scenario 4): usar `page.evaluate(() => window.useShellStore?.setState({valeriaState: 'INVALID'}))`.
+      Si store no expuesto global, importar via dynamic ES module dentro de evaluate (existe pattern F1-S4 store-state spec).
+
+# ════════════════════════════════════════════════════════════════════
+# Cross-stack handoff notes (1 surface FE only — sin BE/AGENTIC)
+# ════════════════════════════════════════════════════════════════════
+cross_stack_handoff:
+  - "FE only story — no BE or AGENTIC surface."
+  - "Tenant isolation upstream: middleware Clerk + auth verifica tenantId pertenece al user antes que esta ruta renderice. F1-S5 confía en eso (out-of-scope FE)."
+  - "Route /test-stack/shell-layout sigue siendo el entry point E2E público (sin Clerk gate, heredado F1-S4). NO modificar."
+  - "Visual goldens iter 1 requiere Chris side-by-side ratificación dedicada MOMENTO antes de --update-snapshots. /pm-vitalia coordina con Chris en checkpoint developed→reviewing handoff."
+  - "Mock data clínica genérica zero PHI verificado i18n-spanish-neutro.spec.ts (regex patterns + manual review en T-2)."
+  - "F1-S6 (sucesor) reemplaza ValeriaChatSlot body + composer; ChatHeader (avatar+nombre+status dot) F1-S5 PRESERVED intacto."
+  - "useKeyboardShortcuts LIFT CANDIDATE: 2do consumer (otra brand) triggerea /pm-luana promotion proposal para core/@luana/hooks/use-keyboard-shortcuts/. Documentar caso en vitalia/docs/learnings/ post-merge."
+
+# ════════════════════════════════════════════════════════════════════
+# DAG dependency graph (visualization)
+# ════════════════════════════════════════════════════════════════════
+dag:
+  description: |
+    T-1 (hook) ────────┐
+                       │
+    T-2 (mock data) ───┼──> T-3 (átomos+moléculas) ──> T-4 (ValeriaHistory) ──> T-5 (ValeriaSidebar organism)
+                       │                                                              │
+                       │                                                              ├──> T-7 (integration MODIFY + cleanup + arch tests) ──> T-8 (Playwright + visual)
+                       │                                                              │
+                       └──> T-6 (TopBarGlobal MODIFY) [PARALLELIZABLE con T-3/T-4/T-5] ─┘
+
+    Paralelización:
+      Wave 1: T-1 + T-2 + T-3 + T-6 (cuatro tickets independientes, sin conflictos files)
+      Wave 2: T-4 (post T-2 + T-3) + T-5 incremental cuando T-4 stable
+      Wave 3: T-7 (post T-5 + T-6 integration)
+      Wave 4: T-8 (Playwright requiere todo el chain estable + Chris ratify visual iter 1)
+
+# ════════════════════════════════════════════════════════════════════
+# Total estimate
+# ════════════════════════════════════════════════════════════════════
+total_estimated_hours: 19.5   # 1.5 + 0.5 + 3 + 2 + 4 + 1 + 1.5 + 6
+total_estimated_loc: 2040     # 100 + 30 + 280 + 180 + 320 + 60 + 120 + 950
+coherent_with_checkpoint_estimated_dev_days: "2-3 days OK (19.5h / 8h workday ≈ 2.4 días — coherente con checkpoint 'estimated_dev_days: 2-3')"
+
+# ════════════════════════════════════════════════════════════════════
+# R23 production_code applicability matrix
+# ════════════════════════════════════════════════════════════════════
+r23_audit_matrix:
+  T-1: { production_code: true,  owner_eligible: [qwen-opencode, claude-sonnet], opus_required: false }   # hook util, no agentic
+  T-2: { production_code: true,  owner_eligible: [qwen-opencode, claude-sonnet], opus_required: false }   # data + types
+  T-3: { production_code: true,  owner_eligible: [qwen-opencode, claude-sonnet], opus_required: false }   # átomos+moléculas FE
+  T-4: { production_code: true,  owner_eligible: [qwen-opencode, claude-sonnet], opus_required: false }   # molécula FE
+  T-5: { production_code: true,  owner_eligible: [qwen-opencode, claude-sonnet], opus_required: false }   # organism FE
+  T-6: { production_code: true,  owner_eligible: [qwen-opencode, claude-sonnet], opus_required: false }   # MODIFY topbar
+  T-7: { production_code: true,  owner_eligible: [qwen-opencode, claude-sonnet], opus_required: false }   # MODIFY integration + arch tests (production gates)
+  T-8: { production_code: false, owner_eligible: [qwen-opencode, claude-sonnet], opus_required: false }   # tests-only Playwright
+
+  note: |
+    R23 rule: agentic tickets production_code=true → Opus 4.7 obligatorio.
+    F1-S5 cero agentic surface → Opus NO obligatorio. Sonnet/opencode/qwen permitidos para todos.
+    Tests-only ticket (T-8) tradicionalmente fast-tracked Sonnet, mismo principio aplica.

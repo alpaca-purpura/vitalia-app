@@ -1,0 +1,1 @@
+"""Marketing infrastructure repository tests."""

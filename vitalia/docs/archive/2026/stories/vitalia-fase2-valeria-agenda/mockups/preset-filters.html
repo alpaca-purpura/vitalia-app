@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>F2-S1 · PresetFilters chips — Vitalia</title>
+<link rel="stylesheet" href="_shared.css">
+<style>
+  .demo-frame { padding: 24px; max-width: 1100px; margin: 0 auto; }
+  .demo-section {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .demo-section-title {
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .demo-section-subtitle {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+  }
+  table.spec-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  table.spec-table th {
+    text-align: left;
+    padding: 8px 10px;
+    background: var(--bg-elevated);
+    border-bottom: 1px solid var(--border);
+    font-weight: 700;
+  }
+  table.spec-table td {
+    padding: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  table.spec-table tr:last-child td { border-bottom: none; }
+  code.kbd {
+    background: var(--bg-hover);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-family: ui-monospace, monospace;
+  }
+</style>
+</head>
+<body>
+
+<button class="theme-btn" onclick="toggleTheme()" style="position:fixed;top:16px;right:16px;z-index:200">🌓 Tema</button>
+
+<div class="demo-frame">
+  <div class="mockup-header">
+    <div>
+      <div class="mockup-title">PresetFilters · chip row 5 filtros</div>
+      <div class="mockup-subtitle">single-select · URL params persist · single source of truth backend filter</div>
+    </div>
+  </div>
+
+  <!-- Estado default (Hoy active) -->
+  <div class="demo-section">
+    <div class="demo-section-title">Estado · default (chip "Hoy" active)</div>
+    <div class="demo-section-subtitle">View=semana fecha=hoy automático · URL: <code class="kbd">?view=semana&preset=hoy</code></div>
+    <div class="chip-row">
+      <button class="chip active">📅 Hoy</button>
+      <button class="chip">⏰ Por confirmar mañana</button>
+      <button class="chip">↩️ Re-agendar pendientes</button>
+      <button class="chip">🚫 No-shows del día</button>
+      <button class="chip">💰 Saldos pendientes</button>
+    </div>
+  </div>
+
+  <!-- Estado hover -->
+  <div class="demo-section">
+    <div class="demo-section-title">Estado · hover (cursor sobre "Re-agendar pendientes")</div>
+    <div class="demo-section-subtitle">bg-hover + border-strong + cursor-pointer</div>
+    <div class="chip-row">
+      <button class="chip">📅 Hoy</button>
+      <button class="chip">⏰ Por confirmar mañana</button>
+      <button class="chip" style="background:var(--bg-hover);border-color:var(--border-strong)">↩️ Re-agendar pendientes</button>
+      <button class="chip">🚫 No-shows del día</button>
+      <button class="chip">💰 Saldos pendientes</button>
+    </div>
+  </div>
+
+  <!-- Estado activo (otro chip) -->
+  <div class="demo-section">
+    <div class="demo-section-title">Estado · active "Saldos pendientes"</div>
+    <div class="demo-section-subtitle">Filtra slots con balance &gt; 0 · URL: <code class="kbd">?view=semana&preset=saldos_pendientes</code></div>
+    <div class="chip-row">
+      <button class="chip">📅 Hoy</button>
+      <button class="chip">⏰ Por confirmar mañana</button>
+      <button class="chip">↩️ Re-agendar pendientes</button>
+      <button class="chip">🚫 No-shows del día</button>
+      <button class="chip active">💰 Saldos pendientes</button>
+    </div>
+    <div class="muted text-xs" style="margin-top:12px">
+      Click chip activo → desactiva (URL pierde param preset). Selección NO se combina (single-select).
+    </div>
+  </div>
+
+  <!-- Estado focus (keyboard) -->
+  <div class="demo-section">
+    <div class="demo-section-title">Estado · focus (keyboard Tab)</div>
+    <div class="demo-section-subtitle">ring CSS · ARIA <code class="kbd">role="switch" aria-checked</code></div>
+    <div class="chip-row">
+      <button class="chip">📅 Hoy</button>
+      <button class="chip" style="outline:2px solid var(--c-adrian);outline-offset:2px">⏰ Por confirmar mañana</button>
+      <button class="chip">↩️ Re-agendar pendientes</button>
+      <button class="chip">🚫 No-shows del día</button>
+      <button class="chip">💰 Saldos pendientes</button>
+    </div>
+  </div>
+
+  <!-- Specs table -->
+  <div class="demo-section">
+    <div class="demo-section-title">Mapping chip → backend filter</div>
+    <table class="spec-table">
+      <thead>
+        <tr>
+          <th>Chip</th>
+          <th>URL param</th>
+          <th>Filter SQL (whitelist)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="chip active">📅 Hoy</span></td>
+          <td><code class="kbd">?preset=hoy</code></td>
+          <td><code class="kbd">date::date == CURRENT_DATE</code></td>
+        </tr>
+        <tr>
+          <td><span class="chip active">⏰ Por confirmar mañana</span></td>
+          <td><code class="kbd">?preset=confirmar_manana</code></td>
+          <td><code class="kbd">date == CURRENT_DATE+1 AND status == 'pending'</code></td>
+        </tr>
+        <tr>
+          <td><span class="chip active">↩️ Re-agendar pendientes</span></td>
+          <td><code class="kbd">?preset=reagendar</code></td>
+          <td><code class="kbd">requires_reschedule = TRUE</code></td>
+        </tr>
+        <tr>
+          <td><span class="chip active">🚫 No-shows del día</span></td>
+          <td><code class="kbd">?preset=noshows_hoy</code></td>
+          <td><code class="kbd">date == CURRENT_DATE AND status == 'no_show'</code></td>
+        </tr>
+        <tr>
+          <td><span class="chip active">💰 Saldos pendientes</span></td>
+          <td><code class="kbd">?preset=saldos_pendientes</code></td>
+          <td><code class="kbd">balance_amount &gt; 0 AND status &lt;&gt; 'no_show'</code></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Empty state filtered -->
+  <div class="demo-section">
+    <div class="demo-section-title">Empty state · filter retorna 0 slots</div>
+    <div class="demo-section-subtitle">Caso: chip "No-shows del día" pero hoy no hubo ninguno</div>
+    <div class="chip-row" style="margin-bottom:16px">
+      <button class="chip">📅 Hoy</button>
+      <button class="chip">⏰ Por confirmar mañana</button>
+      <button class="chip">↩️ Re-agendar pendientes</button>
+      <button class="chip active">🚫 No-shows del día</button>
+      <button class="chip">💰 Saldos pendientes</button>
+    </div>
+    <div class="empty-state" style="padding:32px">
+      <div class="empty-state-icon">🎉</div>
+      <div class="empty-state-heading">Ningún turno coincide con el filtro</div>
+      <div class="empty-state-body">No hay no-shows hoy. Buen trabajo manteniendo la asistencia.</div>
+      <button class="btn btn-outline">Limpiar filtros</button>
+    </div>
+  </div>
+</div>
+
+<div style="text-align:center;padding:24px">
+  <a href="agenda-cockpit-grid.html" class="muted text-sm">← Volver al cockpit índice</a>
+</div>
+
+<script>
+function toggleTheme() {
+  const html = document.documentElement;
+  const current = html.getAttribute('data-theme');
+  html.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark');
+}
+document.querySelectorAll('.chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    // single-select demo
+    const wasActive = chip.classList.contains('active');
+    chip.parentElement.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    if (!wasActive) chip.classList.add('active');
+  });
+});
+</script>
+
+</body>
+</html>

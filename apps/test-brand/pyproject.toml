@@ -1,0 +1,23 @@
+[project]
+name = "test-brand"
+version = "0.1.0"
+requires-python = ">=3.12"
+description = "Test brand app — SDK smoke validation. NOT a deployable product."
+dependencies = [
+    "fastapi>=0.111.0",
+    "luana-core-extension-sdk",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/test_brand"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+asyncio_mode = "auto"
+
+[tool.uv.sources]
+luana-core-extension-sdk = { workspace = true }

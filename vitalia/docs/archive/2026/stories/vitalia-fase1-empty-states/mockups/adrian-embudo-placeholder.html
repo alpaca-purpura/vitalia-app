@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="es-LA" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<title>F1-S10 · Adrián/Embudo placeholder</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="_shared.css">
+</head>
+<body>
+<div class="mockup-frame">
+  <div class="mockup-header">
+    <div>
+      <div class="mockup-title">Adrián · Embudo — placeholder Fase 1</div>
+      <div class="mockup-subtitle">F1-S10 mockup standalone · Kanban 6 cols · toggle Kanban|Lista funcional</div>
+    </div>
+    <button class="theme-btn" onclick="document.documentElement.dataset.theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'">🌓 Tema</button>
+  </div>
+
+  <article class="panel rounded-lg p-5">
+    <div class="flex items-start justify-between mb-4">
+      <div>
+        <h2 class="text-base font-semibold">Embudo</h2>
+        <p class="text-xs muted">Pipeline de leads en 6 estados (placeholder con leads ficticios).</p>
+      </div>
+      <div class="toggle-pill" data-toggle="t1">
+        <div class="toggle-pill-option active" data-state="kanban">Kanban</div>
+        <div class="toggle-pill-option" data-state="lista">Lista</div>
+      </div>
+    </div>
+
+    <div data-pane="t1-kanban" class="overflow-x-auto">
+      <div class="grid grid-cols-6 gap-2 min-w-[960px]">
+        <div class="panel rounded-md p-2"><div class="text-xs font-medium mb-2 flex items-center justify-between"><span>⚪ Interesado</span><span class="muted">12 · S/ 84k</span></div><div class="space-y-1.5"><div class="lead-card"><div class="font-medium">María G.</div><div class="muted">S/ 7k · WhatsApp · hace 2 días</div></div><div class="lead-card"><div class="font-medium">Carlos P.</div><div class="muted">S/ 4k · Web · hace 4 días</div></div><div class="lead-card"><div class="font-medium">Sofía R.</div><div class="muted">S/ 12k · Meta · hace 1 sem</div></div></div></div>
+        <div class="panel rounded-md p-2"><div class="text-xs font-medium mb-2 flex items-center justify-between"><span>🟢 Calificando</span><span class="muted">8 · S/ 62k</span></div><div class="space-y-1.5"><div class="lead-card"><div class="font-medium">Ana V.</div><div class="muted">S/ 8k · Manual · hace 3 h</div></div><div class="lead-card"><div class="font-medium">Pedro M.</div><div class="muted">S/ 6k · WhatsApp · hace 8 h</div></div><div class="lead-card"><div class="font-medium">Lucía R.</div><div class="muted">S/ 9k · Web · hace 1 día</div></div></div></div>
+        <div class="panel rounded-md p-2"><div class="text-xs font-medium mb-2 flex items-center justify-between"><span>🟡 Considerando</span><span class="muted">5 · S/ 41k</span></div><div class="space-y-1.5"><div class="lead-card"><div class="font-medium">JP Méndez</div><div class="muted">S/ 11k · WhatsApp · hace 2 días</div></div><div class="lead-card"><div class="font-medium">Marta L.</div><div class="muted">S/ 8k · Web · hace 3 días</div></div><div class="lead-card"><div class="font-medium">Diego F.</div><div class="muted">S/ 7k · Meta · hace 5 días</div></div></div></div>
+        <div class="panel rounded-md p-2"><div class="text-xs font-medium mb-2 flex items-center justify-between"><span>🔵 Listo</span><span class="muted">3 · S/ 28k</span></div><div class="space-y-1.5"><div class="lead-card"><div class="font-medium">Rosa V.</div><div class="muted">S/ 12k · Reservado</div></div><div class="lead-card"><div class="font-medium">Felipe T.</div><div class="muted">S/ 9k · Reservado</div></div></div></div>
+        <div class="panel rounded-md p-2"><div class="text-xs font-medium mb-2 flex items-center justify-between"><span>🟣 Reservado</span><span class="muted">2 · S/ 15k</span></div><div class="space-y-1.5"><div class="lead-card"><div class="font-medium">Camila B.</div><div class="muted">S/ 8k · pagó depósito</div></div><div class="lead-card"><div class="font-medium">Mateo L.</div><div class="muted">S/ 7k · pagó total</div></div></div></div>
+        <div class="panel rounded-md p-2"><div class="text-xs font-medium mb-2 flex items-center justify-between"><span>⚫ Decidió no</span><span class="muted">4 · —</span></div><div class="space-y-1.5"><div class="lead-card"><div class="font-medium">Iván S.</div><div class="muted">razón: precio</div></div><div class="lead-card"><div class="font-medium">Patricia C.</div><div class="muted">razón: no disponible</div></div></div></div>
+      </div>
+    </div>
+
+    <div data-pane="t1-lista" class="hidden text-center py-16">
+      <div class="text-5xl opacity-50 mb-3">📋</div>
+      <div class="text-base font-medium">Vista lista — próximamente</div>
+      <p class="text-xs muted mt-2 max-w-md mx-auto">Tabla con filtros (estado, origen, fecha) + orden por valor / antigüedad / score.</p>
+    </div>
+  </article>
+</div>
+
+<script>
+document.querySelectorAll('.toggle-pill').forEach((pill) => {
+  const key = pill.dataset.toggle;
+  pill.querySelectorAll('.toggle-pill-option').forEach((opt) => {
+    opt.addEventListener('click', () => {
+      pill.querySelectorAll('.toggle-pill-option').forEach((o) => o.classList.remove('active'));
+      opt.classList.add('active');
+      document.querySelectorAll(`[data-pane^="${key}-"]`).forEach((p) => p.classList.add('hidden'));
+      document.querySelector(`[data-pane="${key}-${opt.dataset.state}"]`)?.classList.remove('hidden');
+    });
+  });
+});
+</script>
+</body>
+</html>

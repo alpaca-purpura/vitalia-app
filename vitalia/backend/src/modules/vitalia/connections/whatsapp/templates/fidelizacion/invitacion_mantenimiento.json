@@ -1,0 +1,29 @@
+{
+  "name": "vitalia_invitacion_mantenimiento",
+  "category": "MARKETING",
+  "language": "es",
+  "components": [
+    {
+      "type": "BODY",
+      "text": "Hola {{1}}, en {{2}} tenemos disponibilidad para tu próxima sesión de mantenimiento. ¡Agenda ahora y continúa cuidando tu salud con nuestro equipo!",
+      "example": {
+        "body_text": [
+          ["Ana Torres", "Clínica Vitalia"]
+        ]
+      }
+    },
+    {
+      "type": "FOOTER",
+      "text": "Puedes cancelar notificaciones respondiendo STOP"
+    },
+    {
+      "type": "BUTTONS",
+      "buttons": [
+        {
+          "type": "QUICK_REPLY",
+          "text": "Ver disponibilidad"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,296 @@
+---
+capability_id: vitalia-iam-luana-core-adoption
+module: iam
+slug: luana-core-adoption
+status: live
+date_introduced: 2026-05-19
+story_introduced: vitalia-adopt-luana-core-iam
+package_version: 0.1.0
+package_path: vitalia/backend/src/modules/vitalia/admin/ + vitalia/backend/alembic/versions/022_vitalia_add_engine_iam_tables.py
+license: MIT
+
+# v3 cement 2026-05-27 · 4 dimensiones + dev_preview (ADR-vitalia-005)
+tech_module: iam
+agent_owner: acceso
+functional_area: acceso.iam
+user_visible: true
+nature: extension-point
+ui_paradigm: shell-organism  # T-3 reconcile 2026-05-29
+
+user_facing_name: "Adopción de luana-core IAM"
+user_facing_description: >
+  Capa de adopción que conecta el módulo IAM de Vitalia con el engine compartido
+  luana-core-iam. La migración 022 crea las tablas de users, tenants y user_tenants
+  que coinciden con los modelos ORM del engine. El código admin consume los
+  repositorios del engine directamente, eliminando SQL crudo y tablas con
+  prefijo brand para entidades que son responsabilidad del engine.
+
+dev_preview:
+  route: null
+  how_to_navigate: "BE-only · ver via tests en vitalia/backend/tests/modules/vitalia/admin/ + tests/architecture/test_admin_consumes_engine_repos.py"
+  main_component: null
+  api_endpoints: []
+  e2e_test: null
+  fixtures_required: []
+  storybook_url: null
+  loom_demo: null
+
+summary: |
+  Vitalia adopta engine `luana-core-iam` para entidades IAM compartidas (users,
+  tenants, user_tenants). Migration 022 crea las 3 tablas matching engine ORM
+  models. Admin code consume engine repositories (UserRepository, TenantRepository,
+  UserTenantRepository) — cero SQL crudo, cero tablas brand-prefixed para
+  entidades engine.
+
+surfaces:
+  config:
+    - vitalia/config/brand.yaml (engine consumer)
+  backend:
+    - vitalia/backend/alembic/versions/022_vitalia_add_engine_iam_tables.py (NEW)
+    - vitalia/backend/src/modules/vitalia/admin/modules/tenants.py (REWRITE consuming TenantRepository)
+    - vitalia/backend/src/modules/vitalia/admin/modules/users.py (REWRITE consuming UserRepository + UserTenantRepository)
+  tests:
+    - vitalia/backend/tests/modules/vitalia/admin/test_tenants_crud.py
+    - vitalia/backend/tests/modules/vitalia/admin/test_users_crud.py
+    - vitalia/backend/tests/architecture/test_admin_consumes_engine_repos.py (arch fitness)
+
+dependencies:
+  - engine_package: core/luana-core-iam (consumed via Python imports, NEVER edited)
+  - engine_package: core/luana-core-platform (Settings + get_db)
+
+verification:
+  commands:
+    - "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/admin/ -v"
+    - "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/architecture/test_admin_consumes_engine_repos.py -v"
+    - "docker exec luana-dev-vitalia_backend_dev-1 alembic current"  # expected: 023_vitalia (head)
+  gherkin_evidence:
+    - SC-02 Admin crea tenant nuevo via TenantRepository
+    - SC-04 Admin crea user + asigna a tenant via UserRepository + UserTenantRepository
+    - SC-13 Phantom tables DELETED (cero SQL crudo en admin/modules/)
+    - SC-14 Migrations 002-023 aplicadas
+
+# Capability ledger v2 (cement 2026-05-27)
+created_in_story: vitalia-adopt-luana-core-iam   # v2 cement · mirror of story_introduced
+created_date: 2026-05-19   # v2 cement · mirror of date_introduced
+last_modified: 2026-06-03   # bugfix shell-nav-scroll-errors #2 (useTenants → endpoint real /me/tenants)
+parent_cap: null   # v2 cement · mirror of extends_capability
+derives_capabilities: []   # v2 cement · initial empty list
+
+# Capability ledger v2 (cement 2026-05-27)
+
+# Capability change log v2 (cement 2026-05-27)
+change_log:
+  - story_id: vitalia-bugfix-shell-nav-scroll-errors
+    date: 2026-06-03
+    type: fix
+    summary: "Bug#2 (story bugfix shell): el selector de tenant no aparecía en el stack real porque useTenants pegaba a /api/tenants (404 — no existe en el BE) → availableTenants vacío → TenantSwitcher oculto; el e2e lo enmascaraba sembrando activeTenant vía storageState (verificación-real-≠-200). Fix: useTenants → GET /api/v1/iam/users/me/tenants (endpoint real user-scoped, core-iam auth_router → list[TenantSchema]) + Tenant type alineado al contrato BE (city opt, +slug/role) + e2e bug2 cold-start honesto. Live dev-app: /me/tenants 200 → 'Sanaré LATAM' visible (cero /api/tenants). NO usa el admin list_tenants (sin cross-tenant leak)."
+    merge_sha: null
+    status: done
+  - story_id: vitalia-fe-tenant-resolution-no-clerk-org
+    date: 2026-06-01
+    type: fix
+    summary: "El FE resolvía tenant_id desde useAuth().orgId (Clerk Org, org_ no-UUID) en 34 archivos → 500 en todo PHI contra backend real (oculto por e2e mockeado). Fix: useTenantId() (lee public_metadata.tenant_id) + reemplazo en 33 archivos + sweep AuditedSection (audit PHI) + useTenantLocale + tightening arch test no-clerk-organizations. Clerk org drift borrada. Live-verified: X-Tenant-ID=UUID nuestro, API_5XX=[], doctors 500→200. Restaura invariante no-clerk-organizations."
+    merge_sha: null
+    status: done
+  - story_id: vitalia-adopt-luana-core-iam
+    date: 2026-05-19
+    type: new
+    summary: "Implementación inicial · migración legacy a schema v2"
+    merge_sha: null
+    status: done
+  - story_id: vitalia-adopt-luana-core-iam
+    date: 2026-05-28
+    type: extend
+    summary: "backfill scenarios desde spec archivado"
+    scenarios_added:
+      - admin-login-y-logout
+      - admin-lista-tenants
+      - admin-suspende-tenant
+      - admin-crea-user-y-asigna-tenant
+      - admin-lista-y-banea-user
+      - admin-crea-clinica-asociada-tenant
+      - hipaa-cross-clinic-bloqueada
+      - hipaa-dual-filter-pacientes
+      - phantom-tables-eliminadas
+    merge_sha: null
+    status: done
+
+access:
+  entry_points:
+    - path: null
+      navigation: "BE-only · verificar via tests en vitalia/backend/tests/modules/vitalia/admin/ + tests/architecture/test_admin_consumes_engine_repos.py"
+      requires_role: [admin_clinic]
+      requires_clinic_scope: false
+      entry_type: api
+  forbidden_roles: [patient, marketing, nurse, receptionist, doctor]
+  authentication: required
+
+scenarios:
+  - id: admin-crea-tenant-via-engine-repo
+    name: "Admin crea un nuevo tenant usando el repositorio del engine luana-core-iam"
+    actor: admin_clinic
+    status: live
+    given: "Admin autenticado accede al panel de administración de tenants"
+    when: "Invoca TenantRepository.create() con los datos del nuevo tenant"
+    then: "Tenant persiste en tabla 'tenants' (creada por migration 022) · cero SQL crudo en admin code · cero tablas brand-prefixed"
+    e2e_test: null
+    story_spec_ref: "vitalia/docs/archive/2026/stories/vitalia-adopt-luana-core-iam/01-spec.md"
+    atomic_ref: null
+    edge_cases:
+      - "Migration 022 no aplicada → ImportError en engine repos al iniciar backend"
+      - "Engine repo ya tiene tenant con mismo slug → constraint violation propagada como 409"
+    added_in_story: vitalia-adopt-luana-core-iam
+    added_date: 2026-05-19
+  - id: admin-login-y-logout
+    name: "Admin inicia y cierra sesión en el panel de administración"
+    actor: admin_clinic
+    status: live
+    given: "Panel de administración corriendo con admin configurado"
+    when: "Admin ingresa credenciales válidas y luego cierra sesión"
+    then: "Verificación de password contra el hash · sesión autenticada · al salir la sesión se destruye y redirige a login"
+    e2e_test: "vitalia/frontend/e2e/admin/admin-login.spec.ts"
+    story_spec_ref: "vitalia/docs/archive/2026/stories/vitalia-adopt-luana-core-iam/01-spec.md"
+    atomic_ref: null
+    edge_cases:
+      - "Credenciales inválidas → permanece en login sin autenticar"
+    added_in_story: vitalia-adopt-luana-core-iam
+    added_date: 2026-05-19
+  - id: admin-lista-tenants
+    name: "Admin lista los tenants existentes"
+    actor: admin_clinic
+    status: live
+    given: "Existen tenants en la tabla del engine"
+    when: "Admin navega al listado de tenants"
+    then: "Se listan los tenants ordenados por fecha de creación vía TenantRepository del engine"
+    e2e_test: "vitalia/frontend/e2e/admin/admin-tenants-crud.spec.ts"
+    story_spec_ref: "vitalia/docs/archive/2026/stories/vitalia-adopt-luana-core-iam/01-spec.md"
+    atomic_ref: null
+    edge_cases: []
+    added_in_story: vitalia-adopt-luana-core-iam
+    added_date: 2026-05-19
+  - id: admin-suspende-tenant
+    name: "Admin suspende un tenant desde el listado"
+    actor: admin_clinic
+    status: live
+    given: "Admin en el listado de tenants"
+    when: "Activa el toggle Suspender en la fila de un tenant"
+    then: "El tenant queda con is_active=false vía repositorio del engine · updated_at refrescado"
+    e2e_test: "vitalia/frontend/e2e/admin/admin-tenants-crud.spec.ts"
+    story_spec_ref: "vitalia/docs/archive/2026/stories/vitalia-adopt-luana-core-iam/01-spec.md"
+    atomic_ref: null
+    edge_cases: []
+    added_in_story: vitalia-adopt-luana-core-iam
+    added_date: 2026-05-19
+  - id: admin-crea-user-y-asigna-tenant
+    name: "Admin crea un usuario y lo asigna a un tenant"
+    actor: admin_clinic
+    status: live
+    given: "Admin en la página de creación de usuarios"
+    when: "Ingresa email, nombre y asigna rol a un tenant"
+    then: "Usuario persiste vía UserRepository · asignación persiste vía UserTenantRepository del engine"
+    e2e_test: "vitalia/frontend/e2e/admin/admin-users-crud.spec.ts"
+    story_spec_ref: "vitalia/docs/archive/2026/stories/vitalia-adopt-luana-core-iam/01-spec.md"
+    atomic_ref: null
+    edge_cases: []
+    added_in_story: vitalia-adopt-luana-core-iam
+    added_date: 2026-05-19
+  - id: admin-lista-y-banea-user
+    name: "Admin lista usuarios con su rol por tenant y banea uno"
+    actor: admin_clinic
+    status: live
+    given: "Existen usuarios con asignaciones a múltiples tenants"
+    when: "Admin abre el listado y activa el toggle Banear en una fila"
+    then: "Listado con JOIN users + user_tenants + tenants · el usuario queda con is_active=false"
+    e2e_test: "vitalia/frontend/e2e/admin/admin-users-crud.spec.ts"
+    story_spec_ref: "vitalia/docs/archive/2026/stories/vitalia-adopt-luana-core-iam/01-spec.md"
+    atomic_ref: null
+    edge_cases: []
+    added_in_story: vitalia-adopt-luana-core-iam
+    added_date: 2026-05-19
+  - id: admin-crea-clinica-asociada-tenant
+    name: "Admin crea una clínica asociada a un tenant (extensión brand)"
+    actor: admin_clinic
+    status: live
+    given: "Admin en la página de creación de clínicas"
+    when: "Ingresa nombre, dirección y timezone de una nueva sede"
+    then: "La clínica persiste en la tabla brand-local vitalia_clinics asociada al tenant"
+    e2e_test: "vitalia/frontend/e2e/admin/admin-clinics-extension.spec.ts"
+    story_spec_ref: "vitalia/docs/archive/2026/stories/vitalia-adopt-luana-core-iam/01-spec.md"
+    atomic_ref: null
+    edge_cases: []
+    added_in_story: vitalia-adopt-luana-core-iam
+    added_date: 2026-05-19
+  - id: hipaa-cross-clinic-bloqueada
+    name: "Una consulta a una clínica fuera del scope del usuario se bloquea"
+    actor: doctor
+    status: live
+    given: "Usuario con asignación a tenant T1 y clínica C1"
+    when: "Invoca un endpoint de pacientes apuntando a la clínica C2 (fuera de su scope)"
+    then: "El decorator de acceso por clínica verifica user_tenants + scope y bloquea la consulta sin fuga"
+    e2e_test: "vitalia/frontend/e2e/admin/admin-hipaa-dual-filter.spec.ts"
+    story_spec_ref: "vitalia/docs/archive/2026/stories/vitalia-adopt-luana-core-iam/01-spec.md"
+    atomic_ref: null
+    edge_cases: []
+    added_in_story: vitalia-adopt-luana-core-iam
+    added_date: 2026-05-19
+  - id: hipaa-dual-filter-pacientes
+    name: "Las consultas de pacientes aplican el dual filter tenant + clínica"
+    actor: doctor
+    status: live
+    given: "Pacientes distribuidos en varias clínicas de varios tenants"
+    when: "Usuario consulta pacientes sin params extra"
+    then: "El repositorio aplica dual filter WHERE tenant_id + clinic_id y solo devuelve los pacientes de su clínica"
+    e2e_test: "vitalia/frontend/e2e/admin/admin-hipaa-dual-filter.spec.ts"
+    story_spec_ref: "vitalia/docs/archive/2026/stories/vitalia-adopt-luana-core-iam/01-spec.md"
+    atomic_ref: null
+    edge_cases: []
+    added_in_story: vitalia-adopt-luana-core-iam
+    added_date: 2026-05-19
+  - id: phantom-tables-eliminadas
+    name: "El código admin no contiene SQL crudo ni tablas brand fantasma"
+    actor: admin_clinic
+    status: live
+    given: "Rewrite admin completo consumiendo repositorios del engine"
+    when: "Se ejecuta grep en el código admin"
+    then: "Cero referencias a tablas brand-prefixed para entidades del engine · cero SQL crudo residual"
+    e2e_test: "vitalia/frontend/e2e/admin/admin-clinics-extension.spec.ts"
+    story_spec_ref: "vitalia/docs/archive/2026/stories/vitalia-adopt-luana-core-iam/01-spec.md"
+    atomic_ref: null
+    edge_cases: []
+    added_in_story: vitalia-adopt-luana-core-iam
+    added_date: 2026-05-19
+
+business_rules:
+  - id: engine-repos-no-direct-sql
+    rule: "El código admin consume TenantRepository, UserRepository y UserTenantRepository del engine · cero SQL crudo directo · cero tablas brand-prefixed para entidades engine"
+    enforcement:
+      - ".claude/rules/anti-duplication.md"
+      - "vitalia/backend/tests/architecture/test_admin_consumes_engine_repos.py"
+    code_ref: "vitalia/backend/src/modules/vitalia/admin/modules/"
+    severity: high
+    audit_trail: false
+  - id: migration-022-idempotent
+    rule: "Migration 022 crea las 3 tablas IAM del engine (users, tenants, user_tenants) de forma idempotente con IF NOT EXISTS · nunca op.create_table() directo"
+    enforcement:
+      - ".claude/rules/backend-migrations.md"
+    code_ref: "vitalia/backend/alembic/versions/022_vitalia_add_engine_iam_tables.py"
+    severity: high
+    audit_trail: false
+
+related_capabilities:
+  depends_on:
+    - auth.clerk-middleware
+  enables:
+    - shell-organism.shell-vitalia
+    - compliance.hipaa-lite-defensive-stack
+    - scheduling.mateo-agenda
+    - brand_studio.lisa-marca
+  similar: []
+  obsoletes: []
+map_box: acceso
+
+---
+
+# Adopción de luana-core IAM
+
+Capa de adopción que conecta el módulo IAM de Vitalia con el engine compartido luana-core-iam. La migración 022 crea las tablas users/tenants/user_tenants matching los modelos ORM del engine; el código admin consume los repositorios del engine directamente, eliminando SQL crudo y tablas brand-prefixed para entidades del engine.

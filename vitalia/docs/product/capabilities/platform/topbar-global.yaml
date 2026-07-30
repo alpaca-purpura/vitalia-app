@@ -1,0 +1,170 @@
+---
+capability_id: vitalia-topbar-global
+module: platform
+slug: topbar-global
+status: live
+date_introduced: 2026-05-23
+story_introduced: vitalia-fase1-topbar-global
+package_version: 0.1.0
+package_path: vitalia/frontend
+license: proprietary
+
+# v3 cement 2026-05-27 · 4 dimensiones + dev_preview (ADR-vitalia-005)
+tech_module: platform
+agent_owner: plataforma-tecnica
+functional_area: plataforma-tecnica.platform
+user_visible: false
+nature: feature
+ui_paradigm: shell-organism  # T-3 reconcile 2026-05-29
+
+user_facing_name: "TopBar global con logo, theme y tenant"
+user_facing_description: >
+  Barra superior de 48 px persistente en todas las páginas post-login. Contiene
+  el LogoMark de Vitalia (libélula + wordmark con swap dark/light sin JavaScript),
+  el botón de cambio de tema (ThemeToggle) y el slot del TenantSwitcher. Incluye
+  skip link de accesibilidad y es responsive: en móvil muestra solo la libélula.
+
+dev_preview:
+  route: null
+  how_to_navigate: "Visible en todas las páginas post-login en la barra superior."
+  main_component: "core/@luana/ui-kit/src/organism/shell/TopBarShell.tsx"
+  api_endpoints: []
+  e2e_test: "vitalia/frontend/e2e/regression/topbar-global/topbar-interaction.smoke.spec.ts"
+  fixtures_required: []
+  storybook_url: null
+  loom_demo: null
+
+related_capabilities:
+  - vitalia-shell-foundation-shadcn-tailwind-v4
+  - vitalia-design-tokens-theme
+depends_on_engine: []
+
+# Capability ledger v2 (cement 2026-05-27)
+created_in_story: vitalia-fase1-topbar-global   # v2 cement · mirror of story_introduced
+created_date: 2026-05-23   # v2 cement · mirror of date_introduced
+parent_cap: null   # v2 cement · mirror of extends_capability
+derives_capabilities: []   # v2 cement · initial empty list
+
+# Capability ledger v2 (cement 2026-05-27)
+
+# Capability change log v2 (cement 2026-05-27)
+change_log:
+  - story_id: vitalia-fase1-topbar-global
+    date: 2026-05-23
+    type: new
+    summary: "Implementación inicial · migración legacy a schema v2"
+    merge_sha: null
+    status: done
+  - story_id: vitalia-stub-caps-scenario-backfill
+    date: 2026-05-30
+    type: extend
+    summary: "backfill scenario+e2e → verified-live (deployed-visible)"
+    added_in_story: vitalia-stub-caps-scenario-backfill
+    status: done
+
+last_modified: 2026-05-30
+
+scenarios:
+  - id: topbar-renderiza-con-logo-y-toggle
+    name: "TopBarGlobal renderiza con role=banner, logo y ThemeToggle interactivo"
+    actor: doctor
+    status: live
+    given: "Usuario accede a la página de showcase /test-stack/topbar-global (ruta pública)"
+    when: "Carga la página y hace clic en el botón ThemeToggle"
+    then: "El elemento [data-testid=topbar-global] tiene role=banner · el logo tiene aria-label='Vitalia inicio' y href='/' · el toggle alterna entre data-theme=dark y sin data-theme · altura del topbar entre 47 y 50px"
+    e2e_test: "vitalia/frontend/e2e/regression/topbar-global/topbar-interaction.smoke.spec.ts"
+    verification_method: dev-app
+    story_spec_ref: "vitalia/docs/archive/2026/stories/vitalia-fase1-topbar-global/01-spec.md"
+    atomic_ref: null
+    added_in_story: vitalia-stub-caps-scenario-backfill
+    added_date: 2026-05-30
+map_box: plataforma-tecnica
+
+---
+
+# vitalia-topbar-global
+
+Top bar thin 48px persistente cross-route con brand LogoMark izq + ThemeToggle (F1-S1 reuse) + TenantSwitcherSlot placeholder (F1-S3 drop-in). Skip link a11y + main#main-content landmark + axe WCAG 2.1 AA. CSS-based dark mode swap dual `<Image>` (SSR-safe zero JS). Mobile responsive @media <768px switch a variant="mark" (libélula sola).
+
+## Surface
+
+### Components (`vitalia/frontend/src/components/shared/shell-organism/`)
+
+- `LogoMark.tsx` — átomo Server Component, 6 combinations 3 sizes (sm/md/lg = 24/32/40px) × 2 variants (full/mark). Dark mode via dual `<Image>` con `block dark:hidden` / `hidden dark:block` — no JS, no FOUC.
+- `LogoMark.test.tsx` — 9 Vitest tests (cover all 6 combinations + a11y aria-label + Image lazy/priority).
+- `TenantSwitcherSlot.tsx` — placeholder returns null. Props declared for F1-S3 forward-compat.
+- `TenantSwitcherSlot.test.tsx` — 3 tests (renders null, no console errors, forward-compat props).
+- `TopBarGlobal.tsx` — organismo Server Component. `<header role="banner" h-12 border-b bg-background>` compose 2 LogoMark instances (full hidden below md, mark visible below md responsive) + ThemeToggle + TenantSwitcherSlot.
+- `TopBarGlobal.test.tsx` — 6 tests (banner role + composition + responsive classes + data-testid).
+
+### Layout integration (`vitalia/frontend/src/app/layout.tsx`)
+
+- MODIFY agrega skip-link visual sr-only/focus + `<main id="main-content">` landmark.
+
+### Brand assets (`vitalia/frontend/public/brand/`)
+
+3 PNG canónicos ya commiteados F1-S2 ready package (Chris ratify 2026-05-22):
+- `vitalia-ico.png` — libélula multicolor (~156KB)
+- `vitalia-logo.png` — libélula + wordmark VITALIA navy (~107KB) — light mode
+- `vitalia-logo-dark.png` — libélula + wordmark VITALIA white (~93KB) — dark mode
+
+### Test pages (`vitalia/frontend/src/app/test-stack/`)
+
+- `topbar-global/page.tsx` — Next.js wrapper for TopBarGlobal showcase
+- `logo-mark/page.tsx` — Next.js wrapper for LogoMark 6 combinations grid
+
+### Fixtures (`vitalia/frontend/e2e/__test-pages__/topbar-global/`)
+
+- `topbar-showcase.tsx` — TopBarGlobal con datos LatAm reales (Aurora Dental — Mendoza, Argentina)
+- `logo-mark-showcase.tsx` — 6 combinations grid + dark toggle
+
+### Playwright suites (`vitalia/frontend/e2e/`)
+
+- `regression/topbar-global/topbar-interaction.smoke.spec.ts` — behavior (theme switch propagation, skip link keyboard, mobile responsive)
+- `visual/topbar-global/topbar-baseline.spec.ts` — 6 goldens (topbar light/dark × desktop/mobile + logo-mark light/dark)
+- `a11y/topbar-global/topbar-a11y.spec.ts` — axe WCAG 2.1 AA + landmarks + skip-link keyboard
+
+### Visual goldens (`vitalia/frontend/e2e/__screenshots__/visual/topbar-global/topbar-baseline.spec.ts/`)
+
+6 PNG ratificados Chris pre-architect 2026-05-22T20:00:
+- `topbar-desktop-light.png` · `topbar-desktop-dark.png`
+- `topbar-mobile-light.png` · `topbar-mobile-dark.png`
+- `logo-mark-light.png` · `logo-mark-dark.png`
+
+## Verification
+
+```bash
+WS=$(git rev-parse --show-toplevel)
+cd ${WS}
+
+make dev-vitalia
+
+cd vitalia/frontend
+npx tsc --noEmit                                                  # 0 errors
+npx eslint src/ --max-warnings 0                                  # 0 errors
+npx vitest run                                                    # 824/824 PASS
+
+E2E_BASE_URL=http://localhost:3002 npx playwright test --project=visual
+# 15/15 PASS (F1-S0 6 + F1-S1 2 + F1-S2 6 + smoke baselines 1)
+
+E2E_BASE_URL=http://localhost:3002 npx playwright test --project=smoke --grep topbar
+E2E_BASE_URL=http://localhost:3002 npx playwright test --project=a11y --grep topbar
+
+curl -s -o /dev/null -w "%{http_code}\n" http://localhost:3002/test-stack/topbar-global  # 200
+curl -s -o /dev/null -w "%{http_code}\n" http://localhost:3002/test-stack/logo-mark      # 200
+```
+
+## Gherkin coverage (13 scenarios PASS)
+
+Ver `06-audit/gherkin-matrix.md` (archived) — SC-01..SC-13 todos PASS.
+
+## Dependencies
+
+- Engine: ninguna.
+- Cross-brand: ninguna.
+- Promotion candidate: TopBar+LogoMark pattern brand-local justificado (brand assets propios + voice unique). NO lift.
+
+## Blocks (downstream)
+
+- F1-S3 `vitalia-fase1-tenant-switcher` — reemplaza TenantSwitcherSlot drop-in
+- F1-S4 `vitalia-fase1-shell-layout-5050` — composes TopBarGlobal en shell layout

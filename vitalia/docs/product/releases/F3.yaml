@@ -1,0 +1,33 @@
+---
+# Release schema (v2 cement 2026-05-27)
+# Doc: docs/process/release-protocol.md
+# Path canónico: vitalia/docs/product/releases/F3.yaml
+
+release_id: F3
+brand: vitalia
+name: "Adrián vendiendo + Payment infra crítico"
+description: "Adrián vendiendo end-to-end · embudo + propuestas + outbound. Payment adapter MVP + fiscal emission PE (TIER 2 service-blockers)."
+status: planning
+target_date: null
+shipped_date: null
+order: 3
+created_at: 2026-05-27T18:25:23-05:00
+created_by: scripts/migrate_to_release_schema.py
+
+stories:
+  - vitalia-fiscal-emission-pe
+  - vitalia-payment-adapter-mvp
+
+---
+
+# F3 · Adrián vendiendo + Payment infra crítico
+
+> Adrián vendiendo end-to-end · embudo + propuestas + outbound. Payment adapter MVP + fiscal emission PE (TIER 2 service-blockers).
+
+## Stories incluidas
+
+<!-- Auto-poblado durante migración Phase 3 desde checkpoints reales -->
+
+## Notas del release
+
+(libre · Chris escribe aquí contexto adicional · decisiones · gotchas)

@@ -1,0 +1,247 @@
+---
+story_id: vitalia-fase2-adrian-embudo
+schema_version: v4.1
+architecture_pattern: ADR-vitalia-004
+generated_by: /architect
+generated_on: 2026-06-03
+# DoD live-verify (#37) + ADR-008 dev_app_verified gate
+verification_nature: ambas        # técnica (funnel service/score/freeze) + funcional (board/lead/nuevo/recuperar UI)
+demo_required: true               # toca FE + endpoints con consumer FE → demo manual Chris (gate sign-off)
+runtime_error_gate:
+  required: true                  # FE → base.ts anti-burbuja (pageerror/console/response/Next overlay)
+  fixture: vitalia/frontend/e2e/fixtures/base.ts
+  backend_log_script: scripts/verify-no-backend-errors.sh
+dev_app_verified:
+  required: true
+  evidence: ""                    # dev-team completa post live-verify (ADR-008 — REFUSE merge si vacío)
+---
+
+# ── Categoría 1 · non_functional ──────────────────────────────────────────────
+non_functional:
+  - id: NF-1
+    rule: "Tenant isolation — toda query funnel filtra tenant_id (incl get_by_id, update_stage, board)"
+    verify: "BE pytest test_cross_tenant_lead_block.py + arch DDD; cross-tenant → 404 genérico"
+    scenario: SC-4
+  - id: NF-2
+    rule: "Optimistic lock — version concurrency, 2 operadores mismo lead → 409"
+    verify: "test_stage_transition_optimistic_lock.py (A 200, B 409); FE rollback+refetch+toast"
+    scenario: SC-5
+  - id: NF-3
+    rule: "Soft delete only (deleted_at); SA 2.0 select(); response_model en cada route"
+    verify: "arch fitness test_response_model_required.py + no-hard-delete + SA2.0"
+  - id: NF-4
+    rule: "Large dataset 1200 leads → counts reales por columna + lista paginada sin congelar"
+    verify: "Playwright @perf embudo-board.spec.ts; board virtualizado / lista 25/pág"
+    scenario: SC-9
+  - id: NF-5
+    rule: "Network failure — GET timeout → banner+Reintentar; PATCH timeout → rollback+toast"
+    verify: "Playwright embudo-board.spec.ts (MSW abort)"
+    scenario: SC-7
+  - id: NF-6
+    rule: "Funnel repos NO heredan PhiRepositoryBase (non-PHI single tenant filter)"
+    verify: "arch test_lead_repository_is_not_phi_repository.py verde + test_phi_dual_filter no aplica a funnel repos"
+
+# ── Categoría 2 · functional ──────────────────────────────────────────────────
+functional:
+  - id: F-1
+    rule: "Board hot-only (RN-18): 4 etapas activas + Reservado; Decidió no + congelados → Recuperar"
+    verify: "BE board endpoint excluye decidio_no/frozen; Playwright board column count"
+    scenario: SC-board
+  - id: F-2
+    rule: "Transición agent-driven → lead_stage_transition row + audit (RN-3)"
+    verify: "test_funnel_service.py transition happy"
+    scenario: SC-1
+  - id: F-3
+    rule: "Override manual válido (drag adyacente + razón) → transición manual_override + alimenta agente (RN-4/4.1)"
+    verify: "test_manual_override_feeds_agent_context.py + Playwright drag"
+    scenario: SC-1b
+  - id: F-4
+    rule: "Override saltando etapas → confirm+razón → 422 {allowed_next} + rollback (RN-4)"
+    verify: "test_funnel_api.py 422 body + Playwright toast"
+    scenario: SC-2
+  - id: F-5
+    rule: "→Reservado por drag/manual BLOQUEADO (RN-4/5) → 403 + tooltip; webhook stub MSW"
+    verify: "test_funnel_service.py 403; Playwright drag-reservado warn toast"
+    scenario: SC-1
+  - id: F-6
+    rule: "Página lead URL propia 2 vistas (Resumen/Historial); deep-link/refresh renderiza (RN-16)"
+    verify: "Playwright embudo-lead-workspace.spec.ts (clic→URL; refresh /historial→render)"
+    scenario: SC-detalle
+  - id: F-7
+    rule: "Alta lead ruta-hoja /nuevo → submit → redirect /embudo?highlight={id} → card resaltada"
+    verify: "Playwright embudo-nuevo-lead.spec.ts"
+    scenario: SC-nuevo
+  - id: F-8
+    rule: "Auto-freeze (RN-13: 14d/30d/2×SLA) → sale board → Recuperar; lead responde → vuelve"
+    verify: "test_auto_freeze_and_reactivate.py + Playwright recuperar visible"
+    scenario: SC-freeze
+  - id: F-9
+    rule: "Orden columna antigüedad-en-etapa desc (RN-17); drag solo cambia columna, no reordena"
+    verify: "test_lead_repository_stage.py sort; Playwright LeadCard order"
+    scenario: SC-board
+  - id: F-10
+    rule: "Score glass-box determinista (breakdown explicable, sin ML); recalcula en transición"
+    verify: "test_lead_score_service.py (factores suman/restan = total)"
+    scenario: SC-detalle
+
+# ── Categoría 3 · visual ──────────────────────────────────────────────────────
+visual:
+  fidelity_source: vitalia/docs/product/stories/vitalia-fase2-adrian-embudo/mockups/embudo-v3.html
+  design_spec: "01-spec.md § Design specification D.0–D.16"
+  wrapper_fidelity: "portar verbatim shell shipped (dual-mode-shell.html + valeria-chat-sample.html); solo panel-content propiedad de la story"
+  goldens:    # D.16 map — light + dark
+    - { component: KanbanBoard+PipelineColumn, snapshot: "embudo/kanban-{light,dark}.png" }
+    - { component: LeadCard(+ScoreDonut+ChannelBadge), snapshot: "embudo/lead-card-{estados}.png" }
+    - { component: LeadsTable, snapshot: "embudo/lista-{light,dark}.png" }
+    - { component: LeadWorkspace+ResumenView, snapshot: "embudo/lead-resumen-{light,dark}.png" }
+    - { component: HistorialView, snapshot: "embudo/lead-historial-{light,dark}.png" }
+    - { component: NewLeadPage, snapshot: "embudo/nuevo-{light,dark}.png" }
+    - { component: RecuperarView+FrozenLeadRow, snapshot: "recuperar/{light,dark}.png" }
+    - { component: OverrideReasonDialog, snapshot: "embudo/override-dialog.png" }
+    - { component: EntitySubNavBar(reuse), snapshot: "reusa golden doctores" }
+  tolerance: "maxDiffPixelRatio 0.001 (ADR-003); ratchet shrink-only"
+  a11y: "axe-clean por screen state; ScoreDonut número visible; SLA texto Xd (no solo color); contraste ≥4.5:1; EntitySubNavBar role=tablist roving tabindex; drag KeyboardSensor"
+
+# ── Categoría 4 · agentic_eval ────────────────────────────────────────────────
+agentic_eval:
+  applies: true
+  scope: "minimal — wire override-context (RN-4.1), NO grafo nuevo, NO prompt nuevo"
+  checks:
+    - id: AE-1
+      rule: "override manual con razón → override_context persistido (lead_stage_transition.reason) + evento lead_stage_overridden emitido + subscriber sales_agent escribe contexto next-turn"
+      verify: "test_manual_override_feeds_agent_context.py (SC-1b) — persist + read; NO re-inicia agente"
+      scenario: SC-1b
+  goldens: "N/A esta story (no se modifica prompt/specialist). Si futuro toca system_prompt builder → ≥3 goldens."
+
+# ── Categoría 5 · architectural_validation ────────────────────────────────────
+architectural_validation:
+  backend:
+    - vitalia/backend/tests/architecture/test_response_model_required.py
+    - vitalia/backend/tests/architecture/test_lead_repository_is_not_phi_repository.py
+    - vitalia/backend/tests/architecture/test_phi_dual_filter.py            # funnel repos NO-PHI no rompen
+    - vitalia/backend/tests/architecture/test_growth_studio_event_no_phi.py
+    - "DDD: no cross-module import crm↔sales_agent (usar evento/port)"
+    - "SA 2.0 select() + no hard delete + idempotent migration"
+  frontend:
+    - vitalia/frontend/src/__tests__/architecture/test_no_hardcoded_colors      # channel-meta CSS vars
+    - vitalia/frontend/src/__tests__/architecture/test_react_query_keys_convention.test.ts
+    - vitalia/frontend/src/__tests__/architecture/test_features_no_cross_imports.test.ts
+    - vitalia/frontend/src/__tests__/architecture/test_no_phi_in_url_params.test.ts
+    - vitalia/frontend/src/__tests__/architecture/test-no-clerk-organizations.test.ts
+  allowlist_changes: "ninguna esperada (shrink-only). Cross-module touch override → vía evento/port, no allowlist grow."
+
+# ── technical_gates (baseline siempre + opt-in por naturaleza) ────────────────
+technical_gates:
+  baseline:                       # bloqueante, orden rápido→lento
+    - "tsc --noEmit (strict) / mypy"
+    - "ruff check / eslint --max-warnings 0"
+    - "arch-fitness pytest tests/architecture/ + vitest src/__tests__/architecture/"
+    - "vitest unit + pytest unit/integration"
+  opt_in:
+    schemathesis:
+      applies: true
+      targets: ["/crm/board", "/crm/leads/{id}/stage", "/crm/leads/{id}", "/crm/frozen", "/crm/leads/{id}/diagnose", "/crm/leads/{id}/reactivate"]
+      reason: "endpoints nuevos → atrapa contrato FE↔BE roto antes del runtime"
+    hypothesis:
+      applies: true
+      targets: ["LeadScoreService.compute (factores suman = total, monotonicidad)", "funnel_machine SLA boundary (green/amber/red), freeze rule (14/30/2×)"]
+      reason: "invariantes determinista score + SLA"
+    mutmut:
+      applies: false
+      reason: "diferir — módulo nuevo; activar si tests pasan pero no matan mutantes en funnel_service"
+
+# ── business_rules matrix (RN → @rule-tag → scenario; cada RN ≥1 happy + ≥1 negative) ──
+business_rules:
+  - { id: RN-1,  tag: "@rule-tenant-isolation",  happy: SC-1,  negative: SC-4 }   # cross-tenant 404
+  - { id: RN-2,  tag: "@rule-phi-firewall",      happy: SC-detalle, negative: "historial NO renderiza datos clínicos (test FE)" }
+  - { id: RN-3,  tag: "@rule-agent-transition",  happy: SC-1,  negative: "transición sin row → fail (test BE)" }
+  - { id: RN-4,  tag: "@rule-manual-override",   happy: SC-1b, negative: SC-2 }    # salto inválido 422
+  - { id: RN-4.1,tag: "@rule-override-feeds-agent", happy: SC-1b, negative: "override SIN reason en salto/back → 400 (test BE)" }
+  - { id: RN-5,  tag: "@rule-reservado-deposit", happy: SC-1,  negative: "drag→reservado → 403 (test BE) + tooltip (Playwright)" }
+  - { id: RN-7,  tag: "@rule-decidio-no",        happy: SC-1c, negative: "→decidio_no sin closure_reason → 400 (test BE)" }
+  - { id: RN-9,  tag: "@rule-autonomy-gated",    happy: SC-detalle, negative: "alto riesgo sin OK humano (autonomy info render)" }
+  - { id: RN-10, tag: "@rule-takeover",          happy: SC-1b, negative: "takeover preserva contexto (distinto de override)" }
+  - { id: RN-11, tag: "@rule-sla",               happy: "SLA verde dentro (test BE)", negative: "seed >2×SLA → dot rojo + conteo estancados (Playwright)" }
+  - { id: RN-12, tag: "@rule-attribution",       happy: SC-1,  negative: "move sin sender_source → fail (test BE)" }
+  - { id: RN-13, tag: "@rule-auto-freeze",       happy: SC-freeze, negative: "is_blacklisted → no entra ni a Congelados (test BE)" }
+  - { id: RN-14, tag: "@rule-toggle-url",        happy: "?view= persiste (Playwright)", negative: "refresh mantiene view" }
+  - { id: RN-15, tag: "@rule-i18n-currency",     happy: SC-11, negative: "PEN vs MXN formatMoney correcto, sin hardcode USD" }
+  - { id: RN-16, tag: "@rule-addressable",       happy: SC-detalle, negative: "leadId no-UUID / inexistente → 404" }
+  - { id: RN-17, tag: "@rule-column-order",      happy: "antigüedad-en-etapa desc (Playwright)", negative: "drag misma columna = no-op (no reordena)" }
+  - { id: RN-18, tag: "@rule-board-hot-scope",   happy: SC-board, negative: "decidio_no NO es columna board → aparece en Recuperar" }
+  - { id: RN-19, tag: "@rule-subtab-routes",     happy: SC-detalle, negative: "slug reservado /nuevo precede [leadId]" }
+
+# ── scenario_coverage (100% SC-1..SC-11 + sub-cat) ────────────────────────────
+scenario_coverage:
+  SC-1:        { surface: BE+FE, playwright: true,  test: "test_funnel_service.py + embudo-board.spec.ts" }
+  SC-1b:       { surface: BE+FE+AGENTIC, playwright: true, test: "test_manual_override_feeds_agent_context.py + embudo-override-drag.spec.ts" }
+  SC-1c:       { surface: BE+FE, playwright: true,  test: "test_funnel_service.py decidio_no + embudo-override-drag.spec.ts" }
+  SC-2:        { surface: BE+FE, playwright: true,  test: "test_funnel_api.py 422 + embudo-override-drag.spec.ts" }
+  SC-3:        { surface: FE,    playwright: true,  test: "embudo-board.spec.ts (tenant switch cancela)" }
+  SC-4:        { surface: BE,    playwright: false, test: "test_cross_tenant_lead_block.py" }
+  SC-5:        { surface: BE+FE, playwright: false, test: "test_stage_transition_optimistic_lock.py (FE rollback unit)" }
+  SC-6:        { surface: FE,    playwright: true,  test: "embudo-board.spec.ts (2 contexts segmentadas)" }
+  SC-7:        { surface: FE,    playwright: true,  test: "embudo-board.spec.ts (timeout)" }
+  SC-8:        { surface: FE,    playwright: true,  test: "embudo-board.spec.ts (empty + CTA)" }
+  SC-9:        { surface: FE,    playwright: true,  test: "embudo-board.spec.ts @perf (1200)" }
+  SC-10:       { surface: FE,    playwright: true,  test: "embudo-lead-workspace + override-drag (keyboard + axe)" }
+  SC-11:       { surface: FE,    playwright: true,  test: "embudo-board.spec.ts (PEN/MXN)" }
+  SC-detalle:  { surface: FE,    playwright: true,  test: "embudo-lead-workspace.spec.ts" }
+  SC-deeplink: { surface: FE,    playwright: true,  test: "embudo-lead-workspace.spec.ts (refresh /historial)" }
+  SC-nuevo:    { surface: FE,    playwright: true,  test: "embudo-nuevo-lead.spec.ts" }
+  SC-freeze:   { surface: BE+FE, playwright: true,  test: "test_auto_freeze_and_reactivate.py + recuperar.spec.ts" }
+  SC-board:    { surface: BE+FE, playwright: true,  test: "test_funnel_service.py board + embudo-board.spec.ts (RN-17/18/11)" }
+  orphans: none
+  gaps: none
+
+# ── regression_guard (tests crm shipped NO deben romper) ──────────────────────
+regression_guard:
+  - "tests/modules/vitalia/crm/ existentes (lead CRUD, consent, conversations) verdes SIN modificar"
+  - "use-leads.ts (crm-shared) sigue funcionando (extend Lead type back-compat)"
+  - "EntitySubNavBar golden de doctores intacto (reuse, no modificar)"
+  - "ChannelBadge consumers de inbox NO rompen (extend back-compat: iconOnly/className props intactos)"
+  - "migration backward-compatible (status flat preservado; stage backfill idempotente)"
+
+# ── test_construction_plan ────────────────────────────────────────────────────
+test_construction_plan:
+  creation_order:
+    - "1 BE domain: funnel_machine (allowed_next/SLA/freeze) + lead_score_service (glass-box) — RED"
+    - "2 BE infra: lead_repository.update_stage (optimistic lock) + transition/activity repos — RED"
+    - "3 BE app: funnel_service (SC-1/2/5/freeze/reactivate/403/422) — RED"
+    - "4 BE api/e2e: cross-tenant 404, response_model, 422 body — RED"
+    - "5 AGENTIC: override_context wire/subscriber (SC-1b) — RED"
+    - "6 FE hook: use-embudo-board, use-lead-stage-mutation (MSW 200/409/422) — RED"
+    - "7 FE component: LeadCard, ScoreDonut, KanbanBoard(drag keyboard), OverrideReasonDialog, LeadWorkspace — RED"
+    - "8 FE store: Zustand drag/filter — RED"
+    - "9 E2E Playwright (base.ts anti-burbuja) + visual goldens + axe"
+  scenario_to_test:
+    SC-1:   { spec: test_funnel_service.py,         assert: "stage=reservado persistido + transition row + badge deposito + KPI tasa-deposito recalcula" }
+    SC-1b:  { spec: test_manual_override_feeds_agent_context.py, assert: "triggered_by=manual_override + reason en row + override_context inyectado + Adrián NO reinicia + handover en Historial" }
+    SC-2:   { spec: test_funnel_api.py,             assert: "422 {allowed_next} + estado DB sin cambio + rollback FE + toast" }
+    SC-4:   { spec: test_cross_tenant_lead_block.py, assert: "deep-link ajeno → 404 genérico + audit cross_tenant_attempt + sin leak" }
+    SC-5:   { spec: test_stage_transition_optimistic_lock.py, assert: "A 200 (v→v+1), B 409 (v viejo) + estado consistente" }
+    SC-freeze: { spec: test_auto_freeze_and_reactivate.py, assert: "15d sin respuesta → is_frozen + sale board + V4; lead responde → vuelve a calificando + audit reactivated" }
+    SC-detalle: { spec: embudo-lead-workspace.spec.ts, assert: "clic María → /resumen URL + EntitySubNavBar pinta nombre+tabs + render bloques Datos+Score" }
+    SC-nuevo: { spec: embudo-nuevo-lead.spec.ts,    assert: "/nuevo URL (sin Dialog) → submit → redirect /embudo?highlight={id} → card resaltada + auto-scroll" }
+  poms_required: [EmbudoBoardPage, LeadWorkspacePage, NewLeadPage, RecuperarPage]
+  fixtures_required:
+    - "BE seed dataset canónico (§spec — 11 leads dental PEN + 2 frozen + score breakdown María)"
+    - "FE MSW handlers mocks/handlers/embudo.ts (board/stage/frozen/reservado-stub/create/detail/transitions)"
+  run_with_both_msw_and_live: "FE specs corren MSW (unit/component) + dev-app live (DoD #37 — ejercer write real PATCH/POST + leer logs BE + confirmar fila DB)"
+
+# ── demo_script (gate sign-off Chris — DoD #37 §5) ────────────────────────────
+demo_required: true
+demo_script_outline:
+  setup: "dev-app.vitalialat.com (make dev-app-vitalia) autenticado dr.demo@vitalialat.com, tenant Sanaré PEN, dataset canónico seeded"
+  happy_path:
+    - "Entrar a /adrian/embudo → board con 11 leads dental en columnas hot, Adrián movió solos"
+    - "Click María G███ → página /resumen (Datos + Score glass-box + Estado agente)"
+    - "Cambiar a Historial → timeline atribuido; volver con [‹ Embudo]"
+    - "Drag Ana de Calificando→Consulta agendada (adyacente) → mueve directo + micro-log"
+    - "+ Nuevo lead → /nuevo → completar → Crear → redirect board + card resaltada"
+    - "KPI 🧊 congeladas → /adrian/recuperar → Lucía/Diego + diagnose"
+  edge_cases:
+    - "Drag salto (Interesado→Reservado) → toast 'Reservado se alcanza con el depósito' (bloqueado)"
+    - "Drag salto válido (Interesado→Consulta) → OverrideReasonDialog → razón obligatoria → mueve + 'Adrián tomó nota'"
+    - "2 pestañas mismo lead → segunda mueve → 409 'actualizado por otra persona'"
+  teardown: "limpiar leads de prueba creados"

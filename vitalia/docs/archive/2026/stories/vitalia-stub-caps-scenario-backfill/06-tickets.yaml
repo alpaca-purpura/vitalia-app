@@ -1,0 +1,140 @@
+# 06-tickets.yaml — vitalia-stub-caps-scenario-backfill (v2)
+# Naturaleza: tooling + docs (cap YAMLs) + test-wiring. Cero agentic, cero Opus, cero engine.
+# DAG: T-0 → T-C ; T-A, T-B paralelos. T-D (report) depende de A/B/C.
+
+story_id: vitalia-stub-caps-scenario-backfill
+schema_version: v4.1
+brand: vitalia
+
+tickets:
+  - id: T-0
+    title: "Gate extension pytest — cross_check_3 path-aware (.py)"
+    surface: TOOLING
+    production_code: false          # scripts/ tooling, no runtime brand
+    module: platform
+    owner_eligibility: [opencode, sonnet, opus]
+    depends_on: []
+    blocks: [T-C]
+    gherkin_coverage: [SC-3-edge]
+    description: >
+      En scripts/validate_code_cap_bidirectional.py cross_check_3 (línea ~185), hacer `has_pattern` path-aware:
+      `.py` → patrón pytest `re.compile(r"\bdef test")`; `.ts/.tsx/otros` → patrón JS actual (test( / test.describe() SIN cambio.
+      compute_capability_status.py NO se toca (ya cuenta por existencia). Tests del script en scripts/tests/ (RED→GREEN):
+      (a) .py con `def test_` → pass; (b) .py sin `def test` → drift no_test_pattern; (c) .ts igual (regression JS).
+      Regression obligatoria: re-correr sobre los caps .ts actuales da verdict idéntico (drift sigue 0).
+    acceptance:
+      validator_ids: [t0_script_lint, t0_script_tests, gate_bidirectional_strict]
+    assignment:
+      primary_agent: builder-backend
+      model_preference: sonnet
+      must_load_skills: [backend-expert, ".claude/rules/tdd-mandatory.md", ".claude/rules/git-safety.md"]
+      forbidden_to_touch: ["core/luana-core-*/src/", "{other_brand}/", "scripts/compute_capability_status.py"]
+      rationale: "Cambio aditivo path-aware en script Python + tests TDD. Sonnet sweet spot. Commit SCOPE_GATE_SKIP=1 (scripts/ cross-cutting, fase solo-bootstrap)."
+    commit_note: "T-0 toca scripts/ (cross-cutting) → SCOPE_GATE_SKIP=1 + razón en commit body: 'gate extension aditiva pytest, fase solo-bootstrap'."
+
+  - id: T-A
+    title: "G1 UI-visible — 7 caps: append scenarios[] + wire e2e + ejercicio dev-app"
+    surface: DOCS+TESTS
+    production_code: false
+    module: platform
+    owner_eligibility: [opencode, sonnet, opus]
+    depends_on: []
+    blocks: [T-D]
+    gherkin_coverage: [SC-1-happy, SC-4-adversarial]
+    description: >
+      Caps: design-tokens-theme, design-tokens-foundation, topbar-global, sign-in-sign-up-pages,
+      iam-scaffold-slice-1, shell-foundation-shadcn-tailwind-v4, public-clinic-landing.
+      Por cap: append scenario (schema golden) con e2e_test al spec EXISTENTE confirmado + verification_method: dev-app.
+      Correr cada spec verde (E2E_BASE_URL=http://localhost:3002) + confirmar relevancia. public-clinic-landing:
+      si no hay spec público → WRITE-thin Playwright honesto de la ruta /public/{slug}.
+      El ejercicio REAL en dev-app (efecto visible + log limpio) lo verifica el orchestrator (Claude) hands-on antes de auditor.
+    acceptance:
+      validator_ids: [wire_g1_playwright, gate_compute_status, gate_bidirectional_strict]
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: sonnet
+      must_load_skills: [playwright-expert, ".claude/rules/test-design-doctrine.md", ".claude/rules/spanish-text.md"]
+      forbidden_to_touch: ["core/luana-core-*/src/", "vitalia/frontend/src/components/ui/", "vitalia/frontend/src/app/layout.tsx", "{other_brand}/"]
+      rationale: "Wire e2e existentes + 1 WRITE-thin. Sonnet + playwright-expert. Cero modificación de componentes UI (solo cap YAMLs + tal vez 1 spec nuevo)."
+
+  - id: T-B
+    title: "G2 Admin panel — 5 caps: append scenarios[] + wire admin e2e"
+    surface: DOCS+TESTS
+    production_code: false
+    module: admin
+    owner_eligibility: [opencode, sonnet, opus]
+    depends_on: []
+    blocks: [T-D]
+    gherkin_coverage: [SC-1-happy]
+    description: >
+      Caps: admin-streamlit-service, clinics-crud, tenants-crud, users-crud, streamlit-tenants-users.
+      Por cap: append scenario con e2e_test al admin spec EXISTENTE (e2e/admin/*) + verification_method: admin-panel.
+      Confirmar que los admin specs corren verde vs Streamlit (:8502). Si alguno está skip/quarantine → NO cablear, escalar
+      (no se verifica con un test que no corre). Ejercicio real en admin deployed lo verifica el orchestrator.
+    acceptance:
+      validator_ids: [wire_g2_playwright_admin, gate_compute_status, gate_bidirectional_strict]
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: sonnet
+      must_load_skills: [playwright-expert, ".claude/rules/test-design-doctrine.md"]
+      forbidden_to_touch: ["core/luana-core-*/src/", "vitalia/backend/src/modules/vitalia/admin/", "{other_brand}/"]
+      rationale: "Wire admin specs existentes. Sonnet + playwright-expert. Solo cap YAMLs (no toca el admin service code)."
+
+  - id: T-C
+    title: "G3+G4 Infra/backend — 8 caps: append scenarios[] + wire pytest/endpoint (post T-0)"
+    surface: DOCS+TESTS
+    production_code: false
+    module: observability
+    owner_eligibility: [opencode, sonnet, opus]
+    depends_on: [T-0]
+    blocks: [T-D]
+    gherkin_coverage: [SC-3-edge]
+    description: >
+      G3 (2): api-health-endpoint (contract test /api/health o Playwright API request), playwright-smoke-suite (smoke representativo).
+      G4 (6): hipaa-dual-filter-decorator → test_phi_dual_filter.py · audit-writer-ssot → test_audit_log_row_per_phi_endpoint.py + test_audit_log_sync_write.py ·
+      migrations-slice-1-schema → test_migrations_idempotent.py · idempotent-cron-arq-scaffold → test_cron_envelope_used.py + workers/test_arq_settings.py ·
+      otel-sentry-graceful-degradation → WIRE existente o WRITE-thin · vitalia-callback-subclasses → WIRE (test_no_observability_mirror*) o WRITE-thin.
+      Por cap: append scenario con e2e_test al pytest (.py) + verification_method: pytest-backend-justified + rationale netamente-backend en el cap.
+      Requiere T-0 (cross_check_3 acepta .py). Correr cada pytest verde.
+    acceptance:
+      validator_ids: [wire_g4_pytest, wire_g3_health, gate_compute_status, gate_bidirectional_strict, t0_script_tests]
+    assignment:
+      primary_agent: builder-backend
+      model_preference: sonnet
+      must_load_skills: [backend-expert, ".claude/rules/test-design-doctrine.md", ".claude/rules/tdd-mandatory.md"]
+      forbidden_to_touch: ["core/luana-core-*/src/", "vitalia/backend/src/modules/vitalia/**", "{other_brand}/"]
+      rationale: "Wire pytest existentes + WRITE-thin honesto donde falte. Sonnet + backend-expert. Depende de T-0."
+
+  - id: T-D
+    title: "VERIFICATION-REPORT.md — evidencia por-cap (deliverable) + gates finales verdes"
+    surface: DOCS
+    production_code: false
+    module: platform
+    owner_eligibility: [opencode, sonnet, opus]
+    depends_on: [T-A, T-B, T-C]
+    blocks: []
+    gherkin_coverage: [SC-1-happy, SC-4-adversarial]
+    description: >
+      Escribir vitalia/docs/product/stories/vitalia-stub-caps-scenario-backfill/VERIFICATION-REPORT.md:
+      1 fila por cap (20): cap · grupo · método · qué se ejerció · evidencia (cmd/log) · resultado · computed_status.
+      Anti-teatro: evidencia "GET 200 a secas" PROHIBIDA para G1/G2. G4 acepta "pytest verde". Correr los gates finales:
+      compute_capability_status (verified-live 2→~22) + validate_code_cap_bidirectional --strict (drift=0). Cualquier partial → rationale.
+    acceptance:
+      validator_ids: [gate_compute_status, gate_bidirectional_strict, arch_no_engine_edit, arch_no_feature_code]
+    assignment:
+      primary_agent: builder-backend
+      model_preference: sonnet
+      must_load_skills: [".claude/rules/test-design-doctrine.md"]
+      forbidden_to_touch: ["core/luana-core-*/src/", "{other_brand}/"]
+      rationale: "Consolidación del reporte + gates finales. Sonnet. La verificación dev-app real (G1/G2/G3) la hace el orchestrator hands-on y se incorpora al reporte."
+
+dag:
+  - "T-0 → T-C"
+  - "T-A ∥ T-B ∥ (T-0→T-C)"
+  - "(T-A, T-B, T-C) → T-D"
+
+notes:
+  autonomous_mode: false   # el bar deployed-visible requiere verificación hands-on del orchestrator (curl dev-app + chrome-devtools + docker logs)
+  agentic_tickets: 0
+  opus_required: false
+  engine_edit: false

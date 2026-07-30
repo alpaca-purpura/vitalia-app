@@ -1,0 +1,157 @@
+# 04-validators — vitalia-shell-state-persistence
+# FE-only. Categories: non_functional · functional · architectural_validation.
+# agentic_eval: N/A (omitted — no agentic surface). visual: mostly exempt (mockup gate exento);
+# mobile drawer state covered by playwright behavior (not pixel golden).
+story_id: vitalia-shell-state-persistence
+brand: vitalia
+schema_version: v4.1
+architecture_pattern: ADR-vitalia-004
+governing_adr: ADR-vitalia-006-ssr-safe-persisted-store
+
+validators:
+  # ── non_functional ───────────────────────────────────────────────────────
+  - id: val-nf-tsc
+    category: non_functional
+    must_pass: true
+    cmd: "cd vitalia/frontend && npx tsc --noEmit"
+    expect: "0 errors (strict)"
+  - id: val-nf-eslint
+    category: non_functional
+    must_pass: true
+    cmd: "cd vitalia/frontend && npx eslint src/ --cache"
+    expect: "0 errors (sonarjs, boundaries, react-perf, prettier)"
+
+  # ── functional (vitest unit hydration) ─────────────────────────────────────
+  - id: val-fn-unit-factory
+    category: functional
+    must_pass: true
+    cmd: "cd vitalia/frontend && npx vitest run src/lib/store/__tests__/create-ssr-safe-persisted-store.test.ts"
+    expect: "setItem no-op pre-hydration; writes post-rehydrate; _hasHydrated flips true"
+    scenarios: [SC-3]
+  - id: val-fn-unit-shell-hydration
+    category: functional
+    must_pass: true
+    cmd: "cd vitalia/frontend && npx vitest run src/stores/__tests__/shell-store-hydration.test.ts"
+    expect: "seed 'rail' + SSR flag → rehydrate NO writes default 'full'; first post-hydration value = 'rail'; corrupt JSON → default no throw"
+    scenarios: [SC-3, SC-6, SC-7]
+  - id: val-fn-unit-transversal
+    category: functional
+    must_pass: true
+    cmd: "cd vitalia/frontend && npx vitest run src/stores/__tests__/tenant-store-hydration.test.ts src/features/valeria/store/__tests__/agenda-stores-hydration.test.ts"
+    expect: "factory applied to tenant + agenda + agenda-filters; no clobber smoke"
+    scenarios: [SC-3]
+
+  # ── functional (playwright regression UN-SKIPPED + new) ─────────────────────
+  - id: val-fn-e2e-survives-reload
+    category: functional
+    must_pass: true
+    playwright_required: true
+    cmd: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/shell-state-persistence/valeria-state-survives-reload.spec.ts --project=smoke"
+    expect: "valeriaState 'rail' + shellMode 'web' survive reload; 'full' never written to localStorage when 'rail' was saved"
+    scenarios: [SC-1, SC-2, SC-3]
+  - id: val-fn-e2e-resize-unskipped
+    category: functional
+    must_pass: true
+    playwright_required: true
+    cmd: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/vitalia-fase1-shell-layout-5050/resize-and-state.spec.ts --project=smoke"
+    expect: "un-skipped 'shell state survives reload' + 'rail->full snap-up' now GREEN"
+    scenarios: [SC-1, SC-3]
+  - id: val-fn-e2e-mobile-collapsed
+    category: functional
+    must_pass: true
+    playwright_required: true
+    cmd: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/shell-state-persistence/mobile-collapsed-default.spec.ts e2e/regression/vitalia-fase1-shell-layout-5050/mobile-collapse.spec.ts --project=smoke"
+    expect: "fresh mobile drawer CLOSED (no role=dialog); burger opens; remembers open/closed across reload (independent slice); desktop 'full' never auto-opens mobile drawer; un-skipped 'ValeriaSlot oculto mobile' GREEN"
+    scenarios: [SC-4, SC-5, SC-5b]
+  - id: val-fn-e2e-a11y
+    category: functional
+    must_pass: true
+    playwright_required: true
+    cmd: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/shell-state-persistence/mobile-collapsed-default.spec.ts --grep @a11y --project=smoke"
+    expect: "axe wcag2aa pass; keyboard Tab→burger→Enter opens, Escape closes + returns focus; aria-expanded reflects mobileDrawerOpen; aria-label español neutro"
+    scenarios: [SC-8]
+
+  # ── architectural_validation ───────────────────────────────────────────────
+  - id: val-arch-fsd-boundaries
+    category: architectural_validation
+    must_pass: true
+    cmd: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/"
+    expect: "FSD boundaries green; lib/store does NOT import features; shared does NOT import features; no default exports; no cross-brand import"
+  - id: val-arch-no-store-in-skeleton
+    category: architectural_validation
+    must_pass: true
+    new_test: true
+    cmd: "cd vitalia/frontend && npx vitest run src/components/shared/shell-organism/__tests__/no-store-in-ssr-skeleton.test.tsx"
+    expect: "ShellOrganismLayoutSkeleton renders WITHOUT subscribing useShellStore (TopBarGlobal variant='skeleton' store-free)"
+  - id: val-arch-no-cross-brand-mirror
+    category: architectural_validation
+    must_pass: true
+    cmd: "grep -rn 'createSsrSafePersistedStore\\|vitalia/frontend' vitalia/frontend/src/ | grep -v node_modules; echo 'manual: factory lives ONLY in vitalia/lib/store; NOT mirrored to nicolify/comunify/lupulo'"
+    expect: "factory is vitalia-local; nicolify dismiss-store NOT touched (lift candidate /pm-luana, not mirror)"
+
+# ── scenario_coverage (ALL SC-1..SC-8 + SC-5b mapped) ────────────────────────
+scenario_coverage:
+  SC-1:  [val-fn-e2e-survives-reload, val-fn-e2e-resize-unskipped]      # valeriaState survives reload
+  SC-2:  [val-fn-e2e-survives-reload]                                   # shellMode survives reload
+  SC-3:  [val-fn-unit-factory, val-fn-unit-shell-hydration, val-fn-unit-transversal, val-fn-e2e-survives-reload, val-fn-e2e-resize-unskipped]  # NO write espurio (the bug)
+  SC-4:  [val-fn-e2e-mobile-collapsed]                                  # fresh mobile drawer closed (NEW extend)
+  SC-5:  [val-fn-e2e-mobile-collapsed]                                  # burger opens drawer
+  SC-5b: [val-fn-e2e-mobile-collapsed]                                  # mobile remembers open/closed (★ Chris)
+  SC-6:  [val-fn-unit-shell-hydration]                                  # empty_state first visit default
+  SC-7:  [val-fn-unit-shell-hydration]                                  # corrupt localStorage no crash
+  SC-8:  [val-fn-e2e-a11y]                                              # a11y wcag2aa keyboard + screen-reader
+
+# ── test_construction_plan ───────────────────────────────────────────────────
+test_construction_plan:
+  playwright_required: true
+  tdd: "RED-first per layer: unit (factory → store hydration) → component arch guard → e2e. Write failing test before GREEN code."
+  creation_order:
+    - "1. lib/store/create-ssr-safe-persisted-store.test.ts (RED) → factory (GREEN)"
+    - "2. lib/store/use-store-hydration.ts (hook) — covered by store hydration tests"
+    - "3. stores/__tests__/shell-store-hydration.test.ts (RED: SC-3 clobber) → migrate shell-store to factory + mobileDrawerOpen slice (GREEN)"
+    - "4. components/.../__tests__/no-store-in-ssr-skeleton.test.tsx (RED) → TopBarGlobal variant + skeleton store-free (GREEN)"
+    - "5. transversal store hydration tests → migrate tenant/agenda/agenda-filters to factory (GREEN)"
+    - "6. e2e valeria-state-survives-reload.spec.ts (NEW) + un-skip resize-and-state 2 tests"
+    - "7. e2e mobile-collapsed-default.spec.ts (NEW: SC-4/5/5b/8) + un-skip mobile-collapse 'ValeriaSlot oculto mobile'"
+    - "8. useViewportGuard <768 extension + ValeriaSidebar drawer reads mobileDrawerOpen"
+  scenario_to_test:
+    SC-1: "e2e/regression/shell-state-persistence/valeria-state-survives-reload.spec.ts"
+    SC-2: "e2e/regression/shell-state-persistence/valeria-state-survives-reload.spec.ts"
+    SC-3: "src/stores/__tests__/shell-store-hydration.test.ts + e2e instrument localStorage.setItem"
+    SC-4: "e2e/regression/shell-state-persistence/mobile-collapsed-default.spec.ts"
+    SC-5: "e2e/regression/shell-state-persistence/mobile-collapsed-default.spec.ts"
+    SC-5b: "e2e/regression/shell-state-persistence/mobile-collapsed-default.spec.ts"
+    SC-6: "src/stores/__tests__/shell-store-hydration.test.ts"
+    SC-7: "src/stores/__tests__/shell-store-hydration.test.ts"
+    SC-8: "e2e/regression/shell-state-persistence/mobile-collapsed-default.spec.ts (@a11y)"
+  poms_fixtures:
+    - "REUSE vitalia/frontend/e2e/pages/ShellLayoutPage.ts (gotoShell, waitForShellReady, setValeriaStateViaStore, getStorageState, getPersistedSplit)"
+    - "REUSE vitalia/frontend/e2e/fixtures/shell-theme.fixture.ts (shellPage, tenantId)"
+    - "EXTEND ShellLayoutPage with: openMobileDrawerViaBurger(), isMobileDrawerOpen(), getMobileDrawerSlice(), instrumentSetItem() (capture writes to assert 'full' never written)"
+    - "Clerk auth state required (preflight scripts/e2e-preflight.sh); native E2E_BASE_URL=http://localhost:3002 NEVER make e2e"
+
+# ── playwright_visual_scope ──────────────────────────────────────────────────
+playwright_visual_scope:
+  note: "Mostly EXEMPT — mockup gate exento (Chris 2026-05-28, no new visual states). Mobile drawer is BEHAVIOR-tested, not pixel-golden."
+  story_scope_routes:
+    - "/[tenantId]/(shell-organism)/** (the shell wrapper — all authenticated routes)"
+  story_scope_components:
+    - "vitalia/frontend/src/lib/store/**"
+    - "vitalia/frontend/src/stores/shell-store.ts"
+    - "vitalia/frontend/src/stores/tenant-store.ts"
+    - "vitalia/frontend/src/features/valeria/store/agenda-store.ts"
+    - "vitalia/frontend/src/features/valeria/store/agenda-filters-store.ts"
+    - "vitalia/frontend/src/components/shared/shell-organism/{ShellOrganismLayout,ShellOrganismLayoutClient,TopBarGlobal,ValeriaSidebar,useViewportGuard}.tsx"
+  forbidden_visual_changes:
+    paths:
+      - "vitalia/frontend/src/components/ui/"        # Shadcn primitives — escalate /pm-vitalia
+      - "vitalia/frontend/src/components/shared/ (fuera de shell-organism)"
+      - "vitalia/frontend/src/features/ (cualquier feature que NO sea los 2 agenda stores)"
+      - "vitalia/frontend/src/app/layout.tsx"
+    reasons:
+      - "Cambios en primitives Shadcn impactan TODA la app"
+      - "Cambios en features ajenos impactan pantallas no tocadas por esta story"
+      - "El fix vive en stores + shell-organism boundary; NO redibujar estados visuales (ratificados Fase 1)"
+  if_visual_change_needed_outside_scope:
+    action: "STOP. Document in T-{n}-impl-log.md. Escalate /pm-vitalia. NO arreglar inline."
+  non_egoismo_clause: "Si un bug visual REAL aparece en otro feature/ruta NO tocada (no snapshot drift), reportar en T-{n}-impl-log.md § Cross-story observed bugs + opcional hotfix-story separada. NO arreglar inline (rompe scope discipline)."

@@ -1,0 +1,18 @@
+{
+  "name": "devhub-sidecar",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Sidecar de sesiones de agente de DevHub (P2) — supervisado por el binario Go, contrato HTTP loopback (SPEC delivery-cockpit.md RN-35..RN-38). Powered by Claude Agent SDK.",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.6.0"
+  }
+}

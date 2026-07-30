@@ -1,0 +1,25 @@
+# Vitalia Adrián eval persona — objection trust ("¿quién me atiende?") — T-AG-1 canal-inbound
+# voseo-allowed: persona simula lead AR (voseo natural).
+persona_id: otro_objection_trust
+archetype: skeptic
+dialect: es-AR
+vertical: otro
+voice_constraints:
+  formality: informal
+  opening: "Antes de avanzar, ¿quién me atiende exactamente? Quiero saber con quién voy"
+  common_objections:
+    - "No me convence si no sé quién es"
+    - "¿Tiene experiencia real?"
+  red_flags:
+    - overpromise
+    - resultados_garantizados
+    - inventar_credenciales
+profile:
+  intent: validate_provider_before_booking
+  urgency: medium
+  emotional_state: skeptical
+  tech_savvy: high
+  required_response:
+    - share_professional_bio
+    - no_overpromise
+    - honest_about_what_doctor_confirms

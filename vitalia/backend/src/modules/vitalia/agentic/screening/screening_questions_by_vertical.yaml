@@ -1,0 +1,94 @@
+# Vitalia — Screening Questions by Vertical
+#
+# SSoT YAML for ScreeningQuestionsService.
+# Each vertical defines:
+#   questions: list of question objects with:
+#     text: question string (Spanish neutro, tuteo per .claude/rules/spanish-text.md)
+#     contraindications: optional list — if response matches any, escalate outcome
+#
+# 4 required verticals: dental, estetica, psicologia, fertilidad
+# Optional: otro (generic fallback)
+#
+# Per 03-arch-be.md § agentic/screening/ + 06-tickets.yaml T-be-services-2
+# Per vitalia/.claude/rules/hipaa-lite.md — questions must not contain PHI
+# Architecture gate: test_screening_yaml_completeness.py
+
+dental:
+  description: "Tratamientos odontológicos — implantes, ortodoncia, blanqueamiento, cirugías"
+  questions:
+    - text: "¿Tienes alguna enfermedad crónica o condición médica activa (diabetes, hipertensión, coagulopatía)?"
+      contraindications:
+        - "diabetes sin control"
+        - "anticoagulantes"
+        - "coagulopatia"
+    - text: "¿Estás tomando algún medicamento actualmente? Si es así, ¿cuál?"
+      contraindications:
+        - "anticoagulantes"
+        - "bifosfonatos"
+        - "inmunosupresores"
+    - text: "¿Tienes antecedentes de reacciones alérgicas a anestésicos o materiales dentales?"
+      contraindications:
+        - "alergia a anestesia"
+        - "alergia lidocaina"
+    - text: "¿Estás embarazada o en período de lactancia?"
+      contraindications:
+        - "embarazada"
+        - "embarazo"
+        - "lactancia"
+
+estetica:
+  description: "Tratamientos estéticos — botox, rellenos, lásers, cirugía estética"
+  questions:
+    - text: "¿Tienes antecedentes de alergias o reacciones adversas a tratamientos cosméticos o anestésicos?"
+      contraindications:
+        - "alergia botox"
+        - "alergia relleno"
+        - "alergia hialuronico"
+    - text: "¿Estás tomando anticoagulantes, aspirina u otros medicamentos que afecten la coagulación?"
+      contraindications:
+        - "anticoagulante"
+        - "aspirina"
+        - "ibuprofeno"
+    - text: "¿Estás embarazada o en período de lactancia?"
+      contraindications:
+        - "embarazada"
+        - "lactancia"
+    - text: "¿Tienes alguna condición dermatológica activa (rosácea severa, infección cutánea, psoriasis)?"
+      contraindications:
+        - "infeccion activa"
+        - "herpes activo"
+
+psicologia:
+  description: "Consultas psicológicas — terapia individual, pareja, familiar"
+  questions:
+    - text: "¿Estás en tratamiento psiquiátrico actualmente o tomando medicación psicotrópica?"
+      contraindications: []
+    - text: "¿Tienes alguna situación de urgencia emocional o has tenido pensamientos de hacerte daño recientemente?"
+      contraindications:
+        - "ideacion suicida"
+        - "autolesion"
+        - "emergencia"
+    - text: "¿Buscas una primera consulta de evaluación o continuación de un proceso terapéutico previo?"
+      contraindications: []
+
+fertilidad:
+  description: "Tratamientos de fertilidad — FIV, inseminación, estimulación ovárica"
+  questions:
+    - text: "¿Tienes alguna condición médica diagnosticada que afecte la fertilidad (endometriosis, síndrome de ovario poliquístico, factor masculino)?"
+      contraindications: []
+    - text: "¿Has realizado tratamientos de fertilidad anteriormente? En caso afirmativo, ¿cuál fue el resultado?"
+      contraindications: []
+    - text: "¿Estás tomando alguna medicación hormonal o tienes condiciones autoinmunes?"
+      contraindications:
+        - "lupus severo"
+        - "antifosfolipidos"
+    - text: "¿Tu pareja (si aplica) ha realizado un espermograma en los últimos 12 meses?"
+      contraindications: []
+
+otro:
+  description: "Otras especialidades médicas — fallback para verticales no categorizadas"
+  questions:
+    - text: "¿Tienes alguna condición médica activa o estás tomando algún medicamento que el profesional debería conocer?"
+      contraindications: []
+    - text: "¿Tienes alguna alergia conocida (medicamentos, anestésicos, materiales)?"
+      contraindications: []

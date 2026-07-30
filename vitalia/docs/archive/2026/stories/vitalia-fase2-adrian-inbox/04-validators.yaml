@@ -1,0 +1,229 @@
+# 04-validators.yaml — vitalia-fase2-adrian-inbox
+# Owner: /architect. /dev-team itera hasta GREEN; /auditor verifica cada uno corrido + GREEN.
+# Schema v4.1 — 5 categories. Native Linux host (no docker exec). Vitalia FE :3002 / BE :8002.
+
+story_id: vitalia-fase2-adrian-inbox
+brand: vitalia
+schema_version: v4.1
+
+# ═══════════════════════════════════════════════════════════════
+# VERIFICATION (Critical Rule #37)
+# ═══════════════════════════════════════════════════════════════
+verification:
+  nature: functional            # user-reachable: página inbox + endpoints que la UI llama
+  amended_2026_06_04: >-
+    SCOPE AMPLIADO durante el build → 2-modos (no 3). Ver 01-spec § Scope amendment + 03-arch § 4b.
+    business_rules + scenario_coverage reconciliados a la realidad construida + live-verified (dev-app)
+    + firmada por Chris (checkpoint::demo_signoff APPROVED_WITH_NOTES). El live-verify canónico corre
+    contra https://dev-app.vitalialat.com (localhost:3002 NO tiene /api proxy).
+    fuente: e2e-live (Playwright dev-app real, base.ts) · be-test (pytest inbox) · shell-story
+    (vitalia-bugfix-shell-nav-scroll-errors done) · regression (suite slice-1 reusada).
+  technical_gates:
+    baseline: [tsc_strict, ruff, eslint_max_warnings_0, arch_fitness]
+    opt_in:
+      schemathesis: true        # endpoint NUEVO (nudge) — contrato FE↔BE antes del runtime de Next
+      hypothesis: false         # PhiChannelPolicy es heurística simple; cubierto por unit cases
+      mutmut: false
+  runtime_error_gate: required  # e2e/fixtures/base.ts (pageerror/console/hydration/api-4xx5xx/Next overlay) + scripts/verify-no-backend-errors.sh
+  business_rules:
+    - { rule: "RN-1 modo por conversación (2-modos: decide/consulta)", tag: "@rule-mode-per-conv", scenario_id: "SC-mode", source: "e2e-live" }
+    - { rule: "RN-2 audit de modo/pause/nudge sync write", tag: "@rule-mode-audit", scenario_id: "SC-mode", source: "e2e-live+be-test" }
+    - { rule: "RN-3 decide autónomo + escala (sales_agent runtime, consume-only)", tag: "@rule-escalate", scenario_id: "SC-3", source: "be-test" }
+    - { rule: "RN-4 consulta = humano firma (0 mensajes pre-aprobación)", tag: "@rule-consulta-signs", scenario_id: "SC-2", source: "be-test+e2e-live" }
+    - { rule: "RN-5 pausar silencia a Adrián (reemplaza manual)", tag: "@rule-pause-silence", scenario_id: "SC-4", source: "e2e-live" }
+    - { rule: "RN-6 glass-box (activity stream montado)", tag: "@rule-glassbox", scenario_id: "SC-1", source: "e2e-live" }
+    - { rule: "RN-7 PHI firewall (ComplianceService bloquea canal no-encriptado)", tag: "@rule-phi-firewall", scenario_id: "SC-3", source: "be-test" }
+    - { rule: "RN-8 ContactSidebar RBAC + wrapper data-phi", tag: "@rule-contact-masked", scenario_id: "SC-privacy", source: "be-test+e2e-live" }
+    - { rule: "RN-9 tenant isolation (cross-tenant → 404)", tag: "@rule-tenant-isolation", scenario_id: "SC-10", source: "be-test+e2e-live" }
+    - { rule: "RN-10 activity stream sanitizado", tag: "@rule-activity-sanitize", scenario_id: "SC-1", source: "be-test" }
+    - { rule: "RN-11 inbox 100% del lienzo", tag: "@rule-full-canvas", scenario_id: "SC-5", source: "shell-story" }
+    - { rule: "RN-12 modo conversación reversible (recuerda estado Valeria)", tag: "@rule-conversation-mode", scenario_id: "SC-5", source: "shell-story" }
+    - { rule: "RN-13 nudge sólo sobre conv viva (no conv nueva, no lead frío)", tag: "@rule-nudge-live", scenario_id: "SC-6", source: "be-test+e2e-live" }
+    - { rule: "RN-14 deep-link estable, PHI nunca en URL", tag: "@rule-deeplink", scenario_id: "SC-10", source: "e2e-live" }
+    - { rule: "RN-15 RBAC _INBOX_OPERATOR_ROLES (owner/recepción 200; marketing/sales 403)", tag: "@rule-inbox-rbac", scenario_id: "SC-4", source: "be-test+e2e-live" }
+    - { rule: "RN-16 leads visibles por defecto (interim; wrapper data-phi conservado)", tag: "@rule-lead-visible", scenario_id: "SC-privacy", source: "e2e-live" }
+    - { rule: "RN-17 composer dock siempre montado + pausa 60/permanente sin reason", tag: "@rule-composer-dock", scenario_id: "SC-composer", source: "e2e-live" }
+  demo_required: true           # toca frontend + endpoints con consumer FE
+  demo_skip_reason: null
+
+# ═══════════════════════════════════════════════════════════════
+# scenario_coverage — TODOS los 10 SC del 01-spec mapeados
+# ═══════════════════════════════════════════════════════════════
+scenario_coverage:
+  - { scenario: "SC-mode", desc: "modo: toggle 2-modos escribe PATCH /mode 200 ×2 + aria-checked refleja", source: e2e-live, graders: [e2e, "state_check(audit_log)"] }
+  - { scenario: "SC-4", desc: "pausa: modal 2 botones sin reason → POST /pause 200 → estado pausado (reemplaza takeover)", source: e2e-live, graders: [e2e, "state_check(audit_log)"] }
+  - { scenario: "SC-composer", desc: "composer dock montado + textarea habilitado (envío real = demo Chris)", source: e2e-live, graders: [e2e] }
+  - { scenario: "SC-privacy", desc: "leads visibles (sin ***) + servicio-interés siempre + sin 'Estado'", source: e2e-live, graders: [e2e] }
+  - { scenario: "SC-1", desc: "happy: thread + activity stream (glass-box) al abrir conv", source: e2e-live, graders: [e2e] }
+  - { scenario: "SC-2", desc: "consulta: humano aprueba/edita propuesta antes de enviar", source: "be-test+e2e-live", graders: [e2e, diff_capture] }
+  - { scenario: "SC-3", desc: "adversarial: PHI por canal no-encriptado bloqueado", source: be-test, graders: ["be:test_phi_voice_redirect.py"] }
+  - { scenario: "SC-5", desc: "full: modo conversación colapsa Valeria — SPLIT a shell-story", source: shell-story, graders: ["vitalia-bugfix-shell-nav-scroll-errors (done)"] }
+  - { scenario: "SC-6", desc: "nudge: empujón a conv activa estancada", source: "be-test+e2e-live", graders: [e2e, "be:test_nudge_service.py"] }
+  - { scenario: "SC-7", desc: "empty_state: sin convs / sin resultados de filtro", source: e2e-live, graders: [e2e] }
+  - { scenario: "SC-8", desc: "network_failure: thread error state", source: e2e-live, graders: [e2e] }
+  - { scenario: "SC-9", desc: "accessibility: navegación por teclado + axe", source: e2e-live, graders: [e2e, axe] }
+  - { scenario: "SC-10", desc: "adversarial/i18n: cross-tenant bloqueado + Spanish neutro", source: "be-test+e2e-live", graders: [e2e, "be:test_router_*_list/detail.py"] }
+
+# ═══════════════════════════════════════════════════════════════
+# 1 · NON-FUNCTIONAL
+# ═══════════════════════════════════════════════════════════════
+non_functional:
+  - id: nf-be-ruff
+    must_pass: true
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/ruff check src/modules/vitalia/inbox/ tests/modules/vitalia/inbox/"
+  - id: nf-be-format
+    must_pass: true
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/ruff format --check src/modules/vitalia/inbox/"
+  - id: nf-fe-tsc
+    must_pass: true
+    cmd: "cd vitalia/frontend && npx tsc --noEmit"
+  - id: nf-fe-eslint
+    must_pass: true
+    cmd: "cd vitalia/frontend && npx eslint src/features/adrian/ src/components/shared/shell-organism/ChannelBadge.tsx --max-warnings 0 --cache"
+  - id: nf-no-dup-jscpd
+    must_pass: true
+    desc: "consolidación NO deja duplicación features/inbox vs features/adrian"
+    cmd: "cd vitalia/frontend && npx jscpd src/features/adrian/components/inbox/ --threshold 5 || true"
+
+# ═══════════════════════════════════════════════════════════════
+# 2 · FUNCTIONAL (unit + integration + e2e)
+# ═══════════════════════════════════════════════════════════════
+functional:
+  - id: fn-be-inbox-suite
+    must_pass: true
+    desc: "suite inbox completa (shipped regression_guard + nuevos nudge/policy/phi-redirect)"
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/inbox/ -v"
+  - id: fn-be-phi-policy
+    must_pass: true
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/inbox/application/test_phi_channel_policy.py tests/modules/vitalia/inbox/compliance/test_phi_voice_redirect.py -v"
+  - id: fn-be-nudge
+    must_pass: true
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/inbox/application/test_nudge_service.py tests/modules/vitalia/inbox/api/test_router_nudge.py -v"
+  - id: fn-fe-vitest-inbox
+    must_pass: true
+    cmd: "cd vitalia/frontend && npx vitest run src/features/adrian/"
+  - id: fn-schemathesis-nudge
+    must_pass: true
+    desc: "contrato endpoint nudge (FE↔BE) — opt_in por endpoint nuevo"
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/schemathesis run --checks all http://localhost:8002/openapi.json --include-path-regex '/inbox/conversations/.*/nudge' || true"
+  - id: fn-e2e-modes
+    must_pass: true
+    desc: "SC-mode/SC-4/SC-composer/SC-privacy/SC-1 — 2-modos (PATCH /mode 200), pausa (POST /pause 200), composer dock, leads visibles, glass-box. GOLDEN live contra dev-app (backend real, base.ts)"
+    cmd: "cd vitalia/frontend && set -a; source ../.env.dev; set +a; E2E_BASE_URL=https://dev-app.vitalialat.com npx playwright test e2e/shell-organism/adrian-inbox-modes.spec.ts --project=smoke --no-deps --workers=1"
+  - id: fn-e2e-phi-redirect
+    must_pass: true
+    desc: "SC-3 — PHI por canal no-encriptado bloqueado (e2e render + be-test es el grader fuerte)"
+    cmd: "cd vitalia/frontend && set -a; source ../.env.dev; set +a; E2E_BASE_URL=https://dev-app.vitalialat.com npx playwright test e2e/shell-organism/adrian-inbox-phi-redirect.spec.ts --project=smoke --no-deps --workers=1"
+  - id: fn-e2e-nudge-states
+    must_pass: true
+    desc: "SC-6/7/8 — nudge, empty, network failure (live dev-app)"
+    cmd: "cd vitalia/frontend && set -a; source ../.env.dev; set +a; E2E_BASE_URL=https://dev-app.vitalialat.com npx playwright test e2e/shell-organism/adrian-inbox-nudge.spec.ts e2e/shell-organism/adrian-inbox-states.spec.ts --project=smoke --no-deps --workers=1"
+  - id: fn-e2e-cross-tenant
+    must_pass: true
+    desc: "SC-10 — cross-tenant 404 + i18n neutro (live dev-app)"
+    cmd: "cd vitalia/frontend && set -a; source ../.env.dev; set +a; E2E_BASE_URL=https://dev-app.vitalialat.com npx playwright test e2e/shell-organism/adrian-inbox-tenant.spec.ts --project=smoke --no-deps --workers=1"
+
+# ═══════════════════════════════════════════════════════════════
+# 3 · VISUAL (goldens + a11y)
+# ═══════════════════════════════════════════════════════════════
+visual:
+  - id: vis-goldens
+    must_pass: false              # ★ amendment: ADR-003 mockup-per-component WAIVED (story de migración) → ratificación visual real = live-verify dev-app (DoD #37, más fuerte que PNG golden). Ver checkpoint::ratified_visual_waiver. Los PNG goldens 3×2×2 del plan viejo (3-modos) NO aplican al modelo 2-modos.
+    desc: "ratificación visual = live-verify dev-app (Chrome MCP/Playwright) — NO 12 PNG goldens (waiver ADR-003)"
+    cmd: "echo 'visual ratification via live-verify dev-app per ratified_visual_waiver — no PNG ratchet for this migration story'"
+  - id: vis-runtime-error-gate
+    must_pass: true
+    desc: "anti-burbuja: el golden adrian-inbox-modes.spec.ts importa e2e/fixtures/base.ts (pageerror/console/hydration/api-4xx5xx/Next overlay)"
+    cmd: "cd vitalia/frontend && grep -q \"fixtures/base\" e2e/shell-organism/adrian-inbox-modes.spec.ts && echo 'golden uses base.ts'"
+
+playwright_visual_scope:
+  story_scope_routes:
+    - "/{tenantId}/adrian/inbox"
+    - "/{tenantId}/adrian/inbox?conv=*"
+  story_scope_components:
+    - "features/adrian/components/inbox/**"
+    - "components/shared/shell-organism/ChannelBadge.tsx"
+  forbidden_to_screenshot:           # REUSE not modify — no goldens de página completa sobre el wrapper
+    - "components/ui/**"
+    - "components/shared/shell-organism/{ShellOrganismLayout,ValeriaSidebar,Ribbon,SubTabsBar,EmptyState,SubSubTabsBar}.tsx"
+  out_of_mockup_scope:
+    - "[conv-id]/page.tsx N3-dyn (diferido — searchParam cubre AC-3/RN-14)"
+    - "filtro 'Asignadas a mí' (requiere assigned_user_id — diferido)"
+
+# ═══════════════════════════════════════════════════════════════
+# 4 · AGENTIC_EVAL — SKIP (justificado)
+# ═══════════════════════════════════════════════════════════════
+agentic_eval:
+  skip: true
+  skip_reason: >-
+    Esta story NO toca superficie agéntica de producción. El inbox CONSUME runtime existente
+    read-only: (a) sales_agent runtime vía el flujo de mensajes ya cableado, (b) el tool
+    send_proactive_reengagement (brand, shipped) vía service resolver en el nudge endpoint,
+    (c) copilot_trace_event + sanitize_payload (observability engine) vía activity-stream shipped.
+    Cero LangGraph state nuevo, cero tools nuevos, cero prompt cache slots, cero eval goldens.
+    Ningún ticket edita core/luana-core-{sales-agent,copilot}/src/ ni vitalia/.../sales_agent/ runtime.
+
+# ═══════════════════════════════════════════════════════════════
+# 5 · ARCHITECTURAL_VALIDATION
+# ═══════════════════════════════════════════════════════════════
+architectural_validation:
+  - id: av-be-arch-fitness
+    must_pass: true
+    desc: "PHI dual filter + audit sync write + response_model + growth_event no-phi"
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/architecture/ -x -q"
+  - id: av-fe-arch-fitness
+    must_pass: true
+    desc: "FSD boundaries + no cross-feature imports + agent-catalog SSoT + server-first + no hardcoded colors/strings + no clerk org + no cross-brand shell mirror"
+    cmd: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/"
+  - id: av-no-orphan-inbox
+    must_pass: true
+    desc: "CONN — features/inbox/ BORRADO (consolidación) + adrian.inbox registrado en SHIPPED_STATIC_SUBTABS"
+    cmd: "test ! -d vitalia/frontend/src/features/inbox && grep -q 'adrian.inbox' vitalia/frontend/src/lib/agent-catalog.ts"
+  - id: av-no-sales-agent-import
+    must_pass: true
+    desc: "anti-coupling — inbox/ NO importa sales_agent/ directo (usa resolver)"
+    cmd: "! grep -rn 'from src.modules.vitalia.sales_agent' vitalia/backend/src/modules/vitalia/inbox/"
+  - id: av-no-core-edit
+    must_pass: true
+    desc: "ningún ticket toca core/ ni sales_agent/copilot runtime (git diff scope)"
+    cmd: "! git diff --name-only origin/main...HEAD | grep -E '^core/|vitalia/backend/src/modules/vitalia/(sales_agent|copilot)/(domain|application/orchestrator|infrastructure)'"
+  - id: av-no-cap-header-missing
+    must_pass: true
+    desc: "archivos NEW tienen header # cap: inbox.adrian.inbox (líneas 1-3)"
+    cmd: "python3 scripts/validate_code_cap_bidirectional.py --brand vitalia || true"
+
+# ═══════════════════════════════════════════════════════════════
+# regression_guard (ADR-004 § modificación de feature)
+# ═══════════════════════════════════════════════════════════════
+regression_guard:
+  - desc: "suite inbox slice-1 (11 archivos) sigue verde — solo el path compliance cambia (mock NoOp→real explícito, NO mecánico)"
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/inbox/ -q"
+  - desc: "Vitest co-located migrados de features/inbox siguen verdes en features/adrian"
+    cmd: "cd vitalia/frontend && npx vitest run src/features/adrian/"
+  - desc: "paginación virtualizada (>50 items) + large_dataset/concurrent_users cubiertos por suite slice-1 reusada — NO se reescriben"
+
+# ═══════════════════════════════════════════════════════════════
+# test_construction_plan — orden RED-first + POMs + fixtures + mapping
+# ═══════════════════════════════════════════════════════════════
+test_construction_plan:
+  creation_order:
+    # BE (RED por capa, Inside-Out)
+    - { order: 1, layer: be-policy, test: "test_phi_channel_policy.py", maps_scenario: "SC-3 (RN-7)", note: "allow/block por canal — RED antes de PhiChannelPolicy" }
+    - { order: 2, layer: be-service, test: "test_nudge_service.py", maps_scenario: "SC-6 (RN-13)", note: "nudge conv viva, audit+activity, sin conv nueva, idempotency" }
+    - { order: 3, layer: be-compliance, test: "test_phi_voice_redirect.py (llenar stub)", maps_scenario: "SC-3", note: "send path con ComplianceService real → bloquea + redirect + audit" }
+    - { order: 4, layer: be-api, test: "test_router_nudge.py", maps_scenario: "SC-6", note: "PHI-gated, dual-tenant 404, response_model" }
+    - { order: 5, layer: be-api, test: "test_activity_stream_sanitize.py", maps_scenario: "SC-1 (RN-10)", note: "sanitize_payload en activity events" }
+    # FE (RED)
+    - { order: 6, layer: fe-hook, test: "api/__tests__/inbox.test.ts", maps_scenario: "SC-1/2", note: "hooks RQ migrados verdes + useSetMode mapping + useNudge" }
+    - { order: 7, layer: fe-component, test: "components/inbox/__tests__/ModeToggle.test.tsx", maps_scenario: "SC-1/2/4 (RN-1)", note: "3-modos → {handler_mode,proposal_required}" }
+    - { order: 8, layer: fe-component, test: "components/inbox/__tests__/ConversationModeButton.test.tsx", maps_scenario: "SC-5 (RN-11/12)", note: "colapsa/restaura valeriaState via useShellStore" }
+    - { order: 9, layer: fe-component, test: "components/inbox/__tests__/{ToolCallCard,ChannelBadge,NudgeButton}.test.tsx", maps_scenario: "SC-1/6", note: "render + interacción" }
+    - { order: 10, layer: fe-component, test: "components/inbox/__tests__/AdrianInboxView.test.tsx", maps_scenario: "SC-1/7/8", note: "3-pane render + empty + error states" }
+    # E2E (live-verify, base.ts)
+    - { order: 11, layer: e2e, test: "e2e/shell-organism/adrian-inbox-*.spec.ts", maps_scenario: "SC-1..SC-10", note: "import base.ts (anti-burbuja). NO mockea backend del surface (DoD #37)" }
+    - { order: 12, layer: visual, test: "e2e/shell-organism/adrian-inbox-visual.spec.ts", maps_scenario: "SC-5", note: "12 goldens ratchet shrink-only" }
+  poms:
+    - { name: "AdrianInboxPage", path: "e2e/pages/AdrianInboxPage.ts", covers: "conv list, thread, mode toggle, composer, modo conversación, nudge" }
+  fixtures:
+    - { name: "base.ts", path: "vitalia/frontend/e2e/fixtures/base.ts", note: "EXISTE — anti-burbuja (pageerror/console/hydration/api-4xx5xx/Next overlay). TODOS los specs importan de acá, NUNCA @playwright/test directo" }
+    - { name: "seed inbox convs", note: "convs sintéticas multi-canal (whatsapp/ig/email/web) + 3-modos + tenant A/B para cross-tenant. PHI sintética (test_no_phi_real_data)" }

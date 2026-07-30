@@ -1,0 +1,1 @@
+../../core-harness/rules/git-haiku-delegation.md

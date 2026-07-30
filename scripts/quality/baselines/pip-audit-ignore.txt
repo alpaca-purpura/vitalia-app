@@ -1,0 +1,12 @@
+# pip-audit vuln allowlist (shrink-only) — code-health gate HB-61.
+# El gate pasa con estas; un CVE NUEVO (no listado) lo BLOQUEA.
+# Un ID por línea. '#' comenta. DEUDA — bumpear y BORRAR de acá.
+#
+# === 11 CVEs RESUELTOS 2026-06-08 (bump uv lock --upgrade-package) — ya NO en allowlist: ===
+#   pyjwt 2.12.1→2.13.0 (PYSEC-2026-175/177/178/179) · starlette 1.0.0→1.2.1 (PYSEC-2026-161)
+#   aiohttp 3.13.4→3.14.1 (CVE-2026-34993/47265) · idna 3.14→3.18 (CVE-2026-45409)
+#   langchain-openai 1.1.10→1.2.2 (PYSEC-2026-76)
+#
+# === Remanente (sin fix upstream) ===
+# py 1.11.0 — paquete deprecado (transitive de pytest legacy); sin versión parcheada disponible:
+PYSEC-2022-42969

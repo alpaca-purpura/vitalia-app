@@ -1,0 +1,340 @@
+/*
+ * @luana/ui-kit Storybook — Tailwind v4 wiring (story core-ds-foundation T-2).
+ *
+ * Self-contained, brand-agnostic. Does NOT import any brand's globals.css (cross-brand
+ * coupling banned) — instead it reproduces the canonical token contract here so the kit
+ * renders in Storybook exactly as it does inside a brand shell.
+ *
+ * Per design-system-canon.md § 2.10 (dark-mode wiring HARD contract):
+ *   1. @import "tailwindcss"
+ *   2. @custom-variant dark — v4-pure 1-liner (no tailwind.config.ts in this package)
+ *   3. @source "../src" — FULL kit src so the JIT scanner sees every kit class
+ *      (a narrow @source silently purges dark:/arbitrary utilities → tsc green, visual broken)
+ *   4. @theme inline — maps the HSL token vars to color utilities (bg-card, text-foreground,
+ *      bg-agent-*, …). Without this mapping the tokens exist but `bg-card` generates nothing.
+ *   5. :root / dark token values (mirrored from a brand globals.css :root + .dark blocks)
+ */
+
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *, [data-theme="dark"], [data-theme="dark"] *));
+
+@source "../src";
+/* Shell stories author LITERAL agent-color classes (bg-agent-*, text-agent-*, …) in
+ * stories/_shell-fixtures.tsx — the JIT must scan them or the colors silently purge
+ * (same trap as the chart-black bug). Brand src is agnostic (zero color literals). */
+@source "../stories";
+
+/* ── Token → utility mapping (Tailwind v4 CSS-first, replaces tailwind.config.ts) ── */
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-success: hsl(var(--success));
+  --color-success-foreground: hsl(var(--success-foreground));
+  --color-success-soft: hsl(var(--success-soft));
+  --color-warning: hsl(var(--warning));
+  --color-warning-foreground: hsl(var(--warning-foreground));
+  --color-warning-soft: hsl(var(--warning-soft));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --radius: 0.625rem;
+
+  /* Agent color utilities — BOTH brand rosters map here (the JIT scans the literal
+   * bg-agent-* switches of both _shell-fixtures resolvers). The actual color VALUE
+   * per token is brand-switched below: vitalia in :root, nicolify in [data-brand].
+   * vitalia: Valeria supervisor · Lisa/Mateo/Adrián/Lucas/Camila ribbon.
+   * nicolify: Luana supervisor · Abel/Brenda/Christian/Sara/Norvil ribbon (+config). */
+  --color-agent-valeria: hsl(var(--agent-valeria));
+  --color-agent-valeria-soft: hsl(var(--agent-valeria-soft));
+  --color-agent-lisa: hsl(var(--agent-lisa));
+  --color-agent-lisa-soft: hsl(var(--agent-lisa-soft));
+  --color-agent-mateo: hsl(var(--agent-mateo));
+  --color-agent-mateo-soft: hsl(var(--agent-mateo-soft));
+  --color-agent-adrian: hsl(var(--agent-adrian));
+  --color-agent-adrian-soft: hsl(var(--agent-adrian-soft));
+  --color-agent-lucas: hsl(var(--agent-lucas));
+  --color-agent-lucas-soft: hsl(var(--agent-lucas-soft));
+  --color-agent-camila: hsl(var(--agent-camila));
+  --color-agent-camila-soft: hsl(var(--agent-camila-soft));
+  --color-agent-luana: hsl(var(--agent-luana));
+  --color-agent-luana-soft: hsl(var(--agent-luana-soft));
+  --color-agent-abel: hsl(var(--agent-abel));
+  --color-agent-abel-soft: hsl(var(--agent-abel-soft));
+  --color-agent-brenda: hsl(var(--agent-brenda));
+  --color-agent-brenda-soft: hsl(var(--agent-brenda-soft));
+  --color-agent-christian: hsl(var(--agent-christian));
+  --color-agent-christian-soft: hsl(var(--agent-christian-soft));
+  --color-agent-sara: hsl(var(--agent-sara));
+  --color-agent-sara-soft: hsl(var(--agent-sara-soft));
+  --color-agent-norvil: hsl(var(--agent-norvil));
+  --color-agent-norvil-soft: hsl(var(--agent-norvil-soft));
+  --color-agent-config: hsl(var(--agent-config));
+  --color-agent-config-soft: hsl(var(--agent-config-soft));
+}
+
+/* ── Radius scale — PLAIN @theme (NOT inline) ────────────────────────────────
+ * inline bakes the calc expression into rounded-* and ignores per-brand overrides;
+ * plain @theme makes rounded-{sm,md,lg,control} reference var(--radius-*) at runtime
+ * → the brand switcher's [data-brand] --radius-control override works (nicolify pill).
+ * Mirrors vitalia tailwind.config.ts borderRadius; nicolify overrides --radius-control. */
+@theme {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-control: calc(var(--radius) - 2px);
+}
+
+/* ── Token values — light (Shadcn surface, mirrored from a brand globals.css :root) ── */
+:root {
+  --background: 0 0% 100%;
+  --foreground: 240 10% 4%;
+  --card: 0 0% 100%;
+  --card-foreground: 240 10% 4%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 240 10% 4%;
+  --primary: 198 99% 49%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 240 5% 96%;
+  --secondary-foreground: 240 6% 10%;
+  --muted: 240 5% 96%;
+  --muted-foreground: 240 4% 46%;
+  --accent: 287 53% 37%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 98%;
+  /* Semantic status tokens — success (verde) + warning (ámbar). Values mirrored from
+   * vitalia globals.css (--vitalia-success #16A34A / --vitalia-warning #D97706) so the
+   * catalog renders production-faithful status colors. NAMES are the cross-brand contract
+   * (color-names.ts: success, warning); each brand paints its own VALUE in globals.css. */
+  --success: 142 76% 36%; /* #16A34A — pago confirmado, status verde, al día */
+  --success-foreground: 0 0% 100%;
+  --success-soft: 142 76% 92%;
+  --warning: 33 91% 44%; /* #D97706 — pago pendiente, atención requerida */
+  --warning-foreground: 0 0% 100%;
+  --warning-soft: 33 91% 92%;
+  --border: 240 6% 90%;
+  --input: 240 6% 90%;
+  --ring: 198 99% 49%;
+  --radius: 0.625rem;
+
+  /* Agent palette — REAL vitalia values (globals.css :root). */
+  --agent-lisa: 156 100% 41%; /* #00D084 verde */
+  --agent-lisa-soft: 156 80% 92%;
+  --agent-mateo: 53 99% 51%; /* #FEE209 amarillo */
+  --agent-mateo-soft: 53 90% 90%;
+  --agent-adrian: 198 99% 49%; /* #01B2F8 cian */
+  --agent-adrian-soft: 197 90% 89%;
+  --agent-lucas: 0 0% 7%; /* #111111 negro */
+  --agent-lucas-soft: 0 0% 92%;
+  --agent-camila: 244 84% 32%; /* #180D95 azul marino */
+  --agent-camila-soft: 244 53% 92%;
+  --agent-valeria: 287 53% 37%; /* #7B2D91 púrpura (supervisora) */
+  --agent-valeria-soft: 287 53% 90%;
+
+  /* Chart series palette — recharts reads var(--chart-N) directly via ChartContainer's
+   * generated --color-* vars (canon: consumer never uses hex). Without these the bars/lines
+   * fall back to black. (Standard categorical palette.) */
+  --chart-1: 198 99% 49%;
+  --chart-2: 287 53% 45%;
+  --chart-3: 156 100% 38%;
+  --chart-4: 43 74% 55%;
+  --chart-5: 24 95% 53%;
+}
+
+/* ── Token values — dark ── */
+.dark,
+[data-theme="dark"] {
+  --background: 240 10% 4%;
+  --foreground: 0 0% 98%;
+  --card: 240 8% 8%;
+  --card-foreground: 0 0% 98%;
+  --popover: 240 8% 8%;
+  --popover-foreground: 0 0% 98%;
+  --primary: 198 99% 49%;
+  --primary-foreground: 240 10% 4%;
+  --secondary: 240 4% 16%;
+  --secondary-foreground: 0 0% 98%;
+  --muted: 240 4% 16%;
+  --muted-foreground: 240 5% 65%;
+  --accent: 287 53% 50%;
+  --accent-foreground: 0 0% 98%;
+  --destructive: 0 63% 31%;
+  --destructive-foreground: 0 0% 98%;
+  /* Semantic status tokens — dark (brighter fills so they read on the dark surface). */
+  --success: 142 70% 45%;
+  --success-foreground: 240 10% 4%;
+  --success-soft: 142 40% 16%;
+  --warning: 33 90% 52%;
+  --warning-foreground: 240 10% 4%;
+  --warning-soft: 33 50% 18%;
+  --border: 240 4% 20%;
+  --input: 240 4% 20%;
+  --ring: 198 99% 49%;
+
+  /* Agent palette — REAL vitalia dark values (globals.css .dark). */
+  --agent-lisa-soft: 156 60% 15%;
+  --agent-mateo-soft: 53 80% 18%;
+  --agent-adrian-soft: 198 60% 20%;
+  --agent-lucas-soft: 0 0% 20%;
+  --agent-camila-soft: 244 50% 20%;
+  --agent-valeria-soft: 287 40% 25%;
+  /* Dark contrast fix (globals.css): camila #180d95 unreadable on dark soft → lighten. */
+  --agent-camila: 244 80% 78%;
+
+  --chart-1: 198 90% 55%;
+  --chart-2: 287 50% 60%;
+  --chart-3: 156 70% 50%;
+  --chart-4: 43 74% 60%;
+  --chart-5: 24 85% 60%;
+}
+
+/* ── Brand theme switcher (toolbar global `brand` · preview.ts decorator sets
+ *    [data-brand] on <html>). Default brand = vitalia (the :root blocks above).
+ *    Each brand below = a SNAPSHOT of its globals.css surface + shape tokens
+ *    (colores + formas). Same components, brand tokens → brand look:
+ *    vitalia = cian #01B2F8 + control 8px · nicolify = indigo #635BFF + control PILL.
+ *    The agent palette ALSO switches per brand: nicolify overrides every --agent-*
+ *    with its real values (globals.css), so bg-agent-abel/… render nicolify colors
+ *    when the demo catalog flips to nicolify (Luana + Abel/Brenda/Christian/Sara/Norvil). ── */
+[data-brand="nicolify"] {
+  --background: 0 0% 100%;
+  --foreground: 222 47% 11%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 47% 11%;
+  --primary: 243 100% 68%; /* indigo #635BFF */
+  --primary-foreground: 0 0% 100%;
+  --secondary: 215 20% 96%;
+  --secondary-foreground: 222 47% 11%;
+  --muted: 215 20% 96%;
+  --muted-foreground: 215 16% 47%;
+  --accent: 271 81% 65%; /* púrpura #A855F7 */
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 215 20% 91%;
+  --input: 215 20% 91%;
+  --ring: 243 100% 68%;
+  --radius: 0.625rem;
+  --radius-pill: 9999px;
+  --radius-control: var(--radius-pill); /* nicolify controls = pill */
+  --radius-lg: 0.75rem;
+
+  /* Agent palette — REAL nicolify values (globals.css :root). Luana = supervisor
+   * (sidebar) · Abel/Brenda/Christian/Sara/Norvil = ribbon · config = neutral tab. */
+  --agent-luana: 243 100% 68%; /* #635BFF indigo */
+  --agent-luana-soft: 243 80% 93%;
+  --agent-abel: 271 81% 65%; /* #A855F7 púrpura */
+  --agent-abel-soft: 271 70% 93%;
+  --agent-brenda: 142 71% 45%; /* #22C55E verde */
+  --agent-brenda-soft: 142 60% 90%;
+  --agent-christian: 217 91% 60%; /* #3B82F6 azul */
+  --agent-christian-soft: 217 80% 92%;
+  --agent-sara: 38 92% 50%; /* #F59E0B ámbar */
+  --agent-sara-soft: 38 80% 90%;
+  --agent-norvil: 330 81% 60%; /* #EC4899 rosa */
+  --agent-norvil-soft: 330 70% 92%;
+  --agent-config: 215 16% 47%; /* slate neutral (config no es agente) */
+  --agent-config-soft: 215 20% 94%;
+}
+.dark[data-brand="nicolify"],
+[data-theme="dark"][data-brand="nicolify"] {
+  --background: 240 20% 9%;
+  --foreground: 215 20% 95%;
+  --card: 240 16% 12%;
+  --card-foreground: 215 20% 95%;
+  --popover: 240 16% 12%;
+  --popover-foreground: 215 20% 95%;
+  --primary: 243 100% 72%;
+  --primary-foreground: 240 20% 9%;
+  --secondary: 240 12% 18%;
+  --secondary-foreground: 215 20% 95%;
+  --muted: 240 12% 18%;
+  --muted-foreground: 215 12% 60%;
+  --accent: 271 70% 68%;
+  --accent-foreground: 215 20% 95%;
+  --destructive: 0 63% 35%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 240 10% 22%;
+  --input: 240 10% 22%;
+  --ring: 243 100% 72%;
+
+  /* Agent soft variants — REAL nicolify dark values (globals.css .dark). */
+  --agent-luana-soft: 243 50% 22%;
+  --agent-abel-soft: 271 45% 22%;
+  --agent-brenda-soft: 142 40% 18%;
+  --agent-christian-soft: 217 50% 20%;
+  --agent-sara-soft: 38 55% 18%;
+  --agent-norvil-soft: 330 45% 20%;
+  --agent-config-soft: 215 12% 22%;
+  /* Dark contrast fix (globals.css): sara amber lightened to read on dark soft. */
+  --agent-sara: 38 92% 70%;
+}
+
+/* Radix poppers render Content as position:static inside a position:fixed wrapper — a
+ * z-index on the Content is inert. Put it on the positioned wrapper so the EntityPicker
+ * popover clears any sticky bar. (Mirrors the brand globals.css fix.) */
+[data-radix-popper-content-wrapper] {
+  z-index: 85;
+}
+
+/* TypingIndicator dots — the `.typing-dot` keyframe lives in each brand's globals.css
+ * (the kit only ships the markup). Mirrored verbatim from vitalia globals.css so the
+ * Shell/Chat/TypingIndicator story animates as it does in the real app. */
+@keyframes typing-dot {
+  0%,
+  60%,
+  100% {
+    opacity: 0.3;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-4px);
+  }
+}
+.typing-dot {
+  animation: typing-dot 1.2s ease-in-out infinite;
+}
+.typing-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.typing-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+body {
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+
+/* ─── Pointer affordance on every interactive element ──────────────────────── */
+/* Mirror of vitalia globals.css (Chris UI #4). Tailwind v4 dropped the opinionated
+   cursor:pointer on <button>; restore the hand on all enabled clickables so the
+   catalog matches the solution's behavior contract. Disabled elements keep their
+   own not-allowed cursor. */
+button:not(:disabled):not([aria-disabled="true"]),
+[role="button"]:not([aria-disabled="true"]),
+[role="radio"]:not([aria-disabled="true"]),
+[role="tab"]:not([aria-disabled="true"]),
+label[for],
+summary,
+a[href] {
+  cursor: pointer;
+}

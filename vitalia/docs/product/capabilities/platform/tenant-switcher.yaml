@@ -1,0 +1,293 @@
+---
+capability_id: vitalia-tenant-switcher
+module: platform
+slug: tenant-switcher
+status: live
+date_introduced: 2026-05-23
+story_introduced: vitalia-fase1-tenant-switcher
+package_version: 0.1.0
+package_path: vitalia/frontend
+license: proprietary
+
+# v3 cement 2026-05-27 · 4 dimensiones + dev_preview (ADR-vitalia-005)
+tech_module: platform
+agent_owner: plataforma-tecnica
+functional_area: plataforma-tecnica.platform
+user_visible: false
+nature: feature
+ui_paradigm: shell-organism  # T-3 reconcile 2026-05-29
+
+user_facing_name: "Tenant switcher en TopBar"
+user_facing_description: >
+  Selector de tenant visible en la TopBar para usuarios staff que operan múltiples
+  clínicas o tenants. Al seleccionar un tenant distinto se cambia el X-Tenant-ID
+  activo y se redirige manteniendo la ruta actual. El tenant activo se persiste
+  en localStorage. Al cerrar sesión Clerk se limpia el store automáticamente.
+
+dev_preview:
+  route: null
+  how_to_navigate: "Visible en la TopBar para usuarios staff con acceso a múltiples tenants."
+  main_component: "vitalia/frontend/src/components/shared/shell-organism/TenantSwitcher.tsx"
+  api_endpoints:
+    - "GET /api/tenants"
+  e2e_test: "vitalia/frontend/e2e/regression/vitalia-fase1-tenant-switcher/tenant-switcher-structure.smoke.spec.ts"
+  fixtures_required: []
+  storybook_url: null
+  loom_demo: null
+
+scenarios:
+  - id: cambiar-de-tenant-happy
+    name: "Usuario staff cambia de clínica desde la TopBar"
+    actor: admin_clinic
+    status: live
+    given: "Usuario autenticado con varias clínicas accesibles y el dropdown del TenantSwitcher abierto"
+    when: "Selecciona una clínica distinta de la lista"
+    then: "El tenant activo se actualiza en el store · se persiste en localStorage · hard redirect preservando la ruta actual con el nuevo segmento de tenant"
+    e2e_test: "vitalia/frontend/e2e/regression/vitalia-fase1-tenant-switcher/tenant-switcher-navigation.smoke.spec.ts"
+    story_spec_ref: "vitalia/docs/archive/2026/stories/vitalia-fase1-tenant-switcher/01-spec.md"
+    atomic_ref: null
+    edge_cases:
+      - "Click sobre la clínica ya activa es no-op (no redirige)"
+    added_in_story: vitalia-fase1-tenant-switcher
+    added_date: 2026-05-23
+  - id: estructura-dropdown-y-trigger
+    name: "El selector muestra trigger y dropdown con las clínicas accesibles"
+    actor: admin_clinic
+    status: live
+    given: "Usuario staff con clínicas accesibles cargadas"
+    when: "Abre el TenantSwitcher en la TopBar"
+    then: "El trigger muestra la clínica activa (truncado responsive + tooltip) · el dropdown lista cada clínica con badge de color, nombre y ciudad · la activa muestra el check"
+    e2e_test: "vitalia/frontend/e2e/regression/vitalia-fase1-tenant-switcher/tenant-switcher-structure.smoke.spec.ts"
+    story_spec_ref: "vitalia/docs/archive/2026/stories/vitalia-fase1-tenant-switcher/01-spec.md"
+    atomic_ref: null
+    edge_cases:
+      - "Un solo tenant accesible → lista con un solo TenantOption marcado activo"
+    added_in_story: vitalia-fase1-tenant-switcher
+    added_date: 2026-05-23
+  - id: switch-concurrente-doble-click
+    name: "Doble click rápido entre clínicas resuelve un único switch determinístico"
+    actor: admin_clinic
+    status: live
+    given: "Dropdown abierto con varias clínicas"
+    when: "Usuario hace clic en una clínica y luego en otra en menos de 150ms antes de completar el redirect"
+    then: "Solo un switch procesa de forma determinística · sin estado inconsistente"
+    e2e_test: "vitalia/frontend/e2e/regression/vitalia-fase1-tenant-switcher/tenant-switcher-navigation.smoke.spec.ts"
+    story_spec_ref: "vitalia/docs/archive/2026/stories/vitalia-fase1-tenant-switcher/01-spec.md"
+    atomic_ref: null
+    edge_cases: []
+    added_in_story: vitalia-fase1-tenant-switcher
+    added_date: 2026-05-23
+  - id: fallo-api-tenants-error-state
+    name: "Un fallo al cargar las clínicas muestra estado de error en el dropdown"
+    actor: admin_clinic
+    status: live
+    given: "Dropdown abierto mientras el endpoint de tenants no responde (timeout)"
+    when: "Usuario espera la respuesta"
+    then: "El dropdown muestra un Alert destructivo con mensaje de error · sin crash ni lista vacía silenciosa"
+    e2e_test: "vitalia/frontend/e2e/regression/vitalia-fase1-tenant-switcher/tenant-switcher-states.smoke.spec.ts"
+    story_spec_ref: "vitalia/docs/archive/2026/stories/vitalia-fase1-tenant-switcher/01-spec.md"
+    atomic_ref: null
+    edge_cases: []
+    added_in_story: vitalia-fase1-tenant-switcher
+    added_date: 2026-05-23
+  - id: sin-tenants-graceful-degrade
+    name: "Un usuario sin clínicas asignadas no ve el selector (degradación elegante)"
+    actor: admin_clinic
+    status: live
+    given: "Usuario autenticado pero el endpoint de tenants devuelve lista vacía"
+    when: "El TenantSwitcher carga"
+    then: "No se renderiza el trigger (TopBar sin selector visible) · sin error · degradación elegante"
+    e2e_test: "vitalia/frontend/e2e/regression/vitalia-fase1-tenant-switcher/tenant-switcher-states.smoke.spec.ts"
+    story_spec_ref: "vitalia/docs/archive/2026/stories/vitalia-fase1-tenant-switcher/01-spec.md"
+    atomic_ref: null
+    edge_cases: []
+    added_in_story: vitalia-fase1-tenant-switcher
+    added_date: 2026-05-23
+  - id: agregar-clinica-placeholder-modal
+    name: "La opción Agregar clínica abre un modal Próximamente"
+    actor: admin_clinic
+    status: live
+    given: "Dropdown del TenantSwitcher abierto"
+    when: "Usuario hace clic en la acción de pie 'Agregar clínica'"
+    then: "Se abre un Dialog 'Próximamente' con CTA Entendido · cierra con el botón o con Escape"
+    e2e_test: "vitalia/frontend/e2e/regression/vitalia-fase1-tenant-switcher/tenant-switcher-modal.smoke.spec.ts"
+    story_spec_ref: "vitalia/docs/archive/2026/stories/vitalia-fase1-tenant-switcher/01-spec.md"
+    atomic_ref: null
+    edge_cases: []
+    added_in_story: vitalia-fase1-tenant-switcher
+    added_date: 2026-05-23
+  - id: accesibilidad-teclado-wcag
+    name: "El selector es navegable por teclado y cumple WCAG AA"
+    actor: admin_clinic
+    status: live
+    given: "TenantSwitcher renderizado con varias clínicas"
+    when: "Usuario navega con teclado (Tab al trigger, flechas en la lista, Escape para cerrar)"
+    then: "Focus ring visible en el trigger · navegación por teclado funcional · 0 violations en el scan axe WCAG AA"
+    e2e_test: "vitalia/frontend/e2e/regression/vitalia-fase1-tenant-switcher/tenant-switcher-a11y.smoke.spec.ts"
+    story_spec_ref: "vitalia/docs/archive/2026/stories/vitalia-fase1-tenant-switcher/01-spec.md"
+    atomic_ref: null
+    edge_cases: []
+    added_in_story: vitalia-fase1-tenant-switcher
+    added_date: 2026-05-23
+  - id: aislamiento-tenant-al-cerrar-sesion
+    name: "Al cerrar sesión el tenant activo se limpia y no se filtra a otro usuario"
+    actor: admin_clinic
+    status: live
+    given: "Usuario A con un tenant activo persistido en localStorage"
+    when: "El usuario A cierra sesión en Clerk"
+    then: "El store y el localStorage del tenant se limpian · el estado del usuario A no se filtra a un usuario B en el mismo navegador"
+    e2e_test: null
+    story_spec_ref: "vitalia/docs/archive/2026/stories/vitalia-fase1-tenant-switcher/01-spec.md"
+    atomic_ref: null
+    edge_cases:
+      - "Escenario defensivo: cubierto por hook useSignOutCleanup + arch test no-clerk-organizations"
+    added_in_story: vitalia-fase1-tenant-switcher
+    added_date: 2026-05-23
+  - id: copy-espanol-neutro-selector
+    name: "El copy del selector es español neutro sin voseo"
+    actor: admin_clinic
+    status: live
+    given: "TenantSwitcher renderizado en cualquier estado"
+    when: "Usuario lee el copy de la interfaz"
+    then: "Sin voseo ni léxico regional · tuteo consistente · comprensible para MX, CO, PE, CL y AR"
+    e2e_test: null
+    story_spec_ref: "vitalia/docs/archive/2026/stories/vitalia-fase1-tenant-switcher/01-spec.md"
+    atomic_ref: null
+    edge_cases: []
+    added_in_story: vitalia-fase1-tenant-switcher
+    added_date: 2026-05-23
+
+related_capabilities:
+  - vitalia-shell-foundation-shadcn-tailwind-v4
+  - vitalia-design-tokens-theme
+  - vitalia-topbar-global
+depends_on_engine:
+  - core/luana-core-iam (GET /api/tenants — shipped Story 11)
+pending_chris_visual_ratify: true                       # set false post next session 5-min review
+
+# Capability ledger v2 (cement 2026-05-27)
+created_in_story: vitalia-fase1-tenant-switcher   # v2 cement · mirror of story_introduced
+created_date: 2026-05-23   # v2 cement · mirror of date_introduced
+last_modified: 2026-05-29   # T-3 reconcile 2026-05-29
+parent_cap: null   # v2 cement · mirror of extends_capability
+derives_capabilities: []   # v2 cement · initial empty list
+
+# Capability ledger v2 (cement 2026-05-27)
+
+# Capability change log v2 (cement 2026-05-27)
+change_log:
+  - story_id: vitalia-fase1-tenant-switcher
+    date: 2026-05-23
+    type: new
+    summary: "Implementación inicial · migración legacy a schema v2"
+    merge_sha: null
+    status: done
+  - story_id: vitalia-fase1-tenant-switcher
+    date: 2026-05-28
+    type: extend
+    summary: "backfill scenarios desde spec archivado"
+    scenarios_added:
+      - cambiar-de-tenant-happy
+      - estructura-dropdown-y-trigger
+      - switch-concurrente-doble-click
+      - fallo-api-tenants-error-state
+      - sin-tenants-graceful-degrade
+      - agregar-clinica-placeholder-modal
+      - accesibilidad-teclado-wcag
+      - aislamiento-tenant-al-cerrar-sesion
+      - copy-espanol-neutro-selector
+    merge_sha: null
+    status: done
+map_box: plataforma-tecnica
+
+---
+
+# vitalia-tenant-switcher
+
+Dropdown TenantSwitcher (organismo) montado dentro de `TopBarGlobal`. Lista clínicas accesibles al usuario actual + 2 footer actions (Agregar clínica placeholder · Administrar cuenta). Persiste tenant activo en `localStorage` (Zustand `tenant-store` partialize). Selecciona tenant distinto → `window.location.href` hard redirect preservando path (`pathname.replace(/^\/[^/]+/, '/' + newTenantId)`). Cross-user isolation via Clerk `signOut` hook (`useSignOutCleanup`).
+
+## Surface
+
+### Atoms / molecules / organism (`vitalia/frontend/src/components/shared/shell-organism/`)
+
+- `TenantBadge.tsx` — átomo. Hash determinístico `tenant.id` → paleta 6 colores (cyan/purple/fuchsia/amber/lime/rose). Contrast fix: amber+lime usan `text-amber-950/text-lime-950`.
+- `TenantOption.tsx` — molécula. Badge + nombre + ciudad + Check icon cuando activa (`data-active="true"` + sr-only "Clínica activa").
+- `TenantSwitcher.tsx` — organismo. Compose DropdownMenu Shadcn (4 states: loading/error/success/empty). Trigger truncate responsive (max-w-[180px]/[140px]) + tooltip nativo `title={tenant.name}`.
+- `AddClinicPlaceholderModal.tsx` — Dialog Shadcn "Próximamente" + Entendido CTA.
+- `TenantStoreBootstrap.tsx` — invisible Client Component montado en `app/layout.tsx`. Hidrata tenant-store con `useTenants` query + activa `useSignOutCleanup` listener.
+- `TopBarGlobal.tsx` — F1-S2 organism, ahora monta `<TenantSwitcher />` (reemplaza placeholder slot eliminado).
+
+### State / data / hooks
+
+- `vitalia/frontend/src/stores/tenant-store.ts` — Zustand store con `persist({ name: "vitalia-tenant-state", partialize: { activeTenant } })`.
+- `vitalia/frontend/src/hooks/useTenants.ts` — React Query `useQuery(["tenants"], fetchTenants, { staleTime: 5min })`. Consume engine `GET /api/tenants` shipped Story 11.
+- `vitalia/frontend/src/hooks/useSignOutCleanup.ts` — listener Clerk `isSignedIn` flip `true→false` → `clearStore()` + `localStorage.removeItem("vitalia-tenant-state")`.
+- `vitalia/frontend/src/lib/tenant-palette.ts` — pure functions `getTenantPaletteColor(tenantId)` (hash → palette index) + `buildRedirectPath(currentPath, newTenantId)`.
+
+### Test fixtures + page (F1-S2 parity pattern)
+
+- `vitalia/frontend/e2e/__test-pages__/tenant-switcher/tenant-switcher-showcase.tsx` — Server Component fixture, renderiza `TopBarGlobal` + main wrapper. No Clerk auth, no PHI.
+- `vitalia/frontend/src/app/test-stack/tenant-switcher/page.tsx` — Next.js route wrapper que re-exporta fixture.
+
+### Playwright suites (`vitalia/frontend/e2e/regression/vitalia-fase1-tenant-switcher/`)
+
+- `tenant-switcher-structure.smoke.spec.ts` (SC-01..SC-02 — trigger + dropdown structure)
+- `tenant-switcher-navigation.smoke.spec.ts` (SC-03 SKIP aspirational + SC-03b/c — no-op active + checkmark)
+- `tenant-switcher-states.smoke.spec.ts` (SC-04 error + SC-06 footer + SC-06b Escape)
+- `tenant-switcher-modal.smoke.spec.ts` (SC-07 modal Próximamente + SC-07b/c close)
+- `tenant-switcher-a11y.smoke.spec.ts` (SC-08..SC-08d axe + keyboard)
+- `tenant-switcher-visual.smoke.spec.ts` (8 visual goldens — 7 PNG generadas, visual-05 loading state conditional skip por design)
+
+### POM + fixtures
+
+- `vitalia/frontend/e2e/pages/tenant-switcher.page.ts` — Page Object Model.
+- `vitalia/frontend/e2e/fixtures/tenants.fixture.ts` — `mockTenantsApi()` + `TENANT_FIXTURES` (3 LatAm clínicas: Sonrisa Plena Lima · Dermalia CDMX · ClíniCare Bogotá).
+
+### Visual goldens (`vitalia/frontend/e2e/regression/vitalia-fase1-tenant-switcher/tenant-switcher-visual.smoke.spec.ts-snapshots/`)
+
+7 PNG (Linux, smoke project) — pending Chris visual ratify next session:
+
+- `trigger-closed-light-smoke-linux.png` · `trigger-closed-dark-smoke-linux.png`
+- `dropdown-open-light-smoke-linux.png` · `dropdown-open-dark-smoke-linux.png`
+- `dropdown-error-smoke-linux.png`
+- `add-clinic-modal-smoke-linux.png`
+- `tenant-option-active-smoke-linux.png`
+
+(visual-05 loading: conditional skip — trigger no aparece en pure loading state per 03-arch § 8.4 graceful degrade; sin golden necesario)
+
+### Architecture fitness test (NEW)
+
+- `vitalia/frontend/src/__tests__/architecture/test-no-clerk-organizations.test.ts` — enforces MEMORY no-clerk-organizations 2026-05-20 (greps `src/` for `useOrganization|orgId|Clerk.*Organization|OrganizationSwitcher`).
+
+## Verification
+
+```bash
+WS=$(git rev-parse --show-toplevel)
+cd ${WS}
+
+make dev-vitalia                                                  # postgres + backend 8002 + frontend 3002
+
+cd vitalia/frontend
+npx tsc --noEmit                                                  # 0 errors
+npx eslint src/ --max-warnings 0                                  # 0 errors
+npx vitest run                                                    # 97/97 PASS scoped F1-S3 + full 908/908 baseline
+
+curl -s -o /dev/null -w "%{http_code}\n" http://localhost:3002/test-stack/tenant-switcher  # 200
+
+E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/vitalia-fase1-tenant-switcher/ --project=smoke --workers=1
+# 26 passed, 1 skipped (SC-03 aspirational), 0 failed
+```
+
+### Gherkin coverage (17 scenarios — 16 PASS + 1 SKIP)
+
+Ver `vitalia/docs/archive/2026/stories/vitalia-fase1-tenant-switcher/06-audit/gherkin-matrix.md` post-archive. SC-03 path-preservation requiere ruta `[tenantId]/dashboard` real (Fase 2) — documentado skip aspirational.
+
+## Dependencies
+
+- Engine: `core/luana-core-iam` (GET /api/tenants shipped Story 11).
+- Cross-brand: ninguna. Pattern adaptado de `nicolify/frontend/src/components/shared/layout/TenantSwitcher.tsx` (75% reuse + adaptación Vitalia tokens + path preservation). 2 brands con TenantSwitcher = under threshold 3 brands para lift to core. Si comunify/lupulo lo necesitan Fase 2 → escala `/pm-luana`.
+
+## Blocks (downstream)
+
+- F1-S4 `vitalia-fase1-shell-layout-5050` — desbloqueado (chain F1-S0..S3 COMPLETE).
+- Fase 2 multi-tenant routes `[tenantId]/...` — habilita SC-03 path-preservation real.

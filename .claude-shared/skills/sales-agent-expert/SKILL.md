@@ -1,0 +1,225 @@
+---
+name: sales-agent-expert
+description: "Senior + arquitecto + CTO del módulo sales_agent post redesign 2026-04. Carga §3 protected surfaces, anti-patterns, decisiones cross-fase, checklist pre-commit. NO carga code vivo (paths/LOC/tests cambian). Use cuando user pida cambio/feature/bug en sales_agent: voz de marca, scheduler/payment tools, observabilidad, callback handler, prompt cache, channel registry, semantic router, closer studio, follow_up engine, eval loop, costo agentes. Triggers: 'modifica sales_agent', 'bug en sales_agent', 'agregar tool al agente', 'agente no cierra', 'suena robótico', 'voz de marca', 'agregar canal sales', 'modificar prompt del specialist', 'closer studio', 'follow-up no dispara', 'el agente repite preguntas', 'PII en trazas', 'costo Kimi', 'DeepSeek alias', 'tier pricing 200k', 'eval goldens'."
+---
+
+# Sales Agent Expert (post redesign 2026-04)
+
+Antes de codear: skill + plan + tech-debt-log. Plan: `docs/domains/sales-agent/redesign-2026-04/README.md` (S00–S12 cerrado).
+
+## §0 — Anti-duplication cardinal (read first)
+
+> Origen: PR-1 PI-1.1 hotfix 2026-05-01. Builder agentic creó `modules/sales_agent/observability/recording/turn_envelope.py` mirror de `modules/copilot/observability/recording/turn_envelope.py` existente. REVERT obligatorio.
+
+Observability + cost + pricing + channel-format + callback-handler + FX + tenant-billing + PII patterns son **shared abstractions**. Vivien (o deben vivir) en `shared/agent_observability/`.
+
+ANTES de crear archivo nuevo en `modules/sales_agent/observability/recording/<X>.py` o `modules/sales_agent/observability/<subsystem>/<X>.py`:
+
+1. Consultá inventario canónico: `cat .claude/rules/anti-duplication.md` — buscá tu subsystem en tabla
+2. Grep cross-codebase: `find /home/chris/AISALESHT/backend/src -name "<basename>.py"` + `grep -rn "class <ClassName>" backend/src/shared/ backend/src/modules/`
+3. Si match en `modules/copilot/<same-path>` o `shared/<subsystem>` → STOP, escalate `/pm`. Tres opciones:
+   - **EXTEND**: heredar desde shared base
+   - **LIFT-TO-SHARED**: subir abstracción a shared, después sales_agent + copilot consumen
+   - **NEW** (último recurso): justificar path:line por qué existing no sirve
+
+NUNCA mirror `turn_envelope.py` / `callback_handler.py` / `cost_calculator.py` / `fx_resolver.py` / similar de copilot a sales_agent. Si copilot lo tiene Y sales_agent lo necesita → la SEGUNDA invocación dispara LIFT-TO-SHARED, no MIRROR.
+
+## §3 — NO se toca
+
+| Surface | Razón |
+|---|---|
+| `closer_studio.py` API + WS | Live ops + Streamlit + FE dependen. |
+| `SmartBufferService` (smart_debounce_runner.py) | CPM/canales LATAM tuned producción. |
+| `OutputManager.process_response` chunking | CPM_SPEED + cap calibrados. `typing_simulation_cpm` per-canal lo extiende vía registry (S12), fallback global preservado. |
+| `enrollment_*` end-to-end | Producción. S9 EXTIENDE. |
+| `agent_state_checkpoints` schema (tabla, plural) | Migración riesgosa. |
+| Webhook adapters (Telegram/WhatsApp/IG) | Auth + signature frágiles. |
+| `follow_up_engine` cadence math | Timing horario + tz tenant. |
+| `PromptVersionModel` | Sales necesita override DB-backed per tenant. |
+| `model_pricing_snapshot` schema + LiteLLM sync | Cross-agent. Solo extender via raw_payload. |
+| `tool_call_dedup.py` | Anti-loop post fbc79125. |
+
+Tocar §3 → **PARAR, preguntar al usuario**.
+
+## Antes de codear (orden estricto)
+
+1. **Trazas primero**. Bug → query `sales_agent_trace_event` + `sales_agent_llm_call`. Sin traza del síntoma → bug del recorder, fix antes que el síntoma.
+2. **Plan + tech-debt-log + learnings**. Decisiones cross-fase viven en `learnings/S{0..12}-*.md`.
+3. **grep AST de surface**, no asumir. Paths cambian; SSoT no.
+4. Ambiguo → **preguntar antes de tocar**.
+
+## Anti-patterns (cerrados)
+
+- ❌ Migrar StateGraph a deepagents.
+- ❌ Eliminar Closer Studio + WS + buffer + OutputManager + follow_up_engine + frozen_detection.
+- ❌ Subagents deepagents.
+- ❌ Hardcodear model wire-name strings en specialists. Usar `LLM_ROLE_BY_SITE` SSoT.
+- ❌ Hardcodear canales literales en `OutputManager`. Usar `get_channel_format(channel_type)`.
+- ❌ Importar `copilot/` desde `sales_agent/` (o viceversa). Ambos consumen `shared/`.
+- ❌ Tocar `PromptVersionModel`.
+- ❌ `from __future__ import annotations` en `*/orchestrator/graph.py` (rompe LangGraph runtime introspection).
+- ❌ Bypass `sanitize_payload` en writes a `*_trace_event` o `*_llm_call`.
+- ❌ Duplicar plumbing del `BaseAgentCallbackHandler` shared. Solo overrides agent-specific.
+- ❌ Bypass channel registry shared. Nuevo canal → `register_channel` en startup.
+- ❌ Crear feature branches/worktrees salvo instrucción explícita. Todo en `development`.
+- ❌ Aliases DeepSeek retired Jul 24 2026 (`deepseek-chat`, `deepseek-reasoner`). Usar `deepseek-v4-flash` / `deepseek-v4-pro`. Arch ratchet bloquea.
+- ❌ Tier pricing >200k tokens sin resolver. Si LiteLLM declara `input_cost_per_token_above_200k_tokens`, calculator debe split (`TIER_THRESHOLD = 200_000`). Arch ratchet.
+
+## Decisiones cross-fase no obvias
+
+- **`BaseAgentCallbackHandler` Template Method (S0/S11A)** — subclase implementa solo `_persist_llm_call_row` + `_persist_trace_event_row`. DRY threshold = 2 consumers (sales + copilot).
+- **`compose_system_prompt(fragments)` + `CACHE_BOUNDARY_MARKER` (S3)** — slots cacheable cross-tenant → cacheable per-tenant → volatile. Hit rate ≥60% si prefix ≥1024 tokens.
+- **`model_pricing_snapshot` cross-agent en `shared/`** — reference data global. Tier pricing >200k via raw_payload JSONB.
+- **Dual-write 4 sem pre-cutover legacy** — reconciliation worker mide drift; cutover prematuro rompe `sales_audit.py` dual-read.
+- **`LLM_ROLE_BY_SITE` superset + `SPECIALIST_TO_ROLE` sub-view** — specialists back-compat; summary + nudge + safety centralizados.
+- **Tenant isolation en CADA query** (incluido `get_by_id`).
+- **`FastAPI(redirect_slashes=False)`** — Next.js proxy strips body en 307. App-level only.
+- **PII regex sync (no Presidio) — WONT-FIX (S12)** — Presidio overhead 50-200ms incompatible con hot path <10ms p99. Reabrir solo con enterprise contract.
+- **typing_simulation_cpm (S12)** — registry override per-canal, fallback `CPM_SPEED` cuando None / 0 / negativo.
+- **Voz del agente — voseo del tenant respetado** — `.claude/rules/spanish-text.md` NO aplica al output del agente. Voseo del tenant es feature.
+
+## Surfaces compartidas con copilot (consumers shared/agent_observability)
+
+Estas abstracciones viven en `shared/` y son consumidas por ambos módulos (sales_agent + copilot). NUNCA duplicar — extender desde shared.
+
+- `shared.agent_observability.recording.base_callback_handler.BaseAgentCallbackHandler` → consumed by `modules/sales_agent/observability/recording/callback_handler.py` (subclase `SalesAgentCallbackHandler`)
+- `shared.agent_observability.recording.turn_envelope.BaseObservabilityContext` → consumed by `modules/sales_agent/observability/recording/turn_envelope.py` (subclase `SalesAgentObservabilityContext`)
+- `shared.agent_observability.cost.fx_resolver.FXResolver` → consumed by `modules/sales_agent/observability/recording/factory.py` + `turn_envelope.py`
+- `shared.agent_observability.pricing.resolver.PricingResolver` → consumed by `modules/sales_agent/observability/recording/factory.py`
+- `shared.agent_observability.persistence.pricing_snapshot_repository.PricingSnapshotRepository` → consumed by `modules/sales_agent/observability/recording/factory.py`
+- `shared.agent_observability.persistence.tenant_billing_config_repository.TenantBillingConfigRepository` → consumed by `modules/sales_agent/observability/recording/factory.py`
+- `shared.agent_observability.persistence.base_trace_event_repo.BaseTraceEventRepoProtocol` → structural protocol, implemented by `modules/sales_agent/observability/persistence/trace_event_repository.py`
+- `shared.agent_observability.persistence.base_llm_call_repo.BaseLLMCallRepoProtocol` → structural protocol, implemented by `modules/sales_agent/observability/persistence/llm_call_repository.py`
+- `shared.agent_observability.channels.format.get_channel_format` + `CHANNEL_FORMATS` → consumed by `infrastructure/external/output_manager.py` + `application/prompts/compose.py`
+- `shared.agent_observability.channels.format_for_channel` (LangChain tool wrapper) → available for specialist use (deterministic, no LLM)
+- `shared.agent_observability.recording.sanitization.sanitize_payload` → consumed by `application/quality/judge.py` + `observability/domain_events/subscribers.py`
+- `shared.agent_observability.registry` → consumed by `modules/sales_agent/observability/__init__.py`
+- `shared.billing.application.llm_guards.BudgetGuardingLLMService` + `budget_guard.BudgetGuard` → consumed by `application/orchestrator/conversation_pipeline.py` + `outbound_orchestrator.py`
+
+Ver inventario canónico completo en `.claude/rules/anti-duplication.md`.
+
+## Decisiones cardinales últimos 60 días
+
+Decisiones arquitectónicas que impactan el módulo, ordenadas por fecha. Fuentes: `docs/process/learnings.md`, git log, stories archivadas.
+
+- 2026-05-06 — `sales-agent-litellm-canonicalization` cerrado (review → done): LiteLLM es el único path de despacho LLM. Legacy adapters OpenAI/Kimi/DeepSeek directos eliminados en T-4. (`docs/archive/2026/stories/sales-agent-litellm-canonicalization/`)
+- 2026-05-06 — Reframe PI-12 a synthetic-first eval architecture: eval foundation prioriza datos sintéticos de 5 tenants antes de goldens humanos. (`learnings.md 2026-05-06`)
+- 2026-05-05 — `BaseObservabilityContext` + `FXResolver.default()` lifted a `shared/agent_observability/` (commit d80d15f5). Bug #2 + #8 resueltos: sales_agent ahora emite `turn_start` + `turn_end` rows vía `SalesAgentObservabilityContext`.
+- 2026-05-05 — R23 rule: agentic tickets `production_code=true` requieren Opus 4.7; `production_code=false` (tests/docs sobre agentic) → Sonnet OK. (`learnings.md R23`)
+- 2026-05-05 — `builder-backend` MAY touch `modules/{copilot,sales_agent}/persistence/models/` para schema mirror desde shared/ migration (exception codificada en `.claude/rules/backend-ddd.md`). (`learnings.md 2026-05-05`)
+- 2026-05-02 — Cost recorder LiteLLM canonicalization (commit 5856be4d, T-1 PI-12 S1): `cost_usd` ahora via `pop_cost(litellm_call_id)` desde CustomLogger bridge, no `calculate_cost()` runtime. Test fixtures deben incluir `litellm_call_id` en `response_metadata`.
+- 2026-04-30 — Outbox cutover ON (commit 7b2de359): `USE_OUTBOX_PATTERN_SALES_AGENT=True`. Event emission via `event_bus_adapter.adapter_bus.publish`. Tests deben mockear path nuevo, no `EventBus.publish` legacy.
+- 2026-04-28 — LiteLLM Proxy integration como motor multi-proveedor (commit 06065f6c, S3 PR-2). Antes: adaptadores separados por proveedor. Ahora: proxy unificado.
+- 2026-04-24/25 — Revert cycle `turn_envelope` wiring (commits 73ae51d2/03f5462c): hot-fix requirió repro local obligatorio antes spawn builder (R26 rule origin).
+- 2026-04-17 — S12 close-out (commit 0da30299): redesign completo cerrado. `typing_simulation_cpm` registry per-canal, `sales_agent_routing_log` Streamlit, SalesAgentJudge + 20 goldens, zero floating tech-debt.
+
+## SSoT vivos
+
+| Concepto | Dónde mirar |
+|---|---|
+| Voz del agente | `personality_profiles.system_instruction` → slot 5 cache prefix |
+| Specialist→role | `domain/model_tier.py::SPECIALIST_TO_ROLE` + `LLM_ROLE_BY_SITE` |
+| Channel format | `shared/agent_observability/channels/format.py::CHANNEL_FORMATS` + `get_channel_format` |
+| Pricing | `model_pricing_snapshot` + `pricing/aliases.py` + `pricing/resolver.py` |
+| Tools | `application/tools/registry.py` + `STAGE_TOOL_SCOPE` |
+| Routing log | `sales_agent_routing_log` → Streamlit `/sales-routing` (S12) |
+| Quality eval | `SalesAgentJudge` + 20 goldens + cron weekly → `/sales-agent-quality` |
+| Costo cross-agent | `mv_daily_llm_cost_per_tenant_v2` → `/costo-agentes` |
+
+## Checklist pre-commit "senior dev pass"
+
+1. ¿Toca §3? → escalé al usuario.
+2. ¿Test reproductor antes del fix? RED → GREEN.
+3. ¿Pasa por SSoT (channels / models / pricing / LLM_ROLE / personality)?
+4. ¿`sanitize_payload` en cada write a observability tables?
+5. ¿`tenant_id` filter en CADA query?
+6. ¿`response_model=` en endpoint nuevo? PII removido / mascarado / justificado.
+7. ¿Spanish neutro LATAM en user-facing? Voz del tenant respetada en output del agente.
+8. ¿Stage por nombre en commit (no `-A` ni `.`)?
+9. ¿Arch tests verde native?
+10. ¿Tech-debt-log actualizado? Cada entry → fase concreta o WONT-FIX con razón.
+
+## Glossary
+
+- **turn**: 1 webhook/POST. 1 `turn_start` + 1 `turn_end` + N `llm_call`/`tool_call`.
+- **callback handler**: `BaseAgentCallbackHandler` + subclase. Best-effort (try/except + structlog warning + rollback).
+- **LLM_ROLE_BY_SITE**: SSoT site → `ModelRole`. Arch ratchet sin allowlist.
+- **channel registry**: `register_channel` + `get_channel_format` cross-agent. 7 baseline.
+- **specialist**: Nodo StateGraph (qualifier / product_expert / closer / supervisor / tool_executor / safety / escalate).
+- **dual-write**: Escribir legacy + nueva durante 4 sem. Cutover post-window.
+- **ratchet**: Test que solo permite shrink.
+- **Stranger Fig**: Refactor incremental, snapshot diff = 0 byte-equal per commit.
+- **§3**: Surfaces protegidas. Tocar = preguntar.
+- **Tier pricing**: LiteLLM `input_cost_per_token_above_200k_tokens`. Calculator split en 200_000 (S12).
+
+## Pointers
+
+- `CLAUDE.md` raíz.
+- `docs/domains/sales-agent/redesign-2026-04/{README,00-vision-and-objectives,02-architecture-target,04-principles,05-tech-debt-log}.md`.
+- `.claude/rules/{copilot-resilience,copilot-observability,sales-agent-brand-voice,parallel-safety,spanish-text}.md`.
+- `references/` (pre-redesign conversation craft — útil para evolución de copy, no arquitectura post-S12).
+
+## Budget + Outbound Gating (PI-1 S0 PR-2)
+
+sales_agent está **subject a 2 gates** del módulo `shared/billing/` + `shared/compliance/` (PI-1 S0 PR-2 — wiring specialists diferido a S2; primitivas expuestas hoy).
+
+### Gate 1 — `BudgetGuard.check` (LLM cost, SA pool reservado)
+
+```python
+decision = await budget_guard.check(
+    tenant_id=tenant_id,
+    agent_kind="sales_agent",       # ← bucket SA (reserved pool)
+    estimated_cost_usd=Decimal("..."),  # tier-aware si LiteLLM declara input_cost_per_token_above_200k_tokens (Kimi K2.6, S12)
+)
+```
+
+- `agent_kind="sales_agent"` → consume del **SA pool reservado** (`plan_config.llm_budget_total_usd * sales_agent_reserved_pct`, default 50%).
+- SA exhausto **NO** consume Others pool (copilot reserve). Hard separation por bucket. Arch test property-based enforce.
+- Tier pricing >200k (Kimi K2.6, S12 cementado): caller (specialist) pre-computes `estimated_cost_usd` con `TIER_THRESHOLD = 200_000` split. BudgetGuard NO recomputa tiers (no invade calculator §3-protected).
+
+### Gate 2 — `OutboundRateLimiter.check` (volumen mensajes outbound)
+
+```python
+allowed = await outbound_rate_limiter.check(tenant_id=tenant_id)
+if not allowed:
+    # short-circuit pre-send: log + skip OutputManager.process_response chunking
+    ...
+```
+
+- Sliding window Redis (24h) con cap `plan_config.max_outbound_msg_per_day`.
+- `None` cap → unlimited (subject a budget).
+- Soft-fail: Redis unavailable → fail-open (per `tessl__graceful-degradation`).
+
+### Plan defaults (editable Streamlit `/planes-billing` — 1 UPDATE row, 0 migration)
+
+| plan_id | llm_budget_total_usd | SA pool (50%) | max_outbound_msg_per_day |
+|---|---|---|---|
+| free | $5.00 | $2.50 | 100 |
+| basic | $15.00 | $7.50 | 500 |
+| intermediate | $30.00 | $15.00 | 2000 |
+| advanced | $45.00 | $22.50 | 5000 |
+| ultra | $95.00 | $47.50 | 20000 |
+
+### Custom override per-tenant
+
+`tenant_subscription.custom_overrides JSONB` permite per-tenant override (ej. tenant enterprise con `{"max_outbound_msg_per_day": 50000, "llm_budget_total_usd": 200}`). `PlanService.get_effective(tenant_id)` mergea overrides sobre plan base. Cache 5min con cross-instance pub/sub invalidation (PR-2 Q5).
+
+### MV stale soft cap
+
+Si `mv_refresh_log.get_last_refresh('mv_daily_llm_cost_per_tenant_v2')` > 1h → `BudgetGuard` aplica soft cap 105% (admite 5% overrun para no bloquear ventas). Cementado PR-2 Q4.
+
+### Cuándo wirear (S2)
+
+PR-2 expone primitivas, **NO modifica specialists**. S2 wirea:
+- `qualifier` / `product_expert` / `closer` / `supervisor` antes de cada LLM call → `BudgetGuard.check`.
+- `OutputManager.send_outbound_message` → `OutboundRateLimiter.check` antes de `process_response`.
+
+§3 protected surfaces (Closer Studio, SmartBufferService, OutputManager.process_response chunking) NO se tocan — el gate vive antes del entry point.
+
+**Detalle vivo en PR-2 CONTRACT.md (legacy paradigma).** Skill solo agrega anchor — ver:
+`docs/archive/2026/legacy-pis/PI-1-campaigns-module/sprints/S0-foundation/prs/PR-2-billing-and-compliance/CONTRACT.md`
+(Archived as part of Wave 2 pm-redesign 2026-05-06; PR.md / CONTRACT.md format superseded by `docs/product/stories/{id}/{01-spec.md, 03-arch.md}`.)
+
+## Project invariants (read on demand)
+
+- `references/sales-agent-brand-voice.md` — SSoT voz, compiler v2, slot architecture, micro-anchor per-turn, cache invalidation, tests obligatorios

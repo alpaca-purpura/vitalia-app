@@ -1,0 +1,467 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=1440, initial-scale=1" />
+  <title>Vitalia · /pipeline · v1 Batch 3 ratificado</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    :root {
+      --vitalia-cian: 198 99% 49%;
+      --vitalia-purpura: 287 53% 37%;
+      --vitalia-amarillo: 53 99% 51%;
+      --vitalia-azul-marino: 244 84% 32%;
+      --vitalia-verde-lima: 70 73% 51%;
+      --vitalia-bg: 220 28% 98%;
+      --vitalia-surface: 0 0% 100%;
+      --vitalia-surface-alt: 220 38% 98%;
+      --vitalia-muted: 220 33% 96%;
+      --vitalia-text: 226 36% 16%;
+      --vitalia-text-muted: 220 9% 46%;
+      --vitalia-text-faint: 220 9% 65%;
+      --vitalia-border: 222 18% 93%;
+      --vitalia-border-soft: 220 25% 96%;
+      --vitalia-success: 142 76% 36%;
+      --vitalia-warning: 33 91% 44%;
+      --vitalia-danger: 0 73% 50%;
+      --vitalia-info: 199 89% 48%;
+      --vitalia-gradient-agent: linear-gradient(135deg, #01B2F8 0%, #7B2D91 100%);
+      --vitalia-gradient-adrian: linear-gradient(135deg, #7B2D91 0%, #180D95 100%);
+      --vitalia-gradient-lucas: linear-gradient(135deg, #B8DC2A 0%, #01B2F8 100%);
+    }
+    body { font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; }
+    .bg-vitalia-bg { background-color: hsl(var(--vitalia-bg)); }
+    .bg-vitalia-surface { background-color: hsl(var(--vitalia-surface)); }
+    .bg-vitalia-surface-alt { background-color: hsl(var(--vitalia-surface-alt)); }
+    .bg-vitalia-muted { background-color: hsl(var(--vitalia-muted)); }
+    .text-vitalia-text { color: hsl(var(--vitalia-text)); }
+    .text-vitalia-text-muted { color: hsl(var(--vitalia-text-muted)); }
+    .text-vitalia-text-faint { color: hsl(var(--vitalia-text-faint)); }
+    .text-vitalia-cian { color: hsl(var(--vitalia-cian)); }
+    .text-vitalia-purpura { color: hsl(var(--vitalia-purpura)); }
+    .text-vitalia-azul-marino { color: hsl(var(--vitalia-azul-marino)); }
+    .text-vitalia-success { color: hsl(var(--vitalia-success)); }
+    .text-vitalia-warning { color: hsl(var(--vitalia-warning)); }
+    .text-vitalia-danger { color: hsl(var(--vitalia-danger)); }
+    .text-vitalia-verde-lima { color: hsl(var(--vitalia-verde-lima)); }
+    .bg-vitalia-cian { background-color: hsl(var(--vitalia-cian)); }
+    .bg-vitalia-purpura { background-color: hsl(var(--vitalia-purpura)); }
+    .bg-vitalia-azul-marino { background-color: hsl(var(--vitalia-azul-marino)); }
+    .bg-vitalia-success { background-color: hsl(var(--vitalia-success)); }
+    .bg-vitalia-warning { background-color: hsl(var(--vitalia-warning)); }
+    .border-vitalia-border { border-color: hsl(var(--vitalia-border)); }
+    .border-vitalia-border-soft { border-color: hsl(var(--vitalia-border-soft)); }
+    .border-vitalia-cian { border-color: hsl(var(--vitalia-cian)); }
+    .border-vitalia-purpura { border-color: hsl(var(--vitalia-purpura)); }
+    .border-vitalia-success { border-color: hsl(var(--vitalia-success)); }
+    .border-vitalia-warning { border-color: hsl(var(--vitalia-warning)); }
+    .border-vitalia-verde-lima { border-color: hsl(var(--vitalia-verde-lima)); }
+    .avatar-adrian { background: var(--vitalia-gradient-adrian); }
+    .avatar-valeria { background: var(--vitalia-gradient-agent); }
+    .avatar-lucas { background: var(--vitalia-gradient-lucas); }
+
+    .col-bg { background-color: hsl(var(--vitalia-surface-alt)); }
+    .card-hover-target:hover .card-expand { display: block; }
+    .card-hover-target:hover { box-shadow: 0 4px 20px rgba(24,13,149,0.12); border-color: hsl(var(--vitalia-cian)); }
+  </style>
+</head>
+<body class="bg-vitalia-bg text-vitalia-text">
+
+<!-- Header: mockup metadata -->
+<div class="bg-white border-b border-vitalia-border px-6 py-3 flex items-center gap-4 sticky top-0 z-50">
+  <div class="text-sm font-semibold text-vitalia-azul-marino">Vitalia · /pipeline · mockup v1 Batch 3 (ratificado 2026-05-17)</div>
+  <div class="text-xs text-vitalia-text-faint">|</div>
+  <div class="text-xs text-vitalia-text-muted">Hover sobre card "Sofía Z." (col 4) para ver el peek expanded · click "Abrir conversación →" navega a /inbox</div>
+</div>
+
+<!-- App TopBar -->
+<div class="bg-vitalia-surface border-b border-vitalia-border h-14 flex items-center px-4 gap-4">
+  <div class="flex items-center gap-2 text-sm font-semibold text-vitalia-azul-marino">
+    <div class="w-7 h-7 rounded" style="background: linear-gradient(135deg, #01B2F8 0%, #7B2D91 50%, #B8DC2A 100%);"></div>
+    Vitalia
+  </div>
+  <div class="h-5 w-px bg-vitalia-border"></div>
+  <button class="flex items-center gap-1.5 text-xs font-medium text-vitalia-text-muted hover:text-vitalia-text">
+    Sonrisa Plena Odontología <i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>
+  </button>
+  <div class="flex-1 max-w-md mx-auto">
+    <div class="relative">
+      <i data-lucide="search" class="absolute left-3 top-2 w-3.5 h-3.5 text-vitalia-text-faint"></i>
+      <input class="w-full bg-vitalia-muted text-xs pl-9 pr-12 py-1.5 rounded-md border-0 placeholder-vitalia-text-faint" placeholder="Buscar pacientes, ofertas, turnos…" />
+      <kbd class="absolute right-3 top-1.5 text-[10px] text-vitalia-text-faint border border-vitalia-border rounded px-1">⌘K</kbd>
+    </div>
+  </div>
+  <button class="relative w-9 h-9 rounded-md hover:bg-vitalia-muted flex items-center justify-center">
+    <i data-lucide="bell" class="w-4 h-4 text-vitalia-text-muted"></i>
+    <span class="absolute top-1 right-1 bg-vitalia-danger text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">3</span>
+  </button>
+  <div class="h-5 w-px bg-vitalia-border"></div>
+  <button class="flex items-center gap-2 text-xs font-medium">
+    <div class="w-7 h-7 rounded-full bg-vitalia-cian text-white text-[11px] font-bold flex items-center justify-center">MM</div>
+    María M. <i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>
+  </button>
+</div>
+
+<!-- Main app shell -->
+<div class="flex" style="height: calc(100vh - 100px);">
+
+  <!-- Sidebar nav 240px -->
+  <aside class="w-[240px] bg-vitalia-surface border-r border-vitalia-border flex flex-col py-3 px-2 gap-0.5">
+    <div class="px-3 pt-1 pb-2 text-[10px] font-bold tracking-wider text-vitalia-text-faint uppercase">Operativo</div>
+    <div class="flex items-center justify-between gap-2.5 px-3 py-2 rounded text-sm text-vitalia-text-muted hover:bg-vitalia-bg cursor-pointer">
+      <div class="flex items-center gap-2.5"><i data-lucide="inbox" class="w-4 h-4"></i>Inbox</div>
+      <span class="text-[10px] font-bold bg-vitalia-azul-marino text-white px-1.5 rounded">5</span>
+    </div>
+    <div class="flex items-center gap-2.5 px-3 py-2 rounded text-sm font-semibold text-vitalia-azul-marino border-l-[3px] border-vitalia-cian pl-[9px]" style="background: linear-gradient(to right, hsl(var(--vitalia-cian) / 0.10), transparent);">
+      <i data-lucide="git-pull-request-arrow" class="w-4 h-4"></i>Pipeline
+    </div>
+    <div class="flex items-center justify-between gap-2.5 px-3 py-2 rounded text-sm text-vitalia-text-muted hover:bg-vitalia-bg cursor-pointer">
+      <div class="flex items-center gap-2.5"><i data-lucide="calendar" class="w-4 h-4"></i>Agenda</div>
+      <span class="text-[10px] font-bold bg-vitalia-muted text-vitalia-text-muted px-1.5 rounded">4</span>
+    </div>
+    <div class="flex items-center gap-2.5 px-3 py-2 rounded text-sm text-vitalia-text-muted hover:bg-vitalia-bg cursor-pointer">
+      <i data-lucide="heart-handshake" class="w-4 h-4"></i>Fidelización
+    </div>
+    <div class="flex items-center gap-2.5 px-3 py-2 rounded text-sm text-vitalia-text-muted hover:bg-vitalia-bg cursor-pointer">
+      <i data-lucide="megaphone" class="w-4 h-4"></i>Marketing
+    </div>
+    <div class="my-2 border-t border-vitalia-border-soft"></div>
+    <div class="px-3 pt-1 pb-2 text-[10px] font-bold tracking-wider text-vitalia-text-faint uppercase">Dirección (P2)</div>
+    <div class="flex items-center gap-2.5 px-3 py-2 rounded text-sm text-vitalia-text-muted hover:bg-vitalia-bg cursor-pointer"><i data-lucide="layout-dashboard" class="w-4 h-4"></i>Dashboard</div>
+    <div class="flex items-center gap-2.5 px-3 py-2 rounded text-sm text-vitalia-text-muted hover:bg-vitalia-bg cursor-pointer"><i data-lucide="dollar-sign" class="w-4 h-4"></i>Inversión publicitaria</div>
+    <div class="flex items-center gap-2.5 px-3 py-2 rounded text-sm text-vitalia-text-muted hover:bg-vitalia-bg cursor-pointer"><i data-lucide="palette" class="w-4 h-4"></i>Brand Studio</div>
+    <div class="flex items-center gap-2.5 px-3 py-2 rounded text-sm text-vitalia-text-muted hover:bg-vitalia-bg cursor-pointer"><i data-lucide="stethoscope" class="w-4 h-4"></i>Tratamientos</div>
+    <div class="flex items-center gap-2.5 px-3 py-2 rounded text-sm text-vitalia-text-muted hover:bg-vitalia-bg cursor-pointer"><i data-lucide="settings" class="w-4 h-4"></i>Configuración</div>
+  </aside>
+
+  <!-- Main pipeline -->
+  <main class="flex-1 flex flex-col overflow-hidden">
+    <!-- Header metrics -->
+    <div class="bg-vitalia-surface border-b border-vitalia-border px-6 py-3.5">
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-baseline gap-2">
+          <h1 class="text-lg font-bold text-vitalia-azul-marino">Pipeline</h1>
+          <span class="text-[12px] text-vitalia-text-muted">·</span>
+          <span class="text-[13px] font-semibold text-vitalia-text">27 leads</span>
+          <span class="text-[12px] text-vitalia-text-muted">·</span>
+          <span class="text-[13px] font-bold text-vitalia-success">$324.000 potencial</span>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <div class="bg-vitalia-muted rounded-md p-0.5 flex gap-0.5">
+            <button class="px-3 py-1 rounded text-[11px] font-semibold bg-vitalia-azul-marino text-white">Kanban</button>
+            <button class="px-3 py-1 rounded text-[11px] font-semibold text-vitalia-text-faint cursor-not-allowed" title="La vista lista se habilita en la próxima entrega">Lista (próximamente)</button>
+          </div>
+
+          <select class="text-[11.5px] border border-vitalia-border rounded px-2 py-1 bg-vitalia-surface">
+            <option>Oferta: Todas</option>
+            <option>Blanqueamiento Premium</option>
+            <option>Implantes paquete x2</option>
+            <option>Limpieza profunda</option>
+          </select>
+          <select class="text-[11.5px] border border-vitalia-border rounded px-2 py-1 bg-vitalia-surface">
+            <option>Canal: Todos</option>
+            <option>WhatsApp</option>
+            <option>Instagram</option>
+            <option>Email</option>
+          </select>
+          <select class="text-[11.5px] border border-vitalia-border rounded px-2 py-1 bg-vitalia-surface">
+            <option>Período: Mes</option>
+            <option>Hoy</option>
+            <option>Semana</option>
+            <option>Trimestre</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Funnel breakdown -->
+      <div class="flex items-center gap-1 text-[11.5px] text-vitalia-text-muted bg-vitalia-bg rounded px-3 py-1.5">
+        <span class="font-semibold text-vitalia-text">Funnel:</span>
+        <span class="font-mono">12</span>
+        <i data-lucide="arrow-right" class="w-3 h-3 mx-0.5"></i>
+        <span class="font-mono text-vitalia-verde-lima">6</span>
+        <i data-lucide="arrow-right" class="w-3 h-3 mx-0.5"></i>
+        <span class="font-mono text-vitalia-purpura">4</span>
+        <i data-lucide="arrow-right" class="w-3 h-3 mx-0.5"></i>
+        <span class="font-mono text-vitalia-cian">3</span>
+        <i data-lucide="arrow-right" class="w-3 h-3 mx-0.5"></i>
+        <span class="font-mono text-vitalia-success">2</span>
+        <span class="ml-2">leads</span>
+        <span class="mx-2 text-vitalia-text-faint">·</span>
+        <span class="font-semibold text-vitalia-success">conv lead→reserva 16.7%</span>
+      </div>
+    </div>
+
+    <!-- Kanban board -->
+    <div class="flex-1 overflow-x-auto overflow-y-hidden p-4">
+      <div class="flex gap-3 h-full min-w-fit">
+
+        <!-- COLUMN 1: Interesado -->
+        <div class="w-[240px] flex flex-col col-bg rounded-lg overflow-hidden flex-shrink-0">
+          <div class="px-3 py-2.5 border-b-2 border-vitalia-text-faint">
+            <div class="flex items-center justify-between">
+              <span class="text-[12.5px] font-bold text-vitalia-text">Interesado</span>
+              <span class="text-[10px] font-bold bg-white text-vitalia-text-muted px-1.5 py-0.5 rounded">12</span>
+            </div>
+            <div class="text-[10.5px] text-vitalia-text-muted mt-0.5">$144.000 potencial</div>
+          </div>
+          <div class="flex-1 overflow-y-auto p-2 space-y-2">
+            <div class="bg-white rounded-md p-2.5 border border-vitalia-border-soft shadow-sm cursor-grab">
+              <div class="flex items-center gap-1.5 mb-1.5">
+                <div class="w-6 h-6 rounded-full bg-vitalia-muted text-vitalia-text text-[10px] font-bold flex items-center justify-center">AL</div>
+                <div class="text-[11.5px] font-semibold text-vitalia-text flex-1 truncate">Ana López</div>
+                <span class="text-[9px] text-vitalia-text-faint">14m</span>
+              </div>
+              <div class="flex items-center gap-1 text-[10px] mb-1">
+                <i data-lucide="instagram" class="w-3 h-3 text-vitalia-purpura"></i>
+                <span class="text-vitalia-text-muted">DM nuevo</span>
+              </div>
+              <div class="text-[11px] text-vitalia-text-muted italic">"info de blanqueamiento"</div>
+            </div>
+            <div class="bg-white rounded-md p-2.5 border border-vitalia-border-soft shadow-sm cursor-grab">
+              <div class="flex items-center gap-1.5 mb-1.5">
+                <div class="w-6 h-6 rounded-full bg-vitalia-muted text-vitalia-text text-[10px] font-bold flex items-center justify-center">RG</div>
+                <div class="text-[11.5px] font-semibold text-vitalia-text flex-1 truncate">Rocío G.</div>
+                <span class="text-[9px] text-vitalia-text-faint">25m</span>
+              </div>
+              <div class="flex items-center gap-1 text-[10px] mb-1">
+                <i data-lucide="message-circle" class="w-3 h-3 text-vitalia-success"></i>
+                <span class="text-vitalia-text-muted">WhatsApp</span>
+              </div>
+            </div>
+            <div class="text-center text-[10px] text-vitalia-text-faint italic py-2">+10 más</div>
+          </div>
+        </div>
+
+        <!-- COLUMN 2: Calificando (Lucas) -->
+        <div class="w-[240px] flex flex-col col-bg rounded-lg overflow-hidden flex-shrink-0">
+          <div class="px-3 py-2.5 border-b-2 border-vitalia-verde-lima">
+            <div class="flex items-center justify-between">
+              <span class="text-[12.5px] font-bold text-vitalia-text">Calificando</span>
+              <span class="text-[10px] font-bold bg-white text-vitalia-text-muted px-1.5 py-0.5 rounded">6</span>
+            </div>
+            <div class="text-[10.5px] text-vitalia-text-muted mt-0.5 flex items-center gap-1">
+              <div class="w-3.5 h-3.5 rounded-full avatar-lucas text-white text-[7px] font-bold flex items-center justify-center">L</div>
+              <span>Lucas atribuido · $84.000</span>
+            </div>
+          </div>
+          <div class="flex-1 overflow-y-auto p-2 space-y-2">
+            <div class="bg-white rounded-md p-2.5 border border-vitalia-border-soft shadow-sm cursor-grab">
+              <div class="flex items-center gap-1.5 mb-1.5">
+                <div class="w-6 h-6 rounded-full bg-vitalia-muted text-vitalia-text text-[10px] font-bold flex items-center justify-center">JP</div>
+                <div class="text-[11.5px] font-semibold text-vitalia-text flex-1 truncate">Juan Pérez</div>
+                <span class="text-[9px] text-vitalia-text-faint">1h</span>
+              </div>
+              <div class="text-[10.5px] text-vitalia-text-muted mb-1">Blanqueamiento Premium</div>
+              <div class="text-[11px] font-bold text-vitalia-azul-marino">$24.000</div>
+              <div class="mt-1.5 flex items-center gap-1 text-[9px] text-vitalia-verde-lima font-semibold bg-vitalia-verde-lima/12 px-1.5 py-0.5 rounded w-fit">
+                <i data-lucide="stethoscope" class="w-2.5 h-2.5"></i> Screened
+              </div>
+            </div>
+            <div class="bg-white rounded-md p-2.5 border border-vitalia-border-soft shadow-sm cursor-grab">
+              <div class="flex items-center gap-1.5 mb-1.5">
+                <div class="w-6 h-6 rounded-full bg-vitalia-muted text-vitalia-text text-[10px] font-bold flex items-center justify-center">PT</div>
+                <div class="text-[11.5px] font-semibold text-vitalia-text flex-1 truncate">Patricia T.</div>
+                <span class="text-[9px] text-vitalia-text-faint">2h</span>
+              </div>
+              <div class="text-[10.5px] text-vitalia-text-muted mb-1">Depilación láser piernas</div>
+              <div class="text-[11px] font-bold text-vitalia-azul-marino">$15.000</div>
+              <div class="mt-1.5 flex items-center gap-1 text-[9px] text-vitalia-warning font-semibold bg-vitalia-warning/12 px-1.5 py-0.5 rounded w-fit">
+                <i data-lucide="alert-triangle" class="w-2.5 h-2.5"></i> Derivado a doctor
+              </div>
+            </div>
+            <div class="text-center text-[10px] text-vitalia-text-faint italic py-2">+4 más</div>
+          </div>
+        </div>
+
+        <!-- COLUMN 3: Considerando (Adrián) -->
+        <div class="w-[240px] flex flex-col col-bg rounded-lg overflow-hidden flex-shrink-0">
+          <div class="px-3 py-2.5 border-b-2 border-vitalia-purpura">
+            <div class="flex items-center justify-between">
+              <span class="text-[12.5px] font-bold text-vitalia-text">Considerando</span>
+              <span class="text-[10px] font-bold bg-white text-vitalia-text-muted px-1.5 py-0.5 rounded">4</span>
+            </div>
+            <div class="text-[10.5px] text-vitalia-text-muted mt-0.5 flex items-center gap-1">
+              <div class="w-3.5 h-3.5 rounded-full avatar-adrian text-white text-[7px] font-bold flex items-center justify-center">A</div>
+              <span>Adrián atribuido · $96.000</span>
+            </div>
+          </div>
+          <div class="flex-1 overflow-y-auto p-2 space-y-2">
+            <div class="bg-white rounded-md p-2.5 border border-vitalia-border-soft shadow-sm cursor-grab">
+              <div class="flex items-center gap-1.5 mb-1.5">
+                <div class="w-6 h-6 rounded-full bg-vitalia-muted text-vitalia-text text-[10px] font-bold flex items-center justify-center">MR</div>
+                <div class="text-[11.5px] font-semibold text-vitalia-text flex-1 truncate">M. Rodríguez</div>
+                <span class="text-[9px] text-vitalia-text-faint">4m</span>
+              </div>
+              <div class="text-[10.5px] text-vitalia-text-muted mb-1">Blanqueamiento Premium</div>
+              <div class="text-[11px] font-bold text-vitalia-azul-marino">$24.000</div>
+              <div class="mt-1.5 text-[10px] text-vitalia-purpura">Adrián propuso turno mar 12:00</div>
+            </div>
+            <div class="text-center text-[10px] text-vitalia-text-faint italic py-2">+3 más</div>
+          </div>
+        </div>
+
+        <!-- COLUMN 4: Listo para reservar (Adrián) -->
+        <div class="w-[240px] flex flex-col col-bg rounded-lg overflow-hidden flex-shrink-0">
+          <div class="px-3 py-2.5 border-b-2 border-vitalia-cian">
+            <div class="flex items-center justify-between">
+              <span class="text-[12.5px] font-bold text-vitalia-text">Listo para reservar</span>
+              <span class="text-[10px] font-bold bg-white text-vitalia-text-muted px-1.5 py-0.5 rounded">3</span>
+            </div>
+            <div class="text-[10.5px] text-vitalia-text-muted mt-0.5 flex items-center gap-1">
+              <div class="w-3.5 h-3.5 rounded-full avatar-adrian text-white text-[7px] font-bold flex items-center justify-center">A</div>
+              <span>Adrián cierra · $72.000</span>
+            </div>
+          </div>
+          <div class="flex-1 overflow-y-auto p-2 space-y-2">
+
+            <!-- Card SZ HOVER demo (expanded inline) -->
+            <div class="bg-white rounded-md p-2.5 border border-vitalia-cian shadow-md cursor-pointer">
+              <div class="flex items-center gap-1.5 mb-1.5">
+                <div class="w-6 h-6 rounded-full bg-vitalia-muted text-vitalia-text text-[10px] font-bold flex items-center justify-center">SZ</div>
+                <div class="text-[11.5px] font-semibold text-vitalia-text flex-1 truncate">Sofía Zambrano</div>
+                <span class="text-[9px] text-vitalia-text-faint">2h</span>
+              </div>
+              <div class="text-[10.5px] text-vitalia-text-muted mb-1">Implantes (paquete x2)</div>
+              <div class="text-[11px] font-bold text-vitalia-azul-marino">$48.000 · depósito $14.400</div>
+              <div class="mt-1.5 flex items-center gap-1 text-[10px] text-vitalia-warning">
+                <i data-lucide="clock" class="w-2.5 h-2.5"></i>
+                <span>link pago expira en 22h</span>
+              </div>
+
+              <!-- Expanded section -->
+              <div class="mt-2.5 pt-2.5 border-t border-vitalia-border-soft space-y-1.5">
+                <div class="flex items-center gap-1.5 text-[10.5px]">
+                  <div class="w-4 h-4 rounded-full avatar-adrian text-white text-[8px] font-bold flex items-center justify-center">A</div>
+                  <span class="text-vitalia-purpura font-semibold">Adrián</span>
+                  <span class="text-vitalia-text-muted">propuso 18/05 14:00</span>
+                </div>
+                <div class="text-[10.5px] text-vitalia-text-muted"><strong>Etapa actual:</strong> Listo para reservar</div>
+                <div class="text-[10.5px] text-vitalia-text-muted"><strong>Última act.:</strong> Adrián envió link pago hace 30m</div>
+                <div class="text-[10.5px] text-vitalia-text-muted"><strong>Tools usadas (3):</strong> consultó agenda · generó link pago · catálogo</div>
+                <button class="mt-2 w-full text-[11px] font-semibold text-white bg-vitalia-azul-marino hover:opacity-90 px-2 py-1.5 rounded flex items-center justify-center gap-1">
+                  Abrir conversación completa
+                  <i data-lucide="arrow-right" class="w-3 h-3"></i>
+                </button>
+                <div class="text-[9px] text-vitalia-text-faint text-center mt-1">↑ click navega a /inbox?lead=mock-sofia</div>
+              </div>
+            </div>
+
+            <!-- Cards normales -->
+            <div class="bg-white rounded-md p-2.5 border border-vitalia-border-soft shadow-sm cursor-grab card-hover-target transition-all">
+              <div class="flex items-center gap-1.5 mb-1.5">
+                <div class="w-6 h-6 rounded-full bg-vitalia-muted text-vitalia-text text-[10px] font-bold flex items-center justify-center">LM</div>
+                <div class="text-[11.5px] font-semibold text-vitalia-text flex-1 truncate">Laura M.</div>
+                <span class="text-[9px] text-vitalia-text-faint">5h</span>
+              </div>
+              <div class="text-[10.5px] text-vitalia-text-muted mb-1">Blanqueamiento Premium</div>
+              <div class="text-[11px] font-bold text-vitalia-azul-marino">$24.000 · depósito $7.200</div>
+              <div class="mt-1.5 flex items-center gap-1 text-[10px] text-vitalia-warning">
+                <i data-lucide="clock" class="w-2.5 h-2.5"></i>
+                <span>link expira en 19h</span>
+              </div>
+            </div>
+
+            <div class="text-center text-[10px] text-vitalia-text-faint italic py-2">+1 más</div>
+          </div>
+        </div>
+
+        <!-- COLUMN 5: Reservado con depósito (Adrián ✓) -->
+        <div class="w-[240px] flex flex-col col-bg rounded-lg overflow-hidden flex-shrink-0">
+          <div class="px-3 py-2.5 border-b-2 border-vitalia-success">
+            <div class="flex items-center justify-between">
+              <span class="text-[12.5px] font-bold text-vitalia-text">Reservado con depósito</span>
+              <span class="text-[10px] font-bold bg-white text-vitalia-text-muted px-1.5 py-0.5 rounded">2</span>
+            </div>
+            <div class="text-[10.5px] text-vitalia-text-muted mt-0.5 flex items-center gap-1">
+              <div class="w-3.5 h-3.5 rounded-full avatar-adrian text-white text-[7px] font-bold flex items-center justify-center">A</div>
+              <span>Adrián ✓ · $24.000</span>
+            </div>
+          </div>
+          <div class="flex-1 overflow-y-auto p-2 space-y-2">
+            <div class="bg-white rounded-md p-2.5 border border-vitalia-success shadow-sm cursor-grab">
+              <div class="flex items-center gap-1.5 mb-1.5">
+                <div class="w-6 h-6 rounded-full bg-vitalia-muted text-vitalia-text text-[10px] font-bold flex items-center justify-center">CR</div>
+                <div class="text-[11.5px] font-semibold text-vitalia-text flex-1 truncate">Camila R.</div>
+                <span class="text-[9px] text-vitalia-text-faint">ayer</span>
+              </div>
+              <div class="text-[10.5px] text-vitalia-text-muted mb-1">Limpieza profunda</div>
+              <div class="text-[11px] font-bold text-vitalia-azul-marino">$12.000</div>
+              <div class="mt-1.5 flex items-center gap-1 text-[9px] text-vitalia-success font-bold bg-vitalia-success/12 px-1.5 py-0.5 rounded w-fit">
+                <i data-lucide="check-circle" class="w-2.5 h-2.5"></i> depósito 30% · $3.600
+              </div>
+              <div class="mt-1 text-[10px] text-vitalia-text-muted flex items-center gap-1">
+                <i data-lucide="calendar" class="w-2.5 h-2.5"></i> turno: 17/05 14:00
+              </div>
+            </div>
+            <div class="bg-white rounded-md p-2.5 border border-vitalia-success shadow-sm cursor-grab">
+              <div class="flex items-center gap-1.5 mb-1.5">
+                <div class="w-6 h-6 rounded-full bg-vitalia-muted text-vitalia-text text-[10px] font-bold flex items-center justify-center">DG</div>
+                <div class="text-[11.5px] font-semibold text-vitalia-text flex-1 truncate">Diego G.</div>
+                <span class="text-[9px] text-vitalia-text-faint">2d</span>
+              </div>
+              <div class="text-[10.5px] text-vitalia-text-muted mb-1">Blanqueamiento Premium</div>
+              <div class="text-[11px] font-bold text-vitalia-azul-marino">$24.000</div>
+              <div class="mt-1.5 flex items-center gap-1 text-[9px] text-vitalia-success font-bold bg-vitalia-success/12 px-1.5 py-0.5 rounded w-fit">
+                <i data-lucide="check-circle" class="w-2.5 h-2.5"></i> depósito 30% · $7.200
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- COLUMN 6: Decidió no -->
+        <div class="w-[240px] flex flex-col col-bg rounded-lg overflow-hidden flex-shrink-0">
+          <div class="px-3 py-2.5 border-b-2 border-vitalia-text-faint opacity-80">
+            <div class="flex items-center justify-between">
+              <span class="text-[12.5px] font-bold text-vitalia-text">Decidió no</span>
+              <span class="text-[10px] font-bold bg-white text-vitalia-text-muted px-1.5 py-0.5 rounded">3</span>
+            </div>
+            <div class="text-[10.5px] text-vitalia-text-muted mt-0.5">→ re-engagement Slice 2</div>
+          </div>
+          <div class="flex-1 overflow-y-auto p-2 space-y-2 opacity-70">
+            <div class="bg-white rounded-md p-2.5 border border-vitalia-border-soft shadow-sm cursor-grab">
+              <div class="flex items-center gap-1.5 mb-1.5">
+                <div class="w-6 h-6 rounded-full bg-vitalia-muted text-vitalia-text text-[10px] font-bold flex items-center justify-center">FM</div>
+                <div class="text-[11.5px] font-semibold text-vitalia-text flex-1 truncate">Federico M.</div>
+                <span class="text-[9px] text-vitalia-text-faint">1d</span>
+              </div>
+              <div class="text-[10.5px] text-vitalia-text-muted">Sin respuesta hace 7d</div>
+            </div>
+            <div class="text-center text-[10px] text-vitalia-text-faint italic py-2">+2 más</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Copilot rail Valeria 80px -->
+  <aside class="w-[80px] bg-vitalia-azul-marino flex flex-col items-center py-4 gap-3">
+    <button class="w-12 h-12 rounded-full avatar-valeria text-white text-base font-bold flex items-center justify-center shadow-md">V</button>
+    <div class="text-[10px] font-semibold text-white text-center leading-tight">Valeria</div>
+    <button class="w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 text-white flex items-center justify-center" title="Nueva conversación">
+      <i data-lucide="plus" class="w-4 h-4"></i>
+    </button>
+    <div class="mt-auto text-[9px] text-white/70 text-center px-1 leading-tight">Pídele algo</div>
+  </aside>
+
+</div>
+
+<!-- Footer info -->
+<div class="bg-white border-t border-vitalia-border px-6 py-2 text-[10px] text-vitalia-text-faint flex items-center gap-3">
+  <span>Mockup ratificado <strong>v1 Batch 3</strong> · vitalia-ux-discovery · 2026-05-17</span>
+  <span class="text-vitalia-text-faint">|</span>
+  <span>Microcopy SSoT: <code class="bg-vitalia-muted px-1 rounded">vitalia/frontend/src/features/pipeline/copy.ts</code></span>
+  <span class="text-vitalia-text-faint">|</span>
+  <span>REUSE base: <code class="bg-vitalia-muted px-1 rounded">nicolify/frontend/src/features/closer-studio/components/pipeline/</code></span>
+  <span class="text-vitalia-text-faint">|</span>
+  <span>DnD: <code>@dnd-kit/core</code></span>
+</div>
+
+<script>
+  lucide.createIcons();
+</script>
+</body>
+</html>

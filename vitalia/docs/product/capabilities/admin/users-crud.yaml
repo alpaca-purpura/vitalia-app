@@ -1,0 +1,139 @@
+---
+capability_id: vitalia-admin-users-crud
+module: admin
+slug: users-crud
+status: live
+date_introduced: 2026-05-19
+story_introduced: vitalia-adopt-luana-core-iam
+package_version: 0.1.0
+package_path: vitalia/backend/src/modules/vitalia/admin/modules/users.py
+license: MIT
+
+# v3 cement 2026-05-27 · 4 dimensiones + dev_preview (ADR-vitalia-005)
+tech_module: admin
+agent_owner: configuracion
+functional_area: admin.panel
+user_visible: true
+nature: feature
+ui_paradigm: admin-panel  # T-3 reconcile 2026-05-29
+
+user_facing_name: "Admin · CRUD users"
+user_facing_description: >
+  Página del panel admin para crear, listar y banear usuarios de la plataforma,
+  con asignación de rol por tenant. Usa el repositorio de usuarios del engine de
+  Luana y Clerk Backend API para crear cuentas. Incluye filtro por tenant y
+  registro de auditoría en cada acción.
+
+dev_preview:
+  route: "http://localhost:8502 (Streamlit)"
+  how_to_navigate: "Abrir admin Streamlit → navegar a sección Usuarios"
+  main_component: "vitalia/backend/src/modules/vitalia/admin/modules/users.py"
+  api_endpoints: []
+  e2e_test: null
+  fixtures_required: []
+  storybook_url: null
+  loom_demo: null
+
+summary: |
+  Admin Streamlit page para CRUD users + asignaciones a tenants. Consume engine
+  `luana_core_iam.UserRepository` + `UserTenantRepository`. Soporta create + list
+  con join (role per tenant) + ban (toggle is_active) + dropdown filtro por
+  tenant. Audit log sync write.
+
+surfaces:
+  backend:
+    - vitalia/backend/src/modules/vitalia/admin/modules/users.py
+    - vitalia/backend/src/modules/vitalia/admin/pages/users.py
+  tests:
+    - vitalia/backend/tests/modules/vitalia/admin/test_users_crud.py
+
+verification:
+  commands:
+    - "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/admin/test_users_crud.py -v"
+  gherkin_evidence:
+    - SC-04 Admin crea user + asigna a tenant → INSERT users + user_tenants + audit
+    - SC-05 Admin lista users con join user_tenants (role per tenant) + filter dropdown
+    - SC-06 Admin banea user → UPDATE users SET is_active=false + audit
+
+# Capability ledger v2 (cement 2026-05-27)
+created_in_story: vitalia-adopt-luana-core-iam   # v2 cement · mirror of story_introduced
+created_date: 2026-05-19   # v2 cement · mirror of date_introduced
+last_modified: 2026-05-30   # backfill scenarios vitalia-stub-caps-scenario-backfill
+parent_cap: null   # v2 cement · mirror of extends_capability
+derives_capabilities: []   # v2 cement · initial empty list
+
+# Capability ledger v2 (cement 2026-05-27)
+
+# Capability change log v2 (cement 2026-05-27)
+change_log:
+  - story_id: vitalia-adopt-luana-core-iam
+    date: 2026-05-19
+    type: new
+    summary: "Implementación inicial · migración legacy a schema v2"
+    merge_sha: null
+    status: done
+  - story_id: vitalia-stub-caps-scenario-backfill
+    date: 2026-05-30
+    type: extend
+    summary: "backfill scenario+e2e → verified-live (deployed-visible)"
+    added_in_story: vitalia-stub-caps-scenario-backfill
+    status: done
+
+scenarios:
+  - id: admin-crea-usuario-asigna-tenant
+    name: "Admin crea usuario y lo asigna a un tenant con audit log registrado"
+    actor: sistema
+    status: live
+    given: "El panel admin está autenticado y el administrador navega a la sección Usuarios"
+    when: "El administrador completa el formulario de creación de usuario (email, nombre) y hace clic en Crear usuario"
+    then: "Se inserta un row en la tabla users; aparece mensaje de éxito en UI con el email creado; se registra audit log con action=user.create y resource_type=user"
+    e2e_test: "vitalia/frontend/e2e/admin/admin-users-crud.spec.ts"
+    verification_method: admin-panel
+    story_spec_ref: "vitalia/docs/product/stories/vitalia-stub-caps-scenario-backfill/01-spec.md"
+    atomic_ref: null
+    added_in_story: vitalia-stub-caps-scenario-backfill
+    added_date: 2026-05-30
+  - id: admin-lista-usuarios-columnas-sin-phi
+    name: "Listado de usuarios muestra columnas Email y Nombre sin PHI médico"
+    actor: sistema
+    status: live
+    given: "El panel admin está autenticado y el administrador navega al tab Listado de Usuarios"
+    when: "Se accede al tab Listado en la página Usuarios"
+    then: "La tabla muestra al menos Email o Nombre; no se expone PHI médico (sin diagnóstico, tratamiento ni medicación)"
+    e2e_test: "vitalia/frontend/e2e/admin/admin-users-crud.spec.ts"
+    verification_method: admin-panel
+    story_spec_ref: "vitalia/docs/product/stories/vitalia-stub-caps-scenario-backfill/01-spec.md"
+    atomic_ref: null
+    added_in_story: vitalia-stub-caps-scenario-backfill
+    added_date: 2026-05-30
+  - id: admin-banea-usuario-audit-log
+    name: "Admin banea usuario via toggle is_active y se registra audit log"
+    actor: sistema
+    status: live
+    given: "El panel admin está autenticado y existe al menos un usuario en la base de datos"
+    when: "El administrador hace clic en el botón Toggle Activo/Baneado en el listado de usuarios"
+    then: "Se actualiza is_active en la tabla users; se registra audit log con action=user.ban o user.activate"
+    e2e_test: "vitalia/frontend/e2e/admin/admin-users-crud.spec.ts"
+    verification_method: admin-panel
+    story_spec_ref: "vitalia/docs/product/stories/vitalia-stub-caps-scenario-backfill/01-spec.md"
+    atomic_ref: null
+    added_in_story: vitalia-stub-caps-scenario-backfill
+    added_date: 2026-05-30
+  - id: user-write-ui-e2e-pendiente-hardening
+    name: "Operación de escritura (user) ejercida end-to-end vía UI admin Streamlit"
+    actor: super_admin
+    status: live
+    given: "El admin Streamlit carga (login OK, navegacion OK, st.dataframe renderiza, db-state 200 tras fix async commit 882f9f49)"
+    when: "Un e2e completa el form de creacion/edicion y verifica el efecto en db-state + audit_log"
+    then: "Row creada/modificada + audit_log row. PENDIENTE: selectores Streamlit fragiles (getByLabel matchea boton Help for X; st.dataframe headers en canvas glide-grid) -> test-hardening en story separada. NO es cap break: el panel funciona hands-on (verificado por orchestrator)."
+    e2e_test: null
+    verification_method: admin-panel
+    added_in_story: vitalia-stub-caps-scenario-backfill
+    added_date: 2026-05-30
+map_box: admin
+
+---
+
+# Admin · CRUD users
+
+Página del panel admin para crear, listar y banear usuarios de la plataforma, con asignación de rol por tenant. Usa el repositorio de usuarios del engine luana-core-iam + Clerk Backend API, con filtro por tenant y auditoría en cada acción.

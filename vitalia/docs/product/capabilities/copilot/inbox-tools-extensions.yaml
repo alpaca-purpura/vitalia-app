@@ -1,0 +1,156 @@
+---
+capability_id: vitalia-inbox-tools-extensions
+module: copilot
+slug: inbox-tools-extensions
+status: deprecated
+date_introduced: 2026-05-20
+story_introduced: vitalia-slice-1-inbox
+package_version: 0.1.0
+package_path: vitalia/backend/src/modules/vitalia/{inbox,sales_agent}
+license: proprietary
+
+# v3 cement 2026-05-27 · 4 dimensiones + dev_preview (ADR-vitalia-005)
+tech_module: copilot
+agent_owner: adrian
+functional_area: adrian.inbox
+user_visible: true
+nature: extension-point
+ui_paradigm: slice-1-superseded  # T-3 reconcile 2026-05-29
+replaced_by_story: vitalia-fase2-adrian-inbox  # T-3: story F2 que reconstruye esta cap
+
+user_facing_name: "Adrián · extensiones del inbox (herramientas y callbacks)"
+user_facing_description: >
+  Las herramientas agentic y servicios de callback que amplían las
+  capacidades de Adrián en el inbox: retractar el último mensaje enviado,
+  pausar el agente, transcribir audio con Whisper, y orquestar mensajes
+  salientes proactivos. Integra la voz de marca del tenant (Slot 5) en
+  las sugerencias que Adrián genera para el operador humano.
+
+dev_preview:
+  route: "/adrian/inbox"
+  how_to_navigate: "BE-only (extension-point) · ver via tests de servicios inbox + logs de herramientas Adrián en conversaciones activas."
+  main_component: null
+  api_endpoints:
+    - "POST /api/v1/inbox/conversations/{id}/messages"
+    - "POST /api/v1/inbox/messages/{id}/retract"
+    - "POST /api/v1/inbox/conversations/{id}/pause"
+    - "GET /api/v1/inbox/conversations/{id}/tools-state"
+    - "POST /api/v1/inbox/audio/transcribe"
+    - "POST /api/v1/inbox/conversations/{id}/proactive-outbound"
+  e2e_test: null
+  fixtures_required: ["3-clinic-fixture-latam"]
+  storybook_url: null
+  loom_demo: null
+
+# Capability ledger v2 (cement 2026-05-27)
+created_in_story: vitalia-slice-1-inbox   # v2 cement · mirror of story_introduced
+created_date: 2026-05-20   # v2 cement · mirror of date_introduced
+last_modified: 2026-05-29   # T-3 reconcile 2026-05-29
+parent_cap: null   # v2 cement · mirror of extends_capability
+derives_capabilities: []   # v2 cement · initial empty list
+
+# Capability ledger v2 (cement 2026-05-27)
+
+# Capability change log v2 (cement 2026-05-27)
+change_log:
+  - story_id: vitalia-slice-1-inbox
+    date: 2026-05-20
+    type: new
+    summary: "Implementación inicial · migración legacy a schema v2"
+    merge_sha: null
+    status: done
+map_box: adrian
+
+---
+
+# vitalia-inbox-tools-extensions
+
+Adrián inbox extensions Ola 1 — `retract_last_message` agentic tool + 4 callback handlers que orquestan acciones Adrián desde la UI inbox + brand voice slot integration cuando Adrián sugiere mensajes para el operador humano. Operador puede aceptar/editar/rechazar sugerencia → tool dispara → ActionReceipt 5min undo lifecycle (ver [[inbox-handler-mode-occ]]).
+
+## Surface
+
+### Agentic tool (`vitalia/backend/src/modules/vitalia/sales_agent/tools/`)
+- **`retract_last_message.py`** — LangChain `@tool` async. Adrián cancela el último mensaje saliente activo (mientras `ActionReceipt.status == active` y `expires_at > NOW()`). Marca `messages.retracted_at = NOW()` + ActionReceipt → undone + emite `MessageRetracted` domain event.
+
+### Inbox application services (`vitalia/backend/src/modules/vitalia/inbox/application/services/`)
+4 services que actúan como callback handlers desde la UI (cada uno gateway a un Adrián action):
+
+- **`send_message_service.py`** — operador envía mensaje (puede ser sugerencia Adrián aceptada). Crea `Message` + dispara `MessageSent` + crea `ActionReceipt` con 5min TTL para undo.
+- **`retract_message_service.py`** — operador (o Adrián vía tool) retracta mensaje. Verifica `ActionReceipt.expires_at > NOW()` (sino 410 Gone). Atomic update message + receipt.
+- **`pause_adrian_service.py`** — operador pausa el agente (transition handler_mode → `paused`). OCC version check evita race conditions.
+- **`tools_state_service.py`** — operador inspecciona estado tools Adrián (read-only sheet, ver SC-01 Tools Sheet golden). NO ejecuta — solo display.
+- **`activity_event_service.py`** — emite `ActivityEvent` rows (last 8 visible en UI sidebar).
+- **`whisper_transcribe_service.py`** — audio fallback con Whisper. Confianza baja → `handler_mode → human + help_needed` badge (SC-02).
+- **`proactive_outbound_service.py`** — outbound proactive (UTILITY / MARKETING gate, ver [[whatsapp-template-registry]]).
+- **`inbox_orchestrator.py`** — orquestador unificado list/detail/wire de Adrián con conversation state.
+
+### Brand voice slot integration
+- Adrián recibe el SAME `personality_profile.system_instruction` que sale del Brand Studio (Slot 5 `BRAND_VOICE` cache prefix). Voz tenant respetada per `.claude/rules/sales-agent-brand-voice.md` (excepción a `spanish-text.md` — sales_agent NO voseo-forzado).
+- Slot 5 sub-slot 2 lee `WHATSAPP_TEMPLATE_REGISTRY.requires_marketing_opt_in` (ver [[whatsapp-template-registry]]).
+
+### API routes (api/router.py)
+- `POST /api/v1/inbox/conversations/{id}/messages` — operador envía (`send_message_service`)
+- `POST /api/v1/inbox/messages/{id}/retract` — retract con ActionReceipt
+- `POST /api/v1/inbox/conversations/{id}/pause` — pausa Adrián (OCC 409 si version mismatch)
+- `GET /api/v1/inbox/conversations/{id}/tools-state` — read-only Tools Sheet
+- `POST /api/v1/inbox/audio/transcribe` — Whisper audio fallback
+- `POST /api/v1/inbox/conversations/{id}/proactive-outbound` — UTILITY/MARKETING outbound
+
+## Test coverage
+
+- Unit services (vitalia/backend/tests/modules/vitalia/inbox/application/):
+  - `test_send_message_service.py`
+  - `test_retract_message_service.py`
+  - `test_pause_adrian_service.py`
+  - `test_tools_state_service.py`
+  - `test_activity_event_service.py`
+  - `test_whisper_transcribe_service.py`
+  - `test_proactive_outbound_service.py`
+- Unit API (vitalia/backend/tests/modules/vitalia/inbox/api/):
+  - `test_router_send_message.py`
+  - `test_router_revert.py`
+  - `test_router_pause_adrian.py`
+  - `test_router_tools.py`
+  - `test_router_mode.py`
+  - `test_router_transcribe_audio.py`
+  - `test_router_proactive_outbound.py`
+  - `test_router_activity_stream.py`
+  - `test_cross_tenant_denied.py`
+- Compliance: `tests/modules/vitalia/inbox/compliance/test_phi_sanitize_and_compliance_gate.py`
+- Total: 555+ tests PASS (incluyendo arch fitness)
+
+## Dependencies
+
+- `vitalia/backend/src/modules/vitalia/crm/` — Conversation + Message + ActionReceipt + ActivityEvent (ver [[crm-scaffold-slice-1]])
+- `vitalia/backend/src/modules/vitalia/sales_agent/` — Adrián tools+personas+slots (ver [[adrian-3-tools-mvp]], [[state-overlay-langgraph]])
+- `vitalia/backend/src/modules/vitalia/compliance/` — PhiRepositoryBase, @require_phi_access, AuditLogRepository
+- `core/luana-core-sales-agent` (engine state base)
+- `core/luana-core-observability` (callback subclass — ver [[vitalia-callback-subclasses]])
+- `core/luana-core-extension-sdk` (EP-3 ToolDef registration `retract_last_message`)
+- LangChain `@tool` async + Pydantic v2 args_schema
+
+## Scenarios live
+
+- SC-01 — Happy send + ActionReceipt 5min undo (operador acepta sugerencia Adrián, envía, recibe receipt con countdown)
+- SC-02 — Audio fallback (Whisper low confidence → handler_mode=human + help_needed badge)
+- SC-03 — OCC 409 rollback (concurrent SetMode pausa)
+- SC-04 — Adversarial (cross-tenant 404 + XSS escape + marketing role 403 + PHI mask)
+- SC-01 Tools Sheet read-only + ActivityStream events (8 last visible scroll)
+
+## Verification commands
+
+```bash
+WS=$(git rev-parse --show-toplevel)
+cd ${WS}/vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/inbox/ -v
+cd ${WS}/vitalia/backend && ${WS}/.venv/bin/pytest tests/architecture/ -v
+```
+
+## Referencias
+
+- Spec: `vitalia/docs/archive/2026/stories/vitalia-slice-1-inbox/01-spec-extract.md` § Gherkin
+- Arch BE: `vitalia/docs/archive/2026/stories/vitalia-slice-1-inbox/03-arch-be.md` § services
+- Arch agentic: `vitalia/docs/archive/2026/stories/vitalia-slice-1-inbox/03-arch-agentic.md` § retract_last_message tool
+- Merge artifact: `vitalia/docs/archive/2026/stories/vitalia-slice-1-inbox/07-merge.md`
+- Brand voice rule: `.claude/rules/sales-agent-brand-voice.md`
+- HIPAA-lite: [[hipaa-lite-defensive-stack]]
+- Sister caps: [[inbox-handler-mode-occ]] · [[crm-scaffold-slice-1]] · [[whatsapp-template-registry]]

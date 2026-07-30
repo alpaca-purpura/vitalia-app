@@ -1,0 +1,29 @@
+{
+  "name": "vitalia_re_engagement_ausencia",
+  "category": "MARKETING",
+  "language": "es",
+  "components": [
+    {
+      "type": "BODY",
+      "text": "Hola {{1}}, en {{2}} te extrañamos. Ha pasado un tiempo desde tu última visita y queremos saber cómo estás. ¿Te gustaría retomar tu plan de salud con nosotros?",
+      "example": {
+        "body_text": [
+          ["Sofía Ramírez", "Clínica Vitalia"]
+        ]
+      }
+    },
+    {
+      "type": "FOOTER",
+      "text": "Puedes cancelar notificaciones respondiendo STOP"
+    },
+    {
+      "type": "BUTTONS",
+      "buttons": [
+        {
+          "type": "QUICK_REPLY",
+          "text": "Retomar mi plan"
+        }
+      ]
+    }
+  ]
+}

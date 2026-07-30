@@ -1,0 +1,104 @@
+# GENERADO desde products/devhub/LEDGER.md por tooling/scripts/gen_ledger.py — NO editar a mano.
+sistema: devhub
+fuente: products/devhub/LEDGER.md
+fichas:
+- id: DH-01
+  titulo: Fundación de la célula — DevHub, sistema independiente de gestión del desarrollo
+  estado: decidida
+  vigencia: vigente
+  nota: ''
+- id: DH-02
+  titulo: 'Épica Torre de Control — F0: norte firmado + auditoría fría'
+  estado: decidida
+  vigencia: vigente
+  nota: ''
+- id: DH-03
+  titulo: Norte v3 de la épica Torre de Control — DevHub = consola de delivery GOBERNADA POR PROCESO
+  estado: decidida
+  vigencia: vigente
+  nota: ''
+- id: DH-04
+  titulo: 'Épica Torre de Control — F1: 4 decisiones + SPEC congelada de la torre read-only'
+  estado: decidida
+  vigencia: vigente
+  nota: ''
+- id: DH-05
+  titulo: 'Épica Torre de Control — F2 ejecutada: torre MVP read-only VIVA'
+  estado: decidida
+  vigencia: vigente
+  nota: ''
+- id: DH-06
+  titulo: 'Épica Torre de Control — F3: lente ARQUITECTURA en el eje PROYECTO (render por clase, I-75)'
+  estado: decidida
+  vigencia: vigente
+  nota: ''
+- id: DH-07
+  titulo: 'Épica Torre de Control — F4: el ciclo SDD deja de ser hardcode — descriptor de proceso vivo (motor + vista, I-77)'
+  estado: decidida
+  vigencia: vigente
+  nota: ''
+- id: DH-08
+  titulo: 'Épica Torre de Control — F5: cockpit de delivery — el descriptor parametriza sesiones de agente (sidecar Agent SDK, embrión del instalable)'
+  estado: decidida
+  vigencia: vigente
+  nota: ''
+- id: DH-09
+  titulo: 'Épica Torre de Control — F6: verbos CDEvents + board gobernado por el descriptor + CIERRE DE ÉPICA'
+  estado: decidida
+  vigencia: vigente
+  nota: ''
+- id: DH-10
+  titulo: Mecanismo de conexión con Claude Code — driver CLI-nativo sobre la instalación del usuario (BYO licencia, sin API)
+  estado: decidida
+  vigencia: vigente
+  nota: ''
+- id: DH-11
+  titulo: Graduación de P2 — DevHub sale a repo propio; esta célula queda CONGELADA como fuente del port
+  estado: decidida
+  vigencia: vigente
+  nota: ''
+log:
+- fecha: '2026-07-01'
+  decision: 'Fundación de la célula P2 (de I-69): nombre DevHub; hereda go+ui; delta = ramas/releases/roles; (directorio) = huésped de P1.'
+  fichas:
+  - DH-01
+- fecha: '2026-07-03'
+  decision: 'Épica Torre de Control, F0: norte firmado (checkpoint expiró → recomendada aplicada); auditoría fría — I-74/CK-08 verificado, colisión de nombre "gate", multi-repo ya existe pero registro vivo huérfano (pre-I-39), patrón `flota.yaml` de OBS-15 como espejo recomendado, 2 formatos de ledger incompatibles, modelo de datos reformulado a 2 ejes (repo × célula).'
+  fichas:
+  - DH-02
+- fecha: '2026-07-03'
+  decision: 'Norte v3 de la épica FIRMADO tras debate + investigación: DevHub = consola de delivery gobernada por proceso (3 capas: proceso-como-dato · as-code · sesiones CC; diferencial vs Conductor = orquestar ENTREGA, no sesiones). Descriptor de proceso = ficha ecosistema futura (kit shipea, DevHub renderiza); desktop instalable entra como F5 (Agent SDK, sidecar Node); fases F0-F6; fronteras actualizadas (Harness Studio, muerte del Atlas/I-75).'
+  fichas:
+  - DH-03
+- fecha: '2026-07-03'
+  decision: 'Épica Torre de Control, F1 (checkpoint expiró → recomendadas): modelo 2 ejes REPO×PROYECTO validado contra 3 casos reales (worktree-aware, proyecto nullable); registro = espejo 3 bandas de OBS-15 (curado `prenter/sistemas/sistemas.yaml` + adapter → wire format actual + fábrica contrato/check/fixture); ledger de célula = `ledger.yaml` generado por `gen_ledger.py` extendido (un parser, células ganan gate); veredicto anti-drift = «gate de fábrica»/`gate_fabrica`, categorías fijas + nativo al lado. SPEC congelada: `specs/torre-read-only.md` (RN-01..RN-19).'
+  fichas:
+  - DH-04
+- fecha: '2026-07-03'
+  decision: 'Épica Torre de Control, F2: torre MVP read-only VIVA implementando la SPEC sin retocarla — registro 3 bandas ejecutado (fixture RN-07, huérfano chris-corp reemplazado con `.bak`), `nombre`+`gate_check` aditivos al wire (round-trip verde), `ledger.yaml` × 4 células gated, colectores 2 ejes + `GET /api/torre` + vista `/torre` omnigent; demo en_vuelo verificada en vivo; la torre cazó un drift real en su primer boot. Hallazgo EMPRESA: `check.py` de prenter no propaga exit (imprime error, retorna 0).'
+  fichas:
+  - DH-05
+- fecha: '2026-07-03'
+  decision: 'Épica Torre de Control, F3 (checkpoint expiró → recomendadas D5-D7): lente ARQUITECTURA viva en el eje PROYECTO — SPEC congelada `specs/torre-arquitectura.md` (RN-20..RN-26); nace `products/devhub/arquitectura.yaml` (curado, `meta.clase: modelo`) + check genérico `check_arquitectura_celula.py` en gen_all (check-only, cero emisión — la torre ES el renderizador de DevHub, I-75); colector `torreArquitectura` aditivo en `proyectos[]`; render por clase en `/torre` (tabla por planos, componente → fichas·ruta·relaciones). Verificado en browser: devhub y cockpit `con-arquitectura · modelo · 14 comp`; kit/harness-studio `sin-arquitectura` honesto. Cross-célula = filesystem directo: el YAML gated ES el contrato (RN-21).'
+  fichas:
+  - DH-06
+- fecha: '2026-07-03'
+  decision: 'Épica Torre de Control, F4 (checkpoint expiró → recomendadas D8-D10): el ciclo SDD 10-estados deja de ser hardcode — instancia 1 del descriptor de proceso (contrato de ecosistema I-77: kit shipea `process/sdd-default.yaml` · schema L0 `process-descriptor` · DevHub deriva e interpreta). SPEC `specs/proceso-descriptor.md` (RN-27..RN-34); `gen_proceso_descriptor.py` valida+emite espejo gated que el binario embebe; `gates.go` deriva sus tablas (firmas intactas, terminalidad por categoría); `GET /api/proceso` + vista `/proceso` cero-literales. Round-trip: suite Go verde sin tocar tests viejos + legacy congelado como test + descriptor alterno probado. Verificado en browser :4777.'
+  fichas:
+  - DH-07
+- fecha: '2026-07-03'
+  decision: 'Épica Torre de Control, F5 (D11-D14 confirmadas): cockpit de delivery VIVO — el descriptor parametriza sesiones de agente con as-code inyectado. Sidecar Node/Agent SDK supervisado por el binario (handshake stdout + muerte por stdin-pipe; un comando sirve todo = embrión del instalable); `GET /api/delivery/plantilla` deriva tramo/dueño/gate SOLO del dato (probado con descriptor alterno); vista `/delivery` (prompt precargado → humano encausa → lanza → eventos por polling); workspace aislado por sesión, RN-31 intacto; auth = API key (dogfood: credencial local, I-76). SPEC `specs/delivery-cockpit.md` (RN-35..RN-44). Dogfood end-to-end en browser: sesión `refining→refined` sobre la deuda DH-01 → success · 7 turnos · 59s → spec en `salida/`. Contrato sidecar intra-célula → sin I-NN.'
+  fichas:
+  - DH-08
+- fecha: '2026-07-03'
+  decision: 'Épica Torre de Control, F6 + CIERRE (checkpoint expiró → recomendadas D15-D17): verbos CDEvents vivos — contrato L0 v2 (`verbo` INTERPRETADO `<sujeto>.<predicado>` + `nombre` + `wip`, aditivos), instancia del kit v2 nombra los 13 eventos (CHANGELOG/KIT-08); el verbo viaja como DATO en `/api/proceso` + respuesta de transition + `tramo.verbo` (sin log — la costura P4 queda como deuda). Board GOBERNADO por el descriptor: `ProcesoProvider` + `lib/proceso.ts`; mueren las 8 defs de D10 + las de ProcesoTab/NewStoryModal/routes-dev; `{target}_reason` genérico; botón «lanzar sesión» drawer→`/delivery?story=` (D17). SPEC `specs/proceso-verbos-board.md` (RN-45..RN-54); tests de hardcode → tests de contrato (fixture default+alterno); suites Go+UI+gate verdes; round-trip visual verificado en browser. ÉPICA CERRADA: carpeta temporal BORRADA, resumen F0-F6 + deudas (a)-(g) en la ficha.'
+  fichas:
+  - DH-09
+- fecha: '2026-07-03'
+  decision: 'Mecanismo de conexión con Claude Code FIRMADO (checkpoint expiró → recomendada A): driver CLI-nativo — Go spawnea el `claude` instalado DEL USUARIO vía stdin/stdout stream-json (BYO licencia, SIN API de Anthropic; modelo Conductor). Verificación fresca de docs: el SDK es wrapper del mismo tubo; `--permission-prompt-tool` supera el «headless insuficiente» de DH-03 §B; CC tiene instaladores nativos en las 3 plataformas. Instalador DevHub = binario Go solo (muere el bundle de Node); el sidecar DH-08 queda como adapter transitorio de dogfood; supersede parcial del auth de DH-08 (API key deja de ser el norte). Salvaguarda: verificación formal de Consumer Terms antes de vender.'
+  fichas:
+  - DH-10
+- fecha: '2026-07-04'
+  decision: 'GRADUACIÓN: DevHub sale a repo propio `~/Proyectos/devhub` (`alpacapurpura/devhub`, privado) con visión ampliada (proceso+arquitectura as code · trabajo orquestado multi-rol · GitHub conector); binario `devhub` (muere DH-01 de nacimiento); kit dev como plugin (`harness@prenter-marketplace`); épica «Experiencia Orquestada» sembrada. ESTA CÉLULA QUEDA CONGELADA = fuente read-only del port gradual. El ledger del producto continúa en el repo nuevo (ficha 12 en adelante).'
+  fichas:
+  - DH-11

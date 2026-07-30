@@ -1,0 +1,171 @@
+#!/usr/bin/env bash
+# Pre-commit DISPATCHER — thin orchestrator (god-file decomposition 2026-06-08).
+#
+# tier: hybrid · core = dispatcher orchestration (branch GATE_LEVEL · fail-open
+#       preamble · explicit-order sourcing · staged-file collection) · project =
+#       check-list composition + sales_agent/venv exclusions → seam brands[]/toolchain (W5)
+#
+# Architecture: this file owns the shared PREAMBLE (REPO_ROOT, sweep-guard,
+# DoD gate, GATE_LEVEL/branch detection, staged-file collection) and then
+# SOURCES each numbered gate from scripts/git-hooks/checks/NN-name.sh in an
+# EXPLICIT order. Every check inherits this preamble's env; a check `exit 1`
+# aborts the commit. To add/edit a gate, touch ONE small file in checks/ — not
+# this monolith. PRECOMMIT_VERBOSE=1 traces which check runs. (SRP per check.)
+#
+# Why
+# ===
+# Origen: process-improvement 2026-05-05 R4 (voseo+ruff) + C1 R21
+# (auditor-downstream-regression.md SSoT freshness). Sin hook, voseo
+# (vos/sos/tenés/podés/mirá/dejá/etc.) + ruff F632 (identity comparison) +
+# format violations llegaban a audit phase → roundtrip extra fix. Sin C1,
+# devs agregaban shared/ surface nueva sin actualizar tabla SSoT R3 → R3
+# downstream regression silenciosamente inefectiva (caso D4 podía repetirse).
+#
+# Behavior
+# ========
+# 1. Voseo check on staged Py/TS/TSX/MD added lines (`git diff --cached -U0`)
+#    - Regex covers spanish-text.md glosario (vos/sos + 60+ verb forms)
+#    - Excludes: `modules/sales_agent/` voice templates (per spanish-text.md
+#      exception — sales_agent output respects tenant voice incl. voseo if AR)
+#    - Excludes: `__pycache__/`, `.venv/`, `node_modules/`, `migrations/versions/`
+#    - Failed → print hits + exit 1, dev fixes + re-stages
+# 2. Ruff check (full ruleset) on STAGED backend/*.py via `git show :file`
+#    pipe — verifies the exact content about to be committed (NOT working
+#    tree which may diverge if dev edited post-stage).
+# 3. Ruff format check (idem, staged content via stdin).
+# 4. R3 SSoT freshness gate (origen C1 2026-05-05 — R21 process-improvement):
+#    new file (status A) under `backend/src/shared/` MUST appear in the
+#    inventory tabla of `.claude/rules/auditor-downstream-regression.md`,
+#    OR have a `# downstream-regression-na: <reason>` magic comment within
+#    the first 20 lines. Otherwise hook blocks with actionable hint.
+#
+# Bypass
+# ======
+# Per project rule (.claude/rules/git-safety.md), `git commit --no-verify`
+# is FORBIDDEN. If hook fires false positive, fix root cause (rephrase
+# string, mark `# noqa: voseo` with justification comment if regex
+# legitimately wrong, OR add row to auditor-downstream-regression.md tabla
+# OR add `# downstream-regression-na: <reason>` magic comment for genuinely
+# self-contained shared/ helper).
+#
+# Install
+# =======
+#   make install-hooks    # symlinks scripts/git-hooks/pre-commit → .git/hooks/
+
+set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "${REPO_ROOT}"
+
+# ─────────────────────────────────────────────────────────────────
+# MULTI-SESSION SWEEP GUARD (HB-31 · cement 2026-06-04)
+# Chris permitió paralelo de varias sesiones sobre el MISMO hub (aceleramos);
+# este guard impide la contaminación cross-sesión (una sesión que barre los
+# archivos de otra, típico de `git add -A/-u/.`). Bloquea si el set staged toca
+# el scope EXCLUSIVO de ≥2 sesiones VIVAS distintas. Fail-OPEN ante error propio.
+# Override intencional: MULTI_SESSION_ACK=1. SSoT: scripts/git/multi-session-scope-guard.sh
+# ─────────────────────────────────────────────────────────────────
+if [ -x "${REPO_ROOT}/scripts/git/multi-session-scope-guard.sh" ]; then
+  "${REPO_ROOT}/scripts/git/multi-session-scope-guard.sh" || exit 1
+fi
+
+# ─────────────────────────────────────────────────────────────────
+# DoD LIVE-VERIFY GATE (Layer 6 · Critical Rule #37 · cement 2026-06-04)
+# Backstop MECÁNICO del live-verify: bloquea commitear una TRANSICIÓN de checkpoint
+# a `state: developed|done` (story funcional) sin `dod_live_verified: true` +
+# `dod_evidence` (≥1 action). Exención técnica: `dod_live_verified_skip_reason`.
+# Fail-OPEN. Override: DOD_GATE_ACK=1. SSoT: scripts/git/dod-evidence-gate.sh
+# ─────────────────────────────────────────────────────────────────
+if [ -x "${REPO_ROOT}/scripts/git/dod-evidence-gate.sh" ]; then
+  "${REPO_ROOT}/scripts/git/dod-evidence-gate.sh" || exit 1
+fi
+
+# ─────────────────────────────────────────────────────────────────
+# BRANCH DETECTION — added T-9 S-GIT-STRATEGY-CORE (2026-05-15)
+# Triple-branch policy: wip/* → light gates, main/release/* → full gates.
+#
+# GATE_LEVEL=light  → sections 1-3 only (voseo, ruff check, ruff format)
+# GATE_LEVEL=full   → all sections 1-9 (adds R3 SSoT, R32 capability,
+#                     R33 backlog, checkpoint state, PII seed, PII goldens)
+#
+# Magic comment # wip-fast (or # wip-fast: <reason>) in first 5 lines of
+# ANY staged file → in LIGHT gate, skip sections 4-9 (already skipped by
+# default in LIGHT; the comment is a documentation signal + future hook
+# extension point).
+#
+# Rationale: in wip/* branches, files are WIP — SSoT freshness gates and
+# capability reconcilers can give false positives on work-in-progress.
+# main/release/* squash-merge has final files → full gates are correct.
+# ─────────────────────────────────────────────────────────────────
+
+CURRENT_BRANCH="$(git symbolic-ref --short HEAD 2>/dev/null || echo 'HEAD-detached')"
+
+GATE_LEVEL="full"
+case "${CURRENT_BRANCH}" in
+  wip/*)
+    GATE_LEVEL="light"
+    ;;
+  main | release/*)
+    GATE_LEVEL="full"
+    ;;
+  *)
+    # HEAD-detached, tags, unknown → safe default = full
+    GATE_LEVEL="full"
+    ;;
+esac
+
+export GATE_LEVEL CURRENT_BRANCH
+
+# ─────────────────────────────────────────────────────────────────
+# 1. Get staged files by extension
+# ─────────────────────────────────────────────────────────────────
+
+STAGED_PY=$(git diff --cached --name-only --diff-filter=ACM \
+  | grep -E '\.py$' \
+  | grep -vE '(__pycache__/|\.venv/|migrations/versions/)' || true)
+
+STAGED_TS=$(git diff --cached --name-only --diff-filter=ACM \
+  | grep -E '\.(ts|tsx)$' \
+  | grep -vE '(node_modules/|\.next/|dist/)' || true)
+
+STAGED_MD=$(git diff --cached --name-only --diff-filter=ACM \
+  | grep -E '\.md$' \
+  | grep -vE '(node_modules/)' || true)
+
+# Voseo/neutro aplica SOLO a interfaces de usuario (web UI / agentic output),
+# NUNCA a docs ni al harness. Markdown (.md) = docs/instrucciones internas →
+# queda FUERA del scan de voseo. (Chris 2026-06-01: voseo solo en UI, no en harness.)
+# STAGED_MD se mantiene definido por si otra sección lo necesita, pero no se escanea por voseo.
+ALL_TEXT_STAGED=$(printf '%s\n%s\n' "${STAGED_PY}" "${STAGED_TS}" \
+  | grep -v '^$' || true)
+
+# ─────────────────────────────────────────────────────────────────
+# CHECK DISPATCHER (god-file decomposition — HB-33/34 maintainability + observability)
+# Each numbered gate now lives in scripts/git-hooks/checks/NN-name.sh and is
+# SOURCED in order, sharing this preamble's env (REPO_ROOT, GATE_LEVEL,
+# CURRENT_BRANCH, STAGED_PY/TS/MD, set -euo pipefail). A check `exit 1` aborts
+# the commit exactly as before. PRECOMMIT_VERBOSE=1 traces which check runs.
+# Order is EXPLICIT (not glob) so it never depends on filesystem sort.
+# ─────────────────────────────────────────────────────────────────
+CHECKS_DIR="${REPO_ROOT}/scripts/git-hooks/checks"
+PRECOMMIT_CHECKS=(
+  02-voseo 03-ruff 04-r3-ssot 05-r32-cap-story
+  05b-cap-advisory 05c-code-cap-index 05d-bidirectional 05e-cap-gates
+  06-backlog 07-checkpoint-enum 08-pii-seed 09-pii-goldens
+  10-infra-matrix 11-worktree 12-story-closure 13-scope-branch
+  14-brand-docs-schema 15-cap-ledger 15.5-system-map 16-chris-input
+  17-checkpoint-dupkeys 18-machinery 19-docs-orphan
+  20-story-yaml-valid 21-pathspec-transitive
+)
+for _chk in "${PRECOMMIT_CHECKS[@]}"; do
+  _chk_file="${CHECKS_DIR}/${_chk}.sh"
+  if [ -f "${_chk_file}" ]; then
+    [ "${PRECOMMIT_VERBOSE:-0}" = "1" ] && echo "→ [pre-commit] check ${_chk}" >&2
+    # shellcheck source=/dev/null
+    source "${_chk_file}"
+  else
+    echo "WARNING: pre-commit check missing: ${_chk_file} (skipped)" >&2
+  fi
+done
+
+exit 0

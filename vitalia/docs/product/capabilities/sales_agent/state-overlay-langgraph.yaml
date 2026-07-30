@@ -1,0 +1,101 @@
+---
+capability_id: vitalia-sales-agent-state-overlay
+module: sales_agent
+slug: state-overlay-langgraph
+status: deprecated
+date_introduced: 2026-05-18
+story_introduced: vitalia-copilot-tools-impl
+package_version: 0.2.0
+package_path: vitalia/backend/src/modules/vitalia/sales_agent/domain/state_overlay.py
+license: proprietary
+
+# v3 cement 2026-05-27 · 4 dimensiones + dev_preview (ADR-vitalia-005)
+tech_module: sales_agent
+agent_owner: motor-agentico
+functional_area: motor-agentico.sales-agent-engine
+user_visible: false
+nature: extension-point
+ui_paradigm: slice-1-superseded  # T-3 reconcile 2026-05-29
+replaced_by_story: vitalia-fase2-adrian-propuestas  # T-3: story F2 que reconstruye esta cap
+
+user_facing_name: "State overlay LangGraph para sales_agent"
+user_facing_description: >
+  Extensión del estado LangGraph del agente de ventas específica para Vitalia.
+  Agrega tres campos médicos al estado base del engine: patient_clinic_id para
+  el doble filtro HIPAA, treatment_type para enrutar por vertical (dental,
+  estética, psicología, fertilidad) y compliance_level para activar la
+  sanitización PHI y los guardias de canal correspondientes.
+
+dev_preview:
+  route: null
+  how_to_navigate: "BE-only · ver via tests en vitalia/backend/tests/unit/modules/vitalia/sales_agent/observability/"
+  main_component: null
+  api_endpoints: []
+  e2e_test: null
+  fixtures_required: []
+  storybook_url: null
+  loom_demo: null
+
+# Capability ledger v2 (cement 2026-05-27)
+created_in_story: vitalia-copilot-tools-impl   # v2 cement · mirror of story_introduced
+created_date: 2026-05-18   # v2 cement · mirror of date_introduced
+last_modified: 2026-05-29   # T-3 reconcile 2026-05-29
+parent_cap: null   # v2 cement · mirror of extends_capability
+derives_capabilities: []   # v2 cement · initial empty list
+
+# Capability ledger v2 (cement 2026-05-27)
+
+# Capability change log v2 (cement 2026-05-27)
+change_log:
+  - story_id: vitalia-copilot-tools-impl
+    date: 2026-05-18
+    type: new
+    summary: "Implementación inicial · migración legacy a schema v2"
+    merge_sha: null
+    status: done
+map_box: motor-agentico
+
+---
+
+# vitalia-sales-agent-state-overlay
+
+LangGraph state extension brand-specific vitalia. Extiende core sales_agent state con campos medical (patient_clinic_id, treatment_type, compliance_level) para downstream guardrails + observability subclass.
+
+## Surface
+
+### Domain (`vitalia/backend/src/modules/vitalia/sales_agent/domain/`)
+
+- `state_overlay.py::VitaliaSalesAgentStateOverlay(TypedDict)` — fields:
+  - `patient_clinic_id: UUID` — second tenant filter (dual filter per HIPAA-lite)
+  - `treatment_type: str` — vertical-specific (dental, estetica, psicologia, fertilidad)
+  - `compliance_level: Literal["hipaa_lite", "standard"]` — drives sanitize_payload + ComplianceService behavior
+
+## Test coverage
+
+- Unit: covered indirectamente vía `test_callback_handler.py` (sales_agent observability subclass consume state_overlay via state dict access)
+
+## Dependencies
+
+- `core/luana-core-sales-agent` (engine base state — overlay extiende sin mirror)
+- `typing.TypedDict` Python 3.12 + Pydantic v2 (no inheritance hierarchy direct, TypedDict union)
+
+## Anti-duplication alignment
+
+State overlay NO mirror engine state — provee ADDITIONAL fields que el engine no conoce. Pattern: brand sub-state via TypedDict union at use sites (LangGraph state hygiene).
+
+## Scenarios live
+
+- SC-A2 Adversarial PHI → state.compliance_level == "hipaa_lite" → channel guard activates
+- SC-A4 Estética contraindicación → state.treatment_type == "estetica" routes to vertical-specific persona
+
+## Verification commands
+
+```bash
+WS=$(git rev-parse --show-toplevel)
+${WS}/.venv/bin/pytest vitalia/backend/tests/unit/modules/vitalia/sales_agent/observability/ -v
+```
+
+## Referencias
+
+- `vitalia/docs/product/stories/vitalia-copilot-tools-impl/03-arch-agentic.md` § 5.3 + § 6.2
+- `vitalia/.claude/rules/hipaa-lite.md` (dual filter requirement)

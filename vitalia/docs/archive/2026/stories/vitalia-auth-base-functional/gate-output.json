@@ -1,0 +1,105 @@
+
+{
+  "schema_version": "1.0",
+  "pr_folder": "/home/chalreme/Proyectos/luana-vitalia/vitalia/docs/product/stories/vitalia-auth-base-functional/",
+  "ticket": null,
+  "iter": "audit-1",
+  "command": "vitalia auth-base-functional auditor gates (BE lint + arch + FE tsc + eslint + vitest + ops)",
+  "command_alias": "auth-gates-vitalia",
+  "started_at": "2026-05-19T03:22:02Z",
+  "finished_at": "2026-05-19T03:22:30Z",
+  "duration_ms": 28000,
+  "exit_code": 1,
+  "raw_log_path": "/home/chalreme/Proyectos/luana-vitalia/vitalia/docs/product/stories/vitalia-auth-base-functional/gate-logs/audit-1-auth-gates-20260519T032202Z.log",
+  "gates": [
+    {
+      "name": "ruff_check",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": []
+    },
+    {
+      "name": "ruff_format",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": []
+    },
+    {
+      "name": "pytest_architecture",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": []
+    },
+    {
+      "name": "pytest_admin_contract",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": []
+    },
+    {
+      "name": "pytest_admin_integration",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": []
+    },
+    {
+      "name": "anti_duplication_scan",
+      "status": "FAIL",
+      "errors_count": 1,
+      "first_5_errors": [
+        "mirror_diff_lines=1500 exceeds threshold of 50: adminmodules/tenants.py + users.py between vitalia and nicolify show >50% differing content"
+      ]
+    },
+    {
+      "name": "tsc_typecheck",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": []
+    },
+    {
+      "name": "eslint",
+      "status": "FAIL",
+      "errors_count": 42,
+      "first_5_errors": [
+        "e2e/fixtures/aurora-dental-ar.fixture.ts:249:18 — Unexpected empty object pattern",
+        "e2e/fixtures/mindful-psych-cl.fixture.ts:228:19 — Unexpected empty object pattern",
+        "e2e/mobile/mobile-smoke.spec.ts:90:11 — 'response' is assigned a value but never used",
+        "e2e/specs/vitalia/booking-deposit-aurora.smoke.spec.ts:14:5 — 'aurora' is defined but never used",
+        "e2e/specs/vitalia/booking-deposit-aurora.smoke.spec.ts:35:5 — 'aurora' is defined but never used"
+      ]
+    },
+    {
+      "name": "vitest_architecture",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": []
+    },
+    {
+      "name": "vitest_dashboard_features",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": []
+    },
+    {
+      "name": "bash_syntax_check",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": []
+    },
+    {
+      "name": "yaml_validation",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": []
+    }
+  ],
+  "overall": {
+    "any_fail": true,
+    "fail_gate_names": [
+      "anti_duplication_scan",
+      "eslint"
+    ],
+    "summary": "2 gates failed: anti_duplication_scan (mirror detect 1500 diff lines vs nicolify), eslint (42 unused vars + empty patterns in e2e/)"
+  },
+  "notes": "Backend (BE ruff + arch + pytest) all PASS. FE TypeScript PASS, vitest arch PASS, vitest features PASS. E2E linting FAILS with 42 unused var errors (fixture params not consumed in test bodies). Anti-duplication scan FAILS: admin/modules schema >50% diff between vitalia and nicolify suggests mirror pattern candidate for lift to core. Ops gates (bash + yaml) PASS."
+}

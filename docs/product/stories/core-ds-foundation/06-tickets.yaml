@@ -1,0 +1,87 @@
+# 06-tickets.yaml — core-ds-foundation · FASE 0 (machinery · des-gated)
+# Technical-story (platform-engineering) · reduced package (tickets + validators).
+# Approach firmado Chris 2026-06-22: catalogar + RENDERIZAR los componentes REALES de @luana/ui-kit.
+# NO mockup-kit CSS (espejo estático rechazado). Render vivo = Storybook en @luana/ui-kit.
+#
+# Recon: los componentes (Entity*/Picker/archetypes/layout/TogglePill/Select/Badge/autosave/Group)
+# + el tokens-scale (@luana/design-tokens 0.2.0) YA EXISTEN. Fase 0 = hacerlos discoverable+visibles+
+# enforced, sin reconstruir nada. Fase 1 (componentes nuevos + deltas D11) sigue GATED.
+
+story_id: core-ds-foundation
+phase: 0
+arch_note: |
+  Tres piezas, todas sobre lo REAL (cero mirror):
+  - Catálogo = índice máquina (catalog.json desde index.ts) + índice humano (CATALOG.md → Storybook).
+    NO duplica props (eso vive en Storybook autodocs · no driftea).
+  - Storybook en @luana/ui-kit = render de los componentes REALES + código/props (react-docgen) por story.
+    ES la superficie del per-component visual-review gate (Batch 1 base · Batch 2 review-only · Batch 3 deltas).
+  - Drift-lint = eslint no-arbitrary-value + arch-test FE "no-reinvento" (consume catalog.json) = el
+    counterpart FE de anti-duplication (hoy BE-only).
+  tokens-scale (canon Fase 0 pieza 4) = @luana/design-tokens 0.2.0 YA EXISTE → verify-only (acceptance de T-1).
+
+tickets:
+  - id: T-1
+    title: "Catálogo generado del source real + verify tokens-scale"
+    surface: FE
+    production_code: false        # tooling/docs — no runtime
+    depends_on: []
+    blocks: [T-3]
+    deliverables:
+      - "scripts/generate_ui_catalog.mjs — lee core/@luana/ui-kit/src/index.ts → emite:"
+      - "  · core/@luana/ui-kit/catalog.json (máquina: [{module, file, exports[], canon_note}]) — GITIGNORED output (R3)"
+      - "  · docs/design-system/CATALOG.md (humano: índice agrupado por capa, cada entry → link a su story de Storybook)"
+      - "Makefile target `ui-catalog` (regenera ambos)"
+      - "verify-only: assert @luana/design-tokens 0.2.0 exporta spacing/radius/typography (tokens-scale ya existe · canon pieza 4)"
+    acceptance: { validator_ids: [cat_gen_runs, cat_count_matches, tokens_scale_present] }
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: workhorse
+      must_load_skills: [frontend-expert, ".claude/rules/anti-duplication.md"]
+      forbidden_to_touch: ["core/@luana/ui-kit/src/**", "{brand}/frontend/src/**"]   # NO toca componentes ni feature de marca
+      rationale: "Tooling node que LEE el source (no lo modifica). Ponytail: parse a nivel módulo+exports; props NO se duplican (viven en Storybook)."
+
+  - id: T-2
+    title: "Storybook en @luana/ui-kit — render REAL + código por story (centerpiece)"
+    surface: FE
+    production_code: false        # dev tooling · no entra al bundle de runtime de ninguna marca
+    depends_on: []
+    blocks: []
+    deliverables:
+      - "Storybook 8 en core/@luana/ui-kit (.storybook/ config + deps devDependencies + react-docgen-typescript para props autodocs)"
+      - "Stories para el set canónico (canon §2): EntityWorkspaceLayout · EntitySubNavBar · EntityPicker · EntityInfoCard · archetypes(list/detail/form/dashboard) · layout-primitives(PageContainer/Header/Section/Toolbar/FilterBar/Empty/Error/Pagination/Detail/Form) · Select · Badge · Avatar · Group · FloatingAutosaveIndicator · TogglePill"
+      - "autodocs ON (cada story muestra código + props reales = 'copiar-pegar con clases')"
+      - "★ cada story lleva en su description (autodocs) una sección **'Cuándo usarlo'**: cuándo ES la elección correcta + cuándo NO / qué alternativa usar (la guía de 'ensamblar de forma coherente'). SSoT único = la story (CATALOG.md solo linkea, no duplica)."
+      - "script `pnpm --filter @luana/ui-kit storybook` (dev) + `build-storybook` (static)"
+      - "ES la superficie del per-component visual-review gate (reemplaza el preview.html CSS)"
+    review_protocol: "★ Chris revisa CADA componente en Storybook, uno por uno, e itera hasta que esté bien (per-component visual-review gate · Batch 1 base → Batch 2 review-only). El builder entrega las stories incrementalmente para revisión, no big-bang."
+    acceptance: { validator_ids: [sb_builds, sb_renders_canon, sb_when_to_use] }
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: workhorse
+      must_load_skills: [frontend-expert, vitalia-design-system, ".claude/rules/frontend-visual-fidelity.md"]
+      forbidden_to_touch: ["core/@luana/ui-kit/src/**", "{brand}/frontend/src/**"]   # stories CONSUMEN los componentes, NO los modifican
+      rationale: "Tooling de plataforma (Storybook) que renderiza lo REAL. NO modifica componentes (si una story revela un bug → ticket aparte). Centerpiece: es lo que Chris VE."
+
+  - id: T-3
+    title: "Drift-lint FE — no-arbitrary-value + arch-test no-reinvento"
+    surface: FE
+    production_code: false        # config lint + arch-test
+    depends_on: [T-1]             # el arch-test consume catalog.json
+    blocks: []
+    deliverables:
+      - "eslint rule no-arbitrary-value (spacing/radius/font-size/color-hex) en core/@luana/eslint-config (o per-brand override) — warn→error ratchet"
+      - "vitest arch-test FE 'no-reinvento': falla si un componente local matchea un nombre catalogado (consume catalog.json) — counterpart FE de anti-duplication (hoy BE-only)"
+      - "fixtures de prueba: un arbitrary plantado (p-[13px]) que el lint DEBE cazar + un reinvento local plantado que el arch-test DEBE cazar"
+    acceptance: { validator_ids: [lint_catches_arbitrary, archtest_catches_reinvento] }
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: workhorse
+      must_load_skills: [frontend-expert, ".claude/rules/anti-duplication.md", ".claude/rules/frontend-visual-fidelity.md"]
+      forbidden_to_touch: ["{brand}/frontend/src/**"]
+      rationale: "Lint+arch-test = el enforce mecánico que mata el drift. Ratchet shrink-only; arranca warn (no rompe las 368 arbitrary heredadas de golpe)."
+
+dag: "T-1 → T-3 · T-2 independiente (paralelo)"
+gated_out_of_scope: |
+  Fase 1 (GATED tras shell-lift + stories abiertas): /showcase route en app · componentes nuevos · deltas D11
+  (SegmentedControl/EntityRow/AvailabilityStrip/ComputedField/PageHeader-back-slot). Cada delta nuevo se revisa
+  en Storybook (su story) ANTES de merge. Fase 2 (enforcement endurecido) tras Fase 1.

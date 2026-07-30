@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>F2-S1 · CobrarSaldoSubform (★ corazón valor) — Vitalia</title>
+<link rel="stylesheet" href="_shared.css">
+<style>
+  .subform-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    padding: 24px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+  .subform-card {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    padding: 20px;
+    position: relative;
+  }
+  .subform-card-title {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .subform-card-subtitle {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+  }
+  .subform-card.featured {
+    border: 2px solid var(--c-adrian);
+  }
+  .state-pill {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 9999px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .state-pill.collapsed { background: var(--bg-hover); color: var(--text-muted); }
+  .state-pill.expanded { background: var(--c-adrian-soft); color: #0369a1; }
+  .state-pill.submitting { background: var(--c-warning-soft); color: #b45309; }
+  .state-pill.success { background: var(--c-success-soft); color: #065f46; }
+  .state-pill.error { background: var(--c-destructive-soft); color: #991b1b; }
+  .state-pill.conflict { background: #fce7f3; color: #9f1239; }
+  [data-theme="dark"] .state-pill.expanded { color: #93c5fd; }
+  [data-theme="dark"] .state-pill.submitting { color: #fbbf24; }
+  [data-theme="dark"] .state-pill.success { color: #6ee7b7; }
+  [data-theme="dark"] .state-pill.error { color: #fca5a5; }
+  [data-theme="dark"] .state-pill.conflict { color: #fda4af; background: #4c0519; }
+
+  .currency-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 16px;
+    background: var(--bg-hover);
+    padding: 4px;
+    border-radius: 9999px;
+  }
+  .currency-tab {
+    padding: 4px 10px;
+    border-radius: 9999px;
+    font-size: 11px;
+    color: var(--text-muted);
+    cursor: pointer;
+    user-select: none;
+  }
+  .currency-tab.active {
+    background: var(--bg-panel);
+    color: var(--text-primary);
+    font-weight: 600;
+    box-shadow: var(--shadow-sm);
+  }
+  [data-theme="dark"] .currency-tab.active { background: var(--bg-elevated); }
+
+  .pago-status-mini {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    background: var(--c-warning-soft);
+    border-radius: var(--r-sm);
+    margin-bottom: 12px;
+    font-size: 11px;
+  }
+  [data-theme="dark"] .pago-status-mini { color: #fde68a; }
+
+  .saldo-display {
+    padding: 12px;
+    background: var(--bg-elevated);
+    border-radius: var(--r-sm);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .saldo-amount {
+    font-size: 22px;
+    font-weight: 700;
+  }
+
+  .spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid currentColor;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    display: inline-block;
+  }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .demo-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .breadcrumb {
+    padding: 12px 24px;
+    background: var(--bg-panel);
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .breadcrumb a { color: var(--c-adrian); text-decoration: none; }
+</style>
+</head>
+<body>
+
+<button class="theme-btn" onclick="toggleTheme()" style="position:fixed;top:16px;right:16px;z-index:200">🌓 Tema</button>
+
+<div class="breadcrumb">
+  <a href="agenda-cockpit-grid.html">Cockpit</a> ›
+  <a href="appointment-drawer.html">AppointmentDrawer</a> ›
+  <strong style="color:var(--text-primary)">★ CobrarSaldoSubform</strong>
+</div>
+
+<div style="padding:24px 24px 0">
+  <h1 style="font-size:22px;font-weight:700;margin-bottom:4px">★ CobrarSaldoSubform · corazón valor F2-S1</h1>
+  <p class="muted text-sm">Subform inline expandido dentro de AppointmentDrawer §Pago/saldo · 4 currency variants × 5 states · consume payment-adapter + fiscal-emission-pe end-to-end</p>
+</div>
+
+<div class="subform-grid">
+
+  <!-- STATE 1: COLLAPSED -->
+  <div class="subform-card">
+    <span class="state-pill collapsed">collapsed</span>
+    <div class="subform-card-title">Estado · collapsed (default)</div>
+    <div class="subform-card-subtitle">Botón "Cobrar saldo" antes de expandir el subform</div>
+    <div class="pago-status-mini">
+      <span>🟡</span>
+      <span class="flex-1">Depósito parcial — PEN 40 de PEN 120</span>
+      <strong>Saldo: PEN 80</strong>
+    </div>
+    <button class="btn btn-primary" style="width:100%">💰 Cobrar saldo ▾</button>
+  </div>
+
+  <!-- STATE 2: EXPANDED PEN (tenant PE default) -->
+  <div class="subform-card featured">
+    <span class="state-pill expanded">expanded · PEN</span>
+    <div class="subform-card-title">Estado · expanded — tenant PE default</div>
+    <div class="subform-card-subtitle">Currency PEN (es-PE locale) · boleta PE default · 5 método de pago</div>
+
+    <div class="currency-tabs">
+      <div class="currency-tab active">PEN</div>
+      <div class="currency-tab">ARS</div>
+      <div class="currency-tab">USD (override)</div>
+      <div class="currency-tab">MXN</div>
+    </div>
+
+    <div class="saldo-display">
+      <div>
+        <div class="muted text-xs">Saldo pendiente</div>
+        <div class="saldo-amount">PEN 80</div>
+      </div>
+      <span class="status-pill warning">🟡 Depósito parcial</span>
+    </div>
+
+    <div class="demo-grid-2">
+      <div class="form-field">
+        <label class="form-label">Monto</label>
+        <input class="form-input" value="80.00" />
+      </div>
+      <div class="form-field">
+        <label class="form-label">Moneda</label>
+        <select class="form-select"><option>PEN — Soles (tenant)</option></select>
+      </div>
+    </div>
+
+    <div class="form-field">
+      <label class="form-label">Método de pago</label>
+      <select class="form-select">
+        <option>💳 Tarjeta</option>
+        <option>💵 Efectivo</option>
+        <option>🏦 Transferencia bancaria</option>
+        <option>🛒 Mercado Pago</option>
+        <option>📝 Otro</option>
+      </select>
+    </div>
+
+    <div class="form-field">
+      <label class="form-label" style="display:flex;align-items:center;gap:6px">
+        <input type="checkbox" checked />
+        Emitir comprobante fiscal
+      </label>
+    </div>
+
+    <div class="form-field">
+      <label class="form-label">Tipo de comprobante</label>
+      <select class="form-select">
+        <option>🇵🇪 Boleta electrónica</option>
+        <option>🇵🇪 Factura electrónica</option>
+      </select>
+      <div class="form-helper">Nubefact PE · SUNAT-compliant</div>
+    </div>
+
+    <div class="form-field">
+      <label class="form-label">Notas (opcional)</label>
+      <textarea class="form-textarea" placeholder="Ej: cobro normal post-cita"></textarea>
+    </div>
+
+    <button class="btn btn-primary" style="width:100%">Cobrar PEN 80</button>
+  </div>
+
+  <!-- STATE 3: EXPANDED ARS (tenant AR default) -->
+  <div class="subform-card">
+    <span class="state-pill expanded">expanded · ARS</span>
+    <div class="subform-card-title">Estado · expanded — tenant AR default</div>
+    <div class="subform-card-subtitle">Currency ARS (es-AR locale) · Factura AR/B/Recibo</div>
+
+    <div class="currency-tabs">
+      <div class="currency-tab">PEN</div>
+      <div class="currency-tab active">ARS</div>
+      <div class="currency-tab">USD (override)</div>
+      <div class="currency-tab">MXN</div>
+    </div>
+
+    <div class="saldo-display">
+      <div>
+        <div class="muted text-xs">Saldo pendiente</div>
+        <div class="saldo-amount">$ 12.000</div>
+      </div>
+      <span class="status-pill destructive">🔴 Sin pago</span>
+    </div>
+
+    <div class="form-field">
+      <label class="form-label">Tipo de comprobante</label>
+      <select class="form-select">
+        <option>🇦🇷 Factura B</option>
+        <option>🇦🇷 Factura A</option>
+        <option>🇦🇷 Recibo</option>
+      </select>
+      <div class="form-helper">AFIP-compliant · IVA 21%</div>
+    </div>
+
+    <div class="form-field">
+      <label class="form-label">Método de pago</label>
+      <select class="form-select"><option>🛒 Mercado Pago</option></select>
+    </div>
+
+    <button class="btn btn-primary" style="width:100%">Cobrar ARS 12.000</button>
+  </div>
+
+  <!-- STATE 4: EXPANDED USD override (multi-currency tenant) -->
+  <div class="subform-card">
+    <span class="state-pill expanded">expanded · USD override</span>
+    <div class="subform-card-title">Estado · expanded — currency_override turista</div>
+    <div class="subform-card-subtitle">Clínica AR atiende turista USA · slot.currency_override="USD"</div>
+
+    <div class="currency-tabs">
+      <div class="currency-tab">PEN</div>
+      <div class="currency-tab">ARS (tenant)</div>
+      <div class="currency-tab active">USD (override)</div>
+      <div class="currency-tab">MXN</div>
+    </div>
+
+    <div class="alert alert-info" style="margin-bottom:12px">
+      <span>ℹ️</span>
+      <div>Este turno usa moneda <strong>USD</strong> (override del tenant ARS).<br><span class="muted text-xs">Pre-seteo automático según appointment.currency_override.</span></div>
+    </div>
+
+    <div class="saldo-display">
+      <div>
+        <div class="muted text-xs">Saldo pendiente</div>
+        <div class="saldo-amount">US$ 50</div>
+      </div>
+      <span class="status-pill warning">🟡 Depósito parcial</span>
+    </div>
+
+    <div class="demo-grid-2">
+      <div class="form-field">
+        <label class="form-label">Monto</label>
+        <input class="form-input" value="50.00" />
+      </div>
+      <div class="form-field">
+        <label class="form-label">Moneda</label>
+        <select class="form-select">
+          <option>ARS (tenant default)</option>
+          <option selected>USD (override) ✓</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-field">
+      <label class="form-label">Tipo de comprobante</label>
+      <select class="form-select">
+        <option>🇦🇷 Recibo USD (exento IVA)</option>
+      </select>
+    </div>
+
+    <button class="btn btn-primary" style="width:100%">Cobrar US$ 50</button>
+  </div>
+
+  <!-- STATE 5: SUBMITTING -->
+  <div class="subform-card">
+    <span class="state-pill submitting">submitting</span>
+    <div class="subform-card-title">Estado · submitting</div>
+    <div class="subform-card-subtitle">Backend procesando saga payment + fiscal</div>
+
+    <div class="saldo-display">
+      <div>
+        <div class="muted text-xs">Procesando</div>
+        <div class="saldo-amount">PEN 80</div>
+      </div>
+    </div>
+
+    <div style="padding:12px;background:var(--c-warning-soft);border-radius:var(--r-sm);margin-bottom:12px;font-size:12px;display:flex;align-items:center;gap:10px">
+      <span class="spinner" style="color:#b45309"></span>
+      <div>
+        <strong>Procesando cobro…</strong>
+        <div style="font-size:11px;opacity:0.8">Cargando tarjeta · esperando confirmación Stripe</div>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" style="width:100%" disabled>
+      <span class="spinner"></span> Procesando…
+    </button>
+  </div>
+
+  <!-- STATE 6: SUCCESS -->
+  <div class="subform-card">
+    <span class="state-pill success">success</span>
+    <div class="subform-card-title">Estado · success — cobro + comprobante OK</div>
+    <div class="subform-card-subtitle">Toast notification + slot status update + link a PDF</div>
+
+    <div class="alert alert-success" style="margin-bottom:12px">
+      <span>✓</span>
+      <div>
+        <strong>Cobro PEN 80 + boleta emitida</strong>
+        <div style="font-size:11px;opacity:0.8;margin-top:4px">
+          Slot actualizado: 🟡 Depósito → 🟢 Pagado<br>
+          Audit log row creada
+        </div>
+        <a href="#" style="display:inline-block;margin-top:6px;color:inherit;font-weight:600;text-decoration:underline">📄 Ver comprobante PDF →</a>
+      </div>
+    </div>
+
+    <div class="toast" style="position:relative;bottom:auto;right:auto;margin-top:8px">
+      <div style="font-weight:600;margin-bottom:4px">✓ Cobro registrado</div>
+      <div class="muted text-xs">PEN 80 · Boleta #B001-00046 · Tarjeta Visa **** 1234</div>
+    </div>
+  </div>
+
+  <!-- STATE 7: ERROR PAYMENT (503) -->
+  <div class="subform-card">
+    <span class="state-pill error">error · payment 503</span>
+    <div class="subform-card-title">Estado · error_payment</div>
+    <div class="subform-card-subtitle">payment-adapter caído (Stripe timeout) · NO fiscal emit</div>
+
+    <div class="alert alert-destructive" style="margin-bottom:12px">
+      <span>⚠</span>
+      <div>
+        <strong>No pudimos procesar el cobro.</strong>
+        <div style="font-size:11px;opacity:0.8;margin-top:4px">
+          Intentalo de nuevo en unos segundos. Si persiste, contactá a soporte.<br>
+          <span class="muted text-xs">Error code: PAYMENT_ADAPTER_503</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-outline btn-sm" style="flex:1">Cancelar</button>
+      <button class="btn btn-primary btn-sm" style="flex:1">🔁 Reintentar cobro</button>
+    </div>
+  </div>
+
+  <!-- STATE 8: ERROR FISCAL (payment OK) -->
+  <div class="subform-card">
+    <span class="state-pill error">error · fiscal</span>
+    <div class="subform-card-title">Estado · error_fiscal (cobro OK)</div>
+    <div class="subform-card-subtitle">Charge succeeded pero Nubefact emit falló</div>
+
+    <div class="alert alert-warning" style="margin-bottom:12px">
+      <span>⚠</span>
+      <div>
+        <strong>Cobro registrado, pero el comprobante quedó pendiente.</strong>
+        <div style="font-size:11px;opacity:0.8;margin-top:4px">
+          Podés reintentar la emisión. El cobro PEN 80 ya fue procesado (payment_id pmt_47Hx).
+        </div>
+      </div>
+    </div>
+
+    <button class="btn btn-primary btn-sm" style="width:100%">🔁 Reintentar emisión fiscal</button>
+  </div>
+
+  <!-- STATE 9: CONFLICT 409 (concurrent charge) -->
+  <div class="subform-card">
+    <span class="state-pill conflict">conflict · 409</span>
+    <div class="subform-card-title">Estado · conflict_409 (race condition)</div>
+    <div class="subform-card-subtitle">Otro staff ya cobró este saldo simultáneamente</div>
+
+    <div class="alert alert-warning" style="margin-bottom:12px">
+      <span>👥</span>
+      <div>
+        <strong>Este saldo ya fue cobrado por otro usuario.</strong>
+        <div style="font-size:11px;opacity:0.8;margin-top:4px">
+          Refrescando tu agenda… El slot ya está marcado como pagado.<br>
+          <span class="muted text-xs">Tu intento NO realizó doble cobro (lock optimista backend).</span>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn btn-outline btn-sm" style="width:100%">Cerrar y revisar agenda</button>
+  </div>
+
+  <!-- STATE 10: MXN tenant -->
+  <div class="subform-card">
+    <span class="state-pill expanded">expanded · MXN</span>
+    <div class="subform-card-title">Estado · expanded — tenant MX</div>
+    <div class="subform-card-subtitle">Currency MXN · CFDI México · facturación CFDI 4.0</div>
+
+    <div class="currency-tabs">
+      <div class="currency-tab">PEN</div>
+      <div class="currency-tab">ARS</div>
+      <div class="currency-tab">USD (override)</div>
+      <div class="currency-tab active">MXN</div>
+    </div>
+
+    <div class="saldo-display">
+      <div>
+        <div class="muted text-xs">Saldo pendiente</div>
+        <div class="saldo-amount">MX$ 850</div>
+      </div>
+      <span class="status-pill destructive">🔴 Sin pago</span>
+    </div>
+
+    <div class="form-field">
+      <label class="form-label">Tipo de comprobante</label>
+      <select class="form-select">
+        <option>🇲🇽 CFDI 4.0 · I (Ingreso)</option>
+        <option>🇲🇽 Recibo simple</option>
+      </select>
+      <div class="form-helper">SAT-compliant · IVA 16% · F2-S1 incluye Nubefact AR+PE — MX requiere proveedor MX (story futura)</div>
+    </div>
+
+    <div class="alert alert-info" style="margin-bottom:12px;font-size:11px">
+      <span>ℹ️</span>
+      <div>Fiscal MX emission no shipped en F2-S1 — se cobra OK pero comprobante manual.</div>
+    </div>
+
+    <button class="btn btn-primary" style="width:100%">Cobrar MX$ 850 (sin emisión)</button>
+  </div>
+
+</div>
+
+<div style="text-align:center;padding:24px;border-top:1px solid var(--border);margin-top:24px">
+  <a href="agenda-cockpit-grid.html" class="muted text-sm">← Volver al cockpit índice</a>
+</div>
+
+<script>
+function toggleTheme() {
+  const html = document.documentElement;
+  const current = html.getAttribute('data-theme');
+  html.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark');
+}
+</script>
+
+</body>
+</html>

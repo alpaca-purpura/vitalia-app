@@ -1,0 +1,196 @@
+---
+# vitalia/deploy/k8s/deployment.yaml
+# Vitalia backend FastAPI application Deployment.
+# Cloud-provider agnostic (DigitalOcean / Hetzner / AWS per arch § 5.3).
+#
+# Wire CI/CD (S-CICD-DEPLOY):
+#   _deploy-brand.yml ejecuta `kubectl set image deployment/vitalia-app vitalia-backend=...`
+#   con el tag de version extraido del branch release/vitalia-vX.Y.Z.
+#   Secrets: viven en GitHub Environment 'vitalia-prod' (KUBECONFIG, GHCR_TOKEN).
+#   Para staging: GitHub Environment 'vitalia-staging'.
+#
+# Requisitos previos (Chris ejecuta una vez por cluster):
+#   kubectl create namespace vitalia
+#   kubectl create secret docker-registry ghcr-creds \
+#     --docker-server=ghcr.io --docker-username=alpacapurpura \
+#     --docker-password=<GITHUB_PAT> -n vitalia
+#
+# Apply: kubectl apply -f vitalia/deploy/k8s/ -n vitalia
+# Dry-run: kubectl apply --dry-run=client -f vitalia/deploy/k8s/
+#
+# Arch ref: 03-arch.md § 5.3 · T-deploy-1 · S-CICD-DEPLOY T-5
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vitalia-app
+  namespace: vitalia
+  labels:
+    app.kubernetes.io/name: vitalia
+    app.kubernetes.io/component: backend
+    app.kubernetes.io/part-of: luana-platform
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: kubectl
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: vitalia-app
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: vitalia-app
+        app.kubernetes.io/name: vitalia
+        app.kubernetes.io/component: backend
+        app.kubernetes.io/version: "0.1.0"
+    spec:
+      # Security context — run as non-root
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+
+      containers:
+        - name: vitalia-backend
+          # Image: replace with actual registry path before cluster apply.
+          # Story 11.bis will push to ghcr.io/alpacapurpura/vitalia-backend
+          image: ghcr.io/alpacapurpura/vitalia-backend:0.1.0
+
+          imagePullPolicy: IfNotPresent
+
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+
+          # ── Environment: non-sensitive from ConfigMap ───────────────────
+          envFrom:
+            - configMapRef:
+                name: vitalia-config
+
+          # ── Environment: secrets from Secret ─────────────────────────
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: vitalia-secrets
+                  key: POSTGRES_PASSWORD
+            - name: VITALIA_CLERK_PUBLISHABLE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: vitalia-secrets
+                  key: VITALIA_CLERK_PUBLISHABLE_KEY
+            - name: VITALIA_CLERK_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: vitalia-secrets
+                  key: VITALIA_CLERK_SECRET_KEY
+            - name: VITALIA_CLERK_WEBHOOK_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: vitalia-secrets
+                  key: VITALIA_CLERK_WEBHOOK_SECRET
+            - name: VITALIA_STRIPE_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: vitalia-secrets
+                  key: VITALIA_STRIPE_SECRET_KEY
+            - name: VITALIA_STRIPE_WEBHOOK_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: vitalia-secrets
+                  key: VITALIA_STRIPE_WEBHOOK_SECRET
+            - name: VITALIA_MERCADOPAGO_ACCESS_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: vitalia-secrets
+                  key: VITALIA_MERCADOPAGO_ACCESS_TOKEN
+            - name: VITALIA_MERCADOPAGO_PUBLIC_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: vitalia-secrets
+                  key: VITALIA_MERCADOPAGO_PUBLIC_KEY
+            - name: VITALIA_MERCADOPAGO_WEBHOOK_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: vitalia-secrets
+                  key: VITALIA_MERCADOPAGO_WEBHOOK_SECRET
+            - name: VITALIA_WHATSAPP_WEBHOOK_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: vitalia-secrets
+                  key: VITALIA_WHATSAPP_WEBHOOK_SECRET
+            - name: VITALIA_MANYCHAT_WEBHOOK_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: vitalia-secrets
+                  key: VITALIA_MANYCHAT_WEBHOOK_SECRET
+            - name: VITALIA_CONSENT_URL_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: vitalia-secrets
+                  key: VITALIA_CONSENT_URL_SECRET
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: vitalia-secrets
+                  key: ANTHROPIC_API_KEY
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: vitalia-secrets
+                  key: REDIS_PASSWORD
+            - name: QDRANT_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: vitalia-secrets
+                  key: QDRANT_API_KEY
+
+          # ── Health checks ─────────────────────────────────────────────
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 3
+            timeoutSeconds: 5
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 3
+            timeoutSeconds: 3
+
+          # ── Resource limits ───────────────────────────────────────────
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+
+          # ── Security context per container ────────────────────────────
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
+
+      # ── Image pull secrets para GHCR privado ────────────────────────
+      # ghcr-creds: creado por Chris con kubectl create secret docker-registry
+      # (ver docs/process/github-environments-setup.md § Paso 5)
+      imagePullSecrets:
+        - name: ghcr-creds
+
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30

@@ -1,0 +1,168 @@
+story_id: vitalia-fase2-lisa-servicios
+brand: vitalia
+architecture_pattern: ADR-vitalia-004
+mode: RECONCILE-DELTA          # appends to 06-tickets.yaml — does NOT replace Sub-phase A tickets
+base: 06-tickets.yaml
+autonomous_mode: false         # G reconcile — re-live-verify + Chris signoff gate post-build (architect proposes; Chris ratifies)
+total_delta_tickets: 4
+
+# ════════════════════════════════════════════════════════════════════════════
+# RECONCILE DELTA (G round 1) — F1 + F2 + F3 + fidelity. Builds → re-live-verify → signoff.
+# ════════════════════════════════════════════════════════════════════════════
+tickets:
+  - id: T-R0
+    title: "ENGINE · CollapsibleSection molecule in @luana/ui-kit (composes accordion + Group)"
+    phase: reconcile-delta
+    surface: engine                 # core/@luana/ui-kit — NOT a vitalia surface
+    production_code: true
+    owner_eligibility: promotion-gate
+    status: gated
+    blocked_on: "/pm-luana promotion proposal (docs/promotion-protocol/proposals/2026-06-16-collapsible-section-ui-kit.md) ACCEPTED"
+    depends_on: []
+    blocks: [T-R3]
+    acceptance:
+      validator_ids: ["RD-10", "RD-12"]
+      gherkin_coverage: ["§4 Resumen (collapsible UX · contract of the molecule)"]
+    scope: >-
+      core/@luana/ui-kit/src/CollapsibleSection.tsx (NEW) — composes the already-exported accordion (Radix)
+      + Group (accent strip + GroupHeader, canon §2.6). Props: title, defaultOpen, summary (field-count slot),
+      accentVar/accentClass (agent strip), hasError/missingFields (delegates to Group). Body = AccordionContent.
+      Export from index.ts. Unit test CollapsibleSection.test.tsx. CERO edit to accordion/Group/collapsible files
+      (additive only · regression_guard). Contract SSoT = 03-arch-reconcile-delta.md § Part D.
+    assignment:
+      primary_agent: "/pm-luana (promotion gate · NOT builder-frontend vitalia)"
+      model_preference: n/a
+      must_load_skills: [frontend-expert, "design-system-canon (docs/architecture/luana-platform/design-system-canon.md)"]
+      must_load_artifacts: ["03-arch-reconcile-delta.md (§ Part D)", "docs/promotion-protocol/proposals/2026-06-16-collapsible-section-ui-kit.md"]
+      forbidden_to_touch: ["any brand src", "accordion.tsx/Group.tsx/collapsible.tsx semantics (compose only, no edit)"]
+      rationale: >-
+        @luana/ui-kit is under core/ → CORE change → cannot be a vitalia ticket. Chris ratified the home
+        (cross-brand reuse). Owned by /pm-luana promotion gate. Vitalia consumes via T-R3 (gated).
+
+  - id: T-R1
+    title: "BE · widen ServicePatchRequest + read-path (ServiceView/ServiceDetailDTO) + patch_service routing (F2+F3)"
+    phase: reconcile-delta
+    surface: backend
+    production_code: true
+    depends_on: []
+    blocks: [T-R3]
+    acceptance:
+      validator_ids: ["RD-4", "RD-5", "RD-6", "RD-7", "RD-9", "NF-2", "NF-3"]
+      gherkin_coverage: ["§4 qué es+variantes", "§5 modalidad", "§6 ficha paciente (RN-26)", "§9 pricing"]
+    scope: >-
+      offer/api/dtos.py — add VO DTOs (ValueWithUnitDTO, ServiceVariantDTO, ThreeChargePricingDTO +
+      ReservationConfigDTO/AdvanceConfigDTO/FinancingConfigDTO) + WIDEN ServicePatchRequest to ALL patchable
+      OfferExt fields (all Optional, extra="forbid" kept) + WIDEN ServiceDetailDTO to CARRY the rich fields
+      (read-path · response_model already on route · catalog NOT PHI RN-13). +
+      offer/application/services/catalog_service.py — WIDEN patch_service() signature + route present fields to
+      ext setters (None=skip · last-write-wins) + build frozen VOs from DTOs at boundary (.to_domain · invariants
+      enforce → ValueError→422) + WIDEN ServiceView read model + _view()/_detail_dto() populate rich fields.
+      Router patch handler maps request.model_dump(exclude_unset=True) → service kwargs.
+      Optionally surface completeness:{filled,total,missing[]} on ServiceDetailDTO (see Open Q1). CERO engine edit.
+      RED-first: pytest test_patch_rich_fields_routing + test_vo_dto_to_domain_invariants + test_detail_dto_carries_rich.
+    assignment:
+      primary_agent: builder-backend
+      model_preference: workhorse
+      must_load_skills: [backend-expert, offer-expert, tenant-isolation, backend-ddd, currency-handling, spanish-text, tdd-mandatory, "vitalia/.claude/rules/hipaa-lite.md"]
+      must_load_artifacts: ["03-arch-reconcile-delta.md (§ Part A)", "03-arch-be.md", "04-validators-reconcile-delta.yaml"]
+      forbidden_to_touch: ["core/luana-core-*/src", "core/@luana/ui-kit/src", "modules/vitalia/{copilot,sales_agent}", "other brands", "offer/domain (OfferExt already complete — DO NOT re-model)", "OfferServiceExtModel/offer_ext_repository (cols exist — NO migration)"]
+      rationale: >-
+        EXTEND existing OfferExt+repo (zero new layer, zero migration). Widen API both directions (write PATCH-fat
+        + read DTO). VOs designed as DTO shapes, built to frozen domain VOs at boundary. No agentic → R23 N/A → workhorse.
+        F3 (appointment_type) folds in (initial_appt_type already on OfferExt).
+
+  - id: T-R2
+    title: "FE · ServiceStatusBar inside ServicioWorkspaceShell + resolve orphan ServicioWorkspaceView (F1)"
+    phase: reconcile-delta
+    surface: frontend
+    production_code: true
+    depends_on: []
+    blocks: []
+    acceptance:
+      validator_ids: ["RD-1", "RD-2", "RD-3", "NF-3"]
+      gherkin_coverage: ["§1 activar (workspace)", "§3 chip-origen-readonly"]
+    scope: >-
+      ServicioWorkspaceShell.tsx MODIFY — add useActivateServicio() + render <ServiceStatusBar servicio onToggleActive
+      isToggling /> sticky immediately ABOVE {children} inside EntityWorkspaceLayout body (servicio already from
+      useServicioDetail). DO NOT re-wire layout.tsx → View (preserves G2 store-free SSR-safe layout — architectural
+      decision taken). DELETE ServicioWorkspaceView.tsx (orphan · grep importers first · remove from features/lisa
+      index.ts + repoint/remove its __tests__). Pass completeness (filledCount/totalCount/missingFields) from servicio
+      (post-T-R1 rich fields, or completeness summary if exposed). RED-first: vitest shell renders StatusBar + toggle.
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: workhorse
+      must_load_skills: [frontend-expert, vitalia-design-system, frontend-visual-fidelity, frontend-fsd, playwright-expert, tenant-isolation, anti-duplication, tdd-mandatory, ADR-vitalia-004]
+      must_load_artifacts: ["03-arch-reconcile-delta.md (§ Part C.1)", "03-arch-fe.md", "mockups/servicio-workspace.html", "docs/architecture/luana-platform/design-system-canon.md"]
+      forbidden_to_touch: ["@luana/ui-kit/src", "components/ui", "components/shared/shell-organism", "layout.tsx (do NOT re-wire to View)", "other features", "other brands"]
+      rationale: >-
+        F1 wiring · workhorse. StatusBar into shell (not re-wire layout — preserves SSR-safe G2). Delete orphan View.
+        useTenantId NUNCA orgId. Independent of T-R0/T-R1 (can run in parallel).
+
+  - id: T-R3
+    title: "FE · ResumenView fidelity — CollapsibleSection ×6 + hydrate+autosave all rich fields + modality conditionals + KnowledgeSourcesPanel wiring"
+    phase: reconcile-delta
+    surface: frontend
+    production_code: true
+    depends_on: [T-R0, T-R1]
+    blocks: []
+    acceptance:
+      validator_ids: ["RD-5", "RD-6", "RD-8", "RD-9", "RD-10", "RD-11", "RD-12", "AC-19"]
+      gherkin_coverage: ["§4 qué es+variantes", "§5 modalidad+agenda", "§6 ficha paciente", "§12 autosave"]
+    scope: >-
+      leaves/ResumenView.tsx MODIFY — replace 6 flat <Group> with <CollapsibleSection> from @luana/ui-kit (Identidad
+      defaultOpen · resto closed · summary 'N campos' · accentVar --agent-lisa · click toggle). Hydrate ALL rich field
+      .value from servicio (description_long/includes/excludes/warranty/procedure_steps/anesthesia_pain/prep/aftercare/
+      downtime/expected_result/result_timing/result_lifespan/realistic_expectations/risks/red_flags + initial_appt_
+      duration_minutes + initial_appt_type) + wire onChange→schedule({field}) (use-autosave 600ms · UNA
+      FloatingAutosaveIndicator). VariantsRepeater value={servicio.variants ?? []} + onChange→schedule({variants}) +
+      currency from servicio.currency (NOT 'USD'). Modality conditionals: sesiones→session_interval / recurrente→
+      recurrence_interval (NumberWithUnit + ValueWithUnit · reveal+bind+autosave). ServicioWorkspaceShell MODIFY —
+      mount KnowledgeSourcesPanel persistent cross-leaf (colapsable <details> per mockup). ResumenView consumes
+      @luana/ui-kit CollapsibleSection (no local accordion import). DO NOT delete components/ui/accordion.tsx
+      (2 live importers in features/mateo · out-of-scope · deferred cleanup per 03-arch-delta § C.2.5).
+      servicios.types.ts — add rich fields to
+      ServiceDetail (snake_case mirror) + ServicePatchRequest widen. RED-first: vitest hydration+autosave+conditionals.
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: workhorse
+      must_load_skills: [frontend-expert, vitalia-design-system, frontend-visual-fidelity, frontend-fsd, playwright-expert, offer-expert, brand-expert, spanish-text, currency-handling, tenant-isolation, anti-duplication, tdd-mandatory, ADR-vitalia-004]
+      must_load_artifacts: ["03-arch-reconcile-delta.md (§ Part C.2)", "03-arch-fe.md", "mockups/servicio-workspace.html", "01-spec.md (§ Mapa de campos)", "docs/architecture/luana-platform/design-system-canon.md"]
+      forbidden_to_touch: ["@luana/ui-kit/src (consume CollapsibleSection · do NOT edit)", "components/shared/shell-organism", "other leaves (ParaAdrian/Especialistas/PlanPago/PruebaSocial)", "EscaleraView/CatalogoView", "other features", "other brands"]
+      rationale: >-
+        The heart of the fidelity fix · workhorse. GATED on [T-R0 accepted/built (CollapsibleSection) + T-R1 (BE fields
+        readable+patchable)]. Hydrate + autosave + collapsibles + conditionals + KnowledgePanel. accordion.tsx dup deletion DEFERRED (mateo importers).
+        Design-system-canon HARD. UNA autosave indicator.
+
+  # ── Tests are embedded RED-first per ticket (TDD) · re-live-verify is the CLOSING gate ──
+  # No separate T-R-tests ticket: each builder writes its RED tests first (backend pytest in T-R1,
+  # vitest in T-R2/T-R3, Playwright real-backend + 8 visual goldens in T-R3). The final close = re-live-verify
+  # (DoD #37 · Chrome DevTools MCP · write+read+effect) + Chris chris_verify.signoff in G.
+
+# DAG (delta)
+dag: |
+  T-R0 (gated /pm-luana) ──┐
+  T-R1 (BE) ───────────────┴─→ T-R3 (FE ResumenView fidelity)
+  T-R2 (FE StatusBar) ── independent ──────────────────────────┘ (parallel · no dep)
+  CLOSE: T-R1 + T-R2 + T-R3 built → re-live-verify (DoD #37, MANDATORY) → /auditor → chris_verify.signoff (G) → /pm-vitalia merge
+  (T-R0 is a /pm-luana promotion-gate ticket — must be accepted+built in ui-kit BEFORE T-R3 consumes it)
+
+# Bucket lock (parallel-safety M14)
+buckets:
+  T-R1: "code:offer"
+  T-R2: "code:lisa (frontend servicios)"
+  T-R3: "code:lisa (frontend servicios)"      # serializes with T-R2 (same module bucket) — order T-R2 then T-R3, or coordinate
+  T-R0: "core (@luana/ui-kit · /pm-luana worktree or hub-scoped lift)"
+
+# Follow-up (NOT in this delta — flagged for /pm-vitalia reconcile R to spawn as visible story)
+follow_up_story:
+  - id: vitalia-fase2-adrian-ficha-rica-knowledge
+    state: idea
+    why: "build_identity reads engine Offer not OfferExt → Adrián doesn't see the rich ficha. Enhancement, not fidelity bug. AC-6 keystone already works with engine Offer."
+    owner_when_refined: builder-agentic
+    note: "vitalia-local override of TenantKnowledgeBuilder.build_identity joining OfferExt by offer_id. flagship (agentic). T-R1 read-path makes the data API-reachable."
+  - id: vitalia-fe-accordion-dedup-cleanup
+    state: idea
+    type: bugfix
+    why: "components/ui/accordion.tsx is a local copy of the Radix accordion (now superseded by @luana/ui-kit). 2 live importers in features/mateo (CobrarSaldoSubform, AppointmentDrawer) keep it alive. Deferred from this delta to avoid cross-feature scope creep."
+    owner_when_refined: builder-frontend
+    note: "Repoint mateo agenda components to @luana/ui-kit accordion + delete the local dup. anti-duplication. Scoped cleanup — touches features/mateo (out of lisa-servicios scope)."

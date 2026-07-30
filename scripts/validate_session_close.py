@@ -1,0 +1,276 @@
+#!/usr/bin/env python3
+# ruff: noqa: S607
+# Reason: invokes well-known commands (`git`, venv-relative `python`) where partial
+# path is intentional + acceptable. Repo PATH controls resolution.
+"""Stop hook validator — Wave 4 (R34).
+
+Runs at Claude Code session close to enforce invariants that ensure no
+context loss / no orphan state across sessions.
+
+Checks (each block-or-warn classified):
+
+  1. WIP cap enforcement (BLOCK if exceeded) — COARSE per-brand session-close net:
+     counts cap-eligible stories per macro-state in EVERY
+     {brand}/docs/product/BACKLOG.yaml against CAPS (below). Brands are
+     auto-discovered by layout (glob — no hardcoded enum; future brands picked up).
+     (legacy_exempt: stories tagged legacy:* exempt — forward-only enforcement.)
+     NOTE: the CANONICAL WIP cap is module-scoped (developed≤1 per code:{module}),
+     enforced by the pre-commit story-closure gate (story-closure-gate.md WIP-cap v2);
+     this Stop hook is the coarse net, NOT that gate.
+
+  2. BACKLOG freshness (WARN if stale):
+     - generate_backlog.py --check passes
+     - reconcile_capabilities.py --check passes
+     (run under the workspace-root .venv)
+
+  3. WIP not committed (WARN, suggest commit/stash):
+     - git status reports modified/untracked files
+
+  4. Story checkpoint freshness (WARN):
+     - Stories (in any {brand}/docs/product/stories) with state in ACTIVE_STATES
+       but checkpoint.md last_modified > 7d → flag stale
+
+Exit codes (Claude Code Stop hook protocol):
+  0 — session may close. Either fully clean OR warnings only (non-blocking).
+       WARNs print to stderr (visible to user, NOT fed back to model — avoids loop).
+  2 — BLOCK. Fed back to model as feedback (model must fix before closing).
+       Reserved for true blockers: WIP cap violations.
+
+Rationale: previous contract returned 2 for WARN as well, which made Claude
+Code re-prompt the model with the hook output every turn — uncommitted files
+caused infinite Stop-hook loops. WARN is now informational only.
+
+Run:
+  python scripts/validate_session_close.py [--repo PATH] [--quiet]
+
+Settings.json hook integration:
+  {
+    "hooks": {
+      "Stop": [{
+        "matcher": "",
+        "hooks": [{
+          "type": "command",
+          "command": "${CLAUDE_PROJECT_DIR}/.venv/bin/python "
+                     "${CLAUDE_PROJECT_DIR}/scripts/validate_session_close.py"
+        }]
+      }]
+    }
+  }
+"""
+
+from __future__ import annotations
+
+import argparse
+import subprocess
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+
+import yaml
+
+# ─── Constants — read from the harness seam project.config.yaml (D1 · W5b 2026-06-09) ───
+# COARSE per-brand session-close net. ONE store: scripts/generate_backlog.py reads the SAME
+# `wip_caps` slot, so the byte-identical CAPS dup is gone (charter §3 DRY). The module-scoped
+# ≤1 rule is a DIFFERENT concern (story-closure-gate.md + pre-commit 12-story-closure gate),
+# NOT duplicated here (D1 ratified).
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import harness_config as _hc  # noqa: E402 — own script dir put on sys.path above
+
+_WIP = _hc.get("wip_caps")
+CAPS = dict(_WIP["coarse_session_net"])  # refining_max … reviewing_max
+CHECKPOINT_STALE_DAYS = _WIP["staleness_days"]["checkpoint_stale"]
+ACTIVE_STATES = set(_WIP["active_states"])
+
+
+def _iter_brand_backlogs(repo: Path):
+    """Yield (brand, backlog_dict) for every {brand}/docs/product/BACKLOG.yaml.
+
+    Multibrand: the cap-eligible story buckets live PER-BRAND (the root
+    docs/product/BACKLOG.yaml is the platform/cross-brand backlog — outcomes,
+    no story buckets). Brands are auto-discovered by layout (glob, no hardcoded
+    enum) so future brands are picked up automatically (OCP).
+    """
+    for path in sorted(repo.glob("*/docs/product/BACKLOG.yaml")):
+        brand = path.relative_to(repo).parts[0]
+        try:
+            data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        except yaml.YAMLError:
+            continue
+        yield brand, data
+
+
+def check_wip_caps(repo: Path) -> list[str]:
+    """Return list of cap violations (BLOCK) — coarse per-brand net.
+
+    Counts cap-eligible stories (kind=story, no `legacy:*` tag — forward-only)
+    per macro-state in EACH brand's BACKLOG.yaml, comparing to CAPS per brand.
+    NOT the canonical module-scoped gate (that is the pre-commit story-closure
+    gate, story-closure-gate.md WIP-cap v2) — this is a coarse session-close net.
+    """
+    violations: list[str] = []
+    for brand, backlog in _iter_brand_backlogs(repo):
+        buckets = backlog.get("buckets", {})
+        for state, cap_key in [
+            ("refining", "refining_max"),
+            ("refined", "refined_max"),
+            ("ready", "ready_max"),
+            ("developing", "developing_max"),
+            ("developed", "developed_max"),
+            ("reviewing", "reviewing_max"),
+        ]:
+            items = buckets.get(state, [])
+            # Filter cap-eligible: kind=story AND no legacy:* tag
+            eligible = [
+                it
+                for it in items
+                if isinstance(it, dict)
+                and it.get("kind") == "story"
+                and not any(str(t).startswith("legacy:") for t in it.get("tags", []))
+            ]
+            n = len(eligible)
+            cap = CAPS[cap_key]
+            if n > cap:
+                violations.append(
+                    f"[{brand}] {state}: {n} cap-eligible stories > cap {cap} ({n - cap} over). Park or finish before adding more."
+                )
+    return violations
+
+
+def check_backlog_freshness(repo: Path) -> list[str]:
+    """Run generate_backlog.py --check + reconcile_capabilities.py --check. Return warnings."""
+    warns: list[str] = []
+    venv_py = repo / ".venv" / "bin" / "python"
+    if not venv_py.exists():
+        return [".venv/bin/python missing — skipping freshness checks"]
+
+    for script_name, label in [
+        ("generate_backlog.py", "BACKLOG drift"),
+        ("reconcile_capabilities.py", "Capability status drift"),
+    ]:
+        script = repo / "scripts" / script_name
+        if not script.exists():
+            continue
+        result = subprocess.run(  # noqa: S603
+            [str(venv_py), str(script), "--check"],
+            cwd=str(repo),
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=30,
+        )
+        if result.returncode != 0:
+            warns.append(
+                f"{label}: {result.stdout.strip().splitlines()[0] if result.stdout else 'failed'}"
+            )
+    return warns
+
+
+def check_uncommitted_wip(repo: Path) -> list[str]:
+    """Detect modified/untracked files. Return warnings."""
+    result = subprocess.run(
+        ["git", "status", "--short"],
+        cwd=str(repo),
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        return []
+    lines = [ln for ln in result.stdout.splitlines() if ln.strip()]
+    if not lines:
+        return []
+    return [f"{len(lines)} uncommitted file(s) — commit or stash before close."]
+
+
+def check_checkpoint_staleness(repo: Path) -> list[str]:
+    """Stories (any {brand}/docs/product/stories) in ACTIVE_STATES, checkpoint.md >7d."""
+    warns: list[str] = []
+    cutoff = datetime.now(timezone.utc).timestamp() - CHECKPOINT_STALE_DAYS * 86400
+    for stories_dir in sorted(repo.glob("*/docs/product/stories")):
+        brand = stories_dir.relative_to(repo).parts[0]
+        for d in sorted(stories_dir.iterdir()):
+            if not d.is_dir() or d.name.startswith("."):
+                continue
+            cp = d / "checkpoint.md"
+            if not cp.exists():
+                continue
+            try:
+                text = cp.read_text(encoding="utf-8")
+            except OSError:
+                continue
+            # Quick state extraction
+            state = None
+            for line in text.split("\n", 50):
+                if line.startswith("state:"):
+                    state = line.split(":", 1)[1].strip()
+                    break
+            if state not in ACTIVE_STATES:
+                continue
+            mtime = cp.stat().st_mtime
+            if mtime < cutoff:
+                age_days = int((datetime.now(timezone.utc).timestamp() - mtime) / 86400)
+                warns.append(
+                    f"[{brand}] {d.name}: state={state}, checkpoint.md {age_days}d stale (>7d)"
+                )
+    return warns
+
+
+def main() -> int:
+    """CLI entrypoint."""
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--repo",
+        type=Path,
+        default=Path(__file__).resolve().parents[1],
+        help="Repo root. Default: script's parent.",
+    )
+    parser.add_argument(
+        "--quiet", action="store_true", help="Only print on warn/block."
+    )
+    args = parser.parse_args()
+
+    block_violations: list[str] = []
+    warns: list[str] = []
+
+    if not any(True for _ in _iter_brand_backlogs(args.repo)):
+        warns.append(
+            "no {brand}/docs/product/BACKLOG.yaml found — run scripts/generate_backlog.py first."
+        )
+    block_violations.extend(check_wip_caps(args.repo))
+
+    warns.extend(check_backlog_freshness(args.repo))
+    warns.extend(check_uncommitted_wip(args.repo))
+    warns.extend(check_checkpoint_staleness(args.repo))
+
+    if block_violations:
+        # BLOCK → stdout (Claude Code feeds stdout back to model on exit 2)
+        print("\n\033[31m" + "─" * 65)  # noqa: T201
+        print("STOP HOOK BLOCKED — WIP caps exceeded:")  # noqa: T201
+        print("─" * 65)  # noqa: T201
+        for v in block_violations:
+            print(f"  ❌ {v}")  # noqa: T201
+        print("─" * 65)  # noqa: T201
+        print("Resolution: park/drop/finish stories before closing session.")  # noqa: T201
+        print(
+            "Edit checkpoint.md state field OR ideas-pool.yaml entry to park/drop.\033[0m"
+        )  # noqa: T201
+        return 2
+
+    if warns:
+        # WARN → stderr (visible to user, NOT fed to model — exit 0 avoids loop)
+        if not args.quiet:
+            print("\n\033[33m" + "─" * 65, file=sys.stderr)  # noqa: T201
+            print("STOP HOOK WARN — review before close:", file=sys.stderr)  # noqa: T201
+            print("─" * 65, file=sys.stderr)  # noqa: T201
+            for w in warns:
+                print(f"  ⚠ {w}", file=sys.stderr)  # noqa: T201
+            print("─" * 65 + "\033[0m", file=sys.stderr)  # noqa: T201
+        return 0
+
+    if not args.quiet:
+        print("\033[32m✅ Stop hook OK — session clean.\033[0m")  # noqa: T201
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

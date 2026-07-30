@@ -1,0 +1,160 @@
+name: "CD — Produccion multibrand"
+
+# Pipeline de deploy a produccion por brand.
+# Trigger: push a branches release/{brand}-vX.Y.Z
+#
+# Flujo:
+#   1. parse-release: extrae brand + version del nombre del branch via regex.
+#      Falla con mensaje claro si el formato es invalido.
+#   2. detect-changes: dorny/paths-filter verifica si hay cambios en {brand}/** o core/**.
+#      Si no hay cambios → job deploy es SKIPPED (intencional, no error).
+#   3. deploy: llama al workflow reutilizable _deploy-brand.yml con gating via GitHub Environment.
+#   4. extract-changelog: extrae notas de la seccion [Sin lanzar] y crea el GitHub Release.
+#
+# Branching convention: release/{brand}-vX.Y.Z
+# Ejemplos: release/vitalia-v0.3.0, release/nicolify-v1.2.0, release/comunify-v1.0.0-rc1
+#
+# PROHIBIDO modificar release.yml (publish luana-core-* a GH Packages).
+# Ref: S-CICD-DEPLOY 05-guidelines.md § F1 + .claude/rules/git-safety.md
+#
+# Arch ref: S-CICD-DEPLOY 03-arch.md § cd-prod.yml
+
+on:
+  push:
+    branches:
+      - 'release/**'
+
+# Permisos minimos globales — cada job declara los propios
+permissions:
+  contents: read
+
+jobs:
+  parse-release:
+    name: "parse-release-branch"
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      brand: ${{ steps.parse.outputs.brand }}
+      version: ${{ steps.parse.outputs.version }}
+
+    steps:
+      - name: Extraer brand y version del nombre del branch
+        id: parse
+        run: |
+          BRANCH="${GITHUB_REF#refs/heads/}"
+          echo "Branch de release: ${BRANCH}"
+
+          # Validar formato general: release/{brand}-vX.Y.Z (SemVer con prerelease opcional)
+          # Acepta: release/vitalia-v0.3.0, release/comunify-v1.0.0-rc1
+          # Rechaza: release/invalido-vbroken, release/vitalia-1.2.3, release/-v1.0.0
+          if [[ ! "${BRANCH}" =~ ^release/([a-z][a-z0-9-]*)-v([0-9]+\.[0-9]+\.[0-9]+.*)$ ]]; then
+            echo "::error::Branch format invalido: ${BRANCH}."
+            echo "::error::Formato esperado: release/{brand}-vX.Y.Z (ej: release/vitalia-v0.3.0)"
+            exit 1
+          fi
+
+          BRAND="${BASH_REMATCH[1]}"
+          VERSION="${BASH_REMATCH[2]}"
+
+          # Validar que la version base cumple SemVer (X.Y.Z obligatorio)
+          if [[ ! "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+            echo "::error::Branch format invalido: ${BRANCH}."
+            echo "::error::Formato esperado: release/{brand}-vX.Y.Z (ej: release/vitalia-v0.3.0)"
+            exit 1
+          fi
+
+          # Validar whitelist de brands conocidas
+          KNOWN_BRANDS="nicolify vitalia comunify lupulo"
+          BRAND_VALID=false
+          for KNOWN in ${KNOWN_BRANDS}; do
+            if [ "${BRAND}" = "${KNOWN}" ]; then
+              BRAND_VALID=true
+              break
+            fi
+          done
+
+          if [ "${BRAND_VALID}" = "false" ]; then
+            echo "::error::Brand '${BRAND}' no reconocida. Brands validas: ${KNOWN_BRANDS}."
+            echo "::error::Al hacer bootstrap de una nueva marca, agregar al whitelist en parse-release."
+            exit 1
+          fi
+
+          echo "Parseado → brand=${BRAND} version=${VERSION}"
+          echo "brand=${BRAND}" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+  detect-changes:
+    name: "Detectar cambios en ${{ needs.parse-release.outputs.brand }}"
+    needs: parse-release
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      should_deploy: ${{ steps.filter.outputs.brand_or_core }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Log scope de deteccion
+        run: |
+          echo "Verificando cambios en: ${{ needs.parse-release.outputs.brand }}/** y core/**"
+
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            brand_or_core:
+              - '${{ needs.parse-release.outputs.brand }}/**'
+              - 'core/**'
+
+      - name: Log decision de deploy
+        run: |
+          if [ "${{ steps.filter.outputs.brand_or_core }}" = "false" ]; then
+            echo "No changes detected in ${{ needs.parse-release.outputs.brand }}/** or core/**. Deploy skipped."
+          else
+            echo "Cambios detectados — se procedera con el deploy."
+          fi
+
+  deploy:
+    name: "Deploy ${{ needs.parse-release.outputs.brand }} v${{ needs.parse-release.outputs.version }} → prod"
+    needs: [parse-release, detect-changes]
+    if: needs.detect-changes.outputs.should_deploy == 'true'
+    uses: ./.github/workflows/_deploy-brand.yml
+    with:
+      brand: ${{ needs.parse-release.outputs.brand }}
+      version: ${{ needs.parse-release.outputs.version }}
+      environment: ${{ needs.parse-release.outputs.brand }}-prod
+    secrets: inherit
+
+  extract-changelog:
+    name: "Extraer notas de release y crear GitHub Release"
+    needs: [parse-release, deploy]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extraer seccion [Sin lanzar] del CHANGELOG del brand
+        run: |
+          python scripts/extract_changelog_section.py \
+            --brand "${{ needs.parse-release.outputs.brand }}" \
+            --section Unreleased \
+            > release_notes.md
+          echo "--- Notas de release generadas ---"
+          cat release_notes.md
+
+      - name: Crear GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BRAND="${{ needs.parse-release.outputs.brand }}"
+          VERSION="${{ needs.parse-release.outputs.version }}"
+          gh release create "release/${BRAND}-v${VERSION}" \
+            --title "${BRAND} v${VERSION}" \
+            --notes-file release_notes.md \
+            --target main \
+            || echo "::warning::GitHub Release ya existe o fallo la creacion. Continua."

@@ -1,0 +1,22 @@
+# Vitalia Adrián eval persona — estetica busy professional (time objection)
+# voseo-allowed: persona simula lead AR.
+persona_id: estetica_objection_time
+archetype: caregiver
+dialect: es-AR
+vertical: estetica
+voice_constraints:
+  formality: informal
+  opening: "Hola, quería info de depilación pero la verdad ando muy ocupada esta época"
+  common_objections:
+    - "No tengo tiempo en la semana"
+    - "8 sesiones es mucho compromiso"
+    - "Solo puedo sábados o noches"
+  red_flags:
+    - presionar_horarios
+    - prometer_sesiones_express
+profile:
+  intent: explore_flexibility
+  urgency: low
+  budget_hint: flexible
+  emotional_state: stressed
+  tech_savvy: high

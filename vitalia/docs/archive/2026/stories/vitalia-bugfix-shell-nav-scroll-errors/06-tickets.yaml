@@ -1,0 +1,189 @@
+# 06-tickets.yaml — vitalia-bugfix-shell-nav-scroll-errors
+# Bugfix lite (ADR-011). 6 tickets, FE-only, todos builder-frontend/sonnet. Cap ≤10 OK.
+# Repro-first: cada ticket reproduce el bug LOCAL/dev-app antes de fixear (gate ADR-011).
+
+story_id: vitalia-bugfix-shell-nav-scroll-errors
+brand: vitalia
+type: bugfix
+total_tickets: 6
+
+tickets:
+  - id: T-1
+    title: "Bug #1 — Routing post-login → ruta válida (valeria/agenda → mateo/agenda)"
+    surface: FE
+    production_code: true
+    severity: high
+    owner_eligibility: [sonnet, opencode, opus]
+    depends_on: []
+    blocks: []
+    repro_verified: false
+    repro_evidence:
+      env: "dev-app.vitalialat.com + local next dev"
+      expected: "login → /{tenantId} → redirect a /{tenantId}/valeria/agenda → 404. Confirmar 404 + que /mateo/agenda renderiza."
+      diagnosis_validates_handoff: pending
+    deliverables:
+      - "src/lib/shell-routes.ts: export const DEFAULT_LANDING_SUBPATH = 'mateo/agenda'"
+      - "Reemplazar valeria/agenda → DEFAULT_LANDING_SUBPATH en app/page.tsx:49, (shell-organism)/page.tsx:33, (shell-organism)/layout.tsx:76"
+      - "Actualizar comentarios stale (page.tsx, (shell-organism)/page.tsx, layout.tsx)"
+      - "coverage_update: not-found.test.tsx:88 + SubSubTabsBar.test.tsx:141 (revisar diff)"
+      - "test RED: default landing no 404 (renderiza mateo/agenda)"
+    acceptance:
+      validator_ids: [fe_typecheck, fe_lint, fe_unit_shell, e2e_shell_runtime_error_gate, arch_fsd_boundaries]
+    gherkin_coverage: ["bug1_routing_lands_valid", "RN-1"]
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: sonnet
+      must_load_skills: [vitalia-design-system, frontend-expert, playwright-expert, ".claude/rules/hotfix-repro-mandatory.md"]
+      forbidden_to_touch: ["core/luana-core-*/", "vitalia/backend/", "vitalia/frontend/src/components/ui/", "vitalia/frontend/src/features/lisa/components/staff/"]
+      rationale: "Routing FE non-agentic; cambio acotado + SSoT const. Sonnet sweet spot."
+
+  - id: T-2
+    title: "Bug #4 — Scroll: AppPanelSlot content wrapper overflow-hidden → overflow-y-auto"
+    surface: FE
+    production_code: true
+    severity: high
+    owner_eligibility: [sonnet, opencode, opus]
+    depends_on: []
+    blocks: []
+    repro_verified: false
+    repro_evidence:
+      env: "dev-app.vitalialat.com"
+      expected: "hoja con contenido largo no scrollea (sin rueda ni barra). Confirmar overflow-hidden en AppPanelSlot.tsx:61."
+      diagnosis_validates_handoff: pending
+    deliverables:
+      - "src/components/shared/shell-organism/AppPanelSlot.tsx:61 → overflow-y-auto (mantener flex-1 min-h-0)"
+      - "Verificar live: hoja larga scrollea (rueda+barra) + agenda (scroll interno) sin doble-scroll roto"
+    acceptance:
+      validator_ids: [fe_typecheck, fe_lint, e2e_shell_runtime_error_gate]
+    gherkin_coverage: ["bug4_content_scrolls", "RN-4"]
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: sonnet
+      must_load_skills: [vitalia-design-system, frontend-expert, chrome-devtools-verify, playwright-expert]
+      forbidden_to_touch: ["core/luana-core-*/", "vitalia/frontend/src/components/ui/", "vitalia/frontend/src/app/layout.tsx"]
+      rationale: "Fix de 1 línea; verificación live es el grueso (DoD #37 scroll real)."
+
+  - id: T-3
+    title: "Bug #7 — Error boundary genérico [agent]/error.tsx (aísla fallo al panel, nav viva)"
+    surface: FE
+    production_code: true
+    severity: high
+    owner_eligibility: [sonnet, opencode, opus]
+    depends_on: []
+    blocks: []
+    repro_verified: false
+    repro_evidence:
+      env: "dev-app.vitalialat.com"
+      expected: "forzar throw en contenido de una hoja → chrome muere / nav bloqueada. Confirmar ausencia de [agent]/error.tsx genérico."
+      diagnosis_validates_handoff: pending
+    deliverables:
+      - "CREATE src/app/[tenantId]/(shell-organism)/[agent]/error.tsx ('use client' + default export; patrón de mateo/agenda/error.tsx, genérico, NO-PHI log)"
+      - "test: throw en contenido → fallback en panel + Reintentar(reset) + Ribbon/SubTabsBar/Valeria clickeables"
+    acceptance:
+      validator_ids: [fe_typecheck, fe_lint, e2e_shell_runtime_error_gate]
+    gherkin_coverage: ["bug7_error_isolated_nav_alive", "RN-6"]
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: sonnet
+      must_load_skills: [vitalia-design-system, frontend-expert, playwright-expert, ".claude/rules/spanish-text.md"]
+      forbidden_to_touch: ["core/luana-core-*/", "vitalia/frontend/src/components/ui/"]
+      rationale: "Nuevo boundary Next.js convención; aísla blast-radius (también mitiga Bug #6 lisa-doctores)."
+
+  - id: T-4
+    title: "Bug #2 — Selector de tenant visible con 1 tenant (rehidratar tenant-store + repro-first)"
+    surface: FE
+    production_code: true
+    severity: medium
+    owner_eligibility: [sonnet, opencode, opus]
+    depends_on: []
+    blocks: []
+    repro_verified: false
+    repro_evidence:
+      env: "dev-app.vitalialat.com (login dr.demo)"
+      expected: >
+        Causa confirmada parcial: useStoreHydration(useTenantStore) NUNCA se llama (tenant-store skipHydration).
+        REPRO OBLIGATORIO: abrir topbar, inspeccionar Network /api/tenants (¿vacío? ¿1 item?) + estado store
+        (React DevTools) + console. Confirmar si el selector retorna null por :99 (availableTenants=0) o :106
+        (!activeTenant). Si /api/tenants devuelve vacío → hallazgo de datos/endpoint (escalar, NO forzar UI).
+      diagnosis_validates_handoff: pending
+    deliverables:
+      - "Llamar useStoreHydration(useTenantStore) dentro del chunk ssr:false (ShellOrganismLayoutClient, antes de branches — D3) o TenantStoreBootstrap"
+      - "Garantizar trigger visible con ≥1 tenant (ajustar TenantSwitcher.tsx:106 si el repro lo confirma)"
+      - "test RED del repro + GREEN del fix"
+      - "Si /api/tenants vacío para dev-app user → documentar en impl-log + escalar (posible fold a otra story)"
+    acceptance:
+      validator_ids: [fe_typecheck, fe_lint, fe_unit_shell, arch_fsd_boundaries, e2e_shell_runtime_error_gate]
+    gherkin_coverage: ["bug2_tenant_selector_visible_single_tenant", "empty_state_no_tenants", "RN-2"]
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: sonnet
+      must_load_skills: [vitalia-design-system, frontend-expert, chrome-devtools-verify, ".claude/rules/tenant-isolation.md", ".claude/rules/hotfix-repro-mandatory.md"]
+      forbidden_to_touch: ["core/luana-core-*/", "vitalia/frontend/src/components/ui/"]
+      rationale: "Causa raíz no 100% determinable estática → repro-first crítico. Tenant resolution sensible (no-Clerk-org)."
+
+  - id: T-5
+    title: "Bug #5 — Eliminar recuadro 'Editor de landing pública — próximamente' en Presencia"
+    surface: FE
+    production_code: true
+    severity: low
+    owner_eligibility: [sonnet, opencode, opus]
+    depends_on: []
+    blocks: [T-6]   # ambos tocan PresenciaView → secuenciar antes de #3
+    repro_verified: true
+    repro_evidence:
+      env: "static read"
+      output: "InfoBannerLandingDescoped.tsx:62 'Editor de landing pública — próximamente' renderizado por PresenciaView.tsx:145-148"
+      diagnosis_validates_handoff: true
+    deliverables:
+      - "Quitar render + import del banner en PresenciaView.tsx"
+      - "Remover exports en features/lisa/components/marca/presencia/index.ts:15-16"
+      - "DELETE InfoBannerLandingDescoped.tsx (knip verde)"
+      - "NO construir editor (scope: solo eliminar)"
+    acceptance:
+      validator_ids: [fe_typecheck, fe_lint, fe_knip_deadcode, fe_unit_lisa_marca, e2e_shell_runtime_error_gate]
+    gherkin_coverage: ["bug5_no_landing_placeholder_presencia", "RN-5"]
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: sonnet
+      must_load_skills: [vitalia-design-system, frontend-expert]
+      forbidden_to_touch: ["core/luana-core-*/", "vitalia/frontend/src/components/ui/", "vitalia/frontend/src/features/lisa/components/staff/"]
+      rationale: "Eliminación acotada + dead-code cleanup. Toca PresenciaView → antes de T-6."
+
+  - id: T-6
+    title: "Bug #3 — Eliminar títulos de hoja redundantes (eco de la nav) en todas las hojas"
+    surface: FE
+    production_code: true
+    severity: medium
+    owner_eligibility: [sonnet, opencode, opus]
+    depends_on: [T-5]   # comparte PresenciaView.tsx con T-5
+    blocks: []
+    repro_verified: true
+    repro_evidence:
+      env: "static read"
+      output: "SubTabContent.tsx:137 SubTabHeader (eco ~17 rutas + doble-título Servicios:82/Conexiones:92) + IdentidadView:234/VozTonoView:197/PresenciaView:126 h2-eco"
+      diagnosis_validates_handoff: true
+    deliverables:
+      - "Quitar <SubTabHeader> de SubTabContent.tsx (mata eco placeholder + doble-título Servicios/Conexiones)"
+      - "Quitar h2-eco superior de IdentidadView / VozTonoView / PresenciaView (conservar AutosaveBadge de Presencia)"
+      - "Si SubTabHeader.tsx queda huérfano → DELETE + su test (knip)"
+      - "PRESERVAR headings de sección intra-contenido (form sections)"
+      - "NON-EGOÍSMO: lisa/staff StaffDirectoryHeader h1 'Staff' → reportar en impl-log para lisa-doctores, NO tocar"
+    acceptance:
+      validator_ids: [fe_typecheck, fe_lint, fe_knip_deadcode, fe_unit_shell, fe_unit_lisa_marca, e2e_shell_runtime_error_gate]
+    gherkin_coverage: ["bug3_no_redundant_sheet_title", "RN-3"]
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: sonnet
+      must_load_skills: [vitalia-design-system, frontend-expert, ".claude/rules/frontend-visual-fidelity.md", playwright-expert]
+      forbidden_to_touch: ["core/luana-core-*/", "vitalia/frontend/src/components/ui/", "vitalia/frontend/src/features/lisa/components/staff/"]
+      rationale: "Transversal con juicio (eco vs sección). Scope discipline + non-egoísmo (excluir staff)."
+
+# ─── DAG ───
+# T-1, T-2, T-3, T-4 independientes (paralelizables).
+# T-5 → T-6 (ambos tocan PresenciaView.tsx).
+dag:
+  - "T-1 (indep)"
+  - "T-2 (indep)"
+  - "T-3 (indep)"
+  - "T-4 (indep · repro-first)"
+  - "T-5 → T-6 (shared PresenciaView)"

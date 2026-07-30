@@ -1,0 +1,403 @@
+<!--
+  voseo-allowed: glosario reference legítima — ejemplos dentro de textarea "ASÍ NO HABLO" + select option "Voseo (vos)" identificador técnico variante regional.
+  v2.1 (2026-05-27) Mockup: vitalia-fase2-lisa-marca · sub-sub-tab Voz y tono
+  ★ Refactor v2.1: shell wrapper fiel a canónico (vitalia-shell-organism/mockups/dual-mode-shell.html
+                   + vitalia-fase1-valeria-chat-skeleton/mockups/valeria-chat-sample.html).
+                   Panel-content (cards de Voz y tono) es código propio de esta story.
+                   Splitter responsive con 3 estados.
+  Source spec: vitalia/docs/product/stories/vitalia-fase2-lisa-marca/01-spec.md v2
+  ADR ref: ADR-vitalia-004 v1.1 § 3.1.1 (N3-static SubSubTabsBar)
+  Defaults: OQ-B=4 archetypes salud, OQ-C=BrandVoicePreview backend, OQ-E=preview footer único
+  Anti-creep: NO health_voice_validator. Soft warning vía vitalia_prohibited_phrases. Reuse compiler v2 sales-agent.
+  Idioma chrome UI: español neutro LatAm (no voseo).
+-->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>v2.1 · Voz y tono · Lisa Marca — mockup shell responsive</title>
+<link rel="stylesheet" href="_shared.css" />
+<style>
+  /* Voz-tono-specific */
+  .arch-card {
+    cursor: pointer; padding: 0.75rem;
+    border-radius: var(--radius);
+    border: 2px solid hsl(var(--border));
+    background: hsl(var(--card));
+    transition: all 0.15s;
+    position: relative;
+  }
+  .arch-card:hover { border-color: hsl(var(--agent-lisa) / 0.55); }
+  .arch-card[data-selected="true"] {
+    border-color: hsl(var(--agent-lisa));
+    background: hsl(var(--agent-lisa-soft));
+  }
+  .arch-card[data-recommended="true"]::after {
+    content: "✓ sugerido"; position: absolute; top: -8px; right: 8px;
+    background: hsl(var(--agent-lisa)); color: white;
+    padding: 0.125rem 0.4375rem;
+    border-radius: 9999px;
+    font-size: 0.625rem; font-weight: 600;
+  }
+  .arch-icon { font-size: 1.25rem; display: block; }
+  .arch-name { font-weight: 600; font-size: 0.8125rem; margin-top: 0.25rem; }
+  .arch-desc { font-size: 0.6875rem; color: hsl(var(--muted-foreground)); margin-top: 0.25rem; line-height: 1.4; }
+  .voice-alert {
+    padding: 0.75rem;
+    border-radius: var(--radius);
+    display: flex; gap: 0.625rem; align-items: flex-start;
+    font-size: 0.8125rem; margin-top: 0.625rem;
+  }
+  .voice-alert-warning {
+    background: hsl(var(--warning) / 0.1);
+    border: 1px solid hsl(var(--warning) / 0.35);
+    color: hsl(var(--warning));
+  }
+  .phrase-blocked {
+    background: hsl(var(--warning) / 0.18);
+    color: hsl(var(--warning));
+    padding: 0.0625rem 0.3125rem;
+    border-radius: 0.25rem;
+    text-decoration: line-through;
+    text-decoration-color: hsl(var(--warning) / 0.6);
+  }
+  .preview-bubble {
+    background: hsl(var(--agent-valeria) / 0.1);
+    border: 1px solid hsl(var(--agent-valeria) / 0.25);
+    border-radius: 1.125rem;
+    padding: 0.625rem 0.875rem;
+    font-size: 0.8125rem; line-height: 1.5;
+  }
+  .preview-bubble-camila {
+    background: hsl(var(--agent-camila) / 0.08);
+    border-color: hsl(var(--agent-camila) / 0.22);
+  }
+  .agent-bubble-label {
+    display: inline-flex; align-items: center; gap: 0.4375rem;
+    font-size: 0.6875rem; font-weight: 500;
+    color: hsl(var(--agent-valeria));
+    margin-bottom: 0.3125rem;
+  }
+  .agent-bubble-label .dot {
+    width: 10px; height: 10px; border-radius: 9999px;
+    background: hsl(var(--agent-valeria));
+  }
+  .agent-bubble-label[data-agent="camila"] { color: hsl(var(--agent-camila)); }
+  .agent-bubble-label[data-agent="camila"] .dot { background: hsl(var(--agent-camila)); }
+</style>
+</head>
+<body>
+
+<div class="shell-root">
+
+  <!-- ============================================================
+       TOPBAR (mismo wrapper que identidad — portado canónico)
+       ============================================================ -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-logo">
+        <div class="topbar-logo-mark">V</div>
+        <span>Vitalia</span>
+      </div>
+      <span class="topbar-breadcrumb">› Clínica Dental Lima Centro</span>
+    </div>
+    <div class="topbar-right">
+      <div class="splitter-control" role="group" aria-label="Estado del divisor (mockup demo)">
+        <button class="splitter-btn" data-state="chat-collapsed" title="Solo rail Valeria (60px)">◧</button>
+        <button class="splitter-btn" data-state="chat-narrow"    title="Valeria estrecha (360px)">◨</button>
+        <button class="splitter-btn" data-state="50-50" data-active="true" title="50/50 dual-mode">⬓</button>
+      </div>
+      <button class="topbar-icon-btn" id="theme-toggle" title="Cambiar tema">🌓</button>
+      <button class="tenant-chip" title="Cambiar tenant">
+        <span class="tenant-chip-avatar">SP</span>
+        <span>Sonrisa Plena</span>
+        <span style="color: hsl(var(--muted-foreground)); font-size: 0.625rem;">▾</span>
+      </button>
+      <div class="avatar bg-agent-valeria" style="width: 28px; height: 28px; font-size: 0.6875rem;" title="Tu usuario">CL</div>
+    </div>
+  </header>
+
+  <div class="shell-body" data-splitter-state="50-50" id="shell-body">
+
+    <!-- ====== CHAT SIDE Valeria (mismo wrapper canónico) ====== -->
+    <aside class="chat-side">
+
+      <div class="chat-rail-only">
+        <div class="rail-btn active" title="Chat Valeria">💬</div>
+        <div class="rail-btn" title="Historial">📜</div>
+        <div class="rail-btn" title="Nueva conversación">＋</div>
+      </div>
+
+      <div class="chat-content">
+
+        <header class="chat-header">
+          <div class="chat-avatar-wrap">
+            <div class="chat-avatar">V</div>
+            <span class="chat-status-dot" aria-hidden="true"></span>
+          </div>
+          <div class="chat-meta">
+            <span class="chat-name">Valeria</span>
+            <span class="chat-role">En línea · Tu secretaria virtual</span>
+          </div>
+          <span class="chat-mode-pill">🤖 Modo agente</span>
+        </header>
+
+        <div class="chat-history-strip">
+          📜 Hoy 10:32 · Cobranza Sofía · Ayer 18:00 · Confirmación Carlos · Ayer 15:30 · Recordatorio Ana
+        </div>
+
+        <div class="chat-messages" role="log" aria-live="polite" aria-label="Conversación con Valeria">
+
+          <div class="msg-row" data-role="bot">
+            <div class="msg-bubble">
+              Veo que estás afinando la voz de la marca. Prueba la frase <em>"Garantizamos curar tu sonrisa"</em> en <strong>ASÍ NO HABLO</strong> — te muestro un ejemplo de cómo lo detectamos en tiempo real.
+            </div>
+            <span class="msg-time">Valeria · 10:35</span>
+          </div>
+
+          <div class="msg-row" data-role="bot">
+            <div class="msg-bubble">
+              Cuando ajustes la voz, el preview compilado abajo se actualiza solo (slot <code>BRAND_VOICE</code> · compiler v2). Sin retraining ni fine-tuning.
+            </div>
+            <span class="msg-time">Valeria · 10:35</span>
+          </div>
+
+          <div class="msg-delegate">
+            <span>→ delegando a</span>
+            <span class="agent-tag"><span class="dot"></span>Camila</span>
+            <span>(análisis de tono)</span>
+          </div>
+
+        </div>
+
+        <footer class="chat-composer">
+          <div class="composer-row">
+            <div class="composer-adornos">
+              <button class="composer-adorno-btn" aria-label="Adjuntar archivo">📎</button>
+              <button class="composer-adorno-btn" aria-label="Mensaje de voz">🎙️</button>
+              <button class="composer-adorno-btn" aria-label="Comandos rápidos">⚡</button>
+            </div>
+            <textarea class="composer-textarea" rows="1" placeholder="Escribe a Valeria…"></textarea>
+            <button class="composer-send">Enviar</button>
+          </div>
+          <p class="composer-hint">
+            <span class="kbd">Cmd</span> + <span class="kbd">K</span> enfoca el composer.
+          </p>
+        </footer>
+
+      </div>
+    </aside>
+
+    <!-- ====== PANEL SIDE ====== -->
+    <main class="panel-side">
+
+      <nav class="ribbon" aria-label="Agentes">
+        <button class="ribbon-tab" data-active="true" data-color="lisa">
+          <span class="ribbon-tab-avatar bg-agent-lisa" data-color="lisa">L</span>
+          <span>Lisa <span style="font-size: 0.625rem; color: hsl(var(--muted-foreground)); font-weight: 400;">· Marca</span></span>
+        </button>
+        <button class="ribbon-tab" data-color="lucas"><span class="ribbon-tab-avatar bg-agent-lucas" data-color="lucas">Lc</span><span>Lucas</span></button>
+        <button class="ribbon-tab" data-color="adrian"><span class="ribbon-tab-avatar bg-agent-adrian" data-color="adrian">A</span><span>Adrián</span></button>
+        <button class="ribbon-tab" data-color="valeria"><span class="ribbon-tab-avatar bg-agent-valeria" data-color="valeria">V</span><span>Valeria</span></button>
+        <button class="ribbon-tab" data-color="camila"><span class="ribbon-tab-avatar bg-agent-camila" data-color="camila">Ca</span><span>Camila</span></button>
+        <button class="ribbon-tab" data-color="config"><span class="ribbon-tab-avatar" data-color="config" style="background: hsl(var(--muted)); color: hsl(var(--muted-foreground));">⚙</span><span>Configurar</span></button>
+      </nav>
+
+      <nav class="subtabs-bar" aria-label="Sub-secciones Lisa">
+        <button class="subtab-btn" data-active="true" data-color="lisa">Marca</button>
+        <button class="subtab-btn">Doctores</button>
+        <button class="subtab-btn">Servicios</button>
+        <button class="subtab-btn">Compliance</button>
+      </nav>
+
+      <nav class="subsubtabs-bar" aria-label="Sub-sub-secciones Marca">
+        <button class="subsubtab-btn" data-slug="identidad">📝 Identidad</button>
+        <button class="subsubtab-btn" data-active="true" data-slug="voz-y-tono">🎤 Voz y tono</button>
+        <button class="subsubtab-btn" data-slug="presencia">🌐 Presencia</button>
+      </nav>
+
+      <div class="panel-content">
+        <div class="panel-inner">
+
+          <div class="section-header">
+            <div>
+              <h1 class="section-title">Voz y tono</h1>
+              <p class="section-subtitle">Cómo habla tu clínica con pacientes — alimenta a Valeria y Camila al conversar.</p>
+            </div>
+            <span class="autosave-badge chip-success">
+              <span style="width: 6px; height: 6px; border-radius: 9999px; background: hsl(var(--success));"></span>
+              Guardado hace 5s
+            </span>
+          </div>
+
+          <div class="cards-stack">
+
+            <!-- Card: Archetype selector 4 cards (OQ-B default = 4 salud-friendly) -->
+            <section class="card">
+              <h2 class="card-title">🎭 Arquetipo principal</h2>
+              <p class="hint" style="margin-bottom: 0.625rem;">Sugerido por tu vertical (dental).</p>
+
+              <div class="cards-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
+                <div class="arch-card" data-selected="true" data-recommended="true">
+                  <span class="arch-icon">🤲</span>
+                  <div class="arch-name">Caregiver</div>
+                  <div class="arch-desc">Calidez + bienestar paciente. Evita lenguaje técnico frío.</div>
+                </div>
+                <div class="arch-card">
+                  <span class="arch-icon">🦉</span>
+                  <div class="arch-name">Sage</div>
+                  <div class="arch-desc">Conocimiento, expertise. Educativo profesional.</div>
+                </div>
+                <div class="arch-card">
+                  <span class="arch-icon">🌱</span>
+                  <div class="arch-name">Healer</div>
+                  <div class="arch-desc">Empatía + restaurador. Foco proceso sanación.</div>
+                </div>
+                <div class="arch-card">
+                  <span class="arch-icon">🏆</span>
+                  <div class="arch-name">Hero</div>
+                  <div class="arch-desc">Inspirador. Resalta logros del paciente.</div>
+                </div>
+              </div>
+
+              <div style="margin-top: 0.625rem; padding: 0.5rem 0.625rem; background: hsl(var(--muted)); border-radius: var(--radius); font-size: 0.6875rem; color: hsl(var(--muted-foreground));">
+                ℹ️ Otros arquetipos Jung (Outlaw, Magician, Jester) no aparecen — pueden generar tono inadecuado para salud.
+              </div>
+            </section>
+
+            <!-- Card: ASÍ HABLO -->
+            <section class="card">
+              <h2 class="card-title">
+                <span class="text-success">✅</span> ASÍ HABLO
+              </h2>
+              <textarea>- Acompañamos tu tratamiento con cuidado y respeto
+- Te explicamos cada paso antes de comenzar
+- Tu salud es nuestra prioridad
+- Atención personalizada con protocolos avalados</textarea>
+              <span class="autosave-badge chip-success" style="margin-top: 0.5rem;">✓ Guardado hace 5s</span>
+            </section>
+
+            <!-- Card: ASÍ NO HABLO con voice warning -->
+            <section class="card">
+              <h2 class="card-title">
+                <span class="text-destructive">❌</span> ASÍ NO HABLO
+              </h2>
+              <textarea>- No usamos "garantizamos curar" ni "100% efectivo"
+- Evitamos tecnicismos sin explicación
+- Garantizamos curar tu sonrisa en 30 días</textarea>
+
+              <div class="voice-alert voice-alert-warning">
+                <span style="font-size: 1rem;">⚠️</span>
+                <div style="flex: 1;">
+                  <strong>Frase en blocklist:</strong>
+                  <span class="phrase-blocked">garantizamos curar tu sonrisa en 30 días</span>
+                  <p style="margin: 0.375rem 0 0; font-size: 0.75rem;">
+                    <strong>Sugerencia:</strong> "Acompañamos tu tratamiento con protocolos clínicos avalados."
+                  </p>
+                  <div style="display: flex; gap: 0.4375rem; margin-top: 0.4375rem;">
+                    <button class="btn btn-warning" style="padding: 0.3125rem 0.625rem; font-size: 0.75rem;">Aplicar sugerencia</button>
+                    <button class="btn btn-ghost" style="padding: 0.3125rem 0.625rem; font-size: 0.75rem;">Guardar igual</button>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <!-- Card: Vocabulario + tratamiento -->
+            <section class="card">
+              <h2 class="card-title">📚 Tratamiento y idioma</h2>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                <div>
+                  <label class="label" for="i-treatment">Tratamiento</label>
+                  <select id="i-treatment">
+                    <option selected>Tuteo (tú) — neutral LatAm</option>
+                    <option>Voseo (vos) — solo AR</option>
+                    <option>Usted — formal</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="label" for="i-lang">Idioma</label>
+                  <select id="i-lang">
+                    <option selected>Español neutro</option>
+                    <option>Portugués BR</option>
+                  </select>
+                </div>
+              </div>
+            </section>
+
+            <!-- Card: Preview compilado footer único (OQ-E default = footer) -->
+            <section class="card" style="background: hsl(var(--agent-valeria) / 0.05); border-color: hsl(var(--agent-valeria) / 0.3);">
+              <h2 class="card-title">
+                🔮 Preview compilado
+                <span class="chip" style="margin-left: auto; background: hsl(var(--agent-valeria) / 0.15); color: hsl(var(--agent-valeria));">slot BRAND_VOICE</span>
+              </h2>
+              <p class="hint" style="margin-bottom: 0.625rem;">Así te escucha un paciente vía Valeria + Camila:</p>
+
+              <div style="margin-bottom: 0.625rem;">
+                <div class="agent-bubble-label" data-agent="valeria">
+                  <span class="dot"></span>
+                  Valeria · WhatsApp cobranza
+                </div>
+                <div class="preview-bubble">
+                  Hola Sofía 👋 Soy Valeria de Clínica Dental Lima Centro. Acompañamos tu tratamiento con el cuidado que tu salud merece. Tu próxima cita es el <strong>jueves 28 a las 16:00h</strong>. ¿La confirmás?
+                </div>
+              </div>
+
+              <div>
+                <div class="agent-bubble-label" data-agent="camila">
+                  <span class="dot"></span>
+                  Camila · email reactivación
+                </div>
+                <div class="preview-bubble preview-bubble-camila">
+                  Hola Carlos, en <strong>Clínica Dental Lima Centro</strong> nos preocupamos por tu sonrisa. Hace 8 meses fue tu última visita — te invitamos a una revisión preventiva sin compromiso.
+                </div>
+              </div>
+
+              <div style="margin-top: 0.625rem; display: flex; justify-content: space-between; align-items: center; font-size: 0.6875rem; color: hsl(var(--muted-foreground)); border-top: 1px solid hsl(var(--border)); padding-top: 0.5rem;">
+                <span>🔄 Refresca al guardar (debounce 600ms · BrandVoicePreview BE endpoint)</span>
+                <button class="btn btn-ghost" style="padding: 0.25rem 0.5rem; font-size: 0.6875rem;">Regenerar</button>
+              </div>
+            </section>
+
+          </div>
+        </div>
+      </div>
+
+      <div class="footer-meta">
+        <span>💾 Guardado hace 5s · 2 advertencias</span>
+        <span>Última edición: <strong>Dra. Camila</strong> hace 5s</span>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<script>
+  document.querySelectorAll('.subsubtab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const slug = btn.dataset.slug;
+      if (slug === 'identidad') window.location.href = 'identidad-section.html';
+      else if (slug === 'presencia') window.location.href = 'presencia-section.html';
+    });
+  });
+  document.querySelectorAll('.arch-card').forEach(card => {
+    card.addEventListener('click', () => {
+      document.querySelectorAll('.arch-card').forEach(c => c.removeAttribute('data-selected'));
+      card.setAttribute('data-selected', 'true');
+    });
+  });
+  const shellBody = document.getElementById('shell-body');
+  document.querySelectorAll('.splitter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.splitter-btn').forEach(b => b.removeAttribute('data-active'));
+      btn.setAttribute('data-active', 'true');
+      shellBody.setAttribute('data-splitter-state', btn.dataset.state);
+    });
+  });
+  document.getElementById('theme-toggle').addEventListener('click', () => {
+    document.documentElement.classList.toggle('dark');
+  });
+</script>
+
+</body>
+</html>

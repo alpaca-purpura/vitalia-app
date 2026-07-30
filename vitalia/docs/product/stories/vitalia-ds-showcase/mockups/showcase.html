@@ -1,0 +1,912 @@
+<!doctype html>
+<!--
+  Design-System Showcase FIEL — best-of-best dentro del shell-organism (vitalia-ds-showcase).
+  ★ FIDELIDAD POR CONSTRUCCIÓN:
+    · Bloque de tokens = derivado VERBATIM de vitalia/frontend/src/app/globals.css (líneas 30-67).
+      --agent-mateo = 53° (REAL · corrige el 56° drifteado del _shared.css de servicios).
+    · Shell chrome (topbar/ribbon/subtabs/chat-side/panel) = reusado de la fuente canónica
+      (dual-mode-shell.html → _shared.css v2.1), NO reinventado.
+  ★ Este .html estático es un ESPEJO DERIVADO para ratificar la dirección.
+    El showcase DURABLE será un /showcase route en la app real que renderiza los componentes
+    REALES (@luana/ui-kit) → ahí "lo que ves ES lo que es" por construcción (R-FID).
+  ★ Picks renderizados: inventario docs/architecture/luana-platform/design-system-inventory-best-of-best.md
+-->
+<html lang="es" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Luana · Design System Showcase (fiel) — Vitalia</title>
+<style>
+/* ═══════════════ TOKENS (verbatim globals.css · Shadcn HSL) ═══════════════ */
+:root{
+  --background:0 0% 100%; --foreground:240 10% 4%;
+  --card:0 0% 100%; --card-foreground:240 10% 4%;
+  --muted:240 5% 96%; --muted-foreground:240 4% 46%;
+  --primary:198 99% 49%; --primary-foreground:0 0% 100%;
+  --secondary:240 5% 96%; --secondary-foreground:240 6% 10%;
+  --accent:287 53% 37%; --accent-foreground:0 0% 100%;
+  --destructive:0 84% 60%; --destructive-foreground:0 0% 98%;
+  --warning:33 91% 44%; --success:142 76% 36%;
+  --border:240 6% 90%; --input:240 6% 90%; --ring:198 99% 49%;
+  --radius:0.625rem;                       /* ★ Shadcn standard (globals.css:51) */
+  /* Agentes (globals.css:54-66) */
+  --agent-lisa:156 100% 41%;  --agent-lisa-soft:156 80% 92%;
+  --agent-lucas:0 0% 7%;      --agent-lucas-soft:0 0% 92%;
+  --agent-adrian:198 99% 49%; --agent-adrian-soft:197 90% 89%;
+  --agent-valeria:287 53% 37%;--agent-valeria-soft:287 53% 90%;
+  --agent-camila:244 84% 32%; --agent-camila-soft:244 53% 92%;
+  --agent-mateo:53 99% 51%;   --agent-mateo-soft:53 90% 90%;   /* ★ 53° REAL (no 56°) */
+  --agent-config:240 4% 46%;
+  --vitalia-gradient-mariposa:linear-gradient(135deg,#01b2f8 0%,#7b2d91 50%,#b8dc2a 100%);
+  --shadow-sm:0 1px 2px hsl(240 10% 4%/.04); --shadow-md:0 4px 12px hsl(240 10% 4%/.08);
+  --chat-rail-w:60px; --chat-narrow-w:340px; --topbar-h:48px;
+  --ribbon-h:52px; --subtabs-h:40px; --subsubtabs-h:46px;
+}
+[data-theme="dark"]{
+  --background:240 10% 4%; --foreground:0 0% 98%; --card:240 8% 8%; --card-foreground:0 0% 98%;
+  --muted:240 4% 16%; --muted-foreground:240 5% 65%; --primary:198 99% 49%; --primary-foreground:240 10% 4%;
+  --accent:287 53% 50%; --destructive:0 63% 50%; --warning:33 91% 60%; --success:142 76% 50%;
+  --border:240 4% 20%; --input:240 4% 20%;
+  --agent-lisa-soft:156 60% 15%; --agent-lucas-soft:0 0% 20%; --agent-adrian-soft:198 60% 20%;
+  --agent-valeria:287 53% 60%; --agent-valeria-soft:287 40% 25%; --agent-camila:244 80% 78%; --agent-camila-soft:244 50% 20%;
+  --agent-mateo-soft:53 80% 18%;
+  --shadow-sm:0 1px 2px hsl(0 0% 0%/.4); --shadow-md:0 4px 12px hsl(0 0% 0%/.6);
+}
+/* ═══════════════ RESET ═══════════════ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{background:hsl(var(--background));color:hsl(var(--foreground));
+  font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:14px;line-height:1.5}
+button{font:inherit;border:none;background:transparent;cursor:pointer;color:inherit}
+h1,h2,h3,h4{line-height:1.2}
+*::-webkit-scrollbar{width:8px;height:8px}*::-webkit-scrollbar-thumb{background:hsl(var(--border));border-radius:4px}
+
+/* ═══════════════ SHELL (reusado _shared.css v2.1) ═══════════════ */
+.shell-root{display:grid;grid-template-rows:var(--topbar-h) 1fr;height:100vh;overflow:hidden}
+.shell-body{display:grid;grid-template-columns:var(--chat-narrow-w) 1fr;min-height:0;overflow:hidden;
+  transition:grid-template-columns 220ms cubic-bezier(.2,.8,.2,1)}
+.shell-body[data-splitter-state="50-50"]{grid-template-columns:1fr 1fr}
+.shell-body[data-splitter-state="chat-narrow"]{grid-template-columns:var(--chat-narrow-w) 1fr}
+.shell-body[data-splitter-state="chat-collapsed"]{grid-template-columns:var(--chat-rail-w) 1fr}
+/* topbar */
+.topbar{height:var(--topbar-h);background:hsl(var(--card));border-bottom:1px solid hsl(var(--border));
+  display:flex;align-items:center;justify-content:space-between;padding:0 1rem}
+.topbar-left{display:flex;align-items:center;gap:.625rem;min-width:0}
+.topbar-logo{display:flex;align-items:center;gap:.5rem;font-weight:700;font-size:.9375rem}
+.topbar-logo-mark{width:28px;height:28px;border-radius:.5rem;background:var(--vitalia-gradient-mariposa);
+  display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:.8125rem;box-shadow:var(--shadow-sm)}
+.topbar-breadcrumb{font-size:.75rem;color:hsl(var(--muted-foreground))}
+.topbar-right{display:flex;align-items:center;gap:.5rem}
+.tenant-chip{display:inline-flex;align-items:center;gap:.5rem;padding:.3125rem .625rem;border-radius:.5rem;
+  background:hsl(var(--card));border:1px solid hsl(var(--border));font-size:.75rem;font-weight:500}
+.tenant-chip-avatar{width:18px;height:18px;border-radius:.3125rem;background:hsl(var(--accent));color:#fff;
+  display:inline-flex;align-items:center;justify-content:center;font-size:.625rem;font-weight:700}
+.topbar-icon-btn{width:30px;height:30px;border-radius:.4375rem;display:inline-flex;align-items:center;justify-content:center;
+  color:hsl(var(--muted-foreground))}
+.topbar-icon-btn:hover{background:hsl(var(--muted));color:hsl(var(--foreground))}
+.splitter-control{display:inline-flex;gap:.125rem;padding:.1875rem;border-radius:.4375rem;background:hsl(var(--muted));font-size:.6875rem}
+.splitter-btn{padding:.25rem .4375rem;border-radius:.3125rem;color:hsl(var(--muted-foreground))}
+.splitter-btn[data-active="true"]{background:hsl(var(--card));color:hsl(var(--foreground));box-shadow:var(--shadow-sm);font-weight:500}
+/* chat-side */
+.chat-side{background:hsl(var(--background));border-right:1px solid hsl(var(--border));display:grid;
+  grid-template-rows:auto 1fr auto;min-width:0;overflow:hidden}
+.shell-body[data-splitter-state="chat-collapsed"] .chat-content{display:none}
+.shell-body[data-splitter-state="chat-collapsed"] .chat-rail-only{display:flex}
+.chat-rail-only{display:none;flex-direction:column;align-items:center;padding:.75rem 0;gap:.5rem}
+.chat-rail-only .rail-btn{width:40px;height:40px;border-radius:.625rem;display:flex;align-items:center;justify-content:center;font-size:1.125rem;color:hsl(var(--muted-foreground))}
+.chat-rail-only .rail-btn.active{background:hsl(var(--agent-valeria));color:#fff}
+.chat-content{display:grid;grid-template-rows:auto 1fr auto;min-height:0;overflow:hidden}
+.chat-header{height:56px;display:flex;align-items:center;gap:.625rem;padding:0 .875rem;border-bottom:1px solid hsl(var(--border));background:hsl(var(--card))}
+.chat-avatar-wrap{position:relative}
+.chat-avatar{width:36px;height:36px;border-radius:9999px;background:hsl(var(--agent-valeria));display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600}
+.chat-status-dot{position:absolute;bottom:0;right:0;width:10px;height:10px;border-radius:9999px;background:hsl(var(--success));box-shadow:0 0 0 2px hsl(var(--card))}
+.chat-meta{flex:1;min-width:0;display:flex;flex-direction:column}
+.chat-name{font-size:.8125rem;font-weight:600}.chat-role{font-size:.6875rem;color:hsl(var(--muted-foreground))}
+.chat-mode-pill{font-size:.6875rem;padding:.1875rem .5rem;border-radius:9999px;border:1px solid hsl(var(--border));background:hsl(var(--muted))}
+.chat-messages{min-height:0;overflow-y:auto;padding:1rem .875rem;display:flex;flex-direction:column;gap:.75rem}
+.msg-row{display:flex;flex-direction:column;gap:.25rem;max-width:88%}
+.msg-row[data-role="user"]{align-self:flex-end;align-items:flex-end}
+.msg-row[data-role="bot"]{align-self:flex-start}
+.msg-bubble{padding:.5rem .75rem;font-size:.8125rem;line-height:1.45;border-radius:1.125rem}
+.msg-row[data-role="bot"] .msg-bubble{background:hsl(var(--card));border:1px solid hsl(var(--border));border-bottom-left-radius:.25rem}
+.msg-row[data-role="user"] .msg-bubble{background:hsl(var(--agent-valeria));color:#fff;border-bottom-right-radius:.25rem}
+.msg-time{font-size:.625rem;color:hsl(var(--muted-foreground));padding:0 .25rem}
+.chat-composer{border-top:1px solid hsl(var(--border));background:hsl(var(--card));padding:.625rem .75rem}
+.composer-row{display:flex;align-items:flex-end;gap:.5rem}
+.composer-adornos{display:flex;gap:.125rem;padding-bottom:.375rem}
+.composer-adorno-btn{width:30px;height:30px;border-radius:.4375rem;display:inline-flex;align-items:center;justify-content:center;color:hsl(var(--muted-foreground))}
+.composer-textarea{flex:1;min-height:36px;max-height:100px;padding:.5rem .75rem;border:1px solid hsl(var(--input));border-radius:.5rem;background:hsl(var(--background));font:inherit;font-size:.8125rem;resize:none}
+.composer-send{height:36px;padding:0 .875rem;border-radius:.5rem;background:hsl(var(--agent-valeria));color:#fff;font-size:.8125rem;font-weight:500;align-self:flex-end}
+.composer-hint{font-size:.625rem;color:hsl(var(--muted-foreground));margin-top:.25rem;padding:0 .25rem}
+.kbd{display:inline-block;padding:0 .25rem;border-radius:.1875rem;border:1px solid hsl(var(--border));background:hsl(var(--muted));font-family:ui-monospace,monospace;font-size:.625rem}
+/* panel-side */
+.panel-side{display:grid;grid-template-rows:var(--ribbon-h) var(--subtabs-h) var(--subsubtabs-h) 1fr;min-width:0;overflow:hidden;background:hsl(var(--background))}
+.ribbon{display:flex;align-items:stretch;padding:0 .75rem;gap:.125rem;background:hsl(var(--card));border-bottom:1px solid hsl(var(--border));overflow-x:auto}
+.ribbon-tab{display:inline-flex;align-items:center;gap:.5rem;padding:0 .875rem;font-size:.8125rem;font-weight:500;color:hsl(var(--muted-foreground));border-bottom:3px solid transparent;white-space:nowrap}
+.ribbon-tab:hover{color:hsl(var(--foreground))}
+.ribbon-tab[data-active="true"]{color:hsl(var(--foreground));font-weight:600}
+.ribbon-tab[data-active="true"][data-color="lisa"]{border-bottom-color:hsl(var(--agent-lisa))}
+.ribbon-tab[data-active="true"][data-color="adrian"]{border-bottom-color:hsl(var(--agent-adrian))}
+.ribbon-tab[data-active="true"][data-color="camila"]{border-bottom-color:hsl(var(--agent-camila))}
+.ribbon-tab[data-active="true"][data-color="mateo"]{border-bottom-color:hsl(var(--agent-mateo))}
+.ribbon-tab[data-active="true"][data-color="lucas"]{border-bottom-color:hsl(var(--agent-lucas))}
+.ribbon-tab[data-active="true"][data-color="config"]{border-bottom-color:hsl(var(--agent-config))}
+.ribbon-tab-avatar{width:24px;height:24px;border-radius:9999px;display:inline-flex;align-items:center;justify-content:center;font-size:.625rem;font-weight:700;color:#fff}
+.subtabs-bar{display:flex;align-items:center;gap:.25rem;padding:0 .875rem;background:hsl(var(--card));border-bottom:1px solid hsl(var(--border));overflow-x:auto}
+.subtab-btn{padding:.4375rem .75rem;border-radius:.5rem;font-size:.75rem;font-weight:500;color:hsl(var(--muted-foreground));display:inline-flex;align-items:center;gap:.375rem;white-space:nowrap}
+.subtab-btn[data-active="true"]{background:hsl(var(--agent-lisa-soft));color:hsl(var(--agent-lisa));font-weight:600}
+.subsubtabs-bar{display:flex;align-items:center;gap:.25rem;padding:.375rem .875rem;background:hsl(var(--background));border-bottom:1px solid hsl(var(--border));overflow-x:auto}
+.subsubtab-btn{padding:.375rem .875rem;border-radius:.5rem;font-size:.8125rem;font-weight:500;color:hsl(var(--muted-foreground));white-space:nowrap;border:1px solid transparent}
+.subsubtab-btn:hover{background:hsl(var(--muted));color:hsl(var(--foreground))}
+.subsubtab-btn[data-active="true"]{background:hsl(var(--agent-lisa));color:#fff;border-color:hsl(var(--agent-lisa));box-shadow:0 1px 2px hsl(var(--agent-lisa)/.3);font-weight:600}
+.panel-content{min-height:0;overflow-y:auto;padding:1.25rem 1.5rem 4rem;background:hsl(var(--background));position:relative}
+
+/* ═══════════════ ATOMS (reusados _shared.css) ═══════════════ */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.5rem;padding:.5rem 1rem;border-radius:var(--radius);font-weight:500;font-size:.8125rem}
+.btn-primary{background:hsl(var(--primary));color:hsl(var(--primary-foreground))}
+.btn-accent{background:hsl(var(--accent));color:#fff}
+.btn-ghost{background:transparent;color:hsl(var(--foreground));border:1px solid hsl(var(--border))}
+.btn-ghost:hover{background:hsl(var(--muted))}
+.btn-destructive{background:hsl(var(--destructive));color:#fff}
+.btn-lisa{background:hsl(var(--agent-lisa));color:#fff}
+.btn-sm{padding:.3125rem .625rem;font-size:.75rem}
+.btn:disabled{opacity:.4}
+input,textarea,select{background:hsl(var(--background));color:hsl(var(--foreground));border:1px solid hsl(var(--input));border-radius:var(--radius);padding:.5rem .75rem;width:100%;font:inherit;font-size:.875rem;transition:border-color .15s,box-shadow .15s}
+textarea{min-height:5rem;resize:vertical}
+input:focus,textarea:focus,select:focus{border-color:hsl(var(--ring));box-shadow:0 0 0 2px hsl(var(--ring)/.25);outline:none}
+input[data-invalid="true"]{border-color:hsl(var(--destructive))}
+.label{font-size:.8125rem;font-weight:500;display:block;margin-bottom:.375rem}
+.hint{font-size:.75rem;color:hsl(var(--muted-foreground));margin-top:.25rem}
+.err{font-size:.75rem;color:hsl(var(--destructive));margin-top:.25rem}
+.chip{display:inline-flex;align-items:center;gap:.375rem;padding:.25rem .625rem;border-radius:9999px;background:hsl(var(--muted));font-size:.75rem;font-weight:500}
+.chip-success{background:hsl(var(--success)/.15);color:hsl(var(--success))}
+.chip-warning{background:hsl(var(--warning)/.15);color:hsl(var(--warning))}
+.chip-primary{background:hsl(var(--primary)/.12);color:hsl(var(--primary))}
+.badge{display:inline-flex;align-items:center;gap:.25rem;padding:.125rem .5rem;border-radius:var(--radius);font-size:.6875rem;font-weight:600;background:hsl(var(--secondary));color:hsl(var(--secondary-foreground))}
+.badge-lisa{background:hsl(var(--agent-lisa-soft));color:hsl(var(--agent-lisa))}
+.card{background:hsl(var(--card));border:1px solid hsl(var(--border));border-radius:var(--radius);padding:1rem}
+.avatar{width:32px;height:32px;border-radius:9999px;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-weight:600;font-size:.75rem;flex-shrink:0}
+.switch{position:relative;display:inline-block;width:34px;height:20px;flex-shrink:0}
+.switch input{display:none}
+.switch .track{position:absolute;inset:0;background:hsl(var(--border));border-radius:9999px;transition:.15s}
+.switch .track::after{content:'';position:absolute;left:2px;top:2px;width:16px;height:16px;background:#fff;border-radius:9999px;transition:.15s;box-shadow:var(--shadow-sm)}
+.switch input:checked + .track{background:hsl(var(--agent-lisa))}
+.switch input:checked + .track::after{transform:translateX(14px)}
+.checkbox{width:18px;height:18px;border:1.5px solid hsl(var(--input));border-radius:.3125rem;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:.75rem}
+.checkbox[data-checked="true"]{background:hsl(var(--primary));border-color:hsl(var(--primary))}
+
+/* ═══════════════ SHOWCASE scaffolding ═══════════════ */
+.sc-banner{background:hsl(var(--agent-lisa-soft)/.4);border:1px solid hsl(var(--agent-lisa)/.35);border-radius:var(--radius);padding:.75rem 1rem;margin-bottom:1.25rem;font-size:.75rem;color:hsl(var(--foreground));line-height:1.5}
+.sc-banner b{color:hsl(var(--agent-lisa))}
+.sc-sec{display:none}.sc-sec[data-show="true"]{display:block}
+.sc-h1{font-size:1.375rem;font-weight:700;margin-bottom:.25rem}
+.sc-sub{font-size:.8125rem;color:hsl(var(--muted-foreground));margin-bottom:1.25rem}
+.sc-block{margin-bottom:1.75rem}
+.sc-block-h{font-size:.6875rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:hsl(var(--muted-foreground));margin-bottom:.75rem;padding-bottom:.375rem;border-bottom:1px solid hsl(var(--border))}
+.sc-row{display:flex;flex-wrap:wrap;gap:.625rem;align-items:center;margin-bottom:.75rem}
+.sc-note{font-size:.6875rem;color:hsl(var(--muted-foreground));font-style:italic;margin-top:.375rem}
+.sc-pick{font-size:.625rem;font-weight:600;color:hsl(var(--agent-adrian));background:hsl(var(--agent-adrian-soft));padding:.0625rem .4375rem;border-radius:9999px;margin-left:.375rem}
+.cards-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:.875rem}
+
+/* ── EntityWorkspaceLayout (N3) ── */
+.ewl{display:grid;grid-template-columns:300px 1fr;gap:0;border:1px solid hsl(var(--border));border-radius:var(--radius);overflow:hidden;min-height:380px}
+.ewl-list{border-right:1px solid hsl(var(--border));background:hsl(var(--muted)/.3);display:flex;flex-direction:column}
+.ewl-list-h{padding:.75rem .875rem;border-bottom:1px solid hsl(var(--border));display:flex;align-items:center;justify-content:space-between}
+.ewl-search{padding:.5rem .75rem;border-bottom:1px solid hsl(var(--border))}
+.ewl-search input{padding:.375rem .625rem;font-size:.8125rem}
+.ewl-list-item{padding:.625rem .875rem;border-bottom:1px solid hsl(var(--border));cursor:pointer;display:flex;align-items:center;gap:.625rem}
+.ewl-list-item[data-active="true"]{background:hsl(var(--agent-lisa-soft)/.5);box-shadow:inset 3px 0 0 hsl(var(--agent-lisa))}
+.ewl-detail{display:flex;flex-direction:column;min-width:0}
+.entity-subnav{display:flex;align-items:center;min-height:44px;padding:0 1rem;background:hsl(var(--background));border-bottom:1px solid hsl(var(--border));overflow-x:auto}
+.entity-back{display:inline-flex;align-items:center;gap:.25rem;font-size:.8125rem;color:hsl(var(--muted-foreground));padding-right:.75rem;border-right:1px solid hsl(var(--border));margin-right:.75rem}
+.entity-id{display:inline-flex;align-items:center;gap:.5rem;margin-right:.75rem;font-size:.8125rem;font-weight:500}
+.entity-leaves{display:inline-flex;gap:.25rem}
+.entity-leaf{padding:.375rem .875rem;font-size:.8125rem;font-weight:500;border-radius:.5rem;color:hsl(var(--muted-foreground));border:1px solid transparent}
+.entity-leaf[data-active="true"]{background:hsl(var(--agent-lisa));color:#fff;font-weight:600}
+
+/* ── EntityInfoCard (8 slots) ── */
+.eic{position:relative;background:hsl(var(--card));border:1px solid hsl(var(--border));border-radius:.875rem;padding:1rem;display:flex;flex-direction:column;gap:.625rem;transition:border-color .15s,box-shadow .15s;border-left-width:4px;border-left-color:transparent}
+.eic:hover{border-color:hsl(var(--agent-lisa));box-shadow:var(--shadow-md)}
+.eic[data-status="ok"]{border-left-color:hsl(var(--success))}
+.eic[data-status="warn"]{border-left-color:hsl(var(--warning))}
+.eic[data-selected="true"]{border-color:hsl(var(--agent-lisa));box-shadow:0 0 0 2px hsl(var(--agent-lisa)/.3)}
+.eic-top{display:flex;gap:.75rem;align-items:flex-start}
+.eic-media{width:48px;height:48px;border-radius:9999px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:1rem;flex-shrink:0;box-shadow:0 0 0 2px hsl(var(--card)),0 0 0 4px hsl(var(--agent-lisa)/.4)}
+.eic-media.sq{border-radius:.75rem;box-shadow:none}
+.eic-titlewrap{min-width:0;flex:1}
+.eic-title{font-size:.9375rem;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.eic-subtitle{margin-top:.25rem}
+.eic-meta{display:grid;grid-template-columns:repeat(3,1fr);gap:.375rem;padding:.625rem 0;border-top:1px solid hsl(var(--border));border-bottom:1px solid hsl(var(--border))}
+.eic-meta-cell{text-align:center}
+.eic-meta-num{font-size:1rem;font-weight:700}
+.eic-meta-lbl{font-size:.625rem;color:hsl(var(--muted-foreground))}
+.eic-actions{display:flex;gap:.5rem;margin-top:.125rem}
+.slot-tag{display:none}
+
+/* ── Grouped autosave ── */
+.grp{border:1px solid hsl(var(--border));border-radius:.875rem;background:hsl(var(--card));padding:1rem;margin-bottom:1rem;transition:border-color .15s}
+.grp[data-missing="true"]{border-color:hsl(var(--destructive)/.4)}
+.grp-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:.875rem}
+.grp-title{font-size:.875rem;font-weight:600;display:flex;align-items:center;gap:.5rem}
+.grp-whatfor{font-size:.625rem;color:hsl(var(--muted-foreground));background:hsl(var(--muted));padding:.0625rem .4375rem;border-radius:9999px}
+.grp-fields{display:grid;grid-template-columns:1fr 1fr;gap:.875rem}
+.grp-fields .full{grid-column:1/-1}
+.autosave-badge{display:inline-flex;align-items:center;gap:.375rem;padding:.25rem .625rem;font-size:.6875rem;color:hsl(var(--muted-foreground));border-radius:9999px;background:hsl(var(--muted))}
+.autosave-badge[data-state="saving"]{color:hsl(var(--warning));background:hsl(var(--warning)/.12)}
+.autosave-badge[data-state="saved"]{color:hsl(var(--success));background:hsl(var(--success)/.12)}
+.float-autosave{position:absolute;bottom:1rem;left:50%;transform:translateX(-50%);background:hsl(var(--card));border:1px solid hsl(var(--border));border-radius:9999px;padding:.4375rem .875rem;font-size:.75rem;display:inline-flex;align-items:center;gap:.5rem;box-shadow:var(--shadow-md);z-index:5}
+.float-dot{width:8px;height:8px;border-radius:9999px;background:hsl(var(--success))}
+
+/* ── Page primitives ── */
+.pp-header{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;margin-bottom:1rem}
+.pp-title{font-size:1.25rem;font-weight:700}
+.pp-subtitle{font-size:.8125rem;color:hsl(var(--muted-foreground));margin-top:.125rem}
+.pp-section{margin-bottom:1.25rem}
+.pp-section-h{font-size:.875rem;font-weight:600;margin-bottom:.625rem;display:flex;align-items:center;gap:.5rem}
+.pp-toolbar{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;padding:.625rem;background:hsl(var(--muted)/.4);border-radius:var(--radius);margin-bottom:1rem}
+.pp-toolbar input{max-width:240px}
+.pp-empty,.pp-error{border:1px dashed hsl(var(--border));border-radius:var(--radius);padding:2rem 1rem;text-align:center;display:flex;flex-direction:column;align-items:center;gap:.5rem}
+.pp-error{border-style:solid;border-color:hsl(var(--destructive)/.4);background:hsl(var(--destructive)/.05)}
+.pp-empty-icon{font-size:1.75rem}
+.pp-empty-h{font-size:.9375rem;font-weight:600}
+.pp-empty-p{font-size:.8125rem;color:hsl(var(--muted-foreground));max-width:360px}
+.pp-pagination{display:flex;align-items:center;justify-content:center;gap:.5rem;margin-top:1rem;font-size:.8125rem}
+.pp-page-btn{width:30px;height:30px;border-radius:.4375rem;border:1px solid hsl(var(--border));display:inline-flex;align-items:center;justify-content:center}
+.pp-page-btn[data-active="true"]{background:hsl(var(--primary));color:#fff;border-color:hsl(var(--primary))}
+.skel{background:hsl(var(--muted));border-radius:.4375rem;animation:pulse 1.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.viewtoggle{display:inline-flex;gap:.125rem;padding:.1875rem;border-radius:.4375rem;background:hsl(var(--card));border:1px solid hsl(var(--border))}
+.vt-btn{padding:.25rem .5rem;border-radius:.3125rem;font-size:.75rem;color:hsl(var(--muted-foreground))}
+.vt-btn[data-active="true"]{background:hsl(var(--muted));color:hsl(var(--foreground));font-weight:500}
+.pp-container-demo{border:1px dashed hsl(var(--agent-adrian)/.45);border-radius:var(--radius);padding:1rem;background:hsl(var(--agent-adrian-soft)/.18)}
+.pp-frame-lbl{font-size:.625rem;font-weight:700;color:hsl(var(--agent-adrian));text-transform:uppercase;letter-spacing:.03em;display:block;margin-bottom:.5rem}
+.pp-stack-demo{display:flex;flex-direction:column;gap:1rem}
+.pp-stack-demo .card{padding:.625rem .875rem;font-size:.8125rem;color:hsl(var(--muted-foreground))}
+.pp-layout-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+@media(max-width:720px){.pp-layout-grid{grid-template-columns:1fr}}
+
+/* ── Tooltips (tratamiento + política) ── */
+.tip{text-decoration:underline dotted;text-decoration-color:hsl(var(--muted-foreground));text-underline-offset:3px;cursor:help}
+.tip::after{content:'ⓘ';font-size:.625rem;color:hsl(var(--muted-foreground));margin-left:.1875rem}
+.tt{position:relative;display:inline-flex;align-items:center}
+.tt-trigger{width:16px;height:16px;border-radius:9999px;background:hsl(var(--muted));color:hsl(var(--muted-foreground));display:inline-flex;align-items:center;justify-content:center;font-size:.625rem;cursor:help;margin-left:.3125rem}
+.tt-bubble{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:hsl(var(--foreground));color:hsl(var(--background));font-size:.6875rem;line-height:1.4;padding:.4375rem .5625rem;border-radius:.4375rem;width:max-content;max-width:220px;box-shadow:var(--shadow-md);opacity:0;pointer-events:none;transition:opacity .12s;z-index:20}
+.tt-bubble::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:hsl(var(--foreground))}
+.tt:hover .tt-bubble,.tt:focus-within .tt-bubble{opacity:1}
+
+/* ── Agent-color theming (por contexto/agente) ── */
+.ctx-lisa{--agent-active:var(--agent-lisa);--agent-active-soft:var(--agent-lisa-soft);--agent-active-fg:#fff}
+.ctx-adrian{--agent-active:var(--agent-adrian);--agent-active-soft:var(--agent-adrian-soft);--agent-active-fg:#fff}
+.ctx-mateo{--agent-active:var(--agent-mateo);--agent-active-soft:var(--agent-mateo-soft);--agent-active-fg:#3a3300}
+.ctx-camila{--agent-active:var(--agent-camila);--agent-active-soft:var(--agent-camila-soft);--agent-active-fg:#fff}
+.ctx-lucas{--agent-active:var(--agent-lucas);--agent-active-soft:var(--agent-lucas-soft);--agent-active-fg:#fff}
+.btn-agent{background:hsl(var(--agent-active));color:var(--agent-active-fg)}
+.btn-agent-soft{background:hsl(var(--agent-active-soft));color:hsl(var(--agent-active))}
+.agent-strip{border-left:4px solid hsl(var(--agent-active))!important}
+
+/* ── EntityInfoCard · Opción B (compacta · acento de agente arriba + footer) ── */
+.eicB{position:relative;background:hsl(var(--card));border:1px solid hsl(var(--border));border-top:4px solid hsl(var(--agent-active));border-radius:.875rem;display:flex;flex-direction:column;transition:box-shadow .15s,border-color .15s}
+.eicB:hover{box-shadow:var(--shadow-md);border-color:hsl(var(--agent-active)/.5)}
+.eicB-accent{height:4px;background:hsl(var(--agent-active))}
+.eicB-body{padding:.875rem 1rem;display:flex;flex-direction:column;gap:.625rem}
+.eicB-row{display:flex;align-items:center;gap:.625rem}
+.eicB-media{width:42px;height:42px;border-radius:9999px;background:hsl(var(--agent-active));color:var(--agent-active-fg);display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0}
+.eicB-media.sq{border-radius:.625rem}
+.eicB-title{font-size:.9375rem;font-weight:600;line-height:1.2}
+.eicB-sub{font-size:.75rem;color:hsl(var(--muted-foreground));margin-top:.125rem}
+.eicB-metarow{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:.5rem;padding:.625rem 0;border-top:1px solid hsl(var(--border));border-bottom:1px solid hsl(var(--border))}
+.eicB-metarow .m{display:flex;flex-direction:column;align-items:center;text-align:center}
+.eicB-metarow .m b{font-size:.8125rem}
+.eicB-metarow .m span{font-size:.625rem;color:hsl(var(--muted-foreground))}
+.eicB-foot{display:flex;align-items:center;justify-content:space-between;padding:.625rem 1rem;border-top:1px solid hsl(var(--border));background:hsl(var(--muted)/.3);border-radius:0 0 .8125rem .8125rem}
+.opt-label{font-size:.6875rem;font-weight:700;color:hsl(var(--agent-active,var(--primary)));margin-bottom:.5rem;display:flex;align-items:center;gap:.375rem}
+.opt-label::before{content:'';width:8px;height:8px;border-radius:9999px;background:currentColor}
+
+/* ── EntityInfoCard · grid responsivo 3→5 · card clickeable · kebab ⋮ ── */
+.eic-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:.875rem}
+.eic,.eicB{cursor:pointer}
+.eic:focus-visible,.eicB:focus-visible{outline:2px solid hsl(var(--agent-active,var(--ring)));outline-offset:2px}
+.eicB[data-selected="true"]{border-color:hsl(var(--agent-active));box-shadow:0 0 0 2px hsl(var(--agent-active)/.35)}
+.eic-foot{display:flex;align-items:center;gap:.375rem}
+.kebab{position:absolute;top:.5rem;right:.5rem;width:28px;height:28px;border-radius:.4375rem;display:inline-flex;align-items:center;justify-content:center;color:hsl(var(--muted-foreground));background:hsl(var(--muted));font-size:1.125rem;line-height:1;z-index:4}
+.kebab:hover{background:hsl(var(--border));color:hsl(var(--foreground))}
+.kebab-menu{position:absolute;top:34px;right:.5rem;background:hsl(var(--card));border:1px solid hsl(var(--border));border-radius:.5rem;box-shadow:var(--shadow-md);min-width:176px;padding:.25rem;display:none;z-index:15}
+.kebab-menu[data-open="true"]{display:block}
+.kebab-item{display:flex;align-items:center;gap:.5rem;padding:.4375rem .5rem;border-radius:.375rem;font-size:.8125rem;width:100%;text-align:left;color:hsl(var(--foreground))}
+.kebab-item:hover{background:hsl(var(--muted))}
+.kebab-item.danger{color:hsl(var(--destructive))}
+.kebab-sep{height:1px;background:hsl(var(--border));margin:.25rem 0}
+
+/* ── N3 patrón único · master grilla ↔ detalle workspace (1-panel) ── */
+.n3-toggle{display:inline-flex;gap:.25rem;padding:.25rem;border-radius:.5rem;background:hsl(var(--muted));margin-bottom:1rem}
+.n3-tab{padding:.375rem .75rem;border-radius:.375rem;font-size:.8125rem;font-weight:500;color:hsl(var(--muted-foreground))}
+.n3-tab[data-active="true"]{background:hsl(var(--card));color:hsl(var(--foreground));box-shadow:var(--shadow-sm);font-weight:600}
+.n3-view{display:none}.n3-view[data-show="true"]{display:block}
+.n3-view .entity-subnav{overflow:visible}
+.entity-root{display:inline-flex;align-items:center;gap:.25rem;color:hsl(var(--agent-active,var(--muted-foreground)));font-weight:600;border-radius:.5rem;padding:.375rem .625rem}
+.entity-root:hover{background:hsl(var(--agent-active-soft,var(--muted)))}
+.entity-sep{display:inline-block;width:1px;height:20px;background:hsl(var(--border));margin:0 .5rem}
+.entity-picker-wrap{position:relative;margin-right:.75rem}
+.entity-picker{display:inline-flex;align-items:center;gap:.5rem;padding:.3125rem .5rem;border-radius:.5rem;font-size:.8125rem;font-weight:600;border:1px solid hsl(var(--border));background:hsl(var(--card))}
+.entity-picker:hover{border-color:hsl(var(--agent-active,var(--ring)))}
+.entity-picker-menu{position:absolute;top:calc(100% + 4px);left:0;background:hsl(var(--card));border:1px solid hsl(var(--border));border-radius:.5rem;box-shadow:var(--shadow-md);min-width:280px;display:none;z-index:25;overflow:hidden}
+.entity-picker-menu[data-open="true"]{display:block}
+.epm-search{padding:.375rem;border-bottom:1px solid hsl(var(--border))}
+.epm-search input{padding:.375rem .625rem;font-size:.8125rem}
+.epm-list{max-height:240px;overflow-y:auto;padding:.25rem}
+.epm-item{display:flex;align-items:center;gap:.5rem;padding:.4375rem .5rem;border-radius:.375rem;font-size:.8125rem;width:100%;text-align:left;color:hsl(var(--foreground))}
+.epm-item:hover{background:hsl(var(--muted))}
+.epm-item[data-active="true"]{background:hsl(var(--agent-lisa-soft)/.5);font-weight:600}
+.epm-foot{padding:.375rem .5rem;font-size:.625rem;color:hsl(var(--muted-foreground));border-top:1px solid hsl(var(--border));text-align:center}
+.epm-loading{padding:.5rem;text-align:center;font-size:.6875rem;color:hsl(var(--muted-foreground))}
+.epm-empty{padding:.75rem;text-align:center;font-size:.75rem;color:hsl(var(--muted-foreground))}
+
+/* ── Select canónico (Shadcn-style · reemplaza <select> nativo feo) ── */
+.sel{position:relative;display:inline-block;min-width:140px}
+.sel-trigger{display:inline-flex;align-items:center;justify-content:space-between;gap:.5rem;width:100%;height:36px;padding:0 .625rem;border:1px solid hsl(var(--input));border-radius:var(--radius);background:hsl(var(--background));font-size:.8125rem;color:hsl(var(--foreground))}
+.sel-trigger:hover{border-color:hsl(var(--ring)/.55)}
+.sel[data-open="true"] .sel-trigger{border-color:hsl(var(--ring));box-shadow:0 0 0 2px hsl(var(--ring)/.22)}
+.sel-val{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sel-chev{color:hsl(var(--muted-foreground));font-size:.6875rem;transition:transform .15s;flex-shrink:0}
+.sel[data-open="true"] .sel-chev{transform:rotate(180deg)}
+.sel-menu{position:absolute;top:calc(100% + 4px);left:0;min-width:100%;background:hsl(var(--card));border:1px solid hsl(var(--border));border-radius:.5rem;box-shadow:var(--shadow-md);padding:.25rem;display:none;z-index:30;max-height:248px;overflow-y:auto}
+.sel[data-open="true"] .sel-menu{display:block}
+.sel-opt{display:flex;align-items:center;gap:.5rem;width:100%;text-align:left;padding:.4375rem .5rem;border-radius:.375rem;font-size:.8125rem;color:hsl(var(--foreground));white-space:nowrap}
+.sel-opt:hover{background:hsl(var(--muted))}
+.sel-opt[data-active="true"]{background:hsl(var(--agent-active-soft,var(--muted)));font-weight:600}
+.sel-opt[data-active="true"]::after{content:'✓';margin-left:auto;color:hsl(var(--agent-active,var(--primary)));font-weight:700}
+
+/* ── Contenedor HOJA (leaf): 100% ancho · franjas full-bleed · contenido PageContainer ── */
+.leaf{margin:0 -1.5rem}                                  /* cancela el padding horizontal del panel → full-bleed */
+.entity-subnav.leaf-navbar{position:sticky;top:0;z-index:12;background:hsl(var(--card));border-bottom:1px solid hsl(var(--border));border-radius:0;padding:0 1.5rem;min-height:46px}
+.leaf-body{padding:1.25rem 1.5rem}                       /* PageContainer: padding interior estándar de la hoja */
+@media(max-width:640px){.grp-fields{grid-template-columns:1fr}}  /* full responsive: campos pareados colapsan */
+</style>
+</head>
+<body>
+<div class="shell-root">
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-logo"><span class="topbar-logo-mark">L</span> Luana</div>
+      <span class="topbar-breadcrumb">· Design System · Showcase fiel</span>
+    </div>
+    <div class="topbar-right">
+      <div class="splitter-control" id="splitter">
+        <button class="splitter-btn" data-state="chat-collapsed">▏Valeria</button>
+        <button class="splitter-btn" data-active="true" data-state="chat-narrow">▎</button>
+        <button class="splitter-btn" data-state="50-50">50·50</button>
+      </div>
+      <div class="tenant-chip"><span class="tenant-chip-avatar">S</span> Clínica Sanaré · MX</div>
+      <button class="topbar-icon-btn" id="theme" title="Tema claro/oscuro">🌓</button>
+    </div>
+  </div>
+
+  <div class="shell-body" data-splitter-state="chat-narrow" id="shellBody">
+    <!-- VALERIA SIDEBAR -->
+    <aside class="chat-side">
+      <div class="chat-rail-only">
+        <button class="rail-btn active">V</button>
+        <button class="rail-btn">🗂️</button><button class="rail-btn">＋</button>
+      </div>
+      <div class="chat-content">
+        <div class="chat-header">
+          <div class="chat-avatar-wrap"><div class="chat-avatar">V</div><span class="chat-status-dot"></span></div>
+          <div class="chat-meta"><span class="chat-name">Valeria</span><span class="chat-role">Supervisora · coordina al equipo</span></div>
+          <span class="chat-mode-pill">Agéntico</span>
+        </div>
+        <div class="chat-messages">
+          <div class="msg-row" data-role="bot"><div class="msg-bubble">Hola 👋 Este es el catálogo del sistema de diseño. Todo lo que ves acá es lo que vas a ver construido — mismos tokens, mismo shell.</div><span class="msg-time">10:24</span></div>
+          <div class="msg-row" data-role="user"><div class="msg-bubble">Mostrame las cajas de doctores y servicios.</div><span class="msg-time">10:24</span></div>
+          <div class="msg-row" data-role="bot"><div class="msg-bubble">Abrí la pestaña <b>EntityInfoCard</b> arriba 👆 — ahí están las cajas con los 8 espacios marcados.</div><span class="msg-time">10:25</span></div>
+        </div>
+        <div class="chat-composer">
+          <div class="composer-row">
+            <div class="composer-adornos"><button class="composer-adorno-btn">📎</button><button class="composer-adorno-btn">🎙️</button><button class="composer-adorno-btn">⚡</button></div>
+            <textarea class="composer-textarea" rows="1" placeholder="Escribe a Valeria…"></textarea>
+            <button class="composer-send">Enviar</button>
+          </div>
+          <div class="composer-hint"><span class="kbd">⌘</span> <span class="kbd">K</span> para acciones rápidas</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- PANEL -->
+    <section class="panel-side">
+      <!-- N1 Ribbon -->
+      <nav class="ribbon">
+        <button class="ribbon-tab" data-active="true" data-color="lisa"><span class="ribbon-tab-avatar" style="background:hsl(var(--agent-lisa))">Li</span> Lisa</button>
+        <button class="ribbon-tab" data-color="lucas"><span class="ribbon-tab-avatar" style="background:hsl(var(--agent-lucas))">Lu</span> Lucas</button>
+        <button class="ribbon-tab" data-color="adrian"><span class="ribbon-tab-avatar" style="background:hsl(var(--agent-adrian))">Ad</span> Adrián</button>
+        <button class="ribbon-tab" data-color="mateo"><span class="ribbon-tab-avatar" style="background:hsl(var(--agent-mateo));color:#3a3300">Ma</span> Mateo</button>
+        <button class="ribbon-tab" data-color="camila"><span class="ribbon-tab-avatar" style="background:hsl(var(--agent-camila))">Ca</span> Camila</button>
+        <button class="ribbon-tab" data-color="config"><span class="ribbon-tab-avatar" style="background:hsl(var(--agent-config))">⚙</span> Plataforma</button>
+      </nav>
+      <!-- N2 SubTabs -->
+      <div class="subtabs-bar">
+        <button class="subtab-btn" data-active="true">🎨 Design System</button>
+        <button class="subtab-btn">👥 Especialistas</button>
+        <button class="subtab-btn">🧩 Servicios</button>
+        <button class="subtab-btn">🏷️ Marca</button>
+      </div>
+      <!-- N3 SubSubTabs = navegación del showcase -->
+      <div class="subsubtabs-bar" id="scnav">
+        <button class="subsubtab-btn" data-active="true" data-sec="atoms">Átomos</button>
+        <button class="subsubtab-btn" data-sec="n3">N3 Lista/Detalle</button>
+        <button class="subsubtab-btn" data-sec="eic">EntityInfoCard</button>
+        <button class="subsubtab-btn" data-sec="autosave">Info + Autosave</button>
+        <button class="subsubtab-btn" data-sec="primitives">Page-primitives</button>
+        <button class="subsubtab-btn" data-sec="states">Estados</button>
+      </div>
+
+      <div class="panel-content">
+        <div class="sc-banner">
+          ★ <b>Showcase fiel por construcción.</b> Tokens derivados verbatim de <code>globals.css</code>
+          (<code>--agent-mateo 53°</code> corregido). Shell reusado del canónico. Este <code>.html</code> estático es
+          un <b>espejo derivado</b> para ratificar la dirección — el showcase <b>durable</b> será un
+          <code>/showcase</code> route en la app real que renderiza los componentes reales (R-FID).
+        </div>
+
+        <!-- ░░░ ÁTOMOS ░░░ -->
+        <div class="sc-sec" data-sec="atoms" data-show="true">
+          <h1 class="sc-h1">Átomos canónicos <span class="sc-pick">@luana/ui-kit</span></h1>
+          <p class="sc-sub">Plantilla obligatoria: cada átomo tiene UNA versión canónica. El dev la toma de base; el lint prohíbe recrearla.</p>
+
+          <div class="sc-block"><div class="sc-block-h">Button — variantes</div>
+            <div class="sc-row">
+              <button class="btn btn-primary">Primario</button>
+              <button class="btn btn-accent">Acento</button>
+              <button class="btn btn-ghost">Ghost</button>
+              <button class="btn btn-destructive">Eliminar</button>
+              <button class="btn btn-lisa">Agente (Lisa)</button>
+              <button class="btn btn-primary btn-sm">Pequeño</button>
+              <button class="btn btn-primary" disabled>Deshabilitado</button>
+            </div>
+            <p class="sc-note">Mejor versión: vitalia input/textarea/badge + nicolify dropdown/tooltip → mergear a core.</p>
+          </div>
+
+          <div class="sc-block"><div class="sc-block-h">Inputs / Textarea / Select</div>
+            <div class="cards-grid">
+              <div><label class="label">Nombre del especialista</label><input value="Dra. Mariana Solís" /><p class="hint">Se guarda automáticamente.</p></div>
+              <div><label class="label">Email</label><input data-invalid="true" value="correo-invalido" /><p class="err">Ingresa un email válido.</p></div>
+              <div><label class="label">Especialidad</label>
+                <div class="sel" style="width:100%"><button class="sel-trigger"><span class="sel-val">Odontología cosmética</span><span class="sel-chev">▾</span></button>
+                  <div class="sel-menu"><button class="sel-opt" data-active="true">Odontología cosmética</button><button class="sel-opt">Medicina estética</button><button class="sel-opt">Dermatología</button><button class="sel-opt">Oftalmología refractiva</button><button class="sel-opt">Nutrición clínica</button></div>
+                </div>
+              </div>
+              <div style="grid-column:1/-1"><label class="label">Bio profesional</label><textarea>Especialista en diseño de sonrisa con 12 años de experiencia…</textarea></div>
+            </div>
+          </div>
+
+          <div class="sc-block"><div class="sc-block-h">Badge / Chip / Switch / Checkbox / Avatar</div>
+            <div class="sc-row">
+              <span class="badge">Borrador</span>
+              <span class="badge badge-lisa">Publicado</span>
+              <span class="chip chip-success">✓ Activo</span>
+              <span class="chip chip-warning">Pendiente</span>
+              <span class="chip chip-primary">Destacado</span>
+              <label class="switch"><input type="checkbox" checked><span class="track"></span></label>
+              <span class="checkbox" data-checked="true">✓</span>
+              <span class="checkbox"></span>
+              <span class="avatar" style="background:hsl(var(--agent-lisa))">MS</span>
+              <span class="avatar" style="background:hsl(var(--agent-adrian))">JR</span>
+            </div>
+            <p class="sc-note">Faltan exportar a las marcas (existen en core, no se consumen): checkbox · switch · card · popover · alert-dialog.</p>
+          </div>
+
+          <div class="sc-block"><div class="sc-block-h">Tooltips — tratamiento + política <span class="sc-pick">nicolify Tooltip (Provider+Arrow)</span></div>
+            <div class="sc-row" style="gap:1.75rem;padding:.5rem 0 1.25rem">
+              <span style="font-size:.8125rem">Campo con ayuda: <span class="tip">Arquetipo de marca</span></span>
+              <span class="tt" tabindex="0" style="font-size:.8125rem">Inversión sugerida <span class="tt-trigger">?</span><span class="tt-bubble">Monto mensual recomendado para captar pacientes en este canal. Es editable.</span></span>
+              <button class="btn btn-ghost btn-sm tt">Publicar <span class="tt-trigger" style="background:hsl(var(--background)/.3)">?</span><span class="tt-bubble">Genera la landing pública del servicio. Requiere ≥1 doctor asignado.</span></button>
+            </div>
+            <p class="sc-note"><b>Política:</b> tooltip = explicación de un campo/acción <b>no obvia</b> (trigger: hover/focus en el <b>ⓘ</b> o en el label punteado). En código = Shadcn Tooltip versión nicolify (Provider + Arrow + delay 0). <b>NO</b> para info crítica (esa va inline/hint, siempre visible) · <b>NO</b> como único canal (accesible por teclado, no solo hover) · <b>NO</b> en mobile como único trigger (tap-to-toggle).</p>
+          </div>
+
+          <div class="sc-block"><div class="sc-block-h">Color por agente — cómo afecta a los botones</div>
+            <div class="sc-row ctx-lisa"><span style="font-size:.75rem;width:62px;color:hsl(var(--muted-foreground))">Lisa</span><button class="btn btn-agent">Acción primaria</button><button class="btn btn-agent-soft">Secundaria</button></div>
+            <div class="sc-row ctx-adrian"><span style="font-size:.75rem;width:62px;color:hsl(var(--muted-foreground))">Adrián</span><button class="btn btn-agent">Acción primaria</button><button class="btn btn-agent-soft">Secundaria</button></div>
+            <div class="sc-row ctx-mateo"><span style="font-size:.75rem;width:62px;color:hsl(var(--muted-foreground))">Mateo</span><button class="btn btn-agent">Acción primaria</button><button class="btn btn-agent-soft">Secundaria</button></div>
+            <div class="sc-row ctx-camila"><span style="font-size:.75rem;width:62px;color:hsl(var(--muted-foreground))">Camila</span><button class="btn btn-agent">Acción primaria</button><button class="btn btn-agent-soft">Secundaria</button></div>
+            <div class="sc-row"><span style="font-size:.75rem;width:62px;color:hsl(var(--muted-foreground))">Global</span><button class="btn btn-primary">Acción global</button><button class="btn btn-destructive">Eliminar</button><button class="btn btn-ghost">Cancelar</button></div>
+            <p class="sc-note"><b>Política:</b> dentro del módulo de un agente, la <b>acción primaria</b> adopta el color del agente (token <code>--agent-active</code> que setea el módulo) → cada espacio se siente coherente. El <b>texto se ajusta por contraste</b> (Mateo amarillo → texto oscuro; Lucas negro → blanco). Lo <b>semántico NO cambia</b> nunca: destructivo siempre rojo, éxito verde, advertencia ámbar. Lo <b>global/transversal</b> (topbar, Valeria, onboarding, Plataforma) usa <code>--primary</code> (cian de marca), no el color de un agente.</p>
+          </div>
+        </div>
+
+        <!-- ░░░ N3 LISTA/DETALLE ░░░ -->
+        <div class="sc-sec" data-sec="n3">
+          <h1 class="sc-h1">N3 Lista / Detalle (patrón único) <span class="sc-pick">EntityWorkspaceLayout · 1-panel</span></h1>
+          <p class="sc-sub">Patrón único para TODA lista/detalle (doctores, servicios, leads…). <b>Master</b> = grilla de cajas (EntityInfoCard) + búsqueda/filtro. <b>Entrás a una caja</b> → workspace full-width: franja <code>‹ Especialistas</code> (flechita ← vuelve a la grilla) + <b>nombre del doctor como selector ▾</b> (cambiás de especialista sin volver atrás) + leaves de esa entidad. Probá el toggle ↓, o hacé click en una caja, en <code>‹ Especialistas</code>, o en el <code>▾</code>.</p>
+
+          <div class="n3-toggle">
+            <button class="n3-tab" data-active="true" data-n3="master">① Master · grilla de cajas</button>
+            <button class="n3-tab" data-n3="detail">② Detalle · workspace</button>
+          </div>
+
+          <!-- MASTER · grilla de cajas full-width -->
+          <div class="n3-view ctx-lisa" data-n3="master" data-show="true">
+            <div class="pp-header"><div><div class="pp-title">Especialistas</div><div class="pp-subtitle">3 profesionales · 2 con agenda activa</div></div><button class="btn btn-agent">＋ Nuevo</button></div>
+            <div class="pp-toolbar">
+              <input placeholder="🔍 Buscar especialista…">
+              <div class="sel" style="width:200px"><button class="sel-trigger"><span class="sel-val">Todas las especialidades</span><span class="sel-chev">▾</span></button>
+                <div class="sel-menu"><button class="sel-opt" data-active="true">Todas las especialidades</button><button class="sel-opt">Odontología cosmética</button><button class="sel-opt">Medicina estética</button><button class="sel-opt">Dermatología</button><button class="sel-opt">Oftalmología refractiva</button><button class="sel-opt">Nutrición clínica</button></div>
+              </div>
+              <div class="sel" style="width:130px"><button class="sel-trigger"><span class="sel-val">Activos</span><span class="sel-chev">▾</span></button>
+                <div class="sel-menu"><button class="sel-opt" data-active="true">Activos</button><button class="sel-opt">Inactivos</button><button class="sel-opt">Todos</button></div>
+              </div>
+            </div>
+            <div class="eic-grid">
+              <div class="eicB" data-n3-enter tabindex="0" role="button">
+                <button class="kebab" aria-label="Opciones">⋮</button><div class="kebab-menu"><button class="kebab-item">✏️ Editar</button><button class="kebab-item">👁️ Ver perfil</button><div class="kebab-sep"></div><button class="kebab-item danger">🗑️ Eliminar</button></div>
+                <div class="eicB-body"><div class="eicB-row"><div class="eicB-media">MS</div><div style="min-width:0;flex:1"><div class="eicB-title">Dra. Mariana Solís</div><div class="eicB-sub">Odontología cosmética</div></div></div>
+                  <div class="eicB-metarow"><div class="m"><b>128</b><span>Pacientes</span></div><div class="m"><b>4.9 ★</b><span>Rating</span></div><div class="m"><b>12</b><span>Años</span></div></div></div>
+                <div class="eicB-foot"><span class="chip chip-success">✓ Activo</span></div>
+              </div>
+              <div class="eicB" data-n3-enter tabindex="0" role="button">
+                <button class="kebab" aria-label="Opciones">⋮</button><div class="kebab-menu"><button class="kebab-item">✏️ Editar</button><button class="kebab-item">👁️ Ver perfil</button><div class="kebab-sep"></div><button class="kebab-item danger">🗑️ Eliminar</button></div>
+                <div class="eicB-body"><div class="eicB-row"><div class="eicB-media" style="background:hsl(var(--agent-adrian))">JR</div><div style="min-width:0;flex:1"><div class="eicB-title">Dr. Javier Ruiz</div><div class="eicB-sub">Medicina estética</div></div></div>
+                  <div class="eicB-metarow"><div class="m"><b>94</b><span>Pacientes</span></div><div class="m"><b>4.8 ★</b><span>Rating</span></div><div class="m"><b>8</b><span>Años</span></div></div></div>
+                <div class="eicB-foot"><span class="chip chip-success">✓ Activo</span></div>
+              </div>
+              <div class="eicB" data-n3-enter tabindex="0" role="button">
+                <button class="kebab" aria-label="Opciones">⋮</button><div class="kebab-menu"><button class="kebab-item">✏️ Editar</button><button class="kebab-item">👁️ Ver perfil</button><div class="kebab-sep"></div><button class="kebab-item danger">🗑️ Eliminar</button></div>
+                <div class="eicB-body"><div class="eicB-row"><div class="eicB-media" style="background:hsl(var(--accent))">LP</div><div style="min-width:0;flex:1"><div class="eicB-title">Dra. Lucía Paz</div><div class="eicB-sub">Dermatología</div></div></div>
+                  <div class="eicB-metarow"><div class="m"><b>71</b><span>Pacientes</span></div><div class="m"><b>5.0 ★</b><span>Rating</span></div><div class="m"><b>6</b><span>Años</span></div></div></div>
+                <div class="eicB-foot"><span class="chip chip-warning">Sin agenda</span></div>
+              </div>
+            </div>
+            <p class="sc-note">La grilla ES el contenido del root (full-width, reusa <b>EntityInfoCard</b>). Click en una caja → entra al workspace (cambia la URL). Búsqueda + filtros viven en la Toolbar de arriba.</p>
+          </div>
+
+          <!-- DETAIL · workspace 1-panel full-width -->
+          <div class="n3-view ctx-lisa" data-n3="detail">
+            <div class="leaf">
+              <div class="entity-subnav leaf-navbar">
+                <button class="entity-root">‹ Especialistas</button>
+                <span class="entity-sep"></span>
+                <span class="entity-picker-wrap">
+                  <button class="entity-picker" id="entityPicker">
+                    <span class="avatar" style="background:hsl(var(--agent-lisa));width:22px;height:22px;font-size:.5625rem">MS</span>
+                    <span class="ep-name">Dra. Mariana Solís</span> <span style="opacity:.55">▾</span>
+                  </button>
+                  <div class="entity-picker-menu" id="entityPickerMenu" role="listbox" aria-label="Cambiar de especialista">
+                    <div class="epm-search"><input id="epmSearch" type="text" placeholder="🔍 Buscar especialista…" autocomplete="off"></div>
+                    <div class="epm-list" id="epmList"></div>
+                    <div class="epm-foot" id="epmFoot">Mostrando 0 de 0</div>
+                  </div>
+                </span>
+                <span class="entity-leaves">
+                  <span class="entity-leaf" data-active="true">Perfil</span>
+                  <span class="entity-leaf">Agenda</span>
+                  <span class="entity-leaf">Servicios</span>
+                </span>
+              </div>
+              <div class="leaf-body" style="display:flex;flex-direction:column;gap:.75rem">
+                <div class="grp" style="margin:0"><div class="grp-h"><span class="grp-title">Identidad</span></div>
+                  <div class="grp-fields"><div><label class="label">Nombre</label><input value="Dra. Mariana Solís"></div><div><label class="label">Credencial</label><input value="Cédula 8842-MX"></div></div>
+                </div>
+                <div class="grp" style="margin:0"><div class="grp-h"><span class="grp-title">Bio profesional <span class="grp-whatfor">para la landing</span></span></div>
+                  <div class="grp-fields"><div class="full"><label class="label">Resumen</label><textarea>Especialista en diseño de sonrisa con 12 años de experiencia…</textarea></div></div>
+                </div>
+              </div>
+            </div>
+            <p class="sc-note">📐 <b>Contenedor HOJA — lineamientos (cierre):</b><br>
+              1. La hoja ocupa <b>100% del ancho</b> del panel — <b>full responsive</b>, sin <code>max-width</code> (grids reflúyen con <code>auto-fill/minmax</code>).<br>
+              2. La franja N3 (<code>‹ Especialistas</code> + picker + leaves) es un <b>tercer ribbon FULL-BLEED</b>: edge-to-edge, <code>bg-card</code> + <code>border-bottom</code>, <b>sticky</b> — mismo lenguaje visual que Ribbon(N1)/SubTabs(N2)/SubSubTabs. <b>NO</b> una card con borde redondeado (eso era lo que se veía mal).<br>
+              3. El contenido de la hoja vive en <b>PageContainer</b> (padding interior estándar <code>1.25rem 1.5rem</code>) + PageContentStack (espaciado vertical).<br>
+              4. <b>Padding:</b> las franjas NO llevan padding de contenido (solo el del strip, full-bleed) · el contenido SÍ (PageContainer). Scrolleá el detalle: la franja queda sticky arriba.</p>
+            <p class="sc-note">★ <code>‹ Especialistas</code> (con flechita) vuelve a la grilla de cajas. El <b>nombre del doctor es un selector ▾</b>: cambiás de especialista <b>sin volver atrás</b>. Los leaves (Perfil/Agenda/Servicios) son las secciones de ESE doctor. Mismo patrón para servicios/leads.</p>
+            <p class="sc-note">★★ <b>EntityPicker (cimentado · abrí el ▾ y probá):</b> buscador + <b>tope por lote</b> (12) + <b>lazy-load al scroll</b> + empty state + <code>role=listbox/option</code>. Con 200 especialistas <b>no se cargan todos</b>. <b>Contrato del build real:</b> búsqueda <b>server-side</b> debounced (no traer todo al cliente) · fetch <b>paginado</b> (cap inicial ~20, cursor) · render <b>windowed/virtualizado</b> (react-window/virtualizer) · infinite-scroll o "cargar más" · navegación por teclado (↑↓/Enter/Esc) + a11y combobox. Acá se simula client-side sobre 200 sintéticos solo para mostrar el comportamiento.</p>
+          </div>
+        </div>
+
+        <!-- ░░░ EntityInfoCard ░░░ -->
+        <div class="sc-sec" data-sec="eic">
+          <h1 class="sc-h1">EntityInfoCard <span class="sc-pick">Opción B elegida</span></h1>
+          <p class="sc-sub">Comportamiento: <b>grid responsivo</b> (a este ancho <b>4 por fila</b>, varía por tamaño) · <b>todas las imágenes circulares</b> · <b>indicadores repartidos en el ancho</b> · <b>card clickeable</b> + <b>⋮</b> menú (Editar/Eliminar/…). Probá el splitter (▏▎50·50) para ver el reflujo.</p>
+          <details style="margin-bottom:1rem"><summary style="font-size:.6875rem;color:hsl(var(--muted-foreground));cursor:pointer">Opción A (descartada — clic para ver la comparación)</summary>
+          <div class="eic-grid ctx-lisa" style="margin-top:.5rem">
+            <div class="eic" data-status="ok" tabindex="0" role="button">
+              <button class="kebab" aria-label="Opciones">⋮</button>
+              <div class="kebab-menu"><button class="kebab-item">✏️ Editar</button><button class="kebab-item">👁️ Ver perfil</button><div class="kebab-sep"></div><button class="kebab-item danger">🗑️ Eliminar</button></div>
+              <div class="eic-top"><div class="eic-media" style="background:hsl(var(--agent-lisa))">MS</div><div class="eic-titlewrap"><div class="eic-title">Dra. Mariana Solís</div><div class="eic-subtitle"><span class="badge badge-lisa">Odontología cosmética</span></div></div></div>
+              <div class="eic-meta"><div class="eic-meta-cell"><div class="eic-meta-num">128</div><div class="eic-meta-lbl">Pacientes</div></div><div class="eic-meta-cell"><div class="eic-meta-num">4.9</div><div class="eic-meta-lbl">Rating</div></div><div class="eic-meta-cell"><div class="eic-meta-num">12</div><div class="eic-meta-lbl">Años</div></div></div>
+              <div class="eic-foot"><span class="chip chip-success" style="font-size:.625rem">✓ Activo</span></div>
+            </div>
+            <div class="eic" data-status="ok" tabindex="0" role="button">
+              <button class="kebab" aria-label="Opciones">⋮</button>
+              <div class="kebab-menu"><button class="kebab-item">✏️ Editar</button><button class="kebab-item">👁️ Ver perfil</button><div class="kebab-sep"></div><button class="kebab-item danger">🗑️ Eliminar</button></div>
+              <div class="eic-top"><div class="eic-media" style="background:hsl(var(--agent-lisa))">JR</div><div class="eic-titlewrap"><div class="eic-title">Dr. Javier Ruiz</div><div class="eic-subtitle"><span class="badge badge-lisa">Medicina estética</span></div></div></div>
+              <div class="eic-meta"><div class="eic-meta-cell"><div class="eic-meta-num">94</div><div class="eic-meta-lbl">Pacientes</div></div><div class="eic-meta-cell"><div class="eic-meta-num">4.8</div><div class="eic-meta-lbl">Rating</div></div><div class="eic-meta-cell"><div class="eic-meta-num">8</div><div class="eic-meta-lbl">Años</div></div></div>
+              <div class="eic-foot"><span class="chip chip-success" style="font-size:.625rem">✓ Activo</span></div>
+            </div>
+            <div class="eic" data-status="warn" tabindex="0" role="button">
+              <button class="kebab" aria-label="Opciones">⋮</button>
+              <div class="kebab-menu"><button class="kebab-item">✏️ Editar</button><button class="kebab-item">🌐 Ver landing</button><button class="kebab-item">📋 Duplicar</button><div class="kebab-sep"></div><button class="kebab-item danger">🗑️ Eliminar</button></div>
+              <div class="eic-top"><div class="eic-media sq" style="background:hsl(var(--agent-lisa-soft));color:hsl(var(--agent-lisa))">🦷</div><div class="eic-titlewrap"><div class="eic-title">Diseño de sonrisa</div><div class="eic-subtitle"><span class="chip chip-warning">Sin landing</span></div></div></div>
+              <div class="eic-meta"><div class="eic-meta-cell"><div class="eic-meta-num">$24.000</div><div class="eic-meta-lbl">MXN</div></div><div class="eic-meta-cell"><div class="eic-meta-num">3</div><div class="eic-meta-lbl">Sesiones</div></div><div class="eic-meta-cell"><div class="eic-meta-num">2</div><div class="eic-meta-lbl">Doctores</div></div></div>
+              <div class="eic-foot"><span class="chip chip-warning" style="font-size:.625rem">Borrador</span></div>
+            </div>
+            <div class="eic" data-status="ok" tabindex="0" role="button">
+              <button class="kebab" aria-label="Opciones">⋮</button>
+              <div class="kebab-menu"><button class="kebab-item">✏️ Editar</button><button class="kebab-item">👁️ Ver perfil</button><div class="kebab-sep"></div><button class="kebab-item danger">🗑️ Eliminar</button></div>
+              <div class="eic-top"><div class="eic-media" style="background:hsl(var(--agent-lisa))">LP</div><div class="eic-titlewrap"><div class="eic-title">Dra. Lucía Paz</div><div class="eic-subtitle"><span class="badge badge-lisa">Dermatología</span></div></div></div>
+              <div class="eic-meta"><div class="eic-meta-cell"><div class="eic-meta-num">71</div><div class="eic-meta-lbl">Pacientes</div></div><div class="eic-meta-cell"><div class="eic-meta-num">5.0</div><div class="eic-meta-lbl">Rating</div></div><div class="eic-meta-cell"><div class="eic-meta-num">6</div><div class="eic-meta-lbl">Años</div></div></div>
+              <div class="eic-foot"><span class="chip chip-success" style="font-size:.625rem">✓ Activo</span></div>
+            </div>
+            <div class="eic" data-status="ok" tabindex="0" role="button">
+              <button class="kebab" aria-label="Opciones">⋮</button>
+              <div class="kebab-menu"><button class="kebab-item">💬 Abrir conversación</button><button class="kebab-item">✏️ Editar</button><div class="kebab-sep"></div><button class="kebab-item danger">📥 Archivar</button></div>
+              <div class="eic-top"><div class="eic-media" style="background:hsl(var(--agent-adrian))">CG</div><div class="eic-titlewrap"><div class="eic-title">Carla Gómez</div><div class="eic-subtitle"><span class="chip chip-success">Cita agendada</span></div></div></div>
+              <div class="eic-meta"><div class="eic-meta-cell"><div class="eic-meta-num">WA</div><div class="eic-meta-lbl">Canal</div></div><div class="eic-meta-cell"><div class="eic-meta-num">Hoy</div><div class="eic-meta-lbl">Contacto</div></div><div class="eic-meta-cell"><div class="eic-meta-num">Alta</div><div class="eic-meta-lbl">Intención</div></div></div>
+              <div class="eic-foot"><span class="chip chip-primary" style="font-size:.625rem">Lead</span></div>
+            </div>
+          </div></details>
+          <div class="eic-grid ctx-lisa">
+            <div class="eicB" tabindex="0" role="button">
+              <button class="kebab" aria-label="Opciones">⋮</button>
+              <div class="kebab-menu"><button class="kebab-item">✏️ Editar</button><button class="kebab-item">👁️ Ver perfil</button><div class="kebab-sep"></div><button class="kebab-item danger">🗑️ Eliminar</button></div>
+              <div class="eicB-body"><div class="eicB-row"><div class="eicB-media">MS</div><div style="min-width:0;flex:1"><div class="eicB-title">Dra. Mariana Solís</div><div class="eicB-sub">Odontología cosmética</div></div></div>
+                <div class="eicB-metarow"><div class="m"><b>128</b><span>Pacientes</span></div><div class="m"><b>4.9 ★</b><span>Rating</span></div><div class="m"><b>12</b><span>Años</span></div></div></div>
+              <div class="eicB-foot"><span class="chip chip-success">✓ Activo</span></div>
+            </div>
+            <div class="eicB" tabindex="0" role="button">
+              <button class="kebab" aria-label="Opciones">⋮</button>
+              <div class="kebab-menu"><button class="kebab-item">✏️ Editar</button><button class="kebab-item">👁️ Ver perfil</button><div class="kebab-sep"></div><button class="kebab-item danger">🗑️ Eliminar</button></div>
+              <div class="eicB-body"><div class="eicB-row"><div class="eicB-media">JR</div><div style="min-width:0;flex:1"><div class="eicB-title">Dr. Javier Ruiz</div><div class="eicB-sub">Medicina estética</div></div></div>
+                <div class="eicB-metarow"><div class="m"><b>94</b><span>Pacientes</span></div><div class="m"><b>4.8 ★</b><span>Rating</span></div><div class="m"><b>8</b><span>Años</span></div></div></div>
+              <div class="eicB-foot"><span class="chip chip-success">✓ Activo</span></div>
+            </div>
+            <div class="eicB" tabindex="0" role="button">
+              <button class="kebab" aria-label="Opciones">⋮</button>
+              <div class="kebab-menu"><button class="kebab-item">✏️ Editar</button><button class="kebab-item">🌐 Ver landing</button><button class="kebab-item">📋 Duplicar</button><div class="kebab-sep"></div><button class="kebab-item danger">🗑️ Eliminar</button></div>
+              <div class="eicB-body"><div class="eicB-row"><div class="eicB-media" style="background:hsl(var(--agent-lisa-soft));color:hsl(var(--agent-lisa))">🦷</div><div style="min-width:0;flex:1"><div class="eicB-title">Diseño de sonrisa</div><div class="eicB-sub">Tratamiento principal · $24.000 MXN</div></div></div>
+                <div class="eicB-metarow"><div class="m"><b>3</b><span>Sesiones</span></div><div class="m"><b>2</b><span>Doctores</span></div></div></div>
+              <div class="eicB-foot"><span class="chip chip-warning">Sin landing</span></div>
+            </div>
+            <div class="eicB" tabindex="0" role="button">
+              <button class="kebab" aria-label="Opciones">⋮</button>
+              <div class="kebab-menu"><button class="kebab-item">✏️ Editar</button><button class="kebab-item">👁️ Ver perfil</button><div class="kebab-sep"></div><button class="kebab-item danger">🗑️ Eliminar</button></div>
+              <div class="eicB-body"><div class="eicB-row"><div class="eicB-media">LP</div><div style="min-width:0;flex:1"><div class="eicB-title">Dra. Lucía Paz</div><div class="eicB-sub">Dermatología</div></div></div>
+                <div class="eicB-metarow"><div class="m"><b>71</b><span>Pacientes</span></div><div class="m"><b>5.0 ★</b><span>Rating</span></div><div class="m"><b>6</b><span>Años</span></div></div></div>
+              <div class="eicB-foot"><span class="chip chip-success">✓ Activo</span></div>
+            </div>
+            <div class="eicB" tabindex="0" role="button">
+              <button class="kebab" aria-label="Opciones">⋮</button>
+              <div class="kebab-menu"><button class="kebab-item">💬 Abrir conversación</button><button class="kebab-item">✏️ Editar</button><div class="kebab-sep"></div><button class="kebab-item danger">📥 Archivar</button></div>
+              <div class="eicB-body"><div class="eicB-row"><div class="eicB-media" style="background:hsl(var(--agent-adrian))">CG</div><div style="min-width:0;flex:1"><div class="eicB-title">Carla Gómez</div><div class="eicB-sub">Lead · WhatsApp · contacto hoy</div></div></div>
+                <div class="eicB-metarow"><div class="m"><b>Cita</b><span>Estado</span></div><div class="m"><b>Alta</b><span>Intención</span></div></div></div>
+              <div class="eicB-foot"><span class="chip chip-primary">Lead</span></div>
+            </div>
+          </div>
+          <p class="sc-note">★ Grilla <code>auto-fill / minmax(250px,1fr)</code> → a este ancho 4 por fila, varía con el tamaño (movés el splitter y reflúye). Imágenes todas circulares · indicadores repartidos a lo ancho (como la opción A) · card clickeable + <b>⋮</b> menú.</p>
+        </div>
+
+        <!-- ░░░ INFO + AUTOSAVE ░░░ -->
+        <div class="sc-sec" data-sec="autosave">
+          <h1 class="sc-h1">Info agrupada + autoguardado <span class="sc-pick">Group nicolify · use-autosave vitalia · indicador flotante</span></h1>
+          <p class="sc-sub">Secciones que agrupan campos que se guardan solos (sin botón "Guardar"). El estado de guardado lo muestra <b>UNA sola píldora flotante</b> por página — <b>no se repite por grupo</b>. ★ <b>Barrita de color del agente</b> a la izquierda (verde = Lisa) marca de quién es la info — como te gustó en doctores.</p>
+          <div class="grp ctx-lisa agent-strip" data-missing="false">
+            <div class="grp-h"><span class="grp-title">Identidad de la clínica <span class="grp-whatfor">para tu marca</span></span></div>
+            <div class="grp-fields">
+              <div><label class="label">Nombre comercial</label><input value="Clínica Sanaré"></div>
+              <div><label class="label">Año de fundación</label><input value="2014"></div>
+              <div class="full"><label class="label">Tagline</label><input value="Sonrisas que transforman vidas"></div>
+            </div>
+          </div>
+          <div class="grp" data-missing="true">
+            <div class="grp-h"><span class="grp-title" style="color:hsl(var(--destructive))">Contacto <span class="grp-whatfor">para que te encuentren</span></span></div>
+            <div class="grp-fields">
+              <div><label class="label">Teléfono</label><input value="+52 55 1234 5678"></div>
+              <div><label class="label">Sitio web</label><input data-invalid="true" placeholder="Falta — requerido"></div>
+            </div>
+            <p class="err">Falta el sitio web para activar la captación.</p>
+          </div>
+          <div class="float-autosave"><span class="float-dot"></span> Todos los cambios guardados</div>
+        </div>
+
+        <!-- ░░░ PAGE PRIMITIVES ░░░ -->
+        <div class="sc-sec" data-sec="primitives">
+          <h1 class="sc-h1">Page-primitives <span class="sc-pick">capa 3-4 · faltan ~8 de 10</span></h1>
+          <p class="sc-sub">Toda página se ARMA desde estas piezas, no se maqueta con &lt;div&gt; sueltos (hoy ~208 repetidos a mano).</p>
+
+          <div class="pp-header">
+            <div><div class="pp-title">Especialistas</div><div class="pp-subtitle">3 profesionales · 2 con agenda activa</div></div>
+            <button class="btn btn-lisa">＋ Nuevo especialista</button>
+          </div>
+          <div class="sc-note" style="margin-bottom:1rem">↑ PageHeader (título + subtítulo + acción)</div>
+
+          <div class="pp-toolbar">
+            <input placeholder="🔍 Buscar especialista…">
+            <div class="sel" style="width:200px"><button class="sel-trigger"><span class="sel-val">Todas las especialidades</span><span class="sel-chev">▾</span></button>
+              <div class="sel-menu"><button class="sel-opt" data-active="true">Todas las especialidades</button><button class="sel-opt">Odontología cosmética</button><button class="sel-opt">Medicina estética</button><button class="sel-opt">Dermatología</button><button class="sel-opt">Oftalmología refractiva</button><button class="sel-opt">Nutrición clínica</button></div>
+            </div>
+            <div class="sel" style="width:130px"><button class="sel-trigger"><span class="sel-val">Activos</span><span class="sel-chev">▾</span></button>
+              <div class="sel-menu"><button class="sel-opt" data-active="true">Activos</button><button class="sel-opt">Inactivos</button><button class="sel-opt">Todos</button></div>
+            </div>
+            <div class="viewtoggle" style="margin-left:auto"><button class="vt-btn" data-active="true">▦ Tarjetas</button><button class="vt-btn">▤ Lista</button></div>
+          </div>
+          <div class="sc-note" style="margin-bottom:1rem">↑ Toolbar / FilterBar (búsqueda + filtros + toggle de vista)</div>
+
+          <div class="pp-section"><div class="pp-section-h">🗂️ FilterBar (orden + vista + búsqueda)</div>
+            <div class="pp-toolbar">
+              <input placeholder="🔍 Buscar especialista…">
+              <div class="sel" style="width:190px"><button class="sel-trigger"><span class="sel-val">Ordenar: recientes</span><span class="sel-chev">▾</span></button>
+                <div class="sel-menu"><button class="sel-opt" data-active="true">Ordenar: recientes</button><button class="sel-opt">Ordenar: A–Z</button><button class="sel-opt">Ordenar: más pacientes</button></div>
+              </div>
+              <div class="viewtoggle" style="margin-left:auto"><button class="vt-btn" data-active="true">▦ Tarjetas</button><button class="vt-btn">▤ Lista</button></div>
+            </div>
+            <p class="sc-note">FilterBar = Toolbar + orden + toggle de vista (tarjetas/lista). Hoy se reimplementa por pantalla — se unifica en una primitiva.</p>
+          </div>
+
+          <div class="pp-section"><div class="pp-section-h">📦 PageContainer + PageContentStack</div>
+            <div class="pp-container-demo">
+              <span class="pp-frame-lbl">PageContainer · padding interior estándar del panel</span>
+              <div class="pp-stack-demo">
+                <div class="card">Bloque 1 — el contenido vive acá adentro</div>
+                <div class="card">Bloque 2 — espaciado vertical uniforme</div>
+                <div class="card">Bloque 3 — sin &lt;div&gt; de layout sueltos</div>
+              </div>
+              <span class="pp-frame-lbl" style="margin-top:.75rem;margin-bottom:0">PageContentStack · gestor del espaciado vertical (space-y)</span>
+            </div>
+            <p class="sc-note">PageContainer da el padding estándar del panel; PageContentStack gestiona el espaciado vertical. Reemplazan los ~208 <code>&lt;div p-4/p-6/p-8&gt;</code> repetidos a mano. <b>Comportamiento de la hoja:</b> contenido en PageContainer (padding <code>1.25/1.5rem</code>) · las franjas de nav (N3/sub-sub-tabs) son <b>full-bleed</b> (sin ese padding) · <b>100% ancho, sin max-width</b> → ver el modelo completo en N3 § Contenedor HOJA.</p>
+          </div>
+
+          <div class="pp-section"><div class="pp-section-h">📋 Section (título + bloque)</div>
+            <div class="card">Contenido de la sección. Padding, radius y espacios horneados desde tokens.</div>
+          </div>
+
+          <div class="pp-section"><div class="pp-section-h">🧱 DetailLayout / FormLayout — 1-col vs 2-col</div>
+            <div class="pp-layout-grid">
+              <div>
+                <span class="pp-frame-lbl">1 columna (lectura / form simple)</span>
+                <div class="card" style="display:flex;flex-direction:column;gap:.625rem">
+                  <div><label class="label">Nombre</label><input value="Dra. Mariana Solís"></div>
+                  <div><label class="label">Especialidad</label><input value="Odontología cosmética"></div>
+                  <div><label class="label">Cédula</label><input value="8842-MX"></div>
+                </div>
+              </div>
+              <div>
+                <span class="pp-frame-lbl">2 columnas (campos pareados)</span>
+                <div class="card"><div style="display:grid;grid-template-columns:1fr 1fr;gap:.625rem">
+                  <div><label class="label">Color de marca</label><input value="Cian #01B2F8"></div>
+                  <div><label class="label">Tipografía</label><input value="Inter"></div>
+                  <div><label class="label">Tratamiento</label><input value="Diseño de sonrisa"></div>
+                  <div><label class="label">Idioma</label><input value="Español (MX)"></div>
+                </div></div>
+              </div>
+            </div>
+            <p class="sc-note">Regla de layout: <b>1-col por defecto</b>; <b>2-col SOLO si los campos están conceptualmente pareados</b> (color+tipografía, tratamiento+idioma) — no por estética.</p>
+          </div>
+
+          <div class="pp-pagination">
+            <span class="pp-page-btn">‹</span>
+            <span class="pp-page-btn" data-active="true">1</span><span class="pp-page-btn">2</span><span class="pp-page-btn">3</span>
+            <span class="pp-page-btn">›</span>
+          </div>
+          <div class="sc-note">↑ Pagination (hoy 4 reimplementaciones distintas)</div>
+        </div>
+
+        <!-- ░░░ ESTADOS ░░░ -->
+        <div class="sc-sec" data-sec="states">
+          <h1 class="sc-h1">Estados universales</h1>
+          <p class="sc-sub">Vacío · error · cargando — misma lógica en todo (hoy: solo EmptyState + Skeleton genérico existen; faltan ErrorState dedicado + skeletons por arquetipo).</p>
+          <div class="cards-grid">
+            <div><div class="sc-block-h">EmptyState</div>
+              <div class="pp-empty"><div class="pp-empty-icon">🗂️</div><div class="pp-empty-h">Aún no hay especialistas</div><div class="pp-empty-p">Agrega tu primer profesional para que aparezca en el directorio.</div><button class="btn btn-lisa btn-sm">＋ Agregar especialista</button></div>
+            </div>
+            <div><div class="sc-block-h">ErrorState <span class="sc-note" style="display:inline;font-style:normal">· role=alert + retry</span></div>
+              <div class="pp-error" role="alert"><div class="pp-empty-icon">⚠️</div><div class="pp-empty-h">No pudimos cargar el directorio</div><div class="pp-empty-p">Revisa tu conexión e intenta de nuevo.</div><button class="btn btn-ghost btn-sm">Reintentar</button></div>
+            </div>
+            <div><div class="sc-block-h">ListPageSkeleton (N filas)</div>
+              <div class="card" style="display:flex;flex-direction:column;gap:.75rem">
+                <div style="display:flex;gap:.625rem;align-items:center"><div class="skel" style="width:40px;height:40px;border-radius:9999px"></div><div style="flex:1;display:flex;flex-direction:column;gap:.375rem"><div class="skel" style="height:12px;width:62%"></div><div class="skel" style="height:10px;width:40%"></div></div></div>
+                <div style="display:flex;gap:.625rem;align-items:center"><div class="skel" style="width:40px;height:40px;border-radius:9999px"></div><div style="flex:1;display:flex;flex-direction:column;gap:.375rem"><div class="skel" style="height:12px;width:54%"></div><div class="skel" style="height:10px;width:36%"></div></div></div>
+                <div style="display:flex;gap:.625rem;align-items:center"><div class="skel" style="width:40px;height:40px;border-radius:9999px"></div><div style="flex:1;display:flex;flex-direction:column;gap:.375rem"><div class="skel" style="height:12px;width:58%"></div><div class="skel" style="height:10px;width:44%"></div></div></div>
+              </div>
+            </div>
+            <div><div class="sc-block-h">FormPageSkeleton (N secciones)</div>
+              <div class="card" style="display:flex;flex-direction:column;gap:.875rem">
+                <div style="display:flex;flex-direction:column;gap:.375rem"><div class="skel" style="height:11px;width:30%"></div><div class="skel" style="height:36px;width:100%"></div></div>
+                <div style="display:flex;flex-direction:column;gap:.375rem"><div class="skel" style="height:11px;width:24%"></div><div class="skel" style="height:36px;width:100%"></div></div>
+                <div style="display:flex;flex-direction:column;gap:.375rem"><div class="skel" style="height:11px;width:34%"></div><div class="skel" style="height:64px;width:100%"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </div>
+</div>
+
+<script>
+  // Theme toggle
+  document.getElementById('theme').onclick=()=>{const h=document.documentElement;h.setAttribute('data-theme',h.getAttribute('data-theme')==='dark'?'light':'dark')};
+  // Splitter state
+  document.getElementById('splitter').addEventListener('click',e=>{const b=e.target.closest('.splitter-btn');if(!b)return;
+    document.querySelectorAll('#splitter .splitter-btn').forEach(x=>x.removeAttribute('data-active'));b.setAttribute('data-active','true');
+    document.getElementById('shellBody').setAttribute('data-splitter-state',b.dataset.state)});
+  // Showcase section nav
+  document.getElementById('scnav').addEventListener('click',e=>{const b=e.target.closest('.subsubtab-btn');if(!b)return;
+    document.querySelectorAll('#scnav .subsubtab-btn').forEach(x=>x.removeAttribute('data-active'));b.setAttribute('data-active','true');
+    document.querySelectorAll('.sc-sec').forEach(s=>s.removeAttribute('data-show'));
+    document.querySelector('.sc-sec[data-sec="'+b.dataset.sec+'"]').setAttribute('data-show','true');
+    document.querySelector('.panel-content').scrollTop=0});
+  // Kebab menus (⋮) — toggle + stopPropagation + cerrar al click afuera
+  document.querySelectorAll('.kebab').forEach(k=>k.addEventListener('click',e=>{e.stopPropagation();
+    const m=k.nextElementSibling;const open=m.getAttribute('data-open')==='true';
+    document.querySelectorAll('.kebab-menu').forEach(x=>x.removeAttribute('data-open'));
+    if(!open)m.setAttribute('data-open','true')}));
+  document.querySelectorAll('.kebab-menu').forEach(m=>m.addEventListener('click',e=>e.stopPropagation()));
+  document.addEventListener('click',()=>document.querySelectorAll('.kebab-menu').forEach(x=>x.removeAttribute('data-open')));
+  // Card entera clickeable (demo: marca selección breve)
+  document.querySelectorAll('.eic,.eicB').forEach(c=>{c.addEventListener('click',()=>{
+    document.querySelectorAll('.eic[data-selected],.eicB[data-selected]').forEach(x=>x.removeAttribute('data-selected'));
+    c.setAttribute('data-selected','true')});
+    c.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();c.click()}})});
+  // N3 patrón único: master grilla ↔ detalle workspace
+  function n3show(which){
+    document.querySelectorAll('.n3-tab').forEach(x=>{
+      if(x.dataset.n3===which)x.setAttribute('data-active','true');else x.removeAttribute('data-active');});
+    document.querySelectorAll('.n3-view').forEach(v=>{
+      if(v.dataset.n3===which)v.setAttribute('data-show','true');else v.removeAttribute('data-show');});
+    document.querySelector('.panel-content').scrollTop=0;
+  }
+  document.querySelectorAll('.n3-tab').forEach(t=>t.addEventListener('click',()=>n3show(t.dataset.n3)));
+  document.querySelectorAll('[data-n3-enter]').forEach(c=>c.addEventListener('click',e=>{
+    if(e.target.closest('.kebab,.kebab-menu'))return; n3show('detail')}));
+  document.querySelectorAll('.entity-root').forEach(r=>r.addEventListener('click',()=>n3show('master')));
+  document.querySelectorAll('.n3-view .entity-leaves .entity-leaf').forEach(l=>l.addEventListener('click',()=>{
+    l.parentElement.querySelectorAll('.entity-leaf').forEach(x=>x.removeAttribute('data-active'));l.setAttribute('data-active','true')}));
+  // Entity picker — buscador + tope por lote + lazy load (cimentado para 200+ entidades)
+  // NOTA: en el build real la búsqueda es SERVER-SIDE (debounce → query paginada) + render windowed.
+  // Acá se simula client-side sobre data sintética (200) para mostrar el comportamiento eficiente.
+  const ep=document.getElementById('entityPicker'),epm=document.getElementById('entityPickerMenu');
+  if(ep&&epm){
+    const epList=document.getElementById('epmList'),epSearch=document.getElementById('epmSearch'),epFoot=document.getElementById('epmFoot');
+    const PAGE=12; // tope por lote
+    const POOL=['Mariana Solís','Javier Ruiz','Lucía Paz','Carla Gómez','Andrés Vega','Sofía Mena','Diego Rojas','Valentina Cruz','Mateo Herrera','Camila Ortiz','Tomás Silva','Renata Díaz','Bruno Castro','Paula Ibáñez','Nicolás Fuentes','Daniela Ramos'];
+    const ESP=['Odontología cosmética','Medicina estética','Dermatología','Oftalmología refractiva','Nutrición clínica','Psicología','Fisioterapia'];
+    const COL=['var(--agent-lisa)','var(--agent-adrian)','var(--accent)','var(--agent-camila)','var(--agent-mateo)'];
+    const ALL=[];for(let i=0;i<200;i++){const nm=POOL[i%POOL.length],grp=Math.floor(i/POOL.length);
+      ALL.push({name:'Dra. '+nm+(grp?' '+(grp+1):''),esp:ESP[i%ESP.length],col:COL[i%COL.length],ini:nm.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()});}
+    let filtered=ALL,shown=0,loading=false;
+    function epSelect(d,btn){epList.querySelectorAll('.epm-item').forEach(x=>x.removeAttribute('data-active'));if(btn)btn.setAttribute('data-active','true');
+      const epAv=ep.querySelector('.avatar');epAv.style.background='hsl('+d.col+')';epAv.textContent=d.ini;ep.querySelector('.ep-name').textContent=d.name;epm.removeAttribute('data-open');}
+    function epMore(){const next=filtered.slice(shown,shown+PAGE);
+      next.forEach(d=>{const b=document.createElement('button');b.className='epm-item';b.setAttribute('role','option');
+        b.innerHTML='<span class="avatar" style="background:hsl('+d.col+');width:24px;height:24px;font-size:.625rem">'+d.ini+'</span><span style="display:flex;flex-direction:column;min-width:0"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+d.name+'</span><span style="font-size:.625rem;color:hsl(var(--muted-foreground))">'+d.esp+'</span></span>';
+        b.addEventListener('click',()=>epSelect(d,b));epList.appendChild(b);});
+      shown+=next.length;epFoot.textContent='Mostrando '+shown+' de '+filtered.length+(shown<filtered.length?' · scrollea para más':'');}
+    function epReset(){epList.innerHTML='';shown=0;if(!filtered.length){epList.innerHTML='<div class="epm-empty">Sin resultados</div>';epFoot.textContent='0 de 0';return;}epMore();}
+    epList.addEventListener('scroll',()=>{if(loading||shown>=filtered.length)return;
+      if(epList.scrollTop+epList.clientHeight>=epList.scrollHeight-28){loading=true;
+        const ld=document.createElement('div');ld.className='epm-loading';ld.textContent='Cargando más…';epList.appendChild(ld);
+        setTimeout(()=>{ld.remove();epMore();loading=false;},220);}});
+    let st;epSearch.addEventListener('input',()=>{clearTimeout(st);st=setTimeout(()=>{const q=epSearch.value.trim().toLowerCase();
+      filtered=q?ALL.filter(d=>d.name.toLowerCase().includes(q)||d.esp.toLowerCase().includes(q)):ALL;epReset();},180);});
+    epSearch.addEventListener('click',e=>e.stopPropagation());
+    ep.addEventListener('click',e=>{e.stopPropagation();const open=epm.getAttribute('data-open')==='true';
+      if(open){epm.removeAttribute('data-open');}else{epm.setAttribute('data-open','true');if(!shown)epReset();setTimeout(()=>epSearch.focus(),30);}});
+    epm.addEventListener('click',e=>e.stopPropagation());
+    document.addEventListener('click',()=>epm.removeAttribute('data-open'));
+  }
+  // Select canónico (custom · reemplaza <select> nativo)
+  document.querySelectorAll('.sel').forEach(sel=>{
+    const trig=sel.querySelector('.sel-trigger'),menu=sel.querySelector('.sel-menu'),val=sel.querySelector('.sel-val');
+    trig.addEventListener('click',e=>{e.stopPropagation();const open=sel.getAttribute('data-open')==='true';
+      document.querySelectorAll('.sel[data-open="true"]').forEach(s=>s.removeAttribute('data-open'));
+      if(!open)sel.setAttribute('data-open','true');});
+    menu.addEventListener('click',e=>e.stopPropagation());
+    menu.querySelectorAll('.sel-opt').forEach(o=>o.addEventListener('click',()=>{
+      menu.querySelectorAll('.sel-opt').forEach(x=>x.removeAttribute('data-active'));o.setAttribute('data-active','true');
+      val.textContent=o.textContent;sel.removeAttribute('data-open');}));
+  });
+  document.addEventListener('click',()=>document.querySelectorAll('.sel[data-open="true"]').forEach(s=>s.removeAttribute('data-open')));
+  // Viewtoggle (tarjetas/lista)
+  document.querySelectorAll('.viewtoggle').forEach(vt=>vt.querySelectorAll('.vt-btn').forEach(b=>b.addEventListener('click',()=>{
+    vt.querySelectorAll('.vt-btn').forEach(x=>x.removeAttribute('data-active'));b.setAttribute('data-active','true');})));
+</script>
+</body>
+</html>

@@ -1,0 +1,36 @@
+---
+# Release schema (v2 cement 2026-05-27)
+# Doc: docs/process/release-protocol.md
+# Path canónico: vitalia/docs/product/releases/F6.yaml
+
+release_id: F6
+brand: vitalia
+name: "Lisa landing pública + Lucas marketing core"
+description: "Lisa landing pública (público externo) + Lucas marketing core (lanzar + en-vuelo + recursos)."
+status: planning
+target_date: null
+shipped_date: null
+order: 6
+created_at: 2026-05-27T18:25:23-05:00
+created_by: scripts/migrate_to_release_schema.py
+
+stories:
+  - vitalia-fase2-lisa-landing-public
+  - vitalia-fase2-lucas-envuelo
+  - vitalia-fase2-lucas-lanzar
+  - vitalia-fase2-lucas-mercado
+  - vitalia-fase2-lucas-recursos
+  - vitalia-fase2-lucas-resultados
+---
+
+# F6 · Lisa landing pública + Lucas marketing core
+
+> Lisa landing pública (público externo) + Lucas marketing core (lanzar + en-vuelo + recursos).
+
+## Stories incluidas
+
+<!-- Auto-poblado durante migración Phase 3 desde checkpoints reales -->
+
+## Notas del release
+
+(libre · Chris escribe aquí contexto adicional · decisiones · gotchas)

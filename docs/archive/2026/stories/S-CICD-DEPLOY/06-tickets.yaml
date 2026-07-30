@@ -1,0 +1,617 @@
+# 06-tickets.yaml — S-CICD-DEPLOY
+# CI/CD selectivo per brand (GH Actions + Environments)
+# Owner: /architect. Generated: 2026-05-15.
+# Consume: /dev-team (autonomous build Conv 2).
+#
+# Decisiones aplicables a todos los tickets:
+#   D1 = GitHub Actions puro (sin Argo CD)
+#   D2 = dorny/paths-filter@v3 para detección selectiva
+#   D3 = GitHub Environments por brand × ambiente
+#   D4 = Branch naming release/{brand}-vX.Y.Z
+#   D5 = Keep-a-Changelog ES-AR format
+#   D6 = _deploy-brand.yml único punto build+kubectl (anti-duplication)
+#   D7 = release.yml intacto
+
+---
+story_id: S-CICD-DEPLOY
+outcome: cicd-multibrand-deploy
+generated_at: 2026-05-15T00:00Z
+generated_by: /architect
+total_tickets: 9
+estimated_total_hours: 17
+
+# ── Resumen pila (alto nivel) ────────────────────────────────────────────────
+
+summary:
+  - id: T-1
+    title: "Runbook setup GitHub Environments per brand × ambiente"
+    surface: DOCS
+    owner_pool: [claude-sonnet, claude-opus]
+    state: draft
+    blocks: []
+    note: "Chris ejecuta el runbook en UI. /dev-team solo produce el doc."
+
+  - id: T-2
+    title: "_deploy-brand.yml reusable workflow (build + push GHCR + kubectl apply)"
+    surface: INFRA
+    owner_pool: [claude-sonnet, claude-opus]
+    state: draft
+    blocks: [T-3, T-5, T-7]
+    note: "Core reusable workflow. Debe estar listo antes de los orchestrators."
+
+  - id: T-3
+    title: "cd-prod.yml orchestrator (parse release/* + dorny/paths-filter + deploy)"
+    surface: INFRA
+    owner_pool: [claude-sonnet, claude-opus]
+    state: draft
+    blocked_by: [T-2]
+    blocks: []
+
+  - id: T-4
+    title: "Crear nicolify/deploy/k8s/ desde cero (5 manifests)"
+    surface: INFRA
+    owner_pool: [claude-sonnet, claude-opus]
+    state: draft
+    blocks: []
+    note: "Paralelo con T-1, T-6, T-8. 0 dependencias."
+
+  - id: T-5
+    title: "Wire vitalia/comunify k8s manifests al workflow (comentarios + validación)"
+    surface: INFRA
+    owner_pool: [claude-sonnet, claude-opus]
+    state: draft
+    blocked_by: [T-2]
+    blocks: []
+
+  - id: T-6
+    title: "lupulo/deploy/k8s/ placeholder (deployment + service, replicas: 0)"
+    surface: INFRA
+    owner_pool: [claude-sonnet, claude-opus]
+    state: draft
+    blocks: []
+    note: "Paralelo con T-1, T-4, T-8. 0 dependencias."
+
+  - id: T-7
+    title: "cd-staging.yml base (push main → staging shared cluster)"
+    surface: INFRA
+    owner_pool: [claude-sonnet, claude-opus]
+    state: draft
+    blocked_by: [T-2]
+    blocks: []
+
+  - id: T-8
+    title: "CHANGELOG-PUBLIC.md × 4 brands + script extract_changelog_section.py + tests"
+    surface: DOCS+CODE
+    owner_pool: [claude-sonnet, claude-opus]
+    state: draft
+    blocks: []
+    note: "CHANGELOG-PUBLIC.md (docs) paralelo. Script + tests: TDD-first."
+
+  - id: T-9
+    title: "ADR-002 cicd-multibrand + runbook cicd-multibrand-runbook.md + .claude/rules/ refs"
+    surface: DOCS
+    owner_pool: [claude-sonnet, claude-opus]
+    state: draft
+    blocks: []
+    note: "Puede correr en paralelo. Depende lógicamente de que los workflows estén definidos (T-2, T-3) pero no hay dependency técnica de código."
+
+# ── Detalle tickets ─────────────────────────────────────────────────────────
+
+tickets:
+
+  T1:
+    id: T-1
+    title: "Runbook: setup GitHub Environments per brand × ambiente (Chris ejecuta UI)"
+    type: docs
+    surface: DOCS
+    production_code: false
+    state: draft
+    owner_eligibility:
+      qwen_opencode: true
+      claude_sonnet: true
+      claude_opus_required: false
+    priority: 1
+    estimate_hours: 1
+    decisions_applicable: [D1, D3]
+    inputs:
+      spec: "01-spec.md"
+      arch_doc: "03-arch.md"
+      outcome_doc: "../../outcomes/cicd-multibrand-deploy.md"
+      rules: []
+      domain_skills: []
+    deliverables:
+      - "CREAR docs/process/cicd-multibrand-runbook.md con sección 'Setup GitHub Environments' paso a paso"
+      - "Runbook incluye: (1) Crear Environments en GH UI, (2) Configurar secrets por Environment (KUBECONFIG base64, GHCR_TOKEN, CLOUDFLARE_TUNNEL_TOKEN, SENTRY_DSN), (3) Activar Required reviewers: Chris en *-prod Environments, (4) Crear namespace K8s per brand, (5) Crear imagePullSecrets ghcr-creds"
+      - "Tabla de Environments a crear: nicolify-prod, nicolify-staging, vitalia-prod, vitalia-staging, comunify-prod, comunify-staging, lupulo-prod, lupulo-staging"
+      - "Runbook incluye troubleshooting: qué hacer si KUBECONFIG inválido, si GHCR push falla, si kubectl rollout timeout"
+    out_of_scope:
+      - "Crear los Environments en GH UI (lo hace Chris)"
+      - "Configurar secrets reales (los tiene Chris)"
+    acceptance:
+      - id: A1
+        description: "docs/process/cicd-multibrand-runbook.md existe y tiene secciones: Setup, Primer deploy, Verificación rollout, Troubleshooting"
+        verifier:
+          type: shell
+          cmd: "test -f docs/process/cicd-multibrand-runbook.md && grep -q 'Setup GitHub Environments' docs/process/cicd-multibrand-runbook.md && grep -q 'Troubleshooting' docs/process/cicd-multibrand-runbook.md"
+      - id: A2
+        description: "Runbook cita los 8 Environments a crear (4 brands × 2 ambientes)"
+        verifier:
+          type: shell
+          cmd: "grep -c 'staging\\|prod' docs/process/cicd-multibrand-runbook.md | awk '{if ($1 >= 8) exit 0; else exit 1}'"
+    quality_gates:
+      - "yamllint no aplica (markdown). Markdown lint opcional."
+      - "Spanish neutro verificado"
+    depends_on: []
+    blocks: []
+    transitions:
+      - state: draft
+        at: 2026-05-15T00:00Z
+        by: /architect
+    assigned_to: null
+
+  T2:
+    id: T-2
+    title: "_deploy-brand.yml reusable workflow (build image + push GHCR + kubectl apply)"
+    type: infra
+    surface: INFRA
+    production_code: true
+    state: draft
+    owner_eligibility:
+      qwen_opencode: false
+      claude_sonnet: true
+      claude_opus_required: false
+    priority: 1
+    estimate_hours: 3
+    decisions_applicable: [D1, D3, D4, D6]
+    inputs:
+      spec: "01-spec.md"
+      arch_doc: "03-arch.md § '_deploy-brand.yml skeleton'"
+      guidelines: "05-guidelines.md § P1 P3 P4 P5 P6 P7 P8 F1 F2 F3 F4 F5 F7 F8"
+      rules:
+        - ".claude/rules/anti-duplication.md"
+        - ".claude/rules/git-safety.md"
+      domain_skills: []
+    deliverables:
+      - "CREAR .github/workflows/_deploy-brand.yml con jobs: build-image + deploy-k8s"
+      - "build-image: actions/checkout@v4 + docker/login-action@v3 (ghcr.io) + docker/build-push-action@v5"
+      - "deploy-k8s: azure/setup-kubectl@v4 + kubeconfig desde secret base64 + kubectl apply -f {brand}/deploy/k8s/ + kubectl set image + kubectl rollout status"
+      - "workflow_call inputs: brand (required), version (required), environment (required)"
+      - "workflow_call secrets: KUBECONFIG (required: true), GHCR_TOKEN (required: true)"
+      - "permissions: mínimo por job (contents: read; packages: write solo en build-image)"
+      - "tags imagen: ghcr.io/alpacapurpura/{brand}-backend:{version} + :latest"
+      - "timeout-minutes: 8 build-image, 5 deploy-k8s"
+    out_of_scope:
+      - "cd-prod.yml orchestrator (T-3)"
+      - "cd-staging.yml (T-7)"
+      - "K8s manifests (T-4, T-5, T-6)"
+    acceptance:
+      - id: A1
+        description: "actionlint .github/workflows/_deploy-brand.yml sin errores"
+        verifier:
+          type: shell
+          cmd: "actionlint .github/workflows/_deploy-brand.yml"
+      - id: A2
+        description: "KUBECONFIG declarado required: true en secrets de workflow_call"
+        verifier:
+          type: shell
+          cmd: "grep -A3 'KUBECONFIG:' .github/workflows/_deploy-brand.yml | grep -q 'required: true'"
+      - id: A3
+        description: "docker/build-push-action solo en este workflow (anti-duplication)"
+        verifier:
+          type: shell
+          cmd: "grep -l 'build-push-action' .github/workflows/*.yml | wc -l | grep -E '^1$'"
+      - id: A4
+        description: "yamllint sin errores"
+        verifier:
+          type: shell
+          cmd: "yamllint .github/workflows/_deploy-brand.yml"
+    quality_gates:
+      - "actionlint GREEN"
+      - "yamllint GREEN"
+      - "Validator deploy_brand_workflow_no_mirror GREEN"
+    depends_on: []
+    blocks: [T-3, T-5, T-7]
+    transitions:
+      - state: draft
+        at: 2026-05-15T00:00Z
+        by: /architect
+    assigned_to: null
+
+  T3:
+    id: T-3
+    title: "cd-prod.yml orchestrator (parse release/* + dorny/paths-filter + deploy)"
+    type: infra
+    surface: INFRA
+    production_code: true
+    state: draft
+    owner_eligibility:
+      qwen_opencode: false
+      claude_sonnet: true
+      claude_opus_required: false
+    priority: 1
+    estimate_hours: 2
+    decisions_applicable: [D1, D2, D3, D4, D6]
+    inputs:
+      spec: "01-spec.md § Scenario 1 + Scenario 4 + Scenario 5"
+      arch_doc: "03-arch.md § 'cd-prod.yml skeleton'"
+      guidelines: "05-guidelines.md § P2 P7 F1 F3"
+      rules:
+        - ".claude/rules/anti-duplication.md"
+        - ".claude/rules/git-safety.md"
+    deliverables:
+      - "CREAR .github/workflows/cd-prod.yml"
+      - "trigger: on: push: branches: ['release/*']"
+      - "job parse-release: regex sed extrae brand + version de GITHUB_REF. Validación SemVer pattern `^release/[a-z]+-v[0-9]+.[0-9]+.[0-9]+`. Falla con mensaje claro si inválido."
+      - "Validación whitelist brands conocidas: [nicolify, vitalia, comunify, lupulo]. Falla si brand desconocida."
+      - "job detect-changes: dorny/paths-filter@v3 con filtro '{brand}/**' + 'core/**'. Output: should_deploy."
+      - "job deploy: if: needs.detect-changes.outputs.should_deploy == 'true'. Llama _deploy-brand.yml via uses: ./.github/workflows/_deploy-brand.yml"
+      - "job extract-changelog: post-deploy. Llama scripts/extract_changelog_section.py + gh release create."
+      - "CREAR scripts/test_parse_release.py: helper de test del regex (para validator 04-validators.yaml)"
+    out_of_scope:
+      - "_deploy-brand.yml interno (T-2)"
+      - "cd-staging.yml (T-7)"
+    acceptance:
+      - id: A1
+        description: "actionlint cd-prod.yml sin errores"
+        verifier:
+          type: shell
+          cmd: "actionlint .github/workflows/cd-prod.yml"
+      - id: A2
+        description: "parse regex happy: release/vitalia-v0.3.0 → brand=vitalia, version=0.3.0"
+        verifier:
+          type: shell
+          cmd: "python scripts/test_parse_release.py --fixture 'release/vitalia-v0.3.0' --expect-brand vitalia --expect-version '0.3.0'"
+      - id: A3
+        description: "parse regex negative: release/invalido-vbroken → exit 1"
+        verifier:
+          type: shell
+          cmd: "python scripts/test_parse_release.py --fixture 'release/invalido-vbroken' --expect-exit 1"
+      - id: A4
+        description: "job deploy tiene condición if: should_deploy == 'true'"
+        verifier:
+          type: shell
+          cmd: "grep -A5 '^  deploy:' .github/workflows/cd-prod.yml | grep -q \"should_deploy.*==.*'true'\""
+    quality_gates:
+      - "Todos validators scenario_happy_release_to_prod_parse + scenario_negative_invalid_branch_format + scenario_edge_no_changes_skip GREEN"
+    depends_on: [T-2]
+    blocks: []
+    transitions:
+      - state: draft
+        at: 2026-05-15T00:00Z
+        by: /architect
+    assigned_to: null
+
+  T4:
+    id: T-4
+    title: "Crear nicolify/deploy/k8s/ desde cero (configmap + deployment + ingress + secrets.template + service)"
+    type: infra
+    surface: INFRA
+    production_code: true
+    state: draft
+    owner_eligibility:
+      qwen_opencode: false
+      claude_sonnet: true
+      claude_opus_required: false
+    priority: 1
+    estimate_hours: 2
+    decisions_applicable: [D1, D3]
+    inputs:
+      spec: "01-spec.md § Scenario 1"
+      arch_doc: "03-arch.md § 'nicolify/deploy/k8s/ skeletons'"
+      guidelines: "05-guidelines.md § P4 P5 P6 P10 F4 F8"
+      reference: "vitalia/deploy/k8s/ (5 archivos existentes — usar como referencia de estructura)"
+    deliverables:
+      - "CREAR nicolify/deploy/k8s/configmap.yaml — no-sensitive env vars (POSTGRES_HOST, REDIS_HOST, CORS_ALLOWED_ORIGINS, NICOLIFY_BRAND_SLUG, NICOLIFY_COMPLIANCE_LEVEL=standard)"
+      - "CREAR nicolify/deploy/k8s/deployment.yaml — Deployment replicas=2, securityContext non-root, envFrom configmap, env secrets, health probes /health, resources requests+limits, imagePullSecrets: ghcr-creds"
+      - "CREAR nicolify/deploy/k8s/ingress.yaml — nginx, TLS, host app.nicolify.com"
+      - "CREAR nicolify/deploy/k8s/secrets.template.yaml — valores REEMPLAZAR únicamente (POSTGRES_PASSWORD, NICOLIFY_CLERK_SECRET_KEY, NICOLIFY_CLERK_WEBHOOK_SECRET, NICOLIFY_STRIPE_SECRET_KEY, ANTHROPIC_API_KEY, REDIS_PASSWORD)"
+      - "CREAR nicolify/deploy/k8s/service.yaml — ClusterIP port 80→8000"
+      - "VERIFICAR existencia nicolify/backend/Dockerfile — si no existe, crearlo como sub-deliverable (FROM python:3.12-slim mínimo viable)"
+      - "Labels canónicas app.kubernetes.io/* en todos los manifests"
+    out_of_scope:
+      - "wire al workflow (es T-5 para vitalia/comunify; T-4 crea los manifests, el wire es implícito via kubectl apply)"
+      - "staging manifests (mismo manifest sirve para prod+staging via namespace/secrets distintos)"
+    acceptance:
+      - id: A1
+        description: "kubectl apply --dry-run=client -f nicolify/deploy/k8s/ sin errores"
+        verifier:
+          type: shell
+          cmd: "kubectl apply --dry-run=client -f nicolify/deploy/k8s/"
+      - id: A2
+        description: "yamllint nicolify/deploy/k8s/ sin errores"
+        verifier:
+          type: shell
+          cmd: "yamllint nicolify/deploy/k8s/"
+      - id: A3
+        description: "secrets.template.yaml sin valores reales — solo REEMPLAZAR"
+        verifier:
+          type: shell
+          cmd: "! grep -v 'REEMPLAZAR\\|#\\|apiVersion\\|kind\\|metadata\\|labels\\|name\\|namespace\\|type\\|stringData\\|app\\.kubernetes' nicolify/deploy/k8s/secrets.template.yaml | grep -E '[a-z0-9]{20,}'"
+    quality_gates:
+      - "yamllint GREEN"
+      - "kubectl dry-run GREEN"
+      - "Validator k8s_manifests_dry_run_nicolify GREEN"
+    depends_on: []
+    blocks: []
+    transitions:
+      - state: draft
+        at: 2026-05-15T00:00Z
+        by: /architect
+    assigned_to: null
+
+  T5:
+    id: T-5
+    title: "Wire vitalia/comunify k8s manifests al workflow (comentarios + imagePullSecrets + validación)"
+    type: infra
+    surface: INFRA
+    production_code: true
+    state: draft
+    owner_eligibility:
+      qwen_opencode: false
+      claude_sonnet: true
+      claude_opus_required: false
+    priority: 2
+    estimate_hours: 1
+    decisions_applicable: [D1, D3, D6]
+    inputs:
+      spec: "01-spec.md § Scenario 1"
+      arch_doc: "03-arch.md § 'Files MODIFICADOS'"
+      guidelines: "05-guidelines.md § P5 P6 F4"
+      existing_files:
+        - "vitalia/deploy/k8s/ (5 archivos)"
+        - "comunify/deploy/k8s/ (3 archivos)"
+    deliverables:
+      - "MODIFICAR vitalia/deploy/k8s/deployment.yaml — agregar header comentario con referencia a _deploy-brand.yml. Verificar imagePullSecrets ghcr-creds (agregar si no existe, está comentado en el archivo actual). Verificar image tag sigue patrón ghcr.io/alpacapurpura/vitalia-backend:X.Y.Z"
+      - "MODIFICAR vitalia/deploy/k8s/configmap.yaml — agregar header comentario workflow wire"
+      - "MODIFICAR comunify/deploy/k8s/deployment.yaml — idem header comentario + imagePullSecrets + image tag pattern"
+      - "MODIFICAR comunify/deploy/k8s/ingress.yaml — verificar host app.comunify.com (placeholder OK si dominio no comprado)"
+      - "MODIFICAR comunify/deploy/k8s/service.yaml — agregar labels canónicas si faltan"
+      - "CREAR comunify/deploy/k8s/configmap.yaml — si no existe (comunify tiene solo 3 archivos actualmente)"
+      - "CREAR comunify/deploy/k8s/secrets.template.yaml — si no existe"
+    out_of_scope:
+      - "Cambiar lógica de manifests existentes — solo wire comments + imagePullSecrets + labels canónicas"
+      - "Crear Dockerfiles (los brands shipped ya los tienen)"
+    acceptance:
+      - id: A1
+        description: "kubectl apply --dry-run=client -f vitalia/deploy/k8s/ sin errores"
+        verifier:
+          type: shell
+          cmd: "kubectl apply --dry-run=client -f vitalia/deploy/k8s/"
+      - id: A2
+        description: "kubectl apply --dry-run=client -f comunify/deploy/k8s/ sin errores"
+        verifier:
+          type: shell
+          cmd: "kubectl apply --dry-run=client -f comunify/deploy/k8s/"
+      - id: A3
+        description: "vitalia deployment.yaml referencia image ghcr.io/alpacapurpura/vitalia-backend:*"
+        verifier:
+          type: shell
+          cmd: "grep 'ghcr.io/alpacapurpura/vitalia-backend' vitalia/deploy/k8s/deployment.yaml"
+    quality_gates:
+      - "yamllint GREEN para ambas brands"
+      - "kubectl dry-run GREEN"
+    depends_on: [T-2]
+    blocks: []
+    transitions:
+      - state: draft
+        at: 2026-05-15T00:00Z
+        by: /architect
+    assigned_to: null
+
+  T6:
+    id: T-6
+    title: "lupulo/deploy/k8s/ placeholder (deployment replicas: 0 + service)"
+    type: infra
+    surface: INFRA
+    production_code: true
+    state: draft
+    owner_eligibility:
+      qwen_opencode: true
+      claude_sonnet: true
+      claude_opus_required: false
+    priority: 3
+    estimate_hours: 0.5
+    decisions_applicable: [D1]
+    inputs:
+      spec: "01-spec.md § Scenario 5 edge"
+      arch_doc: "03-arch.md § 'lupulo/deploy/k8s/ placeholder'"
+      guidelines: "05-guidelines.md § P10"
+    deliverables:
+      - "CREAR lupulo/deploy/k8s/deployment.yaml — Deployment con replicas: 0 (placeholder — no hay app aún). Labels canónicas. Comentario: 'PLACEHOLDER — expandir en Story 13 lupulo backend.'"
+      - "CREAR lupulo/deploy/k8s/service.yaml — Service ClusterIP mínimo"
+      - "NO crear ingress ni configmap ni secrets.template (placeholder mínimo viable)"
+    out_of_scope:
+      - "Funcionalidad real de lupulo (no hay backend aún)"
+      - "Dockerfile lupulo (no necesario con replicas: 0)"
+    acceptance:
+      - id: A1
+        description: "kubectl apply --dry-run=client -f lupulo/deploy/k8s/ sin errores"
+        verifier:
+          type: shell
+          cmd: "kubectl apply --dry-run=client -f lupulo/deploy/k8s/"
+      - id: A2
+        description: "deployment.yaml tiene replicas: 0"
+        verifier:
+          type: shell
+          cmd: "grep 'replicas: 0' lupulo/deploy/k8s/deployment.yaml"
+    quality_gates:
+      - "yamllint GREEN"
+      - "kubectl dry-run GREEN"
+      - "Validator k8s_manifests_dry_run_lupulo GREEN"
+    depends_on: []
+    blocks: []
+    transitions:
+      - state: draft
+        at: 2026-05-15T00:00Z
+        by: /architect
+    assigned_to: null
+
+  T7:
+    id: T-7
+    title: "cd-staging.yml base (push main → staging per-brand, server placeholder)"
+    type: infra
+    surface: INFRA
+    production_code: true
+    state: draft
+    owner_eligibility:
+      qwen_opencode: false
+      claude_sonnet: true
+      claude_opus_required: false
+    priority: 2
+    estimate_hours: 2
+    decisions_applicable: [D1, D2, D3, D6]
+    inputs:
+      spec: "01-spec.md § Scenario 2"
+      arch_doc: "03-arch.md § 'cd-staging.yml skeleton'"
+      guidelines: "05-guidelines.md § P1 P7 P8 F1"
+    deliverables:
+      - "CREAR .github/workflows/cd-staging.yml"
+      - "trigger: on: push: branches: [main] — SOLO main, NO release/*"
+      - "job detect-brand-changes: dorny/paths-filter@v3 con filtro per brand (nicolify, vitalia, comunify, lupulo) + core/**"
+      - "job deploy-{brand}-staging per brand (condicional): uses _deploy-brand.yml con brand={brand}, version=github.sha, environment={brand}-staging"
+      - "lupulo staging: job presente pero comentado/skipped (no hay app aún — ver nota en workflow)"
+      - "Dominio staging placeholder: {brand}-test.nicolify.com (no requiere configuración real para que el workflow funcione)"
+      - "Timeout total objetivo: < 8min (declarar en comentario; el time real depende del cluster staging cuando exista)"
+    out_of_scope:
+      - "Cluster staging real (infra futura — el workflow queda preparado)"
+      - "_deploy-brand.yml interno (T-2)"
+    acceptance:
+      - id: A1
+        description: "actionlint cd-staging.yml sin errores"
+        verifier:
+          type: shell
+          cmd: "actionlint .github/workflows/cd-staging.yml"
+      - id: A2
+        description: "trigger es push: branches: [main] y NO incluye release/*"
+        verifier:
+          type: shell
+          cmd: "grep -A5 'on:' .github/workflows/cd-staging.yml | grep 'main' && ! grep 'release/' .github/workflows/cd-staging.yml"
+      - id: A3
+        description: "yamllint sin errores"
+        verifier:
+          type: shell
+          cmd: "yamllint .github/workflows/cd-staging.yml"
+    quality_gates:
+      - "Validators actionlint_workflows + yamllint_workflows + scenario_happy_staging_trigger GREEN"
+    depends_on: [T-2]
+    blocks: []
+    transitions:
+      - state: draft
+        at: 2026-05-15T00:00Z
+        by: /architect
+    assigned_to: null
+
+  T8:
+    id: T-8
+    title: "CHANGELOG-PUBLIC.md × 4 brands + script extract_changelog_section.py + tests TDD"
+    type: docs+code
+    surface: DOCS+CODE
+    production_code: true
+    state: draft
+    owner_eligibility:
+      qwen_opencode: false
+      claude_sonnet: true
+      claude_opus_required: false
+    priority: 2
+    estimate_hours: 3
+    decisions_applicable: [D5]
+    inputs:
+      spec: "01-spec.md § Scenario 7"
+      arch_doc: "03-arch.md § 'CHANGELOG-PUBLIC.md × 4' + 'scripts/extract_changelog_section.py'"
+      guidelines: "05-guidelines.md § P9 P11 F9"
+      rules:
+        - ".claude/rules/tdd-mandatory.md"
+        - ".claude/rules/spanish-text.md"
+    deliverables:
+      - "CREAR nicolify/CHANGELOG-PUBLIC.md — Keep-a-Changelog ES-AR, sección [Sin lanzar] + [0.1.0] con fecha 2026-05-15"
+      - "CREAR vitalia/CHANGELOG-PUBLIC.md — idem, mencionar Story 11 (reservas prepagadas, seguimiento post-tratamiento)"
+      - "CREAR comunify/CHANGELOG-PUBLIC.md — idem, mencionar Story 12 (comunidades, escalera de valor)"
+      - "CREAR lupulo/CHANGELOG-PUBLIC.md — idem, sección [Sin lanzar] + [0.0.1] placeholder"
+      - "CREAR tests/scripts/test_changelog_extract.py PRIMERO (TDD) — casos: test_happy, test_empty_section, test_missing_file, test_missing_section, test_multiple_brands"
+      - "CREAR scripts/extract_changelog_section.py — acepta --brand {slug} --section {section}, retorna contenido o 'Sin cambios documentados.', exit 0 success / exit 1 file not found"
+      - "Ruff lint + format del script"
+    out_of_scope:
+      - "Automatización del bump de versión en CHANGELOG (manual por Chris por ahora)"
+      - "Notificaciones a usuarios (Chris confirmó: no tiene clientes aún)"
+    acceptance:
+      - id: A1
+        description: "pytest tests/scripts/test_changelog_extract.py todos GREEN"
+        verifier:
+          type: pytest
+          cmd: ".venv/bin/pytest tests/scripts/test_changelog_extract.py -v --override-ini='addopts='"
+      - id: A2
+        description: "changelogs sin voseo"
+        verifier:
+          type: shell
+          cmd: "! grep -rE '\\b(podés|tenés|hacés|decís|sabés)\\b' nicolify/CHANGELOG-PUBLIC.md vitalia/CHANGELOG-PUBLIC.md comunify/CHANGELOG-PUBLIC.md lupulo/CHANGELOG-PUBLIC.md"
+      - id: A3
+        description: "ruff lint + format del script clean"
+        verifier:
+          type: shell
+          cmd: ".venv/bin/ruff check scripts/extract_changelog_section.py --no-cache && .venv/bin/ruff format --check scripts/extract_changelog_section.py"
+      - id: A4
+        description: "Validators scenario_happy_changelog_extract + changelogs_spanish_neutro GREEN"
+        verifier:
+          type: pytest
+          cmd: ".venv/bin/pytest tests/scripts/test_changelog_extract.py -v"
+    quality_gates:
+      - "TDD: tests escritos ANTES del script"
+      - "pytest tests/scripts/test_changelog_extract.py 100% GREEN"
+      - "Ruff lint + format GREEN"
+    depends_on: []
+    blocks: []
+    transitions:
+      - state: draft
+        at: 2026-05-15T00:00Z
+        by: /architect
+    assigned_to: null
+
+  T9:
+    id: T-9
+    title: "ADR-002 cicd-multibrand + runbook cicd-multibrand-runbook.md + update .claude/rules/ refs"
+    type: docs
+    surface: DOCS
+    production_code: false
+    state: draft
+    owner_eligibility:
+      qwen_opencode: true
+      claude_sonnet: true
+      claude_opus_required: false
+    priority: 3
+    estimate_hours: 1.5
+    decisions_applicable: [D1, D2, D3, D4, D5, D6, D7]
+    inputs:
+      spec: "01-spec.md"
+      arch_doc: "03-arch.md § 'Decisiones registradas'"
+      outcome_doc: "../../outcomes/cicd-multibrand-deploy.md § 'Trade-offs cementados'"
+      existing_rules:
+        - ".claude/rules/git-safety.md"
+        - ".claude/rules/parallel-safety.md"
+    deliverables:
+      - "CREAR docs/architecture/luana-platform/ADR-002-cicd-multibrand.md — formato ADR canónico Luana: contexto, decisión, alternativas consideradas (Argo CD, FluxCD, manual kubectl), consecuencias, fecha, ratificado por Chris."
+      - "ACTUALIZAR docs/process/cicd-multibrand-runbook.md (completar secciones si T-1 fue parcial): setup GH Environments, primer deploy paso a paso, verificación rollout, proceso release ({brand}-vX.Y.Z), proceso staging (push main), troubleshooting."
+      - "ACTUALIZAR .claude/rules/git-safety.md — agregar sección 'Branches de deploy' citando: release/{brand}-vX.Y.Z triggers cd-prod.yml, NO tocar release.yml. Referencia ADR-002."
+      - "VERIFICAR .claude/rules/parallel-safety.md — si menciona worktrees, agregar nota que S-CICD-DEPLOY introduce staging-auto-deploy en main (worktree pushes a wip/* no triggerean staging — ver git-strategy-revised para política de worktrees)."
+    out_of_scope:
+      - "Crear los workflows (T-2, T-3, T-7)"
+      - "Ejecutar los workflows en producción"
+    acceptance:
+      - id: A1
+        description: "ADR-002 existe con secciones: Contexto, Decisión, Alternativas, Consecuencias"
+        verifier:
+          type: shell
+          cmd: "test -f docs/architecture/luana-platform/ADR-002-cicd-multibrand.md && grep -q 'Alternativas' docs/architecture/luana-platform/ADR-002-cicd-multibrand.md"
+      - id: A2
+        description: "git-safety.md actualizado con referencia a release/{brand}-vX.Y.Z"
+        verifier:
+          type: shell
+          cmd: "grep -q 'release/{brand}-v' .claude/rules/git-safety.md || grep -q 'release/.*-v' .claude/rules/git-safety.md"
+    quality_gates:
+      - "Spanish neutro en todos los docs generados"
+    depends_on: []
+    blocks: []
+    transitions:
+      - state: draft
+        at: 2026-05-15T00:00Z
+        by: /architect
+    assigned_to: null

@@ -1,0 +1,2150 @@
+"""CopilotOrchestrator — Manages conversation state and streams responses via SSE.
+
+# [COPILOT-SSE-V2] -> docs/domains/copilot/sse-protocol.md
+# [COPILOT-CITATION-BLOCK] -> docs/domains/copilot/message-blocks.md
+# [COPILOT-SSE-V2-ONLY-F8] -> docs/domains/copilot/redesign-2026-04/phases/F8-routing-cost-optim.md
+
+After F8 §5.4 the orchestrator emits **only** v2 block events
+(block_start / block_delta / block_end / block_append +
+message_start / message_end + tool_start / tool_result + status / done /
+error). The legacy ``text_chunk`` event was removed once the FE migrated
+in F8 §5.5.
+
+After F8 §5.3 the deep-agent harness is the only graph the orchestrator
+runs — the legacy ReAct ``copilot_graph`` and its
+``COPILOT_DEEP_AGENT_V2`` flag have both been deleted.
+"""
+
+from __future__ import annotations
+
+import asyncio
+import contextlib
+import json
+import os
+import uuid
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, Any
+from uuid import UUID, uuid4
+
+import structlog
+from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
+from luana_core_assets.application.asset_extraction_service import (
+    AssetExtractionService,
+)
+from luana_core_assets.infrastructure.repositories.asset_repository import (
+    AssetRepository,
+)
+from luana_core_channels.intent_detector import (
+    detect_channel_intent,
+)
+from luana_core_events.outbox.application.event_bus_adapter import (
+    adapter_bus as EventBus,  # noqa: N812
+)
+from luana_core_platform.core.context import set_conversation_id
+from luana_core_platform.core.database import get_redis_client as _get_redis_client
+
+from luana_core_copilot.api.dto import ClientContextDTO, SSEEvent
+from luana_core_copilot.application.extraction.active_job_state import load_active_job
+from luana_core_copilot.application.guided.state import load_guided_state
+from luana_core_copilot.application.orchestrator.deep_agent import (
+    build_deep_agent_graph,
+)
+from luana_core_copilot.application.orchestrator.output_sanitizer import (
+    sanitize_assistant_text,
+)
+from luana_core_copilot.application.orchestrator.state import (
+    create_initial_copilot_state,
+)
+from luana_core_copilot.application.orchestrator.stream_provenance import (
+    StreamPolicy,
+    policy_for,
+)
+from luana_core_copilot.application.orchestrator.tool_call_dedup import (
+    DedupVerdict,
+    ToolCallDedupTracker,
+    ToolCallLoopError,
+    augment_tool_message_for_warn,
+)
+from luana_core_copilot.application.router import (
+    RoutingRequest,
+    build_default_router,
+)
+from luana_core_copilot.application.tools.registry import get_tools_for_context
+from luana_core_copilot.domain.events import CardEmitted, RoutingDecided
+from luana_core_copilot.infrastructure.repositories.conversation_repository import (
+    ConversationRepository,
+)
+from luana_core_copilot.infrastructure.repositories.routing_log_repository import (
+    RoutingLogRepository,
+)
+from luana_core_copilot.observability import ObservabilityContext
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncGenerator
+
+    from sqlalchemy.orm import Session
+
+    from luana_core_copilot.application.orchestrator.invoke_result import (
+        CopilotInvokeResult,
+    )
+    from luana_core_copilot.application.router import ModelRouter
+    from luana_core_copilot.infrastructure.models.conversation_model import (
+        CopilotConversationModel,
+    )
+
+logger = structlog.get_logger()
+
+# Redis key prefix for active conversation context (TTL 1h)
+REDIS_CONV_PREFIX = "copilot:conv:"
+REDIS_CONV_TTL = 3600
+
+# [COPILOT-DOC-HINT-LAYER] → docs/domains/copilot/asset-lifecycle.md
+#
+# Small docs are inlined; large docs emit a hint and rely on the
+# ``read_document`` tool. This avoids blowing context for adjuntos that
+# the user attached "for reference" but doesn't actually need reasoned over.
+INLINE_DOCUMENT_THRESHOLD = 1800
+
+
+def _doc_hint(
+    *,
+    asset_id: UUID,
+    filename: str,
+    summary: str | None,
+    total_chars: int,
+) -> str:
+    """Emit a compact hint so the LLM knows an asset exists without spending tokens on it."""
+    summary_line = (summary or "Sin resumen disponible todavía.").strip()
+    return (
+        f"[Documento adjunto: {filename}]\n"
+        f"asset_id: {asset_id}\n"
+        f"resumen: {summary_line}\n"
+        f"tamaño: {total_chars} caracteres\n"
+        "Si necesitas su contenido, llama a la herramienta `read_document` "
+        "con ese asset_id (opcionalmente con una query para buscar dentro).\n"
+        "[/Documento adjunto]"
+    )
+
+
+def _doc_inline(*, filename: str, asset_id: UUID, text: str) -> str:
+    """Verbatim inline for small docs — includes asset_id for re-reference."""
+    return f"[Documento adjunto: {filename} (asset_id: {asset_id})]\n{text}\n[/Documento adjunto]"
+
+
+def _render_document_block(
+    block: dict,
+    *,
+    repo: AssetRepository,
+    db: Session,
+    tenant_id: UUID,
+) -> str | None:
+    """Return the context chunk for a ``document`` block.
+
+    Small docs inlined verbatim; large docs hinted (summary + asset_id).
+    Extraction is triggered on demand if the asset hasn't been processed
+    yet — this makes the flow robust against uploads where the background
+    extractor hasn't finished.
+    """
+    asset_id_raw = block.get("asset_id")
+    filename = block.get("filename") or "documento"
+    try:
+        asset_uuid = UUID(str(asset_id_raw))
+    except (ValueError, TypeError):
+        logger.warning("copilot_chat_attachment_bad_asset_id", asset_id=asset_id_raw)
+        return None
+
+    asset = repo.get_by_id(asset_uuid, tenant_id=tenant_id)
+    if not asset:
+        logger.warning(
+            "copilot_chat_attachment_asset_missing", asset_id=str(asset_uuid)
+        )
+        return None
+
+    # Trigger extraction if pending — idempotent.
+    if asset.extraction_status not in ("extracted", "skipped", "failed"):
+        try:
+            refreshed = AssetExtractionService(db).ensure_extracted(
+                asset_uuid,
+                tenant_id=tenant_id,
+            )
+            if refreshed is not None:
+                asset = refreshed
+        except Exception:
+            logger.exception(
+                "copilot_chat_attachment_extract_failed",
+                asset_id=str(asset_uuid),
+            )
+
+    extracted = (asset.extracted_text or "").strip()
+    total_chars = len(extracted)
+
+    if extracted and total_chars <= INLINE_DOCUMENT_THRESHOLD:
+        return _doc_inline(filename=filename, asset_id=asset.id, text=extracted)
+
+    # No extracted text yet, or too large — emit a hint pointing at read_document.
+    return _doc_hint(
+        asset_id=asset.id,
+        filename=filename,
+        summary=asset.extracted_summary,
+        total_chars=total_chars,
+    )
+
+
+def _render_attachment_context(
+    blocks: list[dict] | None,
+    *,
+    tenant_id: UUID,
+    db: Session,
+) -> str:
+    """Materialize user-supplied attachment blocks into plain text the LLM can reason over."""
+    if not blocks:
+        return ""
+
+    repo = AssetRepository(db)
+
+    sections: list[str] = []
+    for block in blocks:
+        btype = block.get("type")
+        if btype == "document":
+            rendered = _render_document_block(
+                block, repo=repo, db=db, tenant_id=tenant_id
+            )
+            if rendered:
+                sections.append(rendered)
+        elif btype == "audio":
+            transcript = str(block.get("transcript") or "").strip()
+            sections.append(
+                f"[Audio adjunto — transcripción]\n{transcript}\n[/Audio adjunto]"
+                if transcript
+                else "[Audio adjunto sin transcripción disponible.]"
+            )
+        elif btype == "image":
+            alt = (
+                block.get("alt")
+                or block.get("filename")
+                or block.get("url")
+                or "imagen"
+            )
+            sections.append(f"[Imagen adjunta: {alt}]")
+        elif btype == "video":
+            ref = block.get("filename") or block.get("url") or "video"
+            sections.append(f"[Video adjunto: {ref}]")
+
+    return "\n\n".join(sections)
+
+
+# ── Tool → Block adapters ──────────────────────────────────────────────────────
+# Registration + handlers live in block_adapters.py (SSoT). Adding a new
+# block-emitting tool does NOT require editing this file.
+
+from luana_core_copilot.application.orchestrator.block_adapters import (
+    tool_result_to_blocks as _tool_result_to_block,
+)
+
+_TYPE_TO_CARD_KIND: dict[str, str] = {
+    "proposal": "proposal",
+    "alternatives_card": "alternatives",
+    "alternatives": "alternatives",
+    "clarify": "clarify",
+    "clarify_card": "clarify",
+    "checkpoint": "checkpoint",
+    "interview_complete": "interview_complete",
+    "metric_summary": "metric_summary",
+    "comparison": "comparison",
+    "checklist": "checklist",
+    "multi_option": "multi_option",
+    "navigation": "navigation",
+    # F4 — URL contextual scratchpad (TP3 B2).
+    "inspiration_saved": "inspiration_saved",
+    "memory_pinned": "memory_pinned",
+}
+"""Map from UIAction.type → CardBlock.card_kind (CONTRACT-MULTIMODAL §6)."""
+
+
+def _parse_tool_payload(tool_output: object) -> dict | None:
+    """Best-effort decode of a graph tool output into a JSON dict.
+
+    LangGraph + deepagents emit ``on_tool_end`` events whose ``output``
+    can be a ``ToolMessage``, a raw ``str``, or a ``dict``. The card
+    pipeline (``ui_action`` legacy event + v2 ``block_append``) only
+    fires when the payload contains a ``ui_action`` key, so a tool that
+    travels through the graph as ``ToolMessage`` would silently lose the
+    card unless we unwrap the message first.
+
+    Detected during TP3 S3.1 — ``fetch_url`` emitted ``ui_action`` in its
+    JSON envelope but ``_handle_tool_end_v2`` saw a ``ToolMessage`` and
+    parsed nothing, so ``inspiration_saved`` cards never reached the FE.
+    """
+    if isinstance(tool_output, dict):
+        return tool_output
+    raw: str | None = None
+    if isinstance(tool_output, ToolMessage):
+        content = tool_output.content
+        if isinstance(content, str):
+            raw = content
+        elif isinstance(content, list):
+            raw = "\n".join(str(part) for part in content if part is not None)
+        elif isinstance(content, dict):
+            return content
+    elif isinstance(tool_output, str):
+        raw = tool_output
+    if not raw:
+        return None
+    try:
+        parsed = json.loads(raw)
+    except (json.JSONDecodeError, ValueError):
+        return None
+    return parsed if isinstance(parsed, dict) else None
+
+
+_OVERLOAD_PATTERNS: tuple[str, ...] = (
+    "engine_overloaded",
+    "rate_limit",
+    "ratelimit",
+    "429",
+    "overloaded",
+    "too many requests",
+    "service unavailable",
+    "503",
+)
+
+_USER_FACING_ERROR_MESSAGES: dict[str, str] = {
+    "graph_recursion": (
+        "El asistente entró en un bucle al procesar tu pedido. Intenta replantear "
+        "la pregunta de forma más directa o adjunta el dato faltante."
+    ),
+    "provider_overloaded": (
+        "El modelo está sobrecargado en este momento. Espera unos segundos y "
+        "vuelve a enviar tu mensaje — los cambios que ya se hayan propuesto en "
+        "el chat siguen visibles."
+    ),
+    "stream_error": (
+        "Hubo un problema procesando tu mensaje. Intenta de nuevo en unos segundos."
+    ),
+}
+
+
+def _classify_stream_error(exc: Exception) -> str:
+    """Map a stream-time exception to a stable error_kind tag.
+
+    Reads the exception class name + repr/str so it works across providers
+    (OpenAI ``RateLimitError``, Kimi 429 wrapped in generic OpenAIError,
+    DeepSeek 503, Anthropic ``OverloadedError``). Used by both the
+    observability recorder (kind tag persisted to ``copilot_trace_event``)
+    and the user-facing copy lookup (``_user_facing_error_message``).
+    """
+    type_name = type(exc).__name__
+    if type_name == "GraphRecursionError":
+        return "graph_recursion"
+    haystack = f"{type_name} {exc!r} {exc!s}".lower()
+    if any(pat in haystack for pat in _OVERLOAD_PATTERNS):
+        return "provider_overloaded"
+    return "stream_error"
+
+
+def _user_facing_error_message(error_kind: str) -> str:
+    """Return the Spanish-neutro user-facing copy for ``error_kind``.
+
+    Keys must stay aligned with ``_classify_stream_error`` outputs.
+    Unknown kinds fall back to the generic ``stream_error`` copy so the
+    user always gets something actionable.
+    """
+    return _USER_FACING_ERROR_MESSAGES.get(
+        error_kind, _USER_FACING_ERROR_MESSAGES["stream_error"]
+    )
+
+
+def _extract_tool_message(
+    output: object,
+    tool_name: str,
+    last_tool_call_ids: dict[str, str],
+) -> ToolMessage | None:
+    """Normalise an ``on_tool_end`` output into a canonical ``ToolMessage``.
+
+    Three shapes the graph can emit:
+
+    1. ``ToolMessage`` — convencional tools.
+    2. ``str`` — tools que retornan texto plano. ``tool_call_id`` se resuelve
+       desde ``last_tool_call_ids`` (drenado por nombre, mismo patrón que el
+       handler legacy).
+    3. ``langgraph.types.Command(update={"messages": [ToolMessage(...)]})`` —
+       deepagents wrappea el resultado del sub-agente en un ``Command`` cuyo
+       update incluye el ``ToolMessage`` ya construido (con ``tool_call_id``
+       correcto). Sin desempacar, ``acc.messages`` queda con un ``tool_call``
+       (``task``) sin el matching ``tool_message`` → state inconsistente.
+
+    Devuelve ``None`` cuando el output no encaja en ninguna de las 3 formas
+    (incluye ``Command`` sin ``messages`` key, ``dict`` puros, ``None``).
+    El caller puede emitir el SSE ``tool_result`` igual — solo no se
+    persiste un ToolMessage que no existe.
+    """
+    from langgraph.types import Command  # local import — Command rarely used
+
+    if isinstance(output, ToolMessage):
+        return output
+
+    if isinstance(output, Command):
+        update = getattr(output, "update", None)
+        if isinstance(update, dict):
+            msgs = update.get("messages")
+            if isinstance(msgs, list):
+                for m in msgs:
+                    if isinstance(m, ToolMessage):
+                        return m
+        return None
+
+    if isinstance(output, str):
+        tool_call_id = last_tool_call_ids.pop(tool_name, "")
+        return ToolMessage(
+            content=output,
+            name=tool_name,
+            tool_call_id=tool_call_id,
+        )
+
+    return None
+
+
+def _ui_action_to_card_block(action: dict) -> dict | None:
+    """Wrap a UIAction dict as a CardBlock dict for SSE v2.
+
+    Only wraps action types that map to known card_kind values.
+    Unknown types → None (emit only legacy ui_action, no block).
+
+    Payload shape is validated against
+    ``copilot.domain.card_payloads.CARD_PAYLOAD_MODELS`` in warn-only mode:
+    a mismatch logs a structured warning but the card is still emitted so
+    the frontend can degrade gracefully instead of blanking on LLM drift.
+
+    CONTRACT reference: CONTRACT-MULTIMODAL §6 (ui_action → CardBlock).
+    """
+    action_type = str(action.get("type", ""))
+    card_kind = _TYPE_TO_CARD_KIND.get(action_type)
+    if not card_kind:
+        return None
+
+    from luana_core_copilot.domain.card_payloads import validate_card_payload
+
+    ok, err = validate_card_payload(card_kind, action)
+    if not ok:
+        logger.warning(
+            "card_payload_schema_mismatch",
+            card_kind=card_kind,
+            action_type=action_type,
+            error=err,
+        )
+
+    return {
+        "id": str(uuid4()),
+        "type": "card",
+        "card_kind": card_kind,
+        "payload": action,
+        "status": "pending",
+    }
+
+
+def _write_todos_to_plan_card(tool_input: object) -> dict | None:
+    """Synthesize a ``plan_card`` block from the deep-agent ``write_todos`` args.
+
+    The deepagents ``write_todos`` tool stores ``state.todos`` and returns a
+    ToolMessage with a stringified todo list — too lossy to round-trip.
+    Instead we read the *input args* of the tool call (``{"todos": [...]}``),
+    where each Todo carries ``{content, status, activeForm?}``.
+
+    Returns ``None`` for malformed inputs so the caller falls back to the
+    legacy ``tool_result`` path without breaking the stream.
+    """
+    if not isinstance(tool_input, dict):
+        return None
+    raw_todos = tool_input.get("todos")
+    if not isinstance(raw_todos, list) or not raw_todos:
+        return None
+    normalized: list[dict] = []
+    for item in raw_todos:
+        if not isinstance(item, dict):
+            continue
+        content = str(item.get("content", "")).strip()
+        if not content:
+            continue
+        status = str(item.get("status", "pending")).lower()
+        if status not in {"pending", "in_progress", "completed"}:
+            status = "pending"
+        normalized.append(
+            {
+                "content": content,
+                "status": status,
+                "active_form": str(
+                    item.get("activeForm") or item.get("active_form") or ""
+                ).strip(),
+            },
+        )
+    if not normalized:
+        return None
+    return {
+        "id": str(uuid4()),
+        "type": "card",
+        "card_kind": "plan_card",
+        "payload": {"todos": normalized},
+        "status": "pending",
+    }
+
+
+# LLM streaming timeout (seconds). If the LLM hangs, the SSE stream will
+# emit an error event after this duration instead of blocking indefinitely.
+# Configurable via env var COPILOT_STREAM_TIMEOUT_SECONDS.
+COPILOT_STREAM_TIMEOUT_SECONDS: int = int(
+    os.environ.get("COPILOT_STREAM_TIMEOUT_SECONDS", "60"),
+)
+
+# LangGraph hard cap on graph node iterations per turn. The default mirrors
+# LangGraph's own default (25) so this constant is behaviour-preserving on
+# day one. It exists so ops can tune the cap from env without code edits
+# and so the value is captured in trace metadata when a recursion error
+# fires. Lowering it (with the dedup guard active) helps surface tool-call
+# loops faster; raising it should be a deliberate, audited change.
+COPILOT_RECURSION_LIMIT: int = int(
+    os.environ.get("COPILOT_RECURSION_LIMIT", "25"),
+)
+
+_TRACE_PREVIEW_CHARS = 2_000
+
+
+# [COPILOT-ROUTING-WIRE-F11] -> docs/domains/copilot/redesign-2026-04/learnings/F11-housekeeping.md
+#
+# Single ``ModelRouter`` shared across requests. ``build_default_router`` is
+# pure construction (no I/O) but resolves NANO settings each call — keep one
+# instance per process. The LLMClassifier inside is stateless + lazy on its
+# LLM resolver, so concurrent requests are safe. List-as-cell avoids the
+# `global` statement (PLW0603) — mutating a module-level container is fine.
+_DEFAULT_ROUTER_CELL: list[ModelRouter] = []
+
+
+def _get_default_router() -> ModelRouter:
+    """Lazy module singleton. Avoids construction on import (test isolation)."""
+    if not _DEFAULT_ROUTER_CELL:
+        _DEFAULT_ROUTER_CELL.append(build_default_router())
+    return _DEFAULT_ROUTER_CELL[0]
+
+
+def _truncate_for_trace(value: object) -> object:
+    """Shorten long strings + dicts for the trace ``data`` payload.
+
+    Keeps observability writes bounded without losing the head of a payload,
+    which is almost always enough for "why did this tool return X?" style
+    debugging.
+    """
+    if isinstance(value, str):
+        if len(value) > _TRACE_PREVIEW_CHARS:
+            return value[:_TRACE_PREVIEW_CHARS] + " [truncated]"
+        return value
+    if isinstance(value, dict):
+        try:
+            serialised = json.dumps(value, default=str)
+        except (TypeError, ValueError):
+            return {"__repr__": repr(value)[:_TRACE_PREVIEW_CHARS]}
+        if len(serialised) > _TRACE_PREVIEW_CHARS:
+            return {
+                "__truncated__": True,
+                "preview": serialised[:_TRACE_PREVIEW_CHARS],
+            }
+        return value
+    return value
+
+
+def _sanitize_ai_messages(messages: list, *, user_msg: str | None = None) -> list:
+    """Strip JSON blocks from every AIMessage.content in the list.
+
+    Invoked just before persistence so the chat history stays clean even
+    when the LLM ignores the "no JSON in chat" prompt rule. Non-AIMessage
+    entries pass through untouched. ``user_msg`` is forwarded to the
+    sanitizer so it can apply channel format enforcement (TP6).
+    """
+    cleaned: list = []
+    for msg in messages:
+        if isinstance(msg, AIMessage) and isinstance(msg.content, str) and msg.content:
+            new_content = sanitize_assistant_text(msg.content, user_msg=user_msg)
+            if new_content != msg.content:
+                # Preserve tool_calls and any additional_kwargs; only rewrite content.
+                cleaned.append(
+                    AIMessage(
+                        content=new_content,
+                        additional_kwargs=msg.additional_kwargs,
+                        response_metadata=msg.response_metadata,
+                        tool_calls=getattr(msg, "tool_calls", []),
+                        id=msg.id,
+                    ),
+                )
+                continue
+        cleaned.append(msg)
+    return cleaned
+
+
+@dataclass
+class _StreamAccumulator:
+    """Mutable accumulator shared between stream_chat and _run_graph_stream."""
+
+    full_response: str = ""
+    messages: list = field(default_factory=list)
+    last_tool_call_ids: dict[str, str] = field(default_factory=dict)
+    emitted_blocks: list[dict] = field(default_factory=list)
+    # v2 text block tracking
+    text_block_id: str | None = None
+    text_block_markdown: str = ""
+    block_index: int = 0
+    # Observability handle — set by stream_chat. Card emitters publish
+    # CardEmitted events tagged with this turn_id / tenant_id so the
+    # observability subscribers persist them into copilot_trace_event.
+    obs: ObservabilityContext | None = None
+    # Anti-loop guard — tracks identical tool calls per turn so the
+    # orchestrator can inject a course-correct directive (WARN) or
+    # abort the turn (raise ToolCallLoopError) before the deep-agent
+    # graph hits its recursion limit and we lose all state.
+    dedup_tracker: ToolCallDedupTracker = field(default_factory=ToolCallDedupTracker)
+
+
+class CopilotOrchestrator:
+    """Orchestrate the Copilot agent.
+
+    Manage conversation state, persist history, and stream SSE events to the frontend.
+    """
+
+    def __init__(self, db: Session) -> None:
+        """Initialize copilot orchestrator."""
+        self.db = db
+        self.conv_repo = ConversationRepository(db)
+
+    def _build_observability_context(
+        self,
+        *,
+        tenant_id: UUID,
+        user_id: UUID | None,
+        conversation_id: UUID | None,
+    ) -> ObservabilityContext:
+        """Construct the per-turn observability context.
+
+        Resolves the tenant currency, builds the LLM-call + trace event
+        repositories, the pricing + FX resolvers, and returns the bound
+        ``ObservabilityContext`` whose callback handler the graph stream
+        consumes via ``obs.langchain_config()``.
+        """
+        from luana_core_observability.cost.fx_resolver import FXResolver
+        from luana_core_observability.persistence.pricing_snapshot_repository import (
+            PricingSnapshotRepository,
+        )
+        from luana_core_observability.persistence.tenant_billing_config_repository import (
+            TenantBillingConfigRepository,
+        )
+        from luana_core_observability.pricing.resolver import PricingResolver
+
+        from luana_core_copilot.observability.persistence.llm_call_repository import (
+            LlmCallRepository,
+        )
+        from luana_core_copilot.observability.persistence.trace_event_repository import (
+            TraceEventRepository,
+        )
+
+        billing_repo = TenantBillingConfigRepository(self.db)
+        currency = "USD"
+        with contextlib.suppress(Exception):
+            cfg = billing_repo.get(tenant_id=tenant_id)
+            if cfg is not None and getattr(cfg, "billing_currency", None):
+                currency = str(cfg.billing_currency)
+        db = self.db
+        return ObservabilityContext.start(
+            tenant_id=tenant_id,
+            conversation_id=conversation_id,
+            user_id=user_id,
+            llm_call_repo=LlmCallRepository(db),
+            trace_repo=TraceEventRepository(db),
+            pricing_resolver=PricingResolver(
+                repo_factory=lambda: PricingSnapshotRepository(db),
+            ),
+            # PR-2 PI-1.1: ``FXResolver.default()`` encapsulates the
+            # ``httpx.Client(timeout=10)`` boilerplate per
+            # ``tessl__graceful-degradation`` Rule 1 (explicit timeout).
+            fx_resolver=FXResolver.default(),
+            tenant_currency=currency,
+        )
+
+    def _build_client_context(self, context: ClientContextDTO | None) -> dict:
+        """Build the graph-facing ``ClientContext`` dict from the incoming DTO.
+
+        ``guided_mode`` is populated later, server-side, from
+        ``copilot_conversations.procedure_state["guided"]`` — the frontend
+        doesn't have to know whether guided mode is active for this
+        conversation.
+        """
+        if not context:
+            return {
+                "current_route": None,
+                "selected_fields": [],
+                "form_data": {},
+                "locale": "es",
+            }
+        return {
+            "current_route": context.current_route,
+            "selected_fields": [
+                f.model_dump() if hasattr(f, "model_dump") else f
+                for f in context.selected_fields
+            ],
+            "form_data": context.form_data,
+            "locale": context.locale,
+        }
+
+    def _read_procedure_state(
+        self,
+        conv_id: str | None,
+        tenant_id: UUID | None,
+    ) -> dict | None:
+        """Single DB read of ``copilot_conversations.procedure_state`` JSONB.
+
+        Tenant-scoped by rule ``tenant-isolation.md``: a missing ``tenant_id``
+        or a conversation that belongs to another tenant returns ``None``.
+        Callers parse the result with ``load_guided_state`` / ``load_active_job``
+        to avoid hitting the connection pool twice per request.
+        """
+        if not conv_id or tenant_id is None:
+            return None
+        from sqlalchemy import text
+
+        try:
+            row = self.db.execute(
+                text(
+                    "SELECT procedure_state FROM copilot_conversations WHERE id = :id AND tenant_id = :tenant_id",
+                ),
+                {"id": conv_id, "tenant_id": str(tenant_id)},
+            ).scalar()
+        except Exception as exc:  # noqa: BLE001 — orchestrator resilience
+            logger.warning(
+                "procedure_state_read_failed",
+                conv_id=conv_id,
+                error=str(exc),
+            )
+            return None
+        return row if isinstance(row, dict) else None
+
+    def _prepare_conversation(
+        self,
+        *,
+        user_id: UUID,
+        tenant_id: UUID,
+        message: str,
+        conversation_id: str | None,
+        context: ClientContextDTO | None,
+        blocks: list[dict] | None = None,
+        channel: str | None = None,
+    ) -> tuple[str, UUID, CopilotConversationModel, dict]:
+        """Resolve/create conversation and build LangGraph state. Returns (conv_id, conv_uuid, existing_conv, state).
+
+        ``channel`` (PI-5 PR-2): per-invocation channel override. When
+        provided it is mirrored into ``state["client_context"]["channel"]``
+        (and from there flows to the system-prompt slot + the tool
+        runtime filter). If both ``context.channel`` and ``channel`` are
+        set, ``context.channel`` wins (DTO is canonical); ``channel`` is
+        the kwarg ergonomics for direct callers (worker). Default
+        ``"web"`` preserves backward compat.
+        """
+        conv_id = conversation_id or str(uuid.uuid4())
+        conv_uuid = UUID(conv_id)
+
+        existing_conv = self.conv_repo.get_by_id(conv_uuid, tenant_id, user_id)
+        if not existing_conv:
+            existing_conv = self.conv_repo.create(
+                conversation_id=conv_uuid,
+                tenant_id=tenant_id,
+                user_id=user_id,
+            )
+            self.db.commit()
+
+        client_ctx = self._build_client_context(context)
+        # PI-5 PR-2 (Q1 PM-resolved + Q4 dispatch) — resolve channel once;
+        # DTO field wins over kwarg, kwarg wins over default "web".
+        ctx_channel = getattr(context, "channel", None) if context is not None else None
+        effective_channel = ctx_channel or channel or "web"
+        client_ctx["channel"] = effective_channel
+
+        # Hydrate guided + active-extraction state for this conversation with
+        # a SINGLE DB read. Both flags live as sibling keys in the same JSONB
+        # column (``procedure_state``) — one conversation can hold both
+        # (guided paused while a URL scrape runs), only guided, only active
+        # job, or neither (pure free-form chat). Two reads hit the connection
+        # pool twice and doubled request latency for no reason.
+        procedure_state = self._read_procedure_state(conv_id, tenant_id)
+        guided = load_guided_state(procedure_state)
+        active_job = load_active_job(procedure_state)
+        client_ctx["guided_mode"] = guided is not None
+        active_job_json = active_job.to_json() if active_job is not None else None
+        client_ctx["active_extraction_job"] = active_job_json
+
+        state = create_initial_copilot_state(
+            user_id=user_id,
+            tenant_id=tenant_id,
+            conversation_id=conv_id,
+            client_context=client_ctx,
+        )
+        state["guided_state"] = guided.to_json() if guided is not None else None
+        state["active_extraction_job"] = active_job_json
+
+        # FP2 (B24) — detect channel intent from the user message BEFORE the
+        # graph builds. When present, ``deep_agent._build_combined_system_prompt``
+        # injects an instruction forcing ``format_for_channel`` invocation so
+        # Kimi K2.6 (phrasing-sensitive, B11-TP6) cannot drop the tool call.
+        # Tool itself is already in ``ALWAYS_AVAILABLE_GROUPS`` — the bug was
+        # never binding, it was the LLM ignoring the implicit signal.
+        intent = detect_channel_intent(message)
+        state["channel_intent"] = (
+            {
+                "channel": intent.channel,
+                "label": intent.label,
+                "matched_span": list(intent.matched_span),
+            }
+            if intent is not None
+            else None
+        )
+
+        # Publish the conversation id so tools invoked by the LLM can persist
+        # conversation-scoped state (e.g. guided progress) without receiving
+        # it as an argument.
+        set_conversation_id(conv_id)
+
+        history_messages = self._load_history(conv_id, tenant_id, existing_conv)
+        # PI-5 PR-2 (D-PI5-006, Q1 PM-resolved) — channel-aware memory window.
+        # First-time wiring of ``ContextWindowBuilder`` + ``RollingSummarizer``:
+        # apply per-channel caps to ``history_messages`` before composing state.
+        # Web stays byte-identical (default config matches the previous
+        # implicit, unbounded window — builder only trims when caps are hit).
+        history_messages = self._apply_channel_window(
+            history_messages,
+            channel=effective_channel,
+        )
+        attachment_context = _render_attachment_context(
+            blocks, tenant_id=tenant_id, db=self.db
+        )
+        user_content = message
+        if attachment_context:
+            user_content = (
+                f"{message.strip()}\n\n{attachment_context}"
+                if message.strip()
+                else attachment_context
+            )
+        state["messages"] = [*history_messages, HumanMessage(content=user_content)]
+        return conv_id, conv_uuid, existing_conv, state
+
+    def _apply_channel_window(
+        self,
+        history_messages: list,
+        *,
+        channel: str,
+    ) -> list:
+        """Trim ``history_messages`` to the channel-appropriate raw window.
+
+        Uses ``ContextWindowBuilder.for_channel`` (PI-5 PR-2) to walk the
+        history newest→oldest respecting the per-channel ``RAW_WINDOW_TOKENS``
+        / ``RAW_WINDOW_MAX_MESSAGES`` / ``RAW_WINDOW_MIN_MESSAGES`` caps. The
+        builder operates on the pure ``LLMMessage`` value object, so we
+        round-trip via ``role`` / ``content`` and re-emit the original
+        ``BaseMessage`` instances (preserves ``additional_kwargs``,
+        tool-call refs, etc.). On any failure (token counter, malformed
+        message, etc.) we degrade to the untrimmed list — memory is an
+        optimization, never a correctness-blocker.
+
+        ``RollingSummarizer.for_channel`` is also wired here for the
+        write path: when the builder drops messages, callers can fold
+        them into a rolling summary in a follow-up PR. PR-2 reads the
+        summarizer factory to keep the wiring symmetric with the
+        builder; the actual summary persistence will land alongside
+        ``copilot_conversations.rolling_summary`` (deferred S5).
+        """
+        try:
+            from luana_core_copilot.application.memory.context_window_builder import (
+                ContextWindowBuilder,
+            )
+            from luana_core_copilot.application.memory.rolling_summarizer import (
+                RollingSummarizer,
+            )
+            from luana_core_copilot.domain.ports import LLMMessage
+        except Exception as exc:  # noqa: BLE001 — memory wiring is best-effort
+            logger.warning("memory_window_import_failed", error=str(exc))
+            return history_messages
+
+        # Resolve role string from BaseMessage subclass without importing
+        # the LangChain hierarchy here (chat.py already imports HumanMessage,
+        # AIMessage, ToolMessage at the top — reuse them).
+        def _role_of(msg: object) -> str:
+            if isinstance(msg, HumanMessage):
+                return "user"
+            if isinstance(msg, AIMessage):
+                return "assistant"
+            if isinstance(msg, ToolMessage):
+                return "tool"
+            return "system"
+
+        try:
+            builder = ContextWindowBuilder.for_channel(channel)
+            # Convert LangChain history → LLMMessage value objects.
+            llm_history = [
+                LLMMessage(role=_role_of(m), content=str(getattr(m, "content", "")))
+                for m in history_messages
+            ]
+            # Pre-instantiate the channel-aware summarizer so the wiring
+            # is exercised in tests. Execution lands in S5 (rolling
+            # summary persistence). Bind to a local var so `mypy --strict`
+            # doesn't flag the unused factory call.
+            _summarizer = RollingSummarizer.for_channel(
+                channel
+            )  # wiring symmetry, S5 follow-up
+            del _summarizer  # explicit discard — execution lands in S5
+            window, _tokens = builder.build(
+                summary=None,
+                messages=llm_history,
+                new_user_msg="",  # only history is being trimmed here
+            )
+            # Drop the final synthetic empty user message the builder appends
+            # (we re-add the real user message in _prepare_conversation).
+            if window and window[-1].role == "user" and window[-1].content == "":
+                window = window[:-1]
+            kept_count = len(window) - (
+                1 if window and window[0].name == "rolling_summary" else 0
+            )
+            kept_count = max(kept_count, 0)
+            # Slice the original BaseMessage list to the same tail length so
+            # we preserve message identity (additional_kwargs, tool_call_id…).
+            return history_messages[-kept_count:] if kept_count > 0 else []
+        except Exception as exc:  # noqa: BLE001 — memory degrade-open
+            logger.warning(
+                "memory_window_apply_failed",
+                channel=channel,
+                error=str(exc),
+            )
+            return history_messages
+
+    def _record_routing_decision(
+        self,
+        *,
+        tenant_id: UUID,
+        conversation_id: UUID,
+        message_id: UUID,
+        user_msg: str,
+        state: dict,
+        router: ModelRouter | None = None,
+    ) -> None:
+        """Persist a ``RoutingDecision`` for this turn (telemetry only).
+
+        Wires F8 ``build_default_router`` into the runtime so
+        ``copilot_routing_log`` populates and the admin Streamlit
+        ``/copilot-routing`` shows real data. Failures here MUST NOT block
+        the chat stream — log + skip + rollback so the conversation flow
+        proceeds.
+
+        ``router`` is injected for tests; production uses the module
+        singleton via ``_get_default_router()``.
+        """
+        try:
+            client_ctx = state.get("client_context", {}) or {}
+            active_job = state.get("active_extraction_job")
+            guided = bool(client_ctx.get("guided_mode"))
+            procedure_active = guided or bool(active_job)
+            mode = "procedure" if procedure_active else "chat"
+            tools = get_tools_for_context(client_ctx)
+            tools_count = len(tools)
+            request = RoutingRequest(
+                user_msg=user_msg,
+                route=client_ctx.get("current_route"),
+                mode=mode,
+                available_tool_count=tools_count,
+                procedure_active=procedure_active,
+            )
+            chosen_router = router if router is not None else _get_default_router()
+            decision = chosen_router.select(request)
+            confidence = (
+                float(decision.confidence) if decision.confidence is not None else None
+            )
+            RoutingLogRepository(self.db).insert(
+                tenant_id=tenant_id,
+                conversation_id=conversation_id,
+                message_id=message_id,
+                role_selected=decision.role.value,
+                classifier_used=decision.classifier_used.value,
+                reason=decision.reason,
+                confidence=confidence,
+                user_msg_length=len(user_msg),
+                tools_available=tools_count,
+            )
+            self.db.commit()
+            EventBus.publish(
+                RoutingDecided.create(
+                    tenant_id=tenant_id,
+                    conversation_id=conversation_id,
+                    message_id=message_id,
+                    role_selected=decision.role.value,
+                    classifier_used=decision.classifier_used.value,
+                    reason=decision.reason,
+                    confidence=confidence,
+                    user_msg_length=len(user_msg),
+                    tools_available=tools_count,
+                ),
+                session=None,
+            )
+        except Exception as exc:  # noqa: BLE001 — routing telemetry resilience
+            logger.warning(
+                "routing_decision_failed",
+                error=str(exc),
+                error_type=type(exc).__name__,
+            )
+            with contextlib.suppress(Exception):
+                self.db.rollback()
+
+    async def _record_routing_decision_async(
+        self,
+        *,
+        tenant_id: UUID,
+        conversation_id: UUID,
+        message_id: UUID,
+        user_msg: str,
+        state: dict,
+        router: ModelRouter | None = None,
+    ) -> None:
+        """Async variant: offloads the blocking ``router.select`` LLM call to a worker thread.
+
+        # [COPILOT-ROUTING-PARALLEL-FP3] -> docs/domains/copilot/fpos-2026-04/phases/FP3-routing-parallel-ttfb.md
+        # B25-TP11: the rule-classifier path is microseconds, but the LLM
+        # fallback (~1.7s p50 for ambiguous >40-char messages) used to block
+        # the event loop right before the graph stream started, pushing TTFB
+        # past the 1500 ms 2026 conversational breaking point.
+        #
+        # Tier is telemetry-only — :func:`build_deep_agent_graph` resolves
+        # the AGENT model unconditionally and tools come from
+        # :func:`get_tools_for_context` keyed on route, never tier. So this
+        # task can run as a background ``asyncio.create_task`` while the
+        # graph builds + streams without ANY race condition vs tool binding.
+        # The DB INSERT happens back on the calling task so the orchestrator
+        # ``Session`` is never touched from two threads simultaneously.
+        """
+        try:
+            client_ctx = state.get("client_context", {}) or {}
+            active_job = state.get("active_extraction_job")
+            guided = bool(client_ctx.get("guided_mode"))
+            procedure_active = guided or bool(active_job)
+            mode = "procedure" if procedure_active else "chat"
+            tools = get_tools_for_context(client_ctx)
+            tools_count = len(tools)
+            request = RoutingRequest(
+                user_msg=user_msg,
+                route=client_ctx.get("current_route"),
+                mode=mode,
+                available_tool_count=tools_count,
+                procedure_active=procedure_active,
+            )
+            chosen_router = router if router is not None else _get_default_router()
+            decision = await asyncio.to_thread(chosen_router.select, request)
+            confidence = (
+                float(decision.confidence) if decision.confidence is not None else None
+            )
+            RoutingLogRepository(self.db).insert(
+                tenant_id=tenant_id,
+                conversation_id=conversation_id,
+                message_id=message_id,
+                role_selected=decision.role.value,
+                classifier_used=decision.classifier_used.value,
+                reason=decision.reason,
+                confidence=confidence,
+                user_msg_length=len(user_msg),
+                tools_available=tools_count,
+            )
+            self.db.commit()
+            EventBus.publish(
+                RoutingDecided.create(
+                    tenant_id=tenant_id,
+                    conversation_id=conversation_id,
+                    message_id=message_id,
+                    role_selected=decision.role.value,
+                    classifier_used=decision.classifier_used.value,
+                    reason=decision.reason,
+                    confidence=confidence,
+                    user_msg_length=len(user_msg),
+                    tools_available=tools_count,
+                ),
+                session=None,
+            )
+        except Exception as exc:  # noqa: BLE001 — routing telemetry resilience
+            logger.warning(
+                "routing_decision_failed",
+                error=str(exc),
+                error_type=type(exc).__name__,
+            )
+            with contextlib.suppress(Exception):
+                self.db.rollback()
+
+    async def stream_chat(
+        self,
+        *,
+        user_id: UUID,
+        tenant_id: UUID,
+        message: str,
+        conversation_id: str | None = None,
+        context: ClientContextDTO | None = None,
+        blocks: list[dict] | None = None,
+    ) -> AsyncGenerator[str, None]:
+        """Process a user message and yield SSE v2 events.
+
+        Emits the canonical v2 stream
+        (status / message_start / block_start / block_delta / block_end /
+        block_append / tool_start / tool_result / ui_action / message_end /
+        done / error). The legacy ``text_chunk`` channel was removed in
+        F8 §5.4 once the FE migrated to the block_* render path.
+        """
+        conv_id, conv_uuid, existing_conv, state = self._prepare_conversation(
+            user_id=user_id,
+            tenant_id=tenant_id,
+            message=message,
+            conversation_id=conversation_id,
+            context=context,
+            blocks=blocks,
+        )
+
+        yield SSEEvent(event="status", data={"state": "thinking"}).to_sse()
+
+        acc = _StreamAccumulator()
+
+        # Open the observability context. The bound LangChain callback
+        # handler captures every LLM/tool/chain event under this turn_id;
+        # publishing CardEmitted / RoutingDecided onto the shared EventBus
+        # records the orchestrator-level cards and routing decisions.
+        obs = self._build_observability_context(
+            tenant_id=tenant_id,
+            user_id=user_id,
+            conversation_id=conv_uuid,
+        )
+        acc.obs = obs
+
+        # F11.1: Pre-generate the assistant message id so the routing log row
+        # references the same id as the message_start SSE event. Telemetry
+        # only — failures must NOT block the stream.
+        msg_id = str(uuid4())
+
+        # FP3 (B25-TP11) — kick off routing classification in parallel with
+        # the graph stream. Pre-fix: sync ``_record_routing_decision``
+        # blocked ~1.7s on the LLM classifier for >40-char ambiguous
+        # messages, pushing TTFB past the 1500 ms 2026 conversational
+        # breaking point. Post-fix: the classifier resolves on a worker
+        # thread while the graph builds + emits ``block_start``. Tier is
+        # telemetry-only (deep_agent uses ``ModelRole.AGENT`` hardcoded;
+        # tools come from ``get_tools_for_context`` keyed on route), so
+        # there is no race between routing and tool binding.
+        routing_task: asyncio.Task[None] = asyncio.create_task(
+            self._record_routing_decision_async(
+                tenant_id=tenant_id,
+                conversation_id=conv_uuid,
+                message_id=UUID(msg_id),
+                user_msg=message,
+                state=state,
+            ),
+        )
+
+        async with obs.observe_turn(
+            message=message,
+            route=state.get("client_context", {}).get("current_route")
+            or "/copilot/chat",
+            attachments=blocks or [],
+        ):
+            try:
+                async for sse_str in self._run_graph_stream(
+                    state=state,
+                    acc=acc,
+                    msg_id=msg_id,
+                    user_msg=message,
+                ):
+                    yield sse_str
+            except Exception:
+                routing_task.cancel()
+                raise
+
+            # Drain the background routing task before any further DB work
+            # so the orchestrator ``Session`` is quiet when
+            # ``_persist_messages`` runs. Failures inside the task are
+            # already swallowed by the telemetry-resilience block; this
+            # only guards against a hung LLM classifier that never
+            # returns.
+            try:
+                await asyncio.wait_for(routing_task, timeout=15.0)
+            except TimeoutError:
+                logger.warning("routing_task_timeout", conversation_id=conv_id)
+                routing_task.cancel()
+                with contextlib.suppress(BaseException):
+                    await routing_task
+
+            # Sanitize AI messages before persistence: the sanitizer
+            # already ran on acc.full_response when the last text block
+            # was finalized, but _persist_messages serializes
+            # acc.messages (the raw LangGraph pipeline state) — so any
+            # JSON blobs the LLM emitted survive unless we strip them
+            # here too.
+            acc.messages = _sanitize_ai_messages(acc.messages, user_msg=message)
+
+            self._persist_messages(
+                conv_uuid,
+                tenant_id,
+                conv_id,
+                message,
+                acc.full_response,
+                acc.messages,
+                existing_conv,
+                emitted_blocks=list(acc.emitted_blocks),
+                user_blocks=blocks,
+            )
+
+            obs.set_turn_summary(
+                response_length=len(acc.full_response),
+                message_count=len(acc.messages),
+                block_count=len(acc.emitted_blocks),
+            )
+
+        yield SSEEvent(event="status", data={"state": "done"}).to_sse()
+        yield SSEEvent(event="done", data={"conversation_id": conv_id}).to_sse()
+
+    async def invoke_text(
+        self,
+        *,
+        user_id: UUID,
+        tenant_id: UUID,
+        message: str,
+        conversation_id: str | None = None,
+        channel: str = "web",
+        context: ClientContextDTO | None = None,
+    ) -> CopilotInvokeResult:
+        """Run one full turn and return the final assistant text (no SSE).
+
+        PR-2 PI-5 entry point used by the Telegram worker (and any future
+        non-streaming consumer like email). Internally drives the same
+        graph stream as ``stream_chat`` but accumulates the final
+        ``acc.full_response`` instead of yielding SSE events to a wire.
+
+        Mirrors ``stream_chat`` step-by-step except for the wire format:
+            1. ``_prepare_conversation`` (with ``channel`` propagated).
+            2. Open observability turn (best-effort).
+            3. Drive ``_run_graph_stream`` and discard the SSE strings;
+               the accumulator keeps ``full_response``, ``messages``, and
+               token usage exactly as in the streaming path.
+            4. ``_persist_messages`` runs identically.
+            5. Build a frozen ``CopilotInvokeResult`` and return.
+
+        The method NEVER raises to the caller — graceful degradation per
+        ``tessl__graceful-degradation``: any exception inside the graph
+        stream is caught here, ``error_kind`` is populated, and a
+        plaintext fallback (``response_text``) is returned so the worker
+        can route a friendly message to the user. The 30s hard timeout
+        lives in the worker (per dependency-isolation iron rule); this
+        method does not impose its own.
+        """
+        from luana_core_copilot.application.orchestrator.invoke_result import (
+            CopilotInvokeResult,
+        )
+
+        conv_id, conv_uuid, existing_conv, state = self._prepare_conversation(
+            user_id=user_id,
+            tenant_id=tenant_id,
+            message=message,
+            conversation_id=conversation_id,
+            context=context,
+            blocks=None,
+            channel=channel,
+        )
+
+        acc = _StreamAccumulator()
+        obs = self._build_observability_context(
+            tenant_id=tenant_id,
+            user_id=user_id,
+            conversation_id=conv_uuid,
+        )
+        acc.obs = obs
+
+        msg_id = str(uuid4())
+        error_kind: str | None = None
+        tools_called: list[str] = []
+
+        async with obs.observe_turn(
+            message=message,
+            route=state.get("client_context", {}).get("current_route")
+            or "/copilot/chat",
+            attachments=[],
+        ):
+            try:
+                async for _sse_str in self._run_graph_stream(
+                    state=state,
+                    acc=acc,
+                    msg_id=msg_id,
+                    user_msg=message,
+                ):
+                    # Discard SSE wire format — non-streaming caller
+                    # consumes ``acc.full_response`` instead.
+                    pass
+            except Exception as exc:  # noqa: BLE001 — graceful-degradation iron rule
+                error_kind = _classify_stream_error(exc)
+                logger.warning(
+                    "copilot_invoke_text_failed",
+                    conversation_id=conv_id,
+                    channel=channel,
+                    error=str(exc),
+                    error_kind=error_kind,
+                )
+
+            # Persist messages even on partial failure — mirrors stream_chat.
+            try:
+                acc.messages = _sanitize_ai_messages(acc.messages, user_msg=message)
+                self._persist_messages(
+                    conv_uuid,
+                    tenant_id,
+                    conv_id,
+                    message,
+                    acc.full_response,
+                    acc.messages,
+                    existing_conv,
+                    emitted_blocks=list(acc.emitted_blocks),
+                    user_blocks=None,
+                )
+            except Exception as exc:  # noqa: BLE001 — persistence resilience
+                logger.warning(
+                    "copilot_invoke_text_persist_failed",
+                    conversation_id=conv_id,
+                    error=str(exc),
+                )
+
+            obs.set_turn_summary(
+                response_length=len(acc.full_response),
+                message_count=len(acc.messages),
+                block_count=len(acc.emitted_blocks),
+            )
+
+        # Extract tool names actually executed (best-effort; the
+        # accumulator stores tool result blocks).
+        for blk in acc.emitted_blocks:
+            try:
+                if isinstance(blk, dict):
+                    name = blk.get("tool_name") or blk.get("name")
+                    if isinstance(name, str) and name and name not in tools_called:
+                        tools_called.append(name)
+            except Exception as exc:  # noqa: BLE001 — tool-name extraction best-effort
+                logger.debug("invoke_text_tool_name_extract_failed", error=str(exc))
+
+        # If error_kind is set and full_response is empty, provide a
+        # plaintext fallback so the worker can ship something to the user.
+        response_text = acc.full_response
+        if error_kind is not None and not response_text:
+            response_text = _user_facing_error_message(error_kind)
+
+        return CopilotInvokeResult(
+            conversation_id=conv_id,
+            response_text=response_text,
+            tools_called=tools_called,
+            total_tokens=0,  # populated when obs aggregator surfaces it
+            cache_read_tokens=0,
+            cache_creation_tokens=0,
+            error_kind=error_kind,
+        )
+
+    async def _run_graph_stream(  # noqa: PLR0912, PLR0915 — stream lifecycle + 3 distinct error paths (timeout, tool-loop, generic) each need their own SSE shape, log line, set_turn_error kind, and friendly-copy persistence. Splitting obscures more than it clarifies; the body is a flat narrative of the SSE protocol.
+        self,
+        *,
+        state: dict,
+        acc: _StreamAccumulator,
+        msg_id: str | None = None,
+        user_msg: str | None = None,
+    ) -> AsyncGenerator[str, None]:
+        """Run the LangGraph stream and emit SSE events (v1 legacy + v2 blocks).
+
+        Accumulates full_response, messages, and emitted_blocks into *acc*
+        so that stream_chat can persist them after the generator exhausts.
+
+        ``msg_id`` is the assistant message id — pre-generated by
+        ``stream_chat`` so the routing log row (F11.1) and the
+        ``message_start`` SSE event share the same uuid. Defaults to a fresh
+        uuid for direct invocations / tests.
+
+        Token usage, model + cost, tool spans, and node transitions are
+        captured by the observability callback handler bound on
+        ``acc.obs.langchain_config()``. The stream loop only handles
+        SSE shaping.
+        """
+        from luana_core_platform.domain.datetime_utils import utc_now as _utc_now
+
+        if msg_id is None:
+            msg_id = str(uuid4())
+        streaming_started_at = _utc_now()
+        graph_config: dict[str, Any] = (
+            acc.obs.langchain_config() if acc.obs is not None else {}
+        )
+
+        try:
+            yield SSEEvent(event="status", data={"state": "streaming"}).to_sse()
+            yield SSEEvent(
+                event="message_start",
+                data={
+                    "message_id": msg_id,
+                    "role": "assistant",
+                    "created_at": streaming_started_at.isoformat(),
+                },
+            ).to_sse()
+
+            async with asyncio.timeout(COPILOT_STREAM_TIMEOUT_SECONDS):
+                graph = build_deep_agent_graph(state)
+                # Merge the configured recursion_limit into the LangGraph
+                # config so a runaway tool-call loop hits a controlled
+                # GraphRecursionError instead of running until the stream
+                # timeout (which costs LLM tokens and obscures the cause).
+                graph_config = {
+                    **graph_config,
+                    "recursion_limit": COPILOT_RECURSION_LIMIT,
+                }
+                async for event in graph.astream_events(
+                    state,
+                    version="v2",
+                    config=graph_config,
+                ):
+                    # on_tool_end: route to v2-aware handler that also emits block_append
+                    if event.get("event") == "on_tool_end":
+                        tool_sse = self._handle_tool_end_v2(
+                            event,
+                            acc.messages,
+                            acc.last_tool_call_ids,
+                            acc,
+                            msg_id,
+                        )
+                        if tool_sse:
+                            yield tool_sse
+                        continue
+
+                    sse, text_chunk = self._process_stream_event(
+                        event,
+                        acc.messages,
+                        acc.last_tool_call_ids,
+                    )
+                    if text_chunk:
+                        acc.full_response += text_chunk
+                        async for block_sse in self._emit_text_chunk_v2(
+                            acc, msg_id, text_chunk
+                        ):
+                            yield block_sse
+                    if sse:
+                        yield sse
+
+        except TimeoutError:
+            logger.warning(
+                "copilot_stream_timeout",
+                timeout_seconds=COPILOT_STREAM_TIMEOUT_SECONDS,
+                partial_response_length=len(acc.full_response),
+            )
+            if acc.obs is not None:
+                acc.obs.set_turn_error(
+                    error_kind="stream_timeout",
+                    error_message=f"timed out after {COPILOT_STREAM_TIMEOUT_SECONDS}s",
+                )
+            yield SSEEvent(
+                event="error",
+                data={
+                    "message": (
+                        "La respuesta del asistente excedió el tiempo limite. "
+                        "Tu mensaje parcial se ha conservado. Intenta de nuevo."
+                    ),
+                },
+            ).to_sse()
+
+        except ToolCallLoopError as loop_exc:
+            # The agent kept calling the same tool with the same args.
+            # Aborting the turn here costs us the LLM's final text but
+            # saves the (large) cost of running to recursion_limit, and
+            # keeps the partial state (plan, prior tool outputs) in the
+            # accumulator so Fix 4's persistence path can land them.
+            logger.warning(
+                "copilot_tool_call_loop_aborted",
+                tool_name=loop_exc.tool_name,
+                repeat_count=loop_exc.repeat_count,
+                args_hash=loop_exc.args_hash,
+                partial_response_length=len(acc.full_response),
+            )
+            if acc.obs is not None:
+                acc.obs.set_turn_error(
+                    error_kind="tool_call_loop",
+                    error_message=(
+                        f"{loop_exc.tool_name} called {loop_exc.repeat_count}x with identical args"
+                    ),
+                )
+            yield SSEEvent(
+                event="error",
+                data={
+                    "message": (
+                        "El asistente entró en un bucle al consultar la misma "
+                        "información. Tu mensaje parcial se ha conservado. "
+                        "Intenta replantear la pregunta o adjuntar el dato faltante."
+                    ),
+                },
+            ).to_sse()
+
+        except Exception as e:
+            # Partial state preservation (Fix 4 — 2026-04-27 incident
+            # follow-up). The previous behaviour wiped ``acc`` so the
+            # conversation persisted as empty, hiding both the user's
+            # message and any honest agent work done before the failure.
+            # Now we keep the accumulator intact and let
+            # ``_persist_messages`` save what got accumulated. The
+            # turn_end recorder marks the trace with ``status='error'``
+            # via ``set_turn_error`` (Fix 5) so observability stays honest.
+            error_kind = _classify_stream_error(e)
+            user_facing_error = _user_facing_error_message(error_kind)
+            logger.exception(
+                "copilot_stream_error",
+                error=str(e),
+                error_type=type(e).__name__,
+                error_kind=error_kind,
+                partial_response_length=len(acc.full_response),
+                partial_message_count=len(acc.messages),
+            )
+            if acc.obs is not None:
+                acc.obs.set_turn_error(
+                    error_kind=error_kind,
+                    error_message=f"{type(e).__name__}: {e}",
+                )
+            # Persist a friendly assistant message so the conversation
+            # transcript shows what happened on refresh — without this
+            # the user sees their question with NO answer at all.
+            acc.messages.append(AIMessage(content=user_facing_error))
+            acc.full_response = user_facing_error
+            yield SSEEvent(
+                event="error",
+                data={"message": user_facing_error},
+            ).to_sse()
+
+        # Finalize v2 text block. The sanitizer is the last line of defense
+        # against the LLM ignoring the "no JSON in chat" prompt rule — it
+        # strips raw code-fenced payloads so the persisted message and the
+        # FE's final render stay clean, even if streamed deltas briefly
+        # flashed the JSON on the client.
+        if acc.text_block_id is not None:
+            sanitized_markdown = sanitize_assistant_text(
+                acc.text_block_markdown, user_msg=user_msg
+            )
+            acc.text_block_markdown = sanitized_markdown
+            acc.full_response = sanitized_markdown
+            final_text_block: dict = {
+                "id": acc.text_block_id,
+                "type": "text",
+                "markdown": sanitized_markdown,
+            }
+            yield SSEEvent(
+                event="block_end",
+                data={
+                    "message_id": msg_id,
+                    "block_id": acc.text_block_id,
+                    "final": final_text_block,
+                },
+            ).to_sse()
+            acc.emitted_blocks.append(final_text_block)
+
+        # ``tokens_used`` left as ``None`` here: the canonical totals live
+        # on ``copilot_llm_call`` and the FE no longer reads this slot
+        # post-Phase 2 atomic switch.
+        yield SSEEvent(
+            event="message_end",
+            data={
+                "message_id": msg_id,
+                "status": "sent",
+                "tokens_used": None,
+                "blocks": acc.emitted_blocks,
+            },
+        ).to_sse()
+
+    @staticmethod
+    async def _emit_text_chunk_v2(
+        acc: _StreamAccumulator,
+        msg_id: str,
+        text_chunk: str,
+    ) -> AsyncGenerator[str, None]:
+        """Emit block_start (first chunk) + block_delta for a text chunk (v2)."""
+        if acc.text_block_id is None:
+            acc.text_block_id = str(uuid4())
+            acc.text_block_markdown = ""
+            yield SSEEvent(
+                event="block_start",
+                data={
+                    "message_id": msg_id,
+                    "block_id": acc.text_block_id,
+                    "type": "text",
+                    "index": acc.block_index,
+                    "partial": {
+                        "id": acc.text_block_id,
+                        "type": "text",
+                        "markdown": "",
+                    },
+                },
+            ).to_sse()
+
+        acc.text_block_markdown += text_chunk
+        yield SSEEvent(
+            event="block_delta",
+            data={
+                "message_id": msg_id,
+                "block_id": acc.text_block_id,
+                "delta": {"markdown": text_chunk},
+            },
+        ).to_sse()
+
+    def _process_stream_event(  # noqa: PLR0911 — flat dispatch on event.kind, splitting hides the routing
+        self,
+        event: dict,
+        accumulated_messages: list,
+        last_tool_call_ids: dict[str, str],
+    ) -> tuple[str | None, str | None]:
+        """Process a single LangGraph stream event.
+
+        Returns (sse_string | None, text_chunk | None).
+
+        sse_string: zero or more SSE event strings concatenated. The caller
+            yields this directly. For tool events it is
+            tool_start/tool_result/ui_action. F8 §5.4 — the legacy
+            ``text_chunk`` SSE was removed; the v2 ``block_delta`` family
+            is now the only render path.
+
+        text_chunk: raw text content when the LLM emitted a streaming token.
+            The caller uses this to build the v2 ``block_delta`` events.
+        """
+        kind = event.get("event")
+
+        if kind == "on_chat_model_stream":
+            # Política unificada: drop si el event no es root user-facing.
+            # Cubre los 3 orígenes (root / subagent / internal_tool) en una
+            # sola decisión — ver ``stream_provenance.policy_for``.
+            #
+            # - ROOT     → EMIT_TO_USER (token entra al text_block del user).
+            # - SUBAGENT → DROP (su razonamiento intermedio no leak-ea; el
+            #              resultado final llega vía ToolMessage del task tool).
+            # - INTERNAL → DROP (TP3 B1, fetch_url analyzer JSON leak prevention).
+            if policy_for(event) is not StreamPolicy.EMIT_TO_USER:
+                return None, None
+            chunk = event.get("data", {}).get("chunk")
+            if chunk and hasattr(chunk, "content") and chunk.content:
+                # v2 block_delta is built by the caller from the returned
+                # text chunk. No SSE frame is emitted at this stage — the
+                # block lifecycle (block_start / block_delta / block_end)
+                # is owned by ``_emit_text_chunk_v2`` and the finaliser.
+                return None, chunk.content
+            return None, None
+
+        if kind == "on_chat_model_end":
+            # Política unificada: solo capturar AIMessages del root agent.
+            # AIMessages de sub-agentes NO se appendean — su contenido llega
+            # al parent como ToolMessage (deepagents Command). Capturarlos
+            # aquí duplicaba el reporte en ``copilot_conversations.messages``
+            # y rompía la traza tool_call ↔ tool_message del ``task`` tool.
+            if policy_for(event) is not StreamPolicy.CAPTURE_HISTORY:
+                return None, None
+            output = event.get("data", {}).get("output")
+            if isinstance(output, AIMessage):
+                accumulated_messages.append(output)
+                if output.tool_calls:
+                    for tc in output.tool_calls:
+                        last_tool_call_ids[tc["name"]] = tc["id"]
+            return None, None
+
+        if kind == "on_tool_start":
+            tool_name = event.get("name", "unknown")
+            tool_input = event.get("data", {}).get("input", {})
+            return (
+                SSEEvent(
+                    event="tool_start",
+                    data={"tool": tool_name, "args": tool_input},
+                ).to_sse(),
+                None,
+            )
+
+        if kind == "on_tool_end":
+            return self._handle_tool_end(
+                event,
+                accumulated_messages,
+                last_tool_call_ids,
+            ), None
+
+        return None, None
+
+    def _handle_tool_end(
+        self,
+        event: dict,
+        accumulated_messages: list,
+        last_tool_call_ids: dict[str, str],
+    ) -> str:
+        """Handle on_tool_end event: capture ToolMessage and emit SSE events."""
+        tool_name = event.get("name", "unknown")
+        tool_output = event.get("data", {}).get("output", "")
+
+        # Normalise output → ToolMessage. Cubre ToolMessage directo, str
+        # legacy y deepagents ``Command(update={"messages": [...]})`` —
+        # este último es el path del ``task`` tool del sub-agente.
+        tool_msg = _extract_tool_message(tool_output, tool_name, last_tool_call_ids)
+        if tool_msg is not None:
+            accumulated_messages.append(tool_msg)
+
+        # Cap at 4 KB (matches trace recorder MAX_PAYLOAD_CHARS). Enough to
+        # carry the full AsyncToolJob dispatch JSON — job_id, poll_endpoint,
+        # module, scope, mode, target_label_es, etc. — which the frontend must
+        # parse to register polling for extraction tools. The previous 500-char
+        # cap truncated that payload and broke the chip/badge/summary pipeline.
+        result_sse = SSEEvent(
+            event="tool_result",
+            data={"tool": tool_name, "result": str(tool_output)[:4000]},
+        ).to_sse()
+
+        # If tool result contains a ui_action, emit it. _parse_tool_payload
+        # also unwraps ToolMessage envelopes so cards from tools running
+        # inside the deep-agent graph (fetch_url, pin_to_memory, …) reach
+        # the FE — TP3 B3.
+        parsed = _parse_tool_payload(tool_output)
+
+        if isinstance(parsed, dict) and "ui_action" in parsed:
+            result_sse += SSEEvent(event="ui_action", data=parsed["ui_action"]).to_sse()
+
+        return result_sse
+
+    @staticmethod
+    def _maybe_emit_plan_card(
+        tool_name: str,
+        tool_input: object,
+        msg_id: str,
+        acc: _StreamAccumulator,
+    ) -> str:
+        """Synthesize + emit a ``plan_card`` block when ``write_todos`` ran.
+
+        Deep-agent ``write_todos`` mutates state.todos but emits no
+        ``ui_action`` payload, so the existing card pipeline never sees
+        it. We tap the tool *args* (always populated for that call) to
+        build a typed card block and reuse the existing ``block_append``
+        + trace ``card_emitted`` plumbing.
+
+        # [COPILOT-DEEP-AGENT-V2] -> docs/domains/copilot/redesign-2026-04/phases/F2-deep-agents-harness.md
+        """
+        if tool_name != "write_todos":
+            return ""
+        plan_card = _write_todos_to_plan_card(tool_input)
+        if plan_card is None:
+            return ""
+        sse = SSEEvent(
+            event="block_append",
+            data={"message_id": msg_id, "block": plan_card},
+        ).to_sse()
+        acc.emitted_blocks.append(plan_card)
+        if acc.obs is not None:
+            EventBus.publish(
+                CardEmitted.create(
+                    tenant_id=acc.obs.tenant_id,
+                    turn_id=acc.obs.turn_id,
+                    conversation_id=acc.obs.conversation_id,
+                    card_kind="plan_card",
+                    source_tool=tool_name,
+                    payload_keys=["todos"],
+                ),
+                session=None,
+            )
+        return sse
+
+    def _handle_tool_end_v2(
+        self,
+        event: dict,
+        accumulated_messages: list,
+        last_tool_call_ids: dict[str, str],
+        acc: _StreamAccumulator,
+        msg_id: str,
+    ) -> str:
+        """Handle on_tool_end: legacy events + v2 block_append events.
+
+        Extends _handle_tool_end with SSE v2 block_append emission for tools
+        that map to canonical MessageBlock types (CONTRACT-MULTIMODAL §6, §8, §10).
+
+        # [COPILOT-SSE-V2] → docs/domains/copilot/sse-protocol.md
+        # [COPILOT-CITATION-BLOCK] → docs/domains/copilot/message-blocks.md §citation
+        # [COPILOT-OUTBOUND-ASSETS] → docs/domains/copilot/outbound-assets.md
+
+        Two SSE channels per tool call:
+        - ``tool_result`` + ``ui_action`` (delegated to ``_handle_tool_end``)
+          — generic side-channel events the FE uses for plain-text tool
+          status + lightweight UI affordances. Always emitted.
+        - ``block_append`` — emits a typed v2 ``MessageBlock`` for tools
+          that map to canonical block types (citations, documents, cards).
+          Non-text blocks (image/audio/citation/card) are atomic — no
+          streaming deltas. They use ``block_append`` (not
+          block_start/end) because they appear as tool results, not as
+          the primary streaming content. FE appends them to the message
+          blocks list.
+        """
+        tool_name = event.get("name", "unknown")
+        tool_output = event.get("data", {}).get("output", "")
+        tool_input = event.get("data", {}).get("input", {})
+
+        # Anti-loop guard — observe BEFORE letting the result re-enter the
+        # LLM context. May raise ToolCallLoopError at the hard cap; the
+        # stream loop's exception block converts that into a clean SSE
+        # error + partial-state persist (see stream_chat error handling).
+        # Note: the SSE ``tool_result`` we emit downstream still carries
+        # the raw tool output — only the ``ToolMessage`` re-fed to the LLM
+        # is augmented, so the user-facing UI never sees the directive.
+        dedup_verdict = acc.dedup_tracker.observe(tool_name, tool_input)
+
+        # Step 1 — emit tool_result + ui_action via the legacy-format handler.
+        result_sse = self._handle_tool_end(
+            event, accumulated_messages, last_tool_call_ids
+        )
+
+        # Anti-loop directive injection (WARN tier). The handler above
+        # already appended a ToolMessage to ``accumulated_messages``;
+        # rewriting its ``content`` in-place ensures the directive lands
+        # in the LLM's context on its next turn while leaving the SSE
+        # tool_result the user already received untouched.
+        if dedup_verdict is DedupVerdict.WARN and accumulated_messages:
+            last = accumulated_messages[-1]
+            if isinstance(last, ToolMessage):
+                last.content = augment_tool_message_for_warn(
+                    tool_name=tool_name,
+                    tool_args=tool_input,
+                    original_content=last.content
+                    if isinstance(last.content, str)
+                    else None,
+                )
+                logger.warning(
+                    "copilot_tool_call_dedup_warn",
+                    tool_name=tool_name,
+                    repeat_count=acc.dedup_tracker.counts.get(
+                        (tool_name, ""),
+                        -1,
+                    ),
+                )
+
+        # Step 2 — attempt v2 block_append for mapped tools
+        blocks = _tool_result_to_block(tool_name, tool_output)
+        if blocks is not None:
+            for block in blocks:
+                result_sse += SSEEvent(
+                    event="block_append",
+                    data={"message_id": msg_id, "block": block},
+                ).to_sse()
+                acc.emitted_blocks.append(block)
+
+        # Step 3 — ui_action → CardBlock (v2 wrap, in addition to legacy ui_action)
+        # _parse_tool_payload unwraps ToolMessage envelopes so cards from
+        # graph-resident tools (fetch_url, pin_to_memory, …) wrap as
+        # typed CardBlocks — TP3 B3.
+        parsed_output: dict | None = _parse_tool_payload(tool_output)
+
+        if isinstance(parsed_output, dict) and "ui_action" in parsed_output:
+            action = parsed_output["ui_action"]
+            card_block = _ui_action_to_card_block(action)
+            if card_block:
+                result_sse += SSEEvent(
+                    event="block_append",
+                    data={"message_id": msg_id, "block": card_block},
+                ).to_sse()
+                acc.emitted_blocks.append(card_block)
+                if acc.obs is not None:
+                    EventBus.publish(
+                        CardEmitted.create(
+                            tenant_id=acc.obs.tenant_id,
+                            turn_id=acc.obs.turn_id,
+                            conversation_id=acc.obs.conversation_id,
+                            card_kind=card_block.get("card_kind") or "card",
+                            source_tool=tool_name,
+                            payload_keys=list(action.keys())
+                            if isinstance(action, dict)
+                            else [],
+                        ),
+                        session=None,
+                    )
+
+        # Step 3.5 — F2 plan_card from deep-agent ``write_todos`` (helper).
+        result_sse += self._maybe_emit_plan_card(tool_name, tool_input, msg_id, acc)
+
+        # Tool spans (start/end + duration + args/output preview) are
+        # captured by the LangChain callback handler bound on
+        # ``acc.obs.langchain_config()``. Nothing else to record here.
+
+        return result_sse
+
+    def _persist_messages(
+        self,
+        conv_uuid: UUID,
+        tenant_id: UUID,
+        conv_id: str,
+        message: str,
+        full_response: str,
+        accumulated_messages: list,
+        existing_conv: CopilotConversationModel,
+        *,
+        emitted_blocks: list[dict] | None = None,
+        user_blocks: list[dict] | None = None,
+    ) -> None:
+        """Persist conversation messages to DB and Redis cache.
+
+        ``emitted_blocks`` carries the canonical MessageBlock dicts produced
+        during streaming (text block finalization, card blocks, tool-result
+        blocks). They are attached to the LAST assistant message so that a
+        post-stream refetch of ``/copilot/conversations/{id}`` rebuilds the
+        same visual state — previously cards evaporated after the React
+        Query invalidation because the serializer only kept role+content.
+
+        ``user_blocks`` carries the attachments (DocumentBlock, ImageBlock)
+        the user uploaded with the prompt. ``HumanMessage.content`` only
+        keeps the textual message, so without this round-trip the
+        DocumentCard the user sees during streaming disappears on refresh.
+        """
+        if not full_response and not accumulated_messages:
+            return
+
+        new_messages = self._serialize_messages(
+            [HumanMessage(content=message), *accumulated_messages],
+        )
+        # Fallback: if no accumulated messages, persist simple format
+        if not accumulated_messages:
+            from luana_core_platform.domain.datetime_utils import utc_now as _utc_now
+
+            now_iso = _utc_now().isoformat()
+            new_messages = [
+                {
+                    "id": str(uuid.uuid4()),
+                    "role": "user",
+                    "content": message,
+                    "status": "sent",
+                    "created_at": now_iso,
+                },
+                {
+                    "id": str(uuid.uuid4()),
+                    "role": "assistant",
+                    "content": full_response,
+                    "status": "sent",
+                    "created_at": now_iso,
+                },
+            ]
+
+        if user_blocks:
+            self._attach_user_attachments(new_messages, user_blocks)
+
+        if emitted_blocks:
+            self._attach_blocks_to_last_assistant(new_messages, emitted_blocks)
+
+        self.conv_repo.append_messages(conv_uuid, tenant_id, new_messages)
+
+        # Auto-title on first message
+        if not existing_conv.title and message:
+            title = message[:80] + ("..." if len(message) > 80 else "")
+            self.conv_repo.update_title(conv_uuid, tenant_id, title)
+
+        self.db.commit()
+        self._cache_history(conv_id, tenant_id, new_messages)
+
+    def _load_history(
+        self, conv_id: str, tenant_id: UUID, conv_model: CopilotConversationModel
+    ) -> list:
+        """Load conversation history, preferring Redis cache."""
+        # Try Redis first — lazy call so import does not trigger Settings at
+        # module-load time (T-2 copilot-chat-mountable).
+        redis_client = _get_redis_client()
+        redis_key = f"{REDIS_CONV_PREFIX}{conv_id}"
+        try:
+            cached = redis_client.get(redis_key) if redis_client else None
+            if cached:
+                raw_messages = json.loads(cached)
+                return self._deserialize_messages(raw_messages)
+        except Exception as e:  # noqa: BLE001 — Redis cache resilience
+            logger.debug("redis_history_miss", conv_id=conv_id, error=str(e))
+
+        # Fallback to DB
+        if conv_model and conv_model.messages:
+            # Re-cache in Redis
+            try:
+                if redis_client:
+                    redis_client.setex(
+                        redis_key,
+                        REDIS_CONV_TTL,
+                        json.dumps(conv_model.messages, ensure_ascii=False),
+                    )
+            except Exception:  # noqa: BLE001 — orchestrator resilience
+                pass
+            return self._deserialize_messages(conv_model.messages)
+
+        return []
+
+    def _cache_history(self, conv_id: str, tenant_id: UUID, new_messages: list) -> None:
+        """Append new messages to Redis cache."""
+        # Lazy call — see _load_history (T-2 copilot-chat-mountable).
+        redis_client = _get_redis_client()
+        redis_key = f"{REDIS_CONV_PREFIX}{conv_id}"
+        try:
+            if not redis_client:
+                return
+            cached = redis_client.get(redis_key)
+            existing = json.loads(cached) if cached else []
+            existing.extend(new_messages)
+            redis_client.setex(
+                redis_key,
+                REDIS_CONV_TTL,
+                json.dumps(existing, ensure_ascii=False),
+            )
+        except Exception as e:  # noqa: BLE001 — Redis cache resilience
+            logger.debug("redis_cache_error", error=str(e))
+
+    @staticmethod
+    def _dedupe_emitted_blocks(emitted_blocks: list[dict]) -> list[dict]:
+        """Collapse repeated card kinds that semantically replace each other.
+
+        ``write_todos`` fires multiple times per turn (initial → in_progress
+        → completed) and each call emits a fresh ``plan_card``. The card is
+        a live snapshot of the same plan, not three separate plans. The
+        store-side dedupe (``addBlockToLastAssistant``) keeps live streaming
+        coherent; this mirror dedupe keeps the persisted JSONB coherent so
+        a refresh shows the same single (final) plan_card.
+
+        Strategy: keep only the LAST occurrence of every "snapshot-like"
+        card kind. ``proposal`` / ``inspiration_saved`` / ``memory_pinned``
+        / non-card blocks are NOT snapshot cards — they are append-only and
+        survive verbatim.
+        """
+        snapshot_kinds = {"plan_card"}
+        last_index_by_kind: dict[str, int] = {}
+        for idx, block in enumerate(emitted_blocks):
+            if block.get("type") != "card":
+                continue
+            kind = block.get("card_kind")
+            if kind in snapshot_kinds:
+                last_index_by_kind[kind] = idx
+
+        if not last_index_by_kind:
+            return emitted_blocks
+
+        deduped: list[dict] = []
+        for idx, block in enumerate(emitted_blocks):
+            kind = block.get("card_kind")
+            if (
+                block.get("type") == "card"
+                and kind in last_index_by_kind
+                and last_index_by_kind[kind] != idx
+            ):
+                continue
+            deduped.append(block)
+        return deduped
+
+    @classmethod
+    def _attach_blocks_to_last_assistant(
+        cls,
+        serialized: list[dict],
+        emitted_blocks: list[dict],
+    ) -> None:
+        """Attach ``emitted_blocks`` to the last assistant message in-place.
+
+        The final AIMessage of a turn is what the UI renders as "the answer" —
+        cards + citations + tool results are all associated with it.
+        Intermediate AIMessages (inside a tool loop) keep their simple
+        role+content shape so they remain compatible with v1 consumers.
+        """
+        deduped = cls._dedupe_emitted_blocks(emitted_blocks)
+        for msg in reversed(serialized):
+            if msg.get("role") == "assistant":
+                msg["blocks"] = deduped
+                return
+
+    @staticmethod
+    def _attach_user_attachments(
+        serialized: list[dict],
+        user_blocks: list[dict] | None,
+    ) -> None:
+        """Attach the user's uploaded attachments to the user message.
+
+        Without this, the document card the user sees during the live
+        stream evaporates on refresh: ``_serialize_messages`` only keeps
+        ``HumanMessage.content`` and the original ``blocks`` parameter is
+        dropped. We persist them on the FIRST user message in the new
+        batch so the FE renderer (UserMessageV2) can rebuild the
+        DocumentBlock / ImageBlock from the same payload it received via
+        SSE.
+        """
+        if not user_blocks:
+            return
+        for msg in serialized:
+            if msg.get("role") == "user":
+                msg["blocks"] = user_blocks
+                return
+
+    @staticmethod
+    def _serialize_messages(messages: list) -> list[dict]:
+        """Convert LangChain message objects to persistable dicts.
+
+        Every persisted message carries ``id``, ``status`` and ``created_at`` so
+        the frontend merge-by-id logic can deduplicate reliably. Without these
+        fields, a mid-job conversation refetch (triggered when per-wave
+        extraction pills land) re-renders the whole transcript and the user
+        sees duplicates + missing "sent" indicators.
+
+        Preserves ``tool_calls`` on AIMessages and ToolMessages for replay.
+        """
+        from luana_core_platform.domain.datetime_utils import utc_now as _utc_now
+
+        result = []
+        for msg in messages:
+            base: dict = {
+                "id": str(uuid.uuid4()),
+                "status": "sent",
+                "created_at": _utc_now().isoformat(),
+            }
+            if isinstance(msg, HumanMessage):
+                result.append({**base, "role": "user", "content": msg.content})
+            elif isinstance(msg, AIMessage):
+                # TP3 B4 — drop zombie AIMessages whose content is just
+                # a single stray char (sanitizer leftover) and that carry
+                # no tool_calls. They have no semantic value but they slot
+                # between an assistant tool_call and its ToolMessage
+                # response, breaking the OpenAI invariant requiring every
+                # tool_call_id to be followed by a tool message on the
+                # next turn (HTTP 400 invalid_request_error).
+                content_str = msg.content if isinstance(msg.content, str) else ""
+                stripped = content_str.strip()
+                if not msg.tool_calls and len(stripped) <= 1:
+                    continue
+                d: dict = {**base, "role": "assistant", "content": msg.content}
+                if msg.tool_calls:
+                    d["tool_calls"] = [
+                        {"id": tc["id"], "name": tc["name"], "args": tc["args"]}
+                        for tc in msg.tool_calls
+                    ]
+                result.append(d)
+            elif isinstance(msg, ToolMessage):
+                result.append(
+                    {
+                        **base,
+                        "role": "tool",
+                        "content": msg.content,
+                        "tool_call_id": msg.tool_call_id,
+                        "name": msg.name,
+                    },
+                )
+        return result
+
+    @staticmethod
+    def _deserialize_messages(raw_messages: list) -> list:
+        """Convert persisted dict messages to LangChain message objects.
+
+        Backward compatible: messages without tool_calls or tool role
+        are handled as before.
+        """
+        result = []
+        for msg in raw_messages:
+            role = msg.get("role", "")
+            content = msg.get("content", "")
+            if role == "user":
+                result.append(HumanMessage(content=content))
+            elif role == "assistant":
+                if msg.get("tool_calls"):
+                    result.append(
+                        AIMessage(content=content, tool_calls=msg["tool_calls"]),
+                    )
+                else:
+                    result.append(AIMessage(content=content))
+            elif role == "tool":
+                result.append(
+                    ToolMessage(
+                        content=content,
+                        tool_call_id=msg.get("tool_call_id", ""),
+                        name=msg.get("name", ""),
+                    ),
+                )
+        return result

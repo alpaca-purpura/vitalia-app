@@ -1,0 +1,112 @@
+[tool.uv.workspace]
+members = [
+    "core",
+    # 27 Python packages (alphabetical — arch test test_workspace_members_alphabetical_story8 enforces)
+    # +1 luana-core-flows (durable-flows-engine proposal 2026-06-02, count bumped 27→28)
+    "apps/test-brand",
+    "core/luana-core-analytics-engine",
+    "core/luana-core-assets",
+    "core/luana-core-billing",
+    "core/luana-core-brand-studio",
+    "core/luana-core-campaigns",
+    "core/luana-core-channels",
+    "core/luana-core-commercial-calendar",
+    "core/luana-core-compliance",
+    "core/luana-core-connections",
+    "core/luana-core-copilot",
+    "core/luana-core-crm",
+    "core/luana-core-events",
+    "core/luana-core-extension-sdk",
+    "core/luana-core-extraction",
+    "core/luana-core-flows",
+    "core/luana-core-iam",
+    "core/luana-core-idempotency",
+    "core/luana-core-landing",
+    "core/luana-core-llm",
+    "core/luana-core-observability",
+    "core/luana-core-offer-studio",
+    "core/luana-core-platform",
+    "core/luana-core-sales-agent",
+    "core/luana-core-scheduling",
+    "core/luana-core-social-proof",
+    "core/luana-core-tenant-domains",
+    "core/luana-core-tenant-profile",
+    # Brand apps (TS — not in Python-26 count)
+    "vitalia",
+]
+
+[tool.uv.sources]
+# Story 2
+luana-core-platform = { workspace = true }
+luana-core-llm = { workspace = true }
+luana-core-channels = { workspace = true }
+luana-core-idempotency = { workspace = true }
+luana-core-observability = { workspace = true }
+luana-core-events = { workspace = true }
+luana-core-extraction = { workspace = true }
+luana-core-compliance = { workspace = true }
+luana-core-billing = { workspace = true }
+# Story 3 (NEW)
+luana-core-iam = { workspace = true }
+luana-core-tenant-profile = { workspace = true }
+luana-core-tenant-domains = { workspace = true }
+luana-core-commercial-calendar = { workspace = true }
+luana-core-social-proof = { workspace = true }
+luana-core-assets = { workspace = true }
+# Story 4 (NEW)
+luana-core-crm = { workspace = true }
+luana-core-analytics-engine = { workspace = true }
+luana-core-landing = { workspace = true }
+luana-core-connections = { workspace = true }
+# Story 5 (NEW)
+luana-core-brand-studio = { workspace = true }
+luana-core-offer-studio = { workspace = true }
+# Story 6 (NEW)
+luana-core-copilot = { workspace = true }
+# Story 7 (NEW)
+luana-core-sales-agent = { workspace = true }
+luana-core-scheduling = { workspace = true }
+# Story 8 (NEW)
+luana-core-campaigns = { workspace = true }
+luana-core-extension-sdk = { workspace = true }
+test-brand = { workspace = true }
+# durable-flows-engine proposal 2026-06-02 (NEW)
+luana-core-flows = { workspace = true }
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+ignore = [
+    "E711",  # None comparison — Model.col == None generates WHERE col IS NULL (SQLAlchemy ORM pattern)
+    "E712",  # Bool comparison — Model.col == True/False is valid SQLAlchemy filter syntax
+]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/conftest.py" = ["E402"]  # env vars must be set before module imports
+"**/scripts/*.py" = ["E402", "E501"]  # scripts manipulate sys.path and may have long docstrings
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+addopts = "-x -q --tb=short --import-mode=importlib"
+markers = [
+    "arch: architecture fitness tests (determinism, invariants, boundary checks)",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.15.12",
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "aiosqlite>=0.19",
+    "pytest-randomly>=4.1.0",
+    "pytest-timeout>=2.4.0",
+    "factory-boy>=3.3.3",
+    "mutmut>=3.5.0",
+    "schemathesis>=4.21.0",
+    "vulture>=2.16",
+    "interrogate>=1.7.0",
+    "pip-audit>=2.10.0",
+]

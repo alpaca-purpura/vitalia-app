@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="es-LA" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<title>F1-S10 · Adrián/Inbox placeholder (sales_studio parity)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="_shared.css">
+<style>
+  /* Sales_studio shipped widths: ConversationList 320px / Thread flex-1 / ContactSidebar 288px */
+  .inbox-layout {
+    display: grid;
+    grid-template-columns: 320px 1fr 288px;
+    gap: 0;
+    min-height: 460px;
+  }
+  .inbox-layout.sidebar-closed { grid-template-columns: 320px 1fr 0; }
+  .inbox-layout.sidebar-closed .contact-sidebar { display: none; }
+  .conv-item { padding: 12px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background .15s; position: relative; }
+  .conv-item:hover { background: var(--bg-hover); }
+  .conv-item.selected { background: rgba(1,178,248,.06); border-left: 2px solid var(--c-adrian); padding-left: 10px; }
+  .conv-item.human { border-left: 2px solid #10b981; padding-left: 10px; }
+  .temp-dot { width: 8px; height: 8px; border-radius: 999px; display: inline-block; }
+  .temp-hot { background: #ef4444; }
+  .temp-warm { background: #f59e0b; }
+  .temp-cold { background: #3b82f6; }
+  .campaign-tag { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px; font-size: 10px; font-weight: 500; background: var(--c-lisa-soft); color: var(--c-lisa); border: 1px solid var(--c-lisa); cursor: pointer; }
+  .campaign-tag:hover { opacity: .85; }
+  .stage-badge { font-size: 9px; padding: 1px 6px; border-radius: 4px; background: var(--bg-hover); color: var(--text-secondary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+  .channel-abbr { font-size: 9px; padding: 1px 4px; border-radius: 3px; background: var(--c-adrian-soft); color: var(--c-adrian); font-weight: 700; }
+  .msg-bubble { padding: 8px 12px; border-radius: 10px; max-width: 70%; font-size: 13px; }
+  .msg-bubble.in { background: var(--c-adrian-soft); border-bottom-left-radius: 2px; }
+  .msg-bubble.out { background: var(--c-lisa-soft); margin-left: auto; border-bottom-right-radius: 2px; }
+  .msg-meta { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+  .msg-meta.out { text-align: right; }
+  .handler-mode-pill { display: inline-flex; align-items: center; gap: 3px; padding: 2px 8px; border-radius: 999px; font-size: 10px; font-weight: 600; }
+  .handler-bot { background: var(--c-adrian-soft); color: var(--c-adrian); }
+  .handler-human { background: rgba(16,185,129,.18); color: #047857; }
+  [data-theme="dark"] .handler-human { color: #6ee7b7; }
+  .sidebar-toggle { padding: 4px 8px; border: 1px solid var(--border); border-radius: 4px; background: transparent; color: var(--text-muted); cursor: pointer; font-size: 11px; }
+  .sidebar-toggle:hover { background: var(--bg-hover); }
+  /* Takeover UX (per-conversation handler override) */
+  .takeover-banner {
+    background: linear-gradient(135deg, rgba(245,158,11,.12), rgba(245,158,11,.04));
+    border: 1px solid rgba(245,158,11,.5);
+    border-left: 3px solid #f59e0b;
+    border-radius: 6px;
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    margin: 8px 12px;
+  }
+  .takeover-banner .takeover-text { flex: 1; }
+  .takeover-banner .takeover-title { font-weight: 600; color: var(--text-primary); }
+  .takeover-banner .takeover-meta { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+  .btn-takeover {
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--bg-panel);
+    color: var(--text-primary);
+    transition: all .15s;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .btn-takeover:hover { background: var(--bg-hover); }
+  .btn-takeover.primary { background: var(--c-adrian); color: white; border-color: var(--c-adrian); }
+  .btn-takeover.primary:hover { opacity: .9; background: var(--c-adrian); }
+  .btn-takeover.warn { background: #f59e0b; color: white; border-color: #f59e0b; }
+  .btn-takeover.warn:hover { opacity: .9; background: #f59e0b; }
+  /* Chip "✋ Tú" para ConversationItem human-handled */
+  .you-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 1px 6px;
+    border-radius: 999px;
+    font-size: 9px;
+    font-weight: 700;
+    background: rgba(16,185,129,.18);
+    color: #047857;
+    border: 1px solid rgba(16,185,129,.5);
+  }
+  [data-theme="dark"] .you-chip { color: #6ee7b7; }
+  /* Message input state visual */
+  .msg-input-area { padding: 12px; border-top: 1px solid var(--border); flex-shrink: 0; background: var(--bg-panel); display: flex; align-items: center; gap: 8px; }
+  .msg-input-area textarea {
+    flex: 1; font-size: 13px; padding: 8px 12px; border-radius: 6px;
+    border: 1px solid var(--border); background: var(--bg-app);
+    color: var(--text-primary); outline: none; resize: none; font-family: inherit;
+  }
+  .msg-input-area textarea:disabled { opacity: .5; cursor: not-allowed; background: var(--bg-hover); }
+  .msg-input-area textarea:focus:not(:disabled) { border-color: var(--c-adrian); box-shadow: 0 0 0 3px rgba(1,178,248,.12); }
+  .send-btn { padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; background: var(--c-adrian); color: white; }
+  .send-btn:disabled { opacity: .35; cursor: not-allowed; }
+</style>
+</head>
+<body>
+<div class="mockup-frame" style="max-width: 1280px;">
+  <div class="mockup-header">
+    <div>
+      <div class="mockup-title">Adrián · Inbox — placeholder Fase 1 (sales_studio parity)</div>
+      <div class="mockup-subtitle">F1-S10 · widths shipped (320/flex/288) + CampaignTag pill origen + temp/stage badges + handler_mode border + sidebarOpen toggle hint</div>
+    </div>
+    <button class="theme-btn" onclick="document.documentElement.dataset.theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'">🌓 Tema</button>
+  </div>
+
+  <article class="panel rounded-lg overflow-hidden">
+
+    <!-- ─── Header con título + toggle 3-modos (DEFAULT global para nuevas conversaciones) ─── -->
+    <div class="px-4 py-3 border-b border-app flex items-start justify-between gap-3">
+      <div>
+        <h2 class="text-base font-semibold">Inbox</h2>
+        <p class="text-xs muted">Modo por defecto para nuevas conversaciones · usa el control de cada conversación para overrides puntuales.</p>
+      </div>
+      <div class="toggle-pill" data-toggle="mode">
+        <div class="toggle-pill-option active" data-state="decide">🤖 Adrián decide</div>
+        <div class="toggle-pill-option" data-state="consulta">👀 Te consulta</div>
+        <div class="toggle-pill-option" data-state="manual">✋ Manual</div>
+      </div>
+    </div>
+
+    <!-- ─── 3-col layout (sales_studio shipped widths) ─── -->
+    <div class="inbox-layout" id="inbox-layout">
+
+      <!-- ConversationList 320px -->
+      <aside class="border-r border-app overflow-y-auto" style="background: var(--bg-panel);">
+        <!-- Search + filters bar -->
+        <div class="px-3 py-2.5 border-b border-app flex items-center gap-2">
+          <div class="filter-chip flex-1" style="display: flex; align-items: center; gap: 4px; padding: 4px 8px; border: 1px solid var(--border); border-radius: 6px; font-size: 11px;">
+            <span>🔍</span><input type="text" placeholder="Buscar conversación" class="bg-transparent outline-none text-xs flex-1" disabled>
+          </div>
+          <button class="sidebar-toggle" title="Filtros">⚙</button>
+        </div>
+
+        <!-- Conv items -->
+        <div class="conv-item selected">
+          <div class="flex items-start gap-2.5">
+            <div style="width: 32px; height: 32px; border-radius: 999px; background: var(--c-adrian-soft); color: var(--c-adrian); font-weight: 600; font-size: 13px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">MG</div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center justify-between">
+                <div class="font-medium text-sm truncate flex items-center gap-1.5"><span class="temp-dot temp-hot"></span>María González</div>
+                <span class="text-[10px] muted">hace 2 min</span>
+              </div>
+              <div class="text-xs muted truncate mt-0.5">Hola, vi su anuncio sobre limp...</div>
+              <div class="flex items-center gap-1 mt-1.5 flex-wrap">
+                <span class="channel-abbr">WA</span>
+                <span class="stage-badge">Calificando</span>
+                <span class="campaign-tag" title="Campaña Meta: Limpieza-PE">📣 Limpieza-PE</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="conv-item human">
+          <div class="flex items-start gap-2.5">
+            <div style="width: 32px; height: 32px; border-radius: 999px; background: var(--c-adrian-soft); color: var(--c-adrian); font-weight: 600; font-size: 13px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">CP</div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center justify-between">
+                <div class="font-medium text-sm truncate flex items-center gap-1.5"><span class="temp-dot temp-warm"></span>Carlos Pérez</div>
+                <span class="text-[10px] muted">hace 8 min</span>
+              </div>
+              <div class="text-xs muted truncate mt-0.5">¿tienen turno mañana?</div>
+              <div class="flex items-center gap-1 mt-1.5 flex-wrap">
+                <span class="channel-abbr" style="background: var(--c-camila-soft); color: var(--c-camila);">IG</span>
+                <span class="stage-badge">Nuevo</span>
+                <span class="you-chip" title="Tomaste el control · Adrián pausado en esta conversación">✋ Tú</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="conv-item">
+          <div class="flex items-start gap-2.5">
+            <div style="width: 32px; height: 32px; border-radius: 999px; background: var(--c-adrian-soft); color: var(--c-adrian); font-weight: 600; font-size: 13px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">LR</div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center justify-between">
+                <div class="font-medium text-sm truncate flex items-center gap-1.5"><span class="temp-dot temp-cold"></span>Lucía Ramos</div>
+                <span class="text-[10px] muted">hace 1 h</span>
+              </div>
+              <div class="text-xs muted truncate mt-0.5">Gracias por la info!</div>
+              <div class="flex items-center gap-1 mt-1.5 flex-wrap">
+                <span class="channel-abbr">WA</span>
+                <span class="stage-badge">Cerrando</span>
+                <span class="campaign-tag" title="Campaña Google Ads: Blanqueamiento">📣 Blanqueamiento</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="conv-item">
+          <div class="flex items-start gap-2.5">
+            <div style="width: 32px; height: 32px; border-radius: 999px; background: var(--c-adrian-soft); color: var(--c-adrian); font-weight: 600; font-size: 13px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">DF</div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center justify-between">
+                <div class="font-medium text-sm truncate flex items-center gap-1.5"><span class="temp-dot temp-warm"></span>Diego Flores</div>
+                <span class="text-[10px] muted">hace 3 h</span>
+              </div>
+              <div class="text-xs muted truncate mt-0.5">¿el blanqueamiento incluye...?</div>
+              <div class="flex items-center gap-1 mt-1.5 flex-wrap">
+                <span class="channel-abbr">WA</span>
+                <span class="stage-badge">Negociando</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="conv-item">
+          <div class="flex items-start gap-2.5">
+            <div style="width: 32px; height: 32px; border-radius: 999px; background: var(--c-adrian-soft); color: var(--c-adrian); font-weight: 600; font-size: 13px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">SM</div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center justify-between">
+                <div class="font-medium text-sm truncate flex items-center gap-1.5"><span class="temp-dot temp-cold"></span>Sofía M.</div>
+                <span class="text-[10px] muted">ayer</span>
+              </div>
+              <div class="text-xs muted truncate mt-0.5">Confirmado el martes 10am</div>
+              <div class="flex items-center gap-1 mt-1.5 flex-wrap">
+                <span class="channel-abbr">WA</span>
+                <span class="stage-badge">Cerrando</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Thread flex-1 — DEMO showcase: estado A (Adrián maneja) por defecto · click botón para alternar a estado B (usuario en control) -->
+      <section class="flex flex-col" style="background: var(--bg-panel);" data-handler="adrian">
+        <!-- Thread header — Estado A: Adrián maneja -->
+        <div class="px-4 py-3 border-b border-app flex items-center justify-between gap-2 flex-shrink-0" data-thread-header="adrian">
+          <div class="flex items-center gap-2">
+            <div style="width: 28px; height: 28px; border-radius: 999px; background: var(--c-adrian-soft); color: var(--c-adrian); font-weight: 600; font-size: 11px; display: flex; align-items: center; justify-content: center;">MG</div>
+            <div>
+              <div class="text-sm font-semibold">María González</div>
+              <div class="flex items-center gap-1.5 text-[10px] muted">
+                <span class="channel-abbr">WA</span>
+                <span>·</span>
+                <span>+51 987 654 321</span>
+              </div>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="handler-mode-pill handler-bot">🤖 Adrián decidiendo</span>
+            <button class="btn-takeover primary" data-action="take-control" title="Tomar el control de esta conversación · Adrián pausará aquí (no afecta otras convs)">✋ Tomar el control</button>
+            <button class="sidebar-toggle" title="Cerrar sidebar paciente" onclick="document.getElementById('inbox-layout').classList.toggle('sidebar-closed')">×</button>
+          </div>
+        </div>
+
+        <!-- Takeover banner — Estado B: usuario en control (oculto por default) -->
+        <div class="takeover-banner hidden" data-takeover-banner>
+          <span style="font-size: 18px;">⚡</span>
+          <div class="takeover-text">
+            <div class="takeover-title">Tienes el control · Adrián pausado en esta conversación</div>
+            <div class="takeover-meta">El modo global "🤖 Adrián decide" no se altera · solo aquí · puedes devolver el control cuando quieras</div>
+          </div>
+          <button class="btn-takeover warn" data-action="return-control">🤖 Devolver a Adrián</button>
+        </div>
+
+        <!-- Thread messages -->
+        <div class="flex-1 overflow-y-auto px-4 py-3 space-y-2">
+          <div class="text-center text-[10px] muted py-1">Hoy · 12:32</div>
+          <div>
+            <div class="msg-bubble in">Hola, vi su anuncio sobre limpieza dental. ¿Cuánto sale?</div>
+            <div class="msg-meta">12:32</div>
+          </div>
+          <div>
+            <div class="msg-bubble out">¡Hola María! La limpieza dental es S/ 120, dura 30 min. ¿Te agendo?</div>
+            <div class="msg-meta out">12:34 · Adrián</div>
+          </div>
+          <div>
+            <div class="msg-bubble in">Sí, mañana al mediodía si tienen</div>
+            <div class="msg-meta">12:35</div>
+          </div>
+          <div>
+            <div class="msg-bubble out">Genial. Tengo disponible Mar 27 a las 12:00 con Dra. Soto. Te confirmo con un depósito de S/ 36 (30%). ¿Continúo?</div>
+            <div class="msg-meta out">12:36 · Adrián</div>
+          </div>
+          <div class="text-center text-[11px] muted py-2 mt-2 border-t border-app" data-thread-hint="adrian">
+            <em>Adrián decidirá la próxima respuesta automáticamente · clic <strong>✋ Tomar el control</strong> arriba para responder tú</em>
+          </div>
+          <div class="text-center text-[11px] py-2 mt-2 border-t border-app hidden" data-thread-hint="human" style="color: #b45309;">
+            <em>⚡ Estás respondiendo como tú · Adrián volverá a manejar la conversación cuando devuelvas el control</em>
+          </div>
+        </div>
+
+        <!-- MessageInput — alterna disabled/enabled según handler estado -->
+        <div class="msg-input-area" data-msg-input>
+          <textarea data-msg-textarea placeholder="🤖 Adrián decide automáticamente · toma el control para escribir tú" rows="1" disabled></textarea>
+          <button class="theme-btn" disabled title="Adjuntar (deshabilitado mientras Adrián maneja)">📎</button>
+          <button class="send-btn" data-send-btn disabled>Enviar</button>
+        </div>
+      </section>
+
+      <!-- ContactSidebar 288px -->
+      <aside class="contact-sidebar border-l border-app overflow-y-auto" style="background: var(--bg-panel);">
+        <div class="px-3 py-2.5 border-b border-app flex items-center justify-between">
+          <div class="text-[10px] font-bold uppercase tracking-wide muted">Detalles paciente</div>
+          <button class="sidebar-toggle">⋯</button>
+        </div>
+        <div class="px-3 py-3 space-y-3 text-xs">
+          <div>
+            <div class="text-[10px] uppercase muted tracking-wide mb-1">Nombre</div>
+            <div class="font-semibold text-sm">María González</div>
+          </div>
+          <div>
+            <div class="text-[10px] uppercase muted tracking-wide mb-1">Teléfono</div>
+            <div class="flex items-center gap-1.5">+51 9** ***-4321 <button class="text-[10px] hover:underline" style="color: var(--c-adrian);">🔓</button></div>
+          </div>
+          <div>
+            <div class="text-[10px] uppercase muted tracking-wide mb-1">Email</div>
+            <div class="flex items-center gap-1.5">m***@gmail.com <button class="text-[10px] hover:underline" style="color: var(--c-adrian);">🔓</button></div>
+          </div>
+          <div>
+            <div class="text-[10px] uppercase muted tracking-wide mb-1">Origen</div>
+            <div>📱 WhatsApp · Meta Ads</div>
+            <div class="mt-1"><span class="campaign-tag" title="Campaña Meta: Limpieza-PE">📣 Limpieza-PE</span></div>
+          </div>
+          <div>
+            <div class="text-[10px] uppercase muted tracking-wide mb-1">Estado embudo</div>
+            <div><span class="stage-badge" style="background: var(--c-adrian-soft); color: var(--c-adrian);">🟢 Calificando</span></div>
+          </div>
+          <div>
+            <div class="text-[10px] uppercase muted tracking-wide mb-1">Etiquetas</div>
+            <div class="flex gap-1 flex-wrap">
+              <span class="campaign-tag" style="background: var(--c-lisa-soft); color: var(--c-lisa); border-color: var(--c-lisa);">limpieza</span>
+              <span class="campaign-tag" style="background: var(--c-valeria-soft); color: var(--c-valeria); border-color: var(--c-valeria);">primera vez</span>
+            </div>
+          </div>
+          <div class="pt-3 border-t border-app space-y-1.5">
+            <button class="w-full text-left text-xs px-2.5 py-2 rounded hover:bg-app-hover flex items-center gap-2" style="background: var(--bg-hover);">
+              <span style="color: var(--c-valeria);">📅</span> Agendar cita
+            </button>
+            <button class="w-full text-left text-xs px-2.5 py-2 rounded hover:bg-app-hover flex items-center gap-2" style="background: var(--bg-hover);">
+              <span style="color: var(--c-lisa);">📋</span> Ver historial paciente
+            </button>
+            <button class="w-full text-left text-xs px-2.5 py-2 rounded hover:bg-app-hover flex items-center gap-2" style="background: var(--bg-hover);">
+              <span style="color: var(--c-adrian);">→</span> Pasar a embudo
+            </button>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </article>
+
+  <details class="mt-6 panel rounded-lg p-4 text-xs muted">
+    <summary class="text-sm font-medium text-primary cursor-pointer">📝 Notas para /architect-fe (sales_studio reuse map)</summary>
+    <div class="mt-3 space-y-2">
+      <p><strong>Patterns shipped en sales_studio (ap_sales_agent) que F2-S3 adrian-inbox reusa:</strong></p>
+      <ul class="list-disc list-inside space-y-1">
+        <li><code>useCloserStore</code> Zustand → equivalente <code>useInboxStore</code> en vitalia (selectedLeadId, sidebarOpen, handler_mode)</li>
+        <li>URL searchParam <code>?lead=X</code> + <code>localStorage</code> fallback per-tenant (key <code>inbox:lastLead:{tenantId}</code>)</li>
+        <li>ConversationList 320px / Thread flex-1 / ContactSidebar 288px (widths shipped)</li>
+        <li>ConversationItem: avatar initials + temp-dot (hot/warm/cold) + stage-badge (Nuevo/Calificando/Negociando/Cerrando) + channel-abbr (WA/IG/TG)</li>
+        <li>CampaignTag chip clickable → <code>/campanas/{campaignId}</code> con tooltip si nombre &gt; 30 chars</li>
+        <li>handler_mode border-l-2 verde si <code>human</code> (override Adrián automático)</li>
+        <li>MessageBubble in/out + MessageInput (RHF + Zod en Fase 2)</li>
+      </ul>
+      <p><strong>Scope F1-S10 placeholder (mock-only, visualmente completo):</strong></p>
+      <ul class="list-disc list-inside space-y-1">
+        <li>3-col layout con widths reales (320/flex/288)</li>
+        <li>Toggle global Adrián decide/Te consulta/Manual → solo visual, NO cambia data (default para nuevas convs en Fase 2)</li>
+        <li>5 conversaciones mock + 1 selected · 1 con handler_mode=human (Carlos Pérez tiene chip "✋ Tú")</li>
+        <li>★ <strong>Takeover UX funcional (mockup)</strong>: thread header 2 estados con botones "✋ Tomar el control" / "🤖 Devolver a Adrián" + TakeoverBanner amarillo + MessageInput disabled→enabled + thread hint cambia</li>
+        <li>Sidebar toggle "×" funcional (collapse pattern)</li>
+      </ul>
+      <p><strong>Scope F2-S3 adrian-inbox (funcional):</strong></p>
+      <ul class="list-disc list-inside space-y-1">
+        <li>★ <strong>Takeover real</strong>: <code>useInboxStore.handlerOverride[leadId]</code> Zustand Map<string, 'bot'|'human'> (override puntual sin tocar global mode); persiste cross-session via Postgres `conversation.handler_override` column</li>
+        <li>Backend: tomar control envía evento al engine sales_agent → bot deja de procesar nuevos mensajes entrantes de ese lead hasta `release_control` event</li>
+        <li>Tool calling Adrián + WhatsApp/Instagram webhook + RAG retrieval</li>
+        <li>PHI masking server-side (RBAC <code>@require_phi_access</code> hipaa-lite)</li>
+        <li>Cross-link a F2-S1 agenda (botón "📅 Agendar cita" → <code>/valeria/agenda?prefill_lead=X</code>)</li>
+        <li>Notificación push si Adrián pidió consulta cuando modo global = "Te consulta"</li>
+      </ul>
+    </div>
+  </details>
+</div>
+
+<script>
+  // Toggle pills (global mode default)
+  document.querySelectorAll('.toggle-pill').forEach((pill) => {
+    pill.querySelectorAll('.toggle-pill-option').forEach((opt) => {
+      opt.addEventListener('click', () => {
+        pill.querySelectorAll('.toggle-pill-option').forEach((o) => o.classList.remove('active'));
+        opt.classList.add('active');
+      });
+    });
+  });
+
+  // Takeover UX — per-conversation handler override
+  const section = document.querySelector('[data-handler]');
+  const headerAdrian = document.querySelector('[data-thread-header="adrian"]');
+  const banner = document.querySelector('[data-takeover-banner]');
+  const hintAdrian = document.querySelector('[data-thread-hint="adrian"]');
+  const hintHuman = document.querySelector('[data-thread-hint="human"]');
+  const textarea = document.querySelector('[data-msg-textarea]');
+  const sendBtn = document.querySelector('[data-send-btn]');
+  const attachBtn = document.querySelector('.msg-input-area .theme-btn');
+
+  function setHandler(mode) {
+    section.dataset.handler = mode;
+    if (mode === 'adrian') {
+      headerAdrian.classList.remove('hidden');
+      banner.classList.add('hidden');
+      hintAdrian.classList.remove('hidden');
+      hintHuman.classList.add('hidden');
+      textarea.disabled = true;
+      textarea.placeholder = '🤖 Adrián decide automáticamente · toma el control para escribir tú';
+      textarea.value = '';
+      sendBtn.disabled = true;
+      attachBtn.disabled = true;
+      attachBtn.style.opacity = '.5';
+      attachBtn.style.cursor = 'not-allowed';
+    } else {
+      headerAdrian.classList.add('hidden');
+      banner.classList.remove('hidden');
+      hintAdrian.classList.add('hidden');
+      hintHuman.classList.remove('hidden');
+      textarea.disabled = false;
+      textarea.placeholder = 'Escribir como tú a María González…';
+      sendBtn.disabled = false;
+      attachBtn.disabled = false;
+      attachBtn.style.opacity = '1';
+      attachBtn.style.cursor = 'pointer';
+      textarea.focus();
+    }
+  }
+
+  document.querySelector('[data-action="take-control"]')?.addEventListener('click', () => setHandler('human'));
+  document.querySelector('[data-action="return-control"]')?.addEventListener('click', () => setHandler('adrian'));
+</script>
+</body>
+</html>

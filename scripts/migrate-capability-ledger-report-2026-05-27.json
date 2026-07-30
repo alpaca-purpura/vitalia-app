@@ -1,0 +1,374 @@
+{
+  "brand": "vitalia",
+  "dry_run": false,
+  "timestamp": "2026-05-27T18:25:24.057214",
+  "caps_total": 71,
+  "caps_migrated": [
+    "admin-streamlit-service",
+    "clinics-crud",
+    "streamlit-tenants-users",
+    "tenants-crud",
+    "users-crud",
+    "eval-goldens-slice-1",
+    "lucas-daily-analysis",
+    "lucas-recommendation-tool",
+    "medical-agentic-tools",
+    "medical-safety-guardrails",
+    "audit-writer-ssot",
+    "clerk-middleware",
+    "sign-in-sign-up-pages",
+    "booking-widget-embed",
+    "prepaid-booking-advisory-locks",
+    "brand-studio-medical-sections",
+    "lisa-marca",
+    "clinics-brand-extension",
+    "hipaa-dual-filter-decorator",
+    "compliance-hipaa-lite-audit",
+    "hipaa-lite-defensive-stack",
+    "whatsapp-template-registry",
+    "oauth-meta-google-ads",
+    "registries-medical-vertical",
+    "inbox-tools-extensions",
+    "medical-kb-rag",
+    "medical-pdf-extractors",
+    "valeria-wizard-onboarding-agentic",
+    "crm-consent-optout",
+    "crm-scaffold-slice-1",
+    "3-clinic-fixture-latam",
+    "iam-scaffold-slice-1",
+    "luana-core-adoption",
+    "attribution-matrix-4-origins",
+    "bowtie-funnel-5-stages",
+    "lucas-stage-recommendations",
+    "referrals-leaderboard",
+    "api-health-endpoint",
+    "otel-sentry-graceful-degradation",
+    "vitalia-callback-subclasses",
+    "medical-services-offer-preset",
+    "clinic-onboarding-3step",
+    "wizard-brand-studio-slice-1",
+    "k8s-admin-deployment",
+    "nps-tracking",
+    "patient-records-medical-history",
+    "payment-gateways-latam-recurring",
+    "design-tokens-foundation",
+    "design-tokens-theme",
+    "migrations-slice-1-schema",
+    "shell-foundation-shadcn-tailwind-v4",
+    "tenant-switcher",
+    "topbar-global",
+    "vertical-medical-extension-sdk",
+    "public-clinic-landing",
+    "adrian-3-tools-mvp",
+    "adrian-reengagement-tool",
+    "inbox-handler-mode-occ",
+    "medical-guardrails",
+    "state-overlay-langgraph",
+    "valeria-agenda",
+    "empty-states",
+    "layout-5050",
+    "ribbon",
+    "routing",
+    "sub-tabs",
+    "valeria-chat",
+    "valeria-sidebar",
+    "playwright-smoke-suite",
+    "treatment-followup-workflow",
+    "idempotent-cron-arq-scaffold"
+  ],
+  "caps_skipped_already_migrated": [],
+  "atomics_converted": [],
+  "derives_back_populated": [
+    {
+      "parent": "vitalia-brand-studio-medical-sections",
+      "child": "lisa-marca"
+    }
+  ],
+  "orphan_parents": [],
+  "warnings": [
+    {
+      "cap_slug": "admin-streamlit-service",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "clinics-crud",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "streamlit-tenants-users",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "tenants-crud",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "users-crud",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "eval-goldens-slice-1",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "lucas-daily-analysis",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "lucas-recommendation-tool",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "medical-agentic-tools",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "medical-safety-guardrails",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "audit-writer-ssot",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "clerk-middleware",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "sign-in-sign-up-pages",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "booking-widget-embed",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "prepaid-booking-advisory-locks",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "brand-studio-medical-sections",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "lisa-marca",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "clinics-brand-extension",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "hipaa-dual-filter-decorator",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "compliance-hipaa-lite-audit",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "hipaa-lite-defensive-stack",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "whatsapp-template-registry",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "oauth-meta-google-ads",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "registries-medical-vertical",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "inbox-tools-extensions",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "medical-kb-rag",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "medical-pdf-extractors",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "valeria-wizard-onboarding-agentic",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "crm-consent-optout",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "crm-scaffold-slice-1",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "3-clinic-fixture-latam",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "iam-scaffold-slice-1",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "luana-core-adoption",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "attribution-matrix-4-origins",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "bowtie-funnel-5-stages",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "lucas-stage-recommendations",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "referrals-leaderboard",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "api-health-endpoint",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "otel-sentry-graceful-degradation",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "vitalia-callback-subclasses",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "medical-services-offer-preset",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "clinic-onboarding-3step",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "wizard-brand-studio-slice-1",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "k8s-admin-deployment",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "nps-tracking",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "patient-records-medical-history",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "payment-gateways-latam-recurring",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "design-tokens-foundation",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "design-tokens-theme",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "migrations-slice-1-schema",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "shell-foundation-shadcn-tailwind-v4",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "tenant-switcher",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "topbar-global",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "vertical-medical-extension-sdk",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "public-clinic-landing",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "adrian-3-tools-mvp",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "adrian-reengagement-tool",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "inbox-handler-mode-occ",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "medical-guardrails",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "state-overlay-langgraph",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "valeria-agenda",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "empty-states",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "layout-5050",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "ribbon",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "routing",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "sub-tabs",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "valeria-chat",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "valeria-sidebar",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "playwright-smoke-suite",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "treatment-followup-workflow",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    },
+    {
+      "cap_slug": "idempotent-cron-arq-scaffold",
+      "issue": "atomics field missing · initialized to [] · Chris ratify"
+    }
+  ]
+}

@@ -1,0 +1,110 @@
+---
+capability_id: vitalia-clinic-onboarding-3step
+module: onboarding
+slug: clinic-onboarding-3step
+status: deprecated
+date_introduced: 2026-05-15
+story_introduced: luana-vitalia-bootstrap
+package_version: 0.1.0
+package_path: vitalia/backend/src/modules/vitalia + vitalia/frontend/src/app/onboarding
+license: proprietary
+
+# v3 cement 2026-05-27 · 4 dimensiones + dev_preview (ADR-vitalia-005)
+tech_module: onboarding
+agent_owner: onboarding
+functional_area: onboarding.onboarding_clinic
+user_visible: true
+nature: feature
+ui_paradigm: slice-1-superseded  # T-3 reconcile 2026-05-29
+replaced_by_story: vitalia-fase2-lisa-doctores  # T-3: story F2 que reconstruye esta cap
+
+user_facing_name: "Onboarding de clínica · 3 pasos"
+user_facing_description: >
+  Flujo de bienvenida en 3 pasos para una clínica nueva que acaba de registrarse.
+  El dueño elige el tipo de clínica (dental, psicología, estética, etc.), completa
+  el perfil clínico con país y moneda, y selecciona el plan. Al finalizar el tenant
+  queda configurado y listo para operar.
+
+dev_preview:
+  route: "/onboarding"
+  how_to_navigate: "Registrar nueva cuenta en sign-up → el sistema redirige automáticamente a /onboarding/step-1"
+  main_component: "vitalia/frontend/src/app/onboarding/step-1/page.tsx"
+  api_endpoints:
+    - "POST /api/v1/vitalia/onboarding/clinic-profile"
+    - "GET /api/v1/vitalia/onboarding/plans"
+    - "POST /api/v1/vitalia/onboarding/subscribe"
+  e2e_test: "vitalia/frontend/e2e/specs/vitalia/onboarding-dental-aurora.smoke.spec.ts"
+  fixtures_required: []
+  storybook_url: null
+  loom_demo: null
+
+# Capability ledger v2 (cement 2026-05-27)
+created_in_story: luana-vitalia-bootstrap   # v2 cement · mirror of story_introduced
+created_date: 2026-05-15   # v2 cement · mirror of date_introduced
+last_modified: 2026-05-29   # T-3 reconcile 2026-05-29
+parent_cap: null   # v2 cement · mirror of extends_capability
+derives_capabilities: []   # v2 cement · initial empty list
+
+# Capability ledger v2 (cement 2026-05-27)
+
+# Capability change log v2 (cement 2026-05-27)
+change_log:
+  - story_id: vitalia-bootstrap-inventory-2026-05-15
+    date: 2026-05-15
+    type: new
+    summary: "Implementación inicial · migración legacy a schema v2"
+    merge_sha: null
+    status: done
+map_box: onboarding
+
+---
+
+# vitalia-clinic-onboarding-3step
+
+Wizard de onboarding 3 pasos para clínica nueva: tipo de clínica (dental / psicología / psiquiatría / wellness) → perfil clínico (datos + país + moneda + doctores iniciales) → selección plan tier (solo_doctor / clinic / multi_site).
+
+## Surface
+
+### Backend (`vitalia/backend/src/modules/vitalia/`)
+
+- **`application/services/onboarding_service.py`** — crea clinic profile, asocia doctor primario, asigna plan tier
+- **`api/routes.py`** endpoints `/api/v1/vitalia`:
+  - `POST /onboarding/clinic-profile` — crea perfil clínico
+  - `GET /onboarding/plans` — lista plan tiers disponibles
+  - `GET /onboarding/status` — estado del onboarding del tenant actual
+  - `POST /onboarding/subscribe` — suscribe al plan tier elegido
+- **`api/dtos/onboarding_dtos.py`** — request/response DTOs con PII masking
+- **`infrastructure/models/plan_tier_config_model.py`** + **`infrastructure/models/doctor_extension_model.py`** + repos asociados
+
+### Frontend (`vitalia/frontend/src/app/onboarding/`)
+
+- **`step-1/page.tsx`** — clinic type picker (dental | psychology | psychiatry | wellness)
+- **`step-2/page.tsx`** — clinic profile form (name, country, currency, primary doctor)
+- **`step-3/page.tsx`** — plan tier picker
+- **Componentes** (`features/vitalia/components/`):
+  - `clinic-type-picker.tsx`
+  - `doctor-avatar-picker.tsx`
+  - `onboarding-step-1-client.tsx` / `step-2-client.tsx` / `step-3-client.tsx`
+- **Schemas + hooks**: `schemas/clinic-profile-schema.ts`, `api/use-clinic-profile-create.ts`, `api/use-onboarding-status.ts`, `api/use-plan-tiers.ts`
+
+## Test coverage
+
+- `vitalia/backend/tests/e2e/test_onboarding_dental_e2e.py` — dental Aurora fixture happy path
+- `vitalia/frontend/tests/integration/onboarding-wizard-flow.test.ts` — wizard 3-step integration
+- `vitalia/frontend/tests/unit/features/vitalia/components/clinic-type-picker.test.ts`
+- `vitalia/frontend/tests/unit/features/vitalia/components/doctor-avatar-picker.test.ts`
+- E2E smoke: `vitalia/frontend/e2e/specs/vitalia/onboarding-dental-aurora.smoke.spec.ts`, `onboarding-psych-mindful.smoke.spec.ts`, `onboarding-psych-sanare.smoke.spec.ts`
+
+## Dependencies
+
+- `luana-core-iam` (tenant provisioning)
+- `luana-core-platform` (clerk webhook adapter para signup)
+- `vitalia.infrastructure.adapters.clerk_webhook_adapter`
+
+## Scenarios live
+
+- Usuario nuevo se registra en Clerk → clerk_webhook crea tenant
+- Doctor abre `/onboarding/step-1` → elige tipo de clínica
+- Step 2: completa perfil + país (`AR/CL/MX/CO/PE/BR/US`) → moneda default por país
+- Step 3: elige plan tier → tenant queda configurado
+- Default currency por país honrado en booking + payment flows

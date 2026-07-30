@@ -1,0 +1,33 @@
+/**
+ * styles.css — scoped Tailwind subset for the Vitalia booking widget.
+ *
+ * This file is injected as widget.css alongside widget.umd.js.
+ * Only includes utilities used by widget components to keep bundle lean.
+ */
+
+/* ── Reset (scoped to widget) ─────────────────────────────────────────────── */
+#vitalia-booking-widget *,
+#vitalia-booking-widget *::before,
+#vitalia-booking-widget *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+#vitalia-booking-widget {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  color: #111827;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Vitalia brand tokens (seed values) ─────────────────────────────────── */
+:root {
+  --vitalia-primary: 199 74% 32%;           /* Teal */
+  --vitalia-primary-foreground: 0 0% 100%;
+  --vitalia-accent: 155 60% 38%;            /* Health green */
+  --vitalia-critical: 0 72% 51%;            /* Red */
+  --vitalia-warning: 38 92% 50%;            /* Amber */
+  --vitalia-stable: 155 60% 38%;            /* Green */
+}

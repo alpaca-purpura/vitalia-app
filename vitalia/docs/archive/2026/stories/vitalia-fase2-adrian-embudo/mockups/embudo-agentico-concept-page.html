@@ -1,0 +1,234 @@
+<!doctype html>
+<!-- voseo-allowed: mockup interno de revisión, no es código de producto user-facing -->
+<!-- VARIANTE C: el detalle del lead es una PÁGINA con URL propia (patrón EntitySubNavBar de vitalia-fase2-lisa-doctores / ADR-vitalia-004 §D-1).
+     El board es el "directorio"; al hacer clic el lead pinta su nombre en la barra N3-dyn + sus tabs (Datos/Historial/Score) como rutas. Reusable cross-surface. -->
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Embudo de Adrián — variante PÁGINA (EntitySubNavBar) · vitalia</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = { darkMode:'class', theme:{ extend:{ colors:{
+    background:'hsl(var(--background))', foreground:'hsl(var(--foreground))',
+    card:'hsl(var(--card))', 'card-foreground':'hsl(var(--card-foreground))',
+    primary:'hsl(var(--primary))', 'primary-foreground':'hsl(var(--primary-foreground))',
+    muted:'hsl(var(--muted))', 'muted-foreground':'hsl(var(--muted-foreground))',
+    accent:'hsl(var(--accent))', border:'hsl(var(--border))', destructive:'hsl(var(--destructive))', ring:'hsl(var(--ring))',
+    'agent-adrian':'hsl(var(--agent-adrian))', 'agent-adrian-soft':'hsl(var(--agent-adrian-soft))',
+    'agent-valeria':'hsl(var(--agent-valeria))', 'agent-camila':'hsl(var(--agent-camila))',
+  }, borderRadius:{ md:'0.5rem' } } } }
+</script>
+<style>
+  :root{ --background:0 0% 100%; --foreground:240 10% 4%; --card:0 0% 100%; --card-foreground:240 10% 4%;
+    --primary:198 99% 49%; --primary-foreground:0 0% 100%; --muted:240 5% 96%; --muted-foreground:240 4% 46%;
+    --accent:287 53% 37%; --destructive:0 84% 60%; --border:240 6% 90%; --ring:198 99% 49%;
+    --agent-adrian:198 99% 49%; --agent-adrian-soft:197 90% 89%; --agent-valeria:287 53% 37%; --agent-camila:244 84% 32%; }
+  .dark{ --background:240 10% 4%; --foreground:0 0% 98%; --card:240 8% 8%; --card-foreground:0 0% 98%;
+    --primary:198 99% 49%; --primary-foreground:240 10% 4%; --muted:240 4% 16%; --muted-foreground:240 5% 65%;
+    --accent:287 53% 50%; --destructive:0 63% 31%; --border:240 4% 20%; --ring:198 99% 49%;
+    --agent-adrian-soft:198 60% 20%; --agent-camila:244 80% 78%; }
+  body{ background:hsl(var(--background)); color:hsl(var(--foreground)); }
+  .scroll::-webkit-scrollbar{ width:6px;height:6px } .scroll::-webkit-scrollbar-thumb{ background:hsl(var(--border)); border-radius:3px }
+  .val-grad{ background:linear-gradient(135deg,hsl(var(--agent-valeria)),hsl(var(--accent))) }
+  @keyframes pop{ from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} } .pop{ animation:pop .25s ease both }
+  @keyframes fade{ from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:none} } .fade{ animation:fade .2s ease both }
+</style>
+</head>
+<body class="font-sans text-sm antialiased h-screen flex flex-col overflow-hidden">
+
+<!-- TOPBAR -->
+<header class="flex items-center justify-between border-b border-border px-4 h-12 bg-card shrink-0">
+  <div class="flex items-center gap-3">
+    <div class="h-6 w-6 rounded-md" style="background:linear-gradient(135deg,hsl(var(--primary)),hsl(var(--accent)))"></div>
+    <span class="font-semibold">Vitalia</span><span class="text-muted-foreground">·</span>
+    <span class="text-muted-foreground">Clínica Sanaré <span class="text-xs">▾</span></span>
+    <span class="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">variante C · página (URL propia)</span>
+  </div>
+  <div class="flex items-center gap-3 text-xs">
+    <span class="flex items-center gap-1 text-emerald-500"><span class="h-2 w-2 rounded-full bg-emerald-500"></span> en vivo</span>
+    <button onclick="document.documentElement.classList.toggle('dark')" class="rounded-md border border-border px-2 py-1 hover:bg-muted">🌓 tema</button>
+  </div>
+</header>
+
+<div class="flex-1 flex overflow-hidden">
+  <!-- VALERIA -->
+  <aside id="valeria" class="shrink-0 border-r border-border bg-card flex flex-col" style="width:340px">
+    <div class="flex items-center gap-2.5 px-4 h-14 border-b border-border">
+      <div class="relative"><div class="h-9 w-9 rounded-full val-grad flex items-center justify-center text-white font-semibold">V</div>
+        <span class="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-500 border-2 border-card"></span></div>
+      <div class="leading-tight"><div class="font-semibold">Valeria</div><div class="text-[11px] text-muted-foreground">Supervisora · coordina tu equipo IA</div></div>
+    </div>
+    <div id="valMsgs" class="flex-1 overflow-y-auto scroll p-3 space-y-3 text-xs">
+      <div class="flex gap-2"><div class="h-6 w-6 shrink-0 rounded-full val-grad text-white flex items-center justify-center text-[10px] font-semibold">V</div>
+        <div class="rounded-md rounded-tl-none bg-muted p-2.5 leading-relaxed">Buen día 👋 Hoy <b>Adrián</b> movió 7 leads y cobró 1 depósito. Tenés 3 enfriándose.</div></div>
+    </div>
+    <div class="border-t border-border p-2.5"><div class="flex items-center gap-2 rounded-md border border-border bg-background px-2.5 py-2">
+      <input class="flex-1 bg-transparent outline-none text-xs placeholder:text-muted-foreground" placeholder="Preguntale a Valeria…" />
+      <span class="text-muted-foreground text-[10px]">⌘K</span><button class="text-primary">➤</button></div></div>
+  </aside>
+
+  <div class="w-px bg-border shrink-0"></div>
+
+  <!-- MAIN -->
+  <main class="flex-1 flex flex-col overflow-hidden">
+    <!-- ribbon -->
+    <nav class="flex items-center gap-1 border-b border-border px-3 h-10 bg-background text-xs shrink-0">
+      <span class="px-2 py-1 text-muted-foreground">Lisa</span>
+      <span class="px-2 py-1 rounded-md font-medium text-agent-adrian border-b-2" style="border-color:hsl(var(--agent-adrian))">Adrián</span>
+      <span class="px-2 py-1 text-muted-foreground">Lucas</span><span class="px-2 py-1 text-muted-foreground">Camila</span><span class="px-2 py-1 text-muted-foreground">Mateo</span>
+      <span class="ml-auto px-2 py-1 text-muted-foreground">Configurar</span>
+    </nav>
+    <!-- subtabs -->
+    <nav class="flex items-center gap-4 border-b border-border px-3 h-9 bg-background text-xs text-muted-foreground shrink-0">
+      <span>Inbox</span><span class="font-medium text-foreground border-b-2 pb-2" style="border-color:hsl(var(--agent-adrian))">Embudo</span><span>Outbound</span><span>Propuestas</span>
+    </nav>
+
+    <!-- ★ EntitySubNavBar (N3-dyn) — [Embudo] | nombre | tabs ruta — patrón doctores -->
+    <div id="n3bar" class="flex items-center gap-1.5 border-b border-border px-4 h-11 bg-background text-xs shrink-0 overflow-x-auto"></div>
+
+    <!-- ★ URL chip (visibiliza la "página con URL propia") -->
+    <div class="px-4 py-1.5 border-b border-border bg-muted/40 text-[10px] text-muted-foreground font-mono shrink-0">
+      <span id="urlchip">app.vitalia.lat/sanare/adrian/embudo</span>
+    </div>
+
+    <!-- CONTENT: directorio (board) o workspace (página del lead) -->
+    <div id="content" class="flex-1 overflow-y-auto scroll p-4"></div>
+  </main>
+</div>
+
+<script>
+  // ── estado ──
+  let openLeadId = null;
+  let leaf = 'datos';
+  const LEADS = {
+    maria:{ name:'María G███', stage:'⚪ Interesado', score:48, scoreColor:'bg-amber-500', temp:'tibio',
+            interes:'Blanqueamiento', canal:'Instagram Ads · “Sonrisa 2026”', valor:'S/ 7k' },
+  };
+
+  // ── N3-dyn bar (EntitySubNavBar) ──
+  function renderBar(){
+    const d = openLeadId ? LEADS[openLeadId] : null;
+    const root = `<button onclick="backToBoard()" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md whitespace-nowrap ${d?'text-muted-foreground hover:text-foreground hover:bg-muted/50':'bg-muted font-medium'}"><span>📊</span><span>Embudo</span></button>`;
+    const sep = `<span class="w-px h-4 bg-border shrink-0"></span>`;
+    const name = d
+      ? `<span class="inline-flex items-center gap-1.5 px-1 shrink-0"><span class="h-5 w-5 rounded-full flex items-center justify-center text-[9px] font-bold text-white" style="background:hsl(var(--agent-adrian))">M</span><span class="font-medium">${d.name}</span><span class="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">${d.stage}</span></span>`
+      : `<span class="text-muted-foreground italic px-1 shrink-0">Selecciona un lead</span>`;
+    const tab = (id,icon,label)=>{
+      if(!d) return `<button disabled class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md opacity-45 cursor-not-allowed"><span>${icon}</span><span>${label}</span></button>`;
+      const on = leaf===id;
+      return `<button onclick="setLeaf('${id}')" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md whitespace-nowrap ${on?'font-medium border':'text-muted-foreground hover:text-foreground hover:bg-muted/50'}" style="${on?'background:hsl(var(--agent-adrian-soft));border-color:hsl(var(--agent-adrian));color:hsl(var(--agent-adrian))':''}"><span>${icon}</span><span>${label}</span></button>`;
+    };
+    document.getElementById('n3bar').innerHTML = root+sep+name+sep+tab('datos','👤','Datos')+tab('historial','💬','Historial')+tab('score','📈','Score');
+    document.getElementById('urlchip').textContent = d
+      ? `app.vitalia.lat/sanare/adrian/embudo/${openLeadId}/${leaf}   ← URL propia · deep-linkable · reusable`
+      : `app.vitalia.lat/sanare/adrian/embudo`;
+  }
+
+  // ── board (directorio) ──
+  function board(){
+    const card = (col)=>col.map(l=>`
+      <article ${l.id?`onclick="openLeadFn('${l.id}')"`:''} class="${l.id?'cursor-pointer hover:ring-1 hover:ring-primary/40 ':''}rounded-md border border-border bg-card p-2.5 border-l-2 ${l.dim?'opacity-75':''}" style="border-left-color:${l.b}">
+        <div class="flex items-center justify-between"><span class="font-medium">${l.n}</span>${l.op}</div>
+        <div class="text-[11px] text-muted-foreground mt-0.5">${l.s}</div>
+        ${l.score!=null?`<div class="mt-2"><div class="flex justify-between text-[10px] text-muted-foreground"><span>score</span><span>${l.score}</span></div><div class="h-1.5 rounded-full bg-muted mt-0.5"><div class="h-1.5 rounded-full ${l.sc}" style="width:${l.score}%"></div></div></div>`:''}
+        ${l.sig?`<div class="flex flex-wrap gap-1 mt-2">${l.sig}</div>`:''}
+        ${l.t?`<div class="flex items-center gap-1 mt-2 text-[10px] ${l.tc}"><span class="h-2 w-2 rounded-full ${l.td}"></span> ${l.t}</div>`:''}
+        ${l.log?`<div class="mt-1.5 pt-1.5 border-t border-border text-[10px] text-muted-foreground">${l.log}</div>`:''}
+      </article>`).join('');
+    const adrian = `<span class="text-[10px] px-1.5 py-0.5 rounded-full" style="background:hsl(var(--agent-adrian-soft));color:hsl(var(--agent-adrian))">🤖 Adrián</span>`;
+    const sigP = `<span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">💬 preguntó precio</span>`;
+    const cols = [
+      {h:'⚪ Interesado',m:'12 · S/84k',c:[
+        {id:'maria',n:'María G███',op:adrian,s:'S/ 7k · WhatsApp',score:48,sc:'bg-amber-500',sig:sigP,t:'2d',tc:'text-emerald-600 dark:text-emerald-400',td:'bg-emerald-500',b:'#f43f5e',log:'🤖 Adrián saludó · hace 2h <span class="text-primary">· clic = su página</span>'},
+        {n:'Carlos P███',op:adrian,s:'S/ 4k · Instagram',score:33,sc:'bg-destructive',t:'9d',tc:'text-amber-600 dark:text-amber-400',td:'bg-amber-500',b:'#3b82f6'}]},
+      {h:'🟢 Calificando',m:'8 · S/62k',c:[
+        {n:'Ana V███',op:adrian,s:'S/ 8k · Ortodoncia',score:64,sc:'bg-amber-500',b:'#f43f5e',log:'🤖 movió a Calificando · 1h'}]},
+      {h:'🔵 Consulta agendada',m:'5 · S/41k',c:[
+        {n:'JP Méndez███',op:adrian,s:'S/ 11k · 📅 jue 15:00',score:71,sc:'bg-emerald-500',b:'#f43f5e',log:'🤖 agendó · ayer'}]},
+      {h:'🟡 Plan presentado',m:'3 · S/28k',c:[
+        {n:'Rosa V███',op:adrian,s:'S/ 12k · Implantes',score:78,sc:'bg-emerald-500',t:'16d · estancado',tc:'text-red-600 dark:text-red-400',td:'bg-red-500',b:'#f43f5e',log:'🤖 propuesta · 16d'}]},
+      {h:'🟣 Reservado ⭐',m:'2 · S/15k',c:[
+        {n:'Camila B███',op:adrian,s:'S/ 8k · ✅ depósito S/2k',b:'#10b981',log:'🤖 cobró · hoy'}]},
+      {h:'⚫ Decidió no',m:'4 · —',c:[
+        {n:'Iván S███',op:'',s:'razón: precio',dim:true,b:'transparent',log:'<span style="color:hsl(var(--agent-camila))">↻ Camila reactiva 90d</span>'}]},
+    ];
+    return `
+      <div class="flex items-center justify-between mb-3">
+        <div><h1 class="text-lg font-semibold flex items-center gap-2">Embudo <span class="text-xs font-normal px-2 py-0.5 rounded-full" style="background:hsl(var(--agent-adrian-soft));color:hsl(var(--agent-adrian))">🤖 operado por Adrián</span></h1>
+          <p class="text-muted-foreground text-xs mt-0.5">Variante C: el board es el <b>directorio</b>. Clic en un lead → su <b>página propia</b> (Datos/Historial/Score con URL).</p></div>
+        <button class="rounded-md bg-primary text-primary-foreground px-3 py-1.5 text-xs font-medium">+ Nuevo lead</button>
+      </div>
+      <div class="overflow-x-auto scroll pb-2"><div class="grid grid-cols-6 gap-3 min-w-[1100px]">
+        ${cols.map(col=>`<section class="flex flex-col"><div class="flex items-center justify-between mb-2 px-1"><span class="font-medium">${col.h}</span><span class="text-xs text-muted-foreground">${col.m}</span></div><div class="space-y-2">${card(col.c)}</div></section>`).join('')}
+      </div></div>
+      <p class="text-[11px] text-muted-foreground mt-3">👉 Clic en <b>María G.</b> → entra a su página (la barra de arriba pinta su nombre + tabs; la URL cambia). “‹ Embudo” vuelve al board.</p>`;
+  }
+
+  // ── workspace (página del lead) ──
+  function workspace(){
+    const d = LEADS[openLeadId];
+    let body='';
+    if(leaf==='datos'){
+      body = `
+        <div class="grid md:grid-cols-2 gap-4">
+          <div class="rounded-md border border-border p-4 space-y-2">
+            <div class="font-medium mb-1">Datos del lead</div>
+            <div class="flex justify-between text-xs"><span class="text-muted-foreground">Contacto</span><span>+51 9██ ███ ██4 · WhatsApp</span></div>
+            <div class="flex justify-between text-xs"><span class="text-muted-foreground">Origen</span><span>${d.canal}</span></div>
+            <div class="flex justify-between text-xs"><span class="text-muted-foreground">Interés</span><span>${d.interes}</span></div>
+            <div class="flex justify-between text-xs"><span class="text-muted-foreground">Valor estimado</span><span>${d.valor}</span></div>
+            <div class="flex justify-between text-xs"><span class="text-muted-foreground">Doctor</span><span>sin asignar</span></div>
+            <div class="flex justify-between text-xs"><span class="text-muted-foreground">Etiquetas</span><span>nuevo · sensible-precio</span></div>
+          </div>
+          <div class="rounded-md border p-4" style="border-color:hsl(var(--agent-adrian));background:hsl(var(--agent-adrian-soft))">
+            <div class="flex items-center justify-between"><span class="text-xs font-medium flex items-center gap-1" style="color:hsl(var(--agent-adrian))">🤖 Adrián la está atendiendo</span>
+              <button class="text-[11px] rounded-md bg-card border border-border px-2 py-1">🙋 Tomar control</button></div>
+            <div class="text-[11px] text-muted-foreground mt-2"><b>Puede:</b> mover etapa · agendar · enviar info.<br><b>Necesita tu OK:</b> cobrar · descuentos · temas clínicos.</div>
+            <div class="mt-3 flex gap-2"><button class="text-[11px] rounded-md bg-card border border-border px-2 py-1">💬 Instrucción oculta</button><button class="text-[11px] rounded-md bg-card border border-border px-2 py-1">⚡ Nudge</button></div>
+          </div>
+        </div>`;
+    } else if(leaf==='historial'){
+      body = `<div class="rounded-md border border-border p-4 max-w-xl">
+        <div class="font-medium mb-3">Línea de tiempo (conversación + etapas + acciones del agente)</div>
+        <ol class="space-y-3 border-l border-border pl-4 text-xs">
+          <li><span class="text-muted-foreground">hace 2h</span> · <span style="color:hsl(var(--agent-adrian))">🤖 Adrián</span>: “¡Hola María! Te cuento del blanqueamiento ✨”</li>
+          <li><span class="text-muted-foreground">hace 2h</span> · 💬 María: “¿cuánto sale?”</li>
+          <li><span class="text-muted-foreground">hace 2h</span> · <span style="color:hsl(var(--agent-adrian))">🤖</span> detectó señal <span class="px-1 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">preguntó precio</span></li>
+          <li><span class="text-muted-foreground">hace 2h</span> · ⚪ ingresó a <b>Interesado</b> <span class="text-muted-foreground">(Adrián)</span></li>
+          <li><a href="#" class="text-primary underline">Abrir conversación completa en el Inbox →</a></li>
+        </ol></div>`;
+    } else {
+      body = `<div class="rounded-md border border-border p-4 max-w-md">
+        <div class="flex items-center justify-between mb-2"><span class="font-medium">Score ${d.score} <span class="text-muted-foreground font-normal">/100</span></span><span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400">${d.temp}</span></div>
+        <div class="h-2 rounded-full bg-muted mb-4"><div class="h-2 rounded-full ${d.scoreColor}" style="width:${d.score}%"></div></div>
+        <div class="space-y-1.5 text-xs">
+          <div class="flex justify-between"><span class="text-muted-foreground">preguntó por precio</span><span class="text-emerald-600 dark:text-emerald-400">+25</span></div>
+          <div class="flex justify-between"><span class="text-muted-foreground">respondió en &lt;5 min</span><span class="text-emerald-600 dark:text-emerald-400">+15</span></div>
+          <div class="flex justify-between"><span class="text-muted-foreground">vino de campaña pagada</span><span class="text-emerald-600 dark:text-emerald-400">+10</span></div>
+          <div class="flex justify-between"><span class="text-muted-foreground">sin agendar (2 días)</span><span class="text-destructive">−2</span></div>
+        </div>
+        <div class="text-[10px] text-muted-foreground mt-3 pt-3 border-t border-border">Reglas + recencia, sin caja negra. Adrián lo recalcula en cada mensaje.</div></div>`;
+    }
+    return `<div class="fade">${body}</div>`;
+  }
+
+  // ── render + acciones ──
+  function render(){ renderBar(); document.getElementById('content').innerHTML = openLeadId ? workspace() : board(); }
+  function openLeadFn(id){
+    openLeadId = id; leaf='datos'; render();
+    const wrap=document.getElementById('valMsgs');
+    if(document.getElementById('val-ctx')){ wrap.scrollTop=wrap.scrollHeight; return; }
+    const el=document.createElement('div'); el.id='val-ctx'; el.className='flex gap-2 pop';
+    el.innerHTML = `<div class="h-6 w-6 shrink-0 rounded-full val-grad text-white flex items-center justify-center text-[10px] font-semibold">V</div>
+      <div class="rounded-md rounded-tl-none p-2.5 leading-relaxed border" style="border-color:hsl(var(--agent-adrian));background:hsl(var(--agent-adrian-soft))">
+        Abriste la página de <b>María G.</b> — score 48, enfriándose, preguntó precio pero no agendó. ¿Le ofrezco la <b>promo de blanqueamiento</b>?
+        <div class="flex flex-wrap gap-1.5 mt-2"><button class="rounded-md bg-primary text-primary-foreground px-2 py-1 text-[11px]">Sí, ofrécela</button><button class="rounded-md border border-border bg-card px-2 py-1 text-[11px]">🙋 Tomar control</button></div></div>`;
+    wrap.appendChild(el); wrap.scrollTop=wrap.scrollHeight;
+  }
+  function backToBoard(){ openLeadId=null; render(); const c=document.getElementById('val-ctx'); if(c) c.remove(); }
+  function setLeaf(id){ leaf=id; render(); }
+  render();
+</script>
+</body>
+</html>

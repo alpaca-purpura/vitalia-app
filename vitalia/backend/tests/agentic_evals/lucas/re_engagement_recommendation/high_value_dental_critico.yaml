@@ -1,0 +1,107 @@
+# Vitalia Lucas golden — high_value_dental_critico (30d, 12 ausencias + 8 follow_up overdue)
+# Story vitalia-slice-1-fidelizacion T-15 (R23 production_code=false — goldens/tests Sonnet OK)
+#
+# Scenario:
+#   Tenant Aurora AR, clínica dental, período 30 días.
+#   12 eventos de ausencia detectados (multi_session + absence patterns).
+#   8 follow_up vencidos (post-tratamiento no completado).
+#   Lucas computa recommendations → top 5 priorizadas por expected_impact_pct.
+#
+# Tool under test: compute_re_engagement_recommendation (T-10, shipped)
+# HIPAA-lite: output es agregado — NUNCA PHI per-paciente.
+#
+# Anti-duplication §0: compute_re_engagement_recommendation NO tiene equivalente
+# en engine (vitalia vertical médico — brand-extension exclusivo).
+
+golden_id: lucas_high_value_dental_critico_v1
+tenant_context:
+  tenant_alias: "Aurora AR"
+  clinic_vertical: dental
+  dialect: es-AR
+
+tool_input:
+  tenant_id: "<dynamic-uuid>"
+  clinic_id: "<dynamic-uuid>"
+  period: "30d"
+  top_n: 5
+
+simulated_re_engagement_events:
+  - pattern: absence
+    count: 8
+    avg_days_since_last_visit: 95
+  - pattern: multi_session
+    count: 12
+    avg_sessions_remaining: 3.5
+  - pattern: follow_up
+    count: 8
+    avg_days_overdue: 7
+  - pattern: maintenance
+    count: 4
+    avg_months_overdue: 2
+
+expected_output_shape:
+  tenant_id: "<dynamic>"
+  clinic_id: "<dynamic>"
+  stage: "fidelizacion"
+  recommendations:
+    count: 5
+    required_fields_per_item:
+      - pattern
+      - priority
+      - action
+      - expected_impact_pct
+    valid_patterns:
+      - multi_session
+      - follow_up
+      - maintenance
+      - absence
+      - nps
+    valid_priorities:
+      - high
+      - medium
+      - low
+    action_language: es
+    expected_impact_pct_range:
+      min: 1
+      max: 100
+    top_priority_patterns:
+      - multi_session
+      - follow_up
+
+expected_top_recommendation:
+  pattern: multi_session
+  priority: high
+  expected_impact_pct_min: 30
+
+expected_observability:
+  trace_event_emitted: true
+  trace_event_type: "tool.compute_re_engagement_recommendation.completed"
+  trace_payload_includes:
+    - period
+    - clinic_id
+    - top_n
+    - recommendations_count
+  trace_payload_excludes:
+    - action
+    - rationale
+    - patient_name
+    - patient_phone
+    - patient_id
+
+expected_tenant_isolation:
+  tenant_id_in_service_call: true
+  clinic_id_in_service_call: true
+  cross_tenant_leak: false
+
+notes: |
+  High-value dental clinic with critical re-engagement signals over 30 days.
+  Lucas aggregates 32 total events → top 5 recommendations.
+
+  Key invariants:
+  - Output contains exactly 5 recommendations (top_n=5).
+  - Each item has: pattern, priority, action (español neutro), expected_impact_pct.
+  - Top recommendation MUST be multi_session or follow_up (highest volume signals).
+  - Actions are descriptive Spanish-neutro (no voseo hardcoded — LLM respects tenant locale).
+  - expected_impact_pct ∈ [1, 100].
+  - Trace event payload excludes PHI and recommendation content (aggregates only).
+  - No per-patient data in output (HIPAA-lite aggregate-only invariant).

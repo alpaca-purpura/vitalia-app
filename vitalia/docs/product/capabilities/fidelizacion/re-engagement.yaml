@@ -1,0 +1,120 @@
+---
+# Capability YAML · schema v3.2 (cement 2026-05-28)
+# SSoT: docs/process/capability-protocol.md § Sec 7-13
+# ADR: vitalia/docs/architecture/ADR-vitalia-005-capability-model-4-dimensions.md
+
+# ----------------------------------------------------------------------------
+# IDENTIDAD
+# ----------------------------------------------------------------------------
+capability_id: vitalia.fidelizacion.re-engagement
+slug: re-engagement
+status: planned                                 # code exists, no passing e2e / not verified-live (computes to wip)
+license: brand-local
+
+# ----------------------------------------------------------------------------
+# DIMENSIÓN 1 · TÉCNICA
+# ----------------------------------------------------------------------------
+tech_module: fidelizacion
+module: fidelizacion
+
+# ----------------------------------------------------------------------------
+# DIMENSIÓN 2 · USER-FACING
+# ----------------------------------------------------------------------------
+agent_owner: camila
+functional_area: camila.reactivar
+
+# ----------------------------------------------------------------------------
+# DIMENSIÓN 3 · VISIBILIDAD
+# ----------------------------------------------------------------------------
+user_visible: true
+
+# ----------------------------------------------------------------------------
+# DIMENSIÓN 4 · NATURALEZA
+# ----------------------------------------------------------------------------
+nature: feature
+
+user_facing_name: "Camila · reactivación y fidelización de pacientes"
+user_facing_description: >
+  Detecta pacientes que dejaron de volver (ausencias, controles vencidos,
+  gaps multi-sesión, seguimientos pendientes) y dispara campañas de
+  reactivación proactivas, respetando opt-out, pausas de paciente y los
+  tiempos de espera de respuesta. Registra cada evento de re-engagement con
+  su patrón, urgencia y desenlace para medir efectividad.
+
+dev_preview:
+  route: "/camila/reactivar"
+  how_to_navigate: "Login → ribbon clic en avatar Camila → sub-tab Reactivar para ver eventos y campañas de reactivación."
+  main_component: null
+  api_endpoints:
+    - "GET /api/v1/fidelizacion/summary"
+    - "POST /api/v1/fidelizacion/re-engagement"
+  e2e_test: null
+  fixtures_required: ["3-clinic-fixture-latam"]
+  storybook_url: null
+  loom_demo: null
+
+# ----------------------------------------------------------------------------
+# LEDGER v2
+# ----------------------------------------------------------------------------
+created_in_story: vitalia-fase2-camila-reactivar
+created_date: 2026-05-28
+last_modified: 2026-05-29   # T-3 reconcile 2026-05-29
+package_version: vitalia-fase2-v1.0.0
+package_path: vitalia/backend/src/modules/vitalia/fidelizacion/
+
+architecture_pattern: ADR-vitalia-004
+hipaa_lite_overlay: true
+
+parent_cap: null
+derives_capabilities: []
+superseded_by: null
+
+change_log:
+  - story_id: vitalia-fase2-camila-reactivar
+    date: 2026-05-28
+    type: new
+    summary: "Motor de re-engagement brand-local: eventos, value objects (patrón/urgencia/desenlace), repositorio, servicios (opt-out, pausa, salida proactiva, llamada manual) y sweeps de detección (ausencia, follow-up, mantenimiento, gap multi-sesión, timeout de respuesta)."
+    scenarios_added: []
+    merge_sha: null
+    status: in-progress
+map_box: camila
+
+---
+
+# Camila · reactivación y fidelización de pacientes
+
+Capacidad brand-local de Vitalia que orquesta la reactivación de pacientes
+dormidos. Sigue el patrón shell-feature (ADR-vitalia-004) y DDD Inside-Out:
+entidad `ReEngagementEvent`, value objects (`re_engagement_pattern`,
+`urgency_level`, `re_engagement_outcome`), repositorio, servicios de aplicación
+(re-engagement, opt-out, pausa de paciente, salida proactiva, llamada manual) y
+sweeps de detección programados (ausencia, follow-up vencido, mantenimiento
+vencido, gap multi-sesión, timeout de respuesta de re-engagement).
+
+## Surface
+
+### Backend
+- `vitalia/backend/src/modules/vitalia/fidelizacion/domain/` (entities, events, value_objects)
+- `vitalia/backend/src/modules/vitalia/fidelizacion/infrastructure/` (models, repositories)
+- `vitalia/backend/src/modules/vitalia/fidelizacion/application/services/`
+- `vitalia/backend/src/modules/vitalia/fidelizacion/application/workers/` (sweeps)
+- `vitalia/backend/src/modules/vitalia/fidelizacion/api/`
+
+### Frontend
+- `vitalia/frontend/src/lib/zod-schemas/re-engagement-event.ts`
+
+## Estado
+
+`wip` — código presente, sin e2e verde ni verificación live. Escenarios + access
++ business_rules a poblar cuando la story `vitalia-fase2-camila-reactivar` cierre merge.
+
+## Relación con caps existentes
+
+- `sales_agent.adrian-reengagement-tool` — la herramienta de envío proactivo que Adrián
+  invoca; este cap es el motor de detección + ledger de eventos (camila.reactivacion).
+
+## Referencias
+
+- Story: `vitalia/docs/product/stories/vitalia-fase2-camila-reactivar/`
+- ADR: `vitalia/docs/architecture/ADR-vitalia-004-shell-feature-architecture.md`
+- HIPAA-lite: `vitalia/.claude/rules/hipaa-lite.md`

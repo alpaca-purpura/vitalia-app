@@ -1,0 +1,23 @@
+# CI-PARITY DEFERRED SENTINEL
+#
+# Mientras este archivo exista, el pre-push hook trata el Docker ci-parity
+# mirror como ADVISORY (avisa, no bloquea push a main). Razón: fase dev-only —
+# NO hay ambiente de testing/staging/prod (todo corre en la máquina de dev).
+# El gate real de calidad en esta fase es el suite NATIVO (`/test-all` /
+# `make test-<brand>`), no el mirror Docker de una CI que está diferida.
+#
+# El check de bidirectional cross_check_3 (scenarios e2e_test paths) SIGUE HARD
+# en pre-push (es barato + real). Solo el Docker ci-parity es advisory.
+#
+# REACTIVAR el gate Docker HARD (borrar este archivo + `make install-hooks`)
+# cuando se cumpla cualquier trigger de docs/rules-detail/github-actions-deferred.md:
+#   - ambiente staging/testing provisionado
+#   - primera release vX.Y.Z
+#   - 2º developer en el repo
+#   - contrato customer-paying / auditoría SOC2/ISO
+#
+# Pre-requisito al reactivar: agregar stage `test` a los Dockerfiles de cada
+# brand (hoy ausente — base/dev/final), y alinear el nombre del marker entre
+# ci-parity.sh (`ci-parity-passed-<brand>-<sha>`) y el hook (`ci-parity-passed-<sha>`).
+#
+# Cement: 2026-06-01 (sesión sync cross-worktree · /pm-luana).

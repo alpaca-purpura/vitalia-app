@@ -1,0 +1,222 @@
+---
+id: sales-conversational-engine
+name: "Motor conversacional sales_agent — supervisor + specialists + voz tenant"
+module: sales-agent
+backbone_activity: "Vender / pre-calificar / cerrar"
+last_audit: 2026-05-07
+status: in-progress
+slice: MVP
+links:
+  module_doc: "../../modules/sales-agent.md"
+  stories_dir: "../../stories/sales-agent/"
+description: "LangGraph supervisor + 3 specialists (qualifier, product_expert, closer) + brand voice SSoT (PersonalityProfile.system_instruction compiler v2) + semantic router → tier pricing. Replaces SDR/closer humano para inbound DMs (Manychat IG/FB)."
+stories_live: 3
+stories_planned: 1
+stories_total: 4
+story_ids:
+  - sales-inbound-conversation-qualify
+  - sales-inbound-conversation-close
+  - sales-brand-voice-fidelity
+  - sales-agent-eval-runner-foundation
+# Archived stories que contribuyeron a la capability (referenciadas por eval block):
+# - eval-foundation-tenant-seed-data (merged 2026-05-07, archived a docs/archive/2026/stories/)
+copilot_operable: false
+date_introduced: 2026-04
+last_modified: 2026-05-07
+
+eval:
+  seed_tenants_path: "backend/tests/fixtures/eval/tenants/"
+  seed_archetype_slugs:
+    - tenant_coach_lat
+    - tenant_medicina_estetica
+    - tenant_clinica_dental
+    - tenant_agencia_growth_video
+    - tenant_agencia_automatizacion_ia
+  seed_dialect_codes:
+    tenant_coach_lat: es-PE
+    tenant_medicina_estetica: es-MX
+    tenant_clinica_dental: es-CO
+    tenant_agencia_growth_video: es-AR
+    tenant_agencia_automatizacion_ia: es-419
+  seed_curated_at: 2026-05-07
+  seed_curated_by: chris
+  seed_pii_scanner_path: "backend/scripts/scan_seed_pii.py"
+  seed_whitelist_path: "backend/tests/fixtures/eval/tenants/.eval-whitelist"
+  seed_story_introduced: eval-foundation-tenant-seed-data
+  seed_merged_at: 2026-05-07
+  seed_test_coverage:
+    - "backend/tests/fixtures/eval/tenants/test_loader.py"
+    - "backend/tests/fixtures/eval/tenants/test_realism_smoke.py"
+    - "backend/tests/fixtures/eval/tenants/test_schema_alignment.py"
+    - "backend/tests/fixtures/eval/tenants/test_dialect_catalog.py"
+    - "backend/tests/fixtures/eval/tenants/test_seed_pii_scanner.py"
+  # Story B (eval-foundation-simulator-homologation, T-10 — 2026-05-08) — dual-LLM simulator harness
+  simulator_path: "backend/tests/agentic_evals/sales_agent/simulator/"
+  dual_llm_pattern: true
+  actor_profile_schema_version: 1
+  simulation_state_schema_version: 1
+  observability_table_eval_simulator_llm_call: true
+  observability_table_eval_simulator_trace_event: true
+  observability_table_eval_synthetic_tenants: true
+  archetypes_supported:
+    - tenant_coach_lat
+    - tenant_medicina_estetica
+    - tenant_clinica_dental
+    - tenant_agencia_growth_video
+    - tenant_agencia_automatizacion_ia
+  simulator_story_introduced: eval-foundation-simulator-homologation
+  simulator_test_coverage:
+    - "backend/tests/agentic_evals/sales_agent/simulator/test_simulator_smoke.py"
+    - "backend/tests/agentic_evals/sales_agent/simulator/test_concurrency_property.py"
+    - "backend/tests/agentic_evals/sales_agent/simulator/test_schema_migration_regression.py"
+    - "backend/tests/agentic_evals/sales_agent/simulator/test_termination_registry.py"
+    - "backend/tests/architecture/test_eval_simulator_observability_invariants.py"
+    - "backend/tests/architecture/test_simulator_no_mirrors_shared.py"
+    - "backend/tests/architecture/test_simulator_writes_eval_kind_tag.py"
+    - "backend/tests/architecture/test_simulator_public_api_surface.py"
+    - "backend/tests/architecture/test_termination_policy_registry_contract.py"
+    - "backend/tests/architecture/test_schema_migrations_registry_complete.py"
+  # Story C (sales-agent-personas-instrumented-runtime, 2026-05-08) — personas-as-simulators (Strands ActorProfile)
+  actor_profile_schema_version_post_c: 2
+  customer_prompt_schema_version_post_c: 2
+  personas_archetype_aware_count: 15           # 5 archetypes × 3 dialects matrix per docs/specs/personas/archetype-aware/
+  personas_legacy_preserved_count: 5           # docs/specs/personas/_legacy/ — backward-compat
+  customer_prompt_v2_sub_slot_rotation: true   # round-robin over objections per current_turn (D17 + D-AG-4)
+  customer_node_v1_v2_dispatch: true           # schema_version-gated builder selection (T-5)
+  eval_metadata_extended_keys:                 # 3 NEW keys post Story C (Story B 6 invariants preserved)
+    - persona_kind
+    - schema_version
+    - archetype
+  scenario_5_qualification_test: skip-with-escalation   # qualify_lead/tag_lead_status missing in TOOL_REGISTRY — toolkit story pending
+  scenario_6_nurture_test: skip-with-escalation         # same toolkit dep as Scenario 5
+  scenario_4_adversarial_test: live                     # FORBIDDEN_LEAK_STRINGS (Story B reuse) + V2 prompt-injection-via-traits
+  story_c_introduced: sales-agent-personas-instrumented-runtime
+  story_c_merged_at: null                       # pending /auditor APPROVED + /pm merge
+  story_c_test_coverage:
+    - "backend/tests/agentic_evals/sales_agent/simulator/test_personas_loader.py"
+    - "backend/tests/agentic_evals/sales_agent/simulator/test_customer_prompt_v2_unit.py"
+    - "backend/tests/agentic_evals/sales_agent/simulator/test_customer_node_unit.py"
+    - "backend/tests/architecture/test_personas_yaml_completeness.py"
+  # Story D (sales-agent-goldens-3-tenants-dataset, 2026-05-08) — goldens dataset infra synthetic-first
+  goldens_dataset_path: "backend/tests/agentic_evals/sales_agent/goldens/"
+  goldens_count_target_min: 20
+  goldens_count_target_max: 30
+  goldens_schema_version: 1
+  goldens_schema_path: "backend/tests/agentic_evals/sales_agent/goldens/_schema.py"
+  goldens_generation_script: "backend/scripts/generate_golden_candidates.py"
+  goldens_promotion_script: "backend/scripts/promote_golden.py"
+  goldens_pii_scanner_path: "backend/scripts/scan_goldens_pii.py"
+  goldens_persona_kinds_in_scope:
+    - happy
+    - nurture
+    - unqualified
+  goldens_coverage_gate_test: "backend/tests/agentic_evals/sales_agent/test_goldens_coverage.py"
+  goldens_story_introduced: sales-agent-goldens-3-tenants-dataset
+  goldens_story_merged_at: 2026-05-08
+  goldens_arch_fitness_gates_added: 5
+  goldens_test_coverage:
+    - "backend/tests/agentic_evals/sales_agent/test_goldens_schema.py"
+    - "backend/tests/agentic_evals/sales_agent/test_goldens_coverage.py"
+    - "backend/tests/agentic_evals/sales_agent/test_goldens_pii_scanner.py"
+    - "backend/tests/architecture/test_goldens_schema_completeness.py"
+    - "backend/tests/architecture/test_goldens_no_mirror_simulator_schema.py"
+    - "backend/tests/architecture/test_pii_patterns_single_source.py"
+    - "backend/tests/architecture/test_goldens_no_committed_pii.py"
+    - "backend/tests/architecture/test_goldens_cost_bucket_invariant.py"
+    - "backend/tests/scripts/test_generate_golden_candidates.py"
+    - "backend/tests/scripts/test_promote_golden.py"
+  goldens_known_issues: []  # Closed 2026-05-08: DEEPER-A (agent_bridge ContextVar session injection, commit 21f2f641), DEEPER-B (archetype_slug propagation, commit b28c28ea), DEEPER-C (synthetic lead seed, commit 334be34e), DEEPER-D (promote_golden refuses crashed/normalize case, commits 3733fb2c+follow-up), MockUUID conftest dual fix + LiteLLM port mapping for native WSL smokes. 3 RUN_EVALS env-gated smokes verified GREEN with real LLM end-to-end.
+  # Story E (sales-agent-voice-fidelity-grader-runtime, 2026-05-09) — MAJ-EVAL runtime grader
+  maj_eval_grader_path: backend/tests/agentic_evals/sales_agent/grader/
+  maj_eval_judges:
+    - sonnet: 0.4     # claude-sonnet-4-6
+    - gpt-4o: 0.4     # gpt-4o-2024-11-20
+    - kimi: 0.2       # kimi-k2.6
+  maj_eval_rubrics:
+    - voice-fidelity
+    - qualification-accuracy   # NEW — Story E owns v1 full spec
+    - no-overpromise
+    - no-hallucination
+  grader:
+    paradigm: maj_eval
+    judges_count: 3
+    judges_pinned:
+      sonnet: claude-sonnet-4-6
+      gpt4o: gpt-4o-2024-11-20
+      kimi: kimi-k2.6
+    weights: [0.4, 0.4, 0.2]
+    rubrics_in_scope:
+      - voice-fidelity
+      - qualification-accuracy   # NEW Story E owns v1
+      - no-overpromise
+      - no-hallucination
+    threshold_default: 0.7
+    per_rubric_threshold_overrides:
+      no-hallucination: 0.85
+      qualification-accuracy: 0.75
+    debate_variance_r1_threshold: 0.15
+    debate_variance_r2_target: 0.10
+    cache_table: eval_simulator_grade_cache
+    grade_table: eval_simulator_grade
+    cost_baseline_cold_cache_usd: 330
+    cost_baseline_warm_cache_usd: 108
+    cache_hit_target_pct: 70
+    public_api_surface_h9_expand: 8   # was 7 post Story B; Story E adds grade_transcript_maj_eval
+    schema_version: 1                  # MajEvalScore v1 cement
+    calibration_md_paths:
+      - docs/specs/rubrics/voice_fidelity_calibration.md
+      - docs/specs/rubrics/qualification_accuracy.md
+      - docs/specs/rubrics/no_overpromise.md
+      - docs/specs/rubrics/no_hallucination.md
+    variance_round_2_threshold: 0.15
+    variance_round_2_target: 0.10
+  grader_story_introduced: sales-agent-voice-fidelity-grader-runtime
+  grader_merged_at: null   # pending /auditor APPROVED + /pm merge
+  grader_test_coverage:
+    - backend/tests/agentic_evals/sales_agent/grader/test_pydantic_types_unit.py
+    - backend/tests/agentic_evals/sales_agent/grader/test_judge_registry.py
+    - backend/tests/agentic_evals/sales_agent/grader/test_maj_eval_unit.py
+    - backend/tests/agentic_evals/sales_agent/grader/test_maj_eval_debate.py
+    - backend/tests/agentic_evals/sales_agent/grader/test_maj_eval_happy.py
+    - backend/tests/agentic_evals/sales_agent/grader/test_maj_eval_adversarial.py
+    - backend/tests/agentic_evals/sales_agent/grader/test_grader_cache.py
+    - backend/tests/agentic_evals/sales_agent/grader/test_judge_prompts.py
+    - backend/tests/agentic_evals/sales_agent/grader/test_run_simulation_grader_hook.py
+    - backend/tests/agentic_evals/sales_agent/grader/test_judge_no_system_leak.py
+    - backend/tests/agentic_evals/sales_agent/grader/test_unconverged_fallback.py
+    - backend/tests/architecture/test_grader_sandbox_markers_enforced.py
+    - backend/tests/architecture/test_grader_pii_sanitize_pre_judge.py
+    - backend/tests/architecture/test_grader_round_2_no_self_reasoning.py
+    - backend/tests/architecture/test_grader_writes_eval_only_bucket.py
+    - backend/tests/architecture/test_grader_public_api_surface.py
+---
+
+## Capabilities cubiertas por este grupo
+
+- LangGraph supervisor → routea entre `qualifier`, `product_expert`, `closer` por estado/score
+- Brand voice SSoT: `PersonalityProfile.system_instruction` compilado v2 (6 bloques "ASÍ HABLAS / ASÍ NO") inyectado en slot 5 cache prefix
+- Specialists static prompt body (cacheable cross-tenant) + state-dependent suffix
+- Semantic router → tier pricing (Kimi K2.6 / DeepSeek V4-Flash / GPT-4o por complejidad)
+- Per-tenant prompt caching slots 1-6 byte-equal — hit rate ≥60%
+- Supervisor outbound skip-qualifier flag (lead_score >= 40 + outbound_mode → directo a closer)
+- BudgetGuardingChatModel wired single-point en `ConversationPipeline.__init__` — gating SA pool reservado
+- ComplianceService gating outbound (WABA24h + OptIn + Blacklist + CountryBlock)
+- OutboundRateLimiter Redis sliding window 24h cap por tenant
+
+## Stories vinculadas
+
+| Story ID | Type | Status | Path |
+|---|---|---|---|
+| sales-inbound-conversation-qualify | agentic-story | live | ../../stories/sales-agent/sales-inbound-conversation-qualify.yaml |
+| sales-inbound-conversation-close | agentic-story | live | ../../stories/sales-agent/sales-inbound-conversation-close.yaml |
+| sales-brand-voice-fidelity | agentic-story | live | ../../stories/sales-agent/sales-brand-voice-fidelity.yaml |
+| sales-agent-eval-runner-foundation | service-story | planned | ../../stories/sales-agent/sales-agent-eval-runner-foundation.yaml |
+| eval-foundation-tenant-seed-data | service-story | live (merged 2026-05-07) | docs/archive/2026/stories/eval-foundation-tenant-seed-data/ |
+
+## Gaps identificados
+
+- ~~**Eval suite agentic faltante**: NO existe `backend/tests/agentic_evals/sales_agent/`~~ → **EN CURSO PI-12**: addressed por `sales-agent-eval-runner-foundation` (planned 2026-05-04, foundation harness multi-layer 5 capas: trajectory + tool_calls + output + cost + latency). Stories 2-9 del PI-12 lo extienden (pass^k, budget cap, 3-tenant goldens, personas, voice grader, CI gate, adversarial).
+- Voice fidelity grader: `SALES_AGENT_VOICE_FIDELITY_THRESHOLD` env default 0.7 declared (Decision 30) pero coverage de runs reales contra goldens dataset = 0% (no goldens checked-in)
+- Personas (`lead-caliente-ready`, `lead-frio-impaciente`, `lead-tibio-dudoso`) declarados en `docs/specs/personas/` pero NO consumidos por suite alguna
+- Adversarial scenarios (jailbreak, prompt injection, persona hostile leak system prompt) no instrumentados
+- `cost_usd=0` post-fix por pricing resolution (deepseek tagged como openai) — backlog PR follow-up

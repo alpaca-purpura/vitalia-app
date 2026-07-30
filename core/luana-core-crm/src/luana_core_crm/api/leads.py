@@ -1,0 +1,50 @@
+"""CRM leads API endpoints."""
+
+from typing import Annotated
+from uuid import UUID
+
+import structlog
+from fastapi import APIRouter, Depends, HTTPException, Query
+from luana_core_iam.api.dependencies import get_current_user
+from luana_core_iam.domain.user import User
+from luana_core_platform.core.database import get_db
+from sqlalchemy.orm import Session
+
+from luana_core_crm.application.services.lead_service import LeadService
+from luana_core_crm.domain.lead import Lead
+
+router = APIRouter(tags=["leads"])
+logger = structlog.get_logger()
+
+
+@router.get("/search")
+async def search_leads(
+    q: Annotated[str, Query(min_length=2)],
+    db: Annotated[Session, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
+    limit: int = 10,
+) -> list[Lead]:
+    """Search leads by name or email.
+
+    Return empty list placeholder until search logic is implemented.
+    """
+    return []
+
+
+@router.get("/{lead_id}")
+async def get_lead(
+    lead_id: str,
+    db: Annotated[Session, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
+) -> Lead:
+    """Get a specific lead by ID."""
+    service = LeadService(db)
+    try:
+        lead = service.get_lead(UUID(lead_id))
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid UUID format") from None
+
+    if not lead or str(lead.tenant_id) != str(user.tenant_id):
+        raise HTTPException(status_code=404, detail="Lead not found")
+
+    return lead

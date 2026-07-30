@@ -1,0 +1,31 @@
+{
+  "story_id": "vitalia-shell-state-persistence",
+  "brand": "vitalia",
+  "command": "test-frontend",
+  "ran_at": "2026-05-28T22:01:00-05:00",
+  "head_commit": "bf03639c",
+  "overall": { "any_fail": false, "summary": "all gates GREEN on combined HEAD (T-1..T-5)" },
+  "gates": [
+    { "id": "val-nf-tsc", "category": "non_functional", "cmd": "npx tsc --noEmit", "status": "pass", "detail": "0 errors (strict)" },
+    { "id": "val-nf-eslint", "category": "non_functional", "cmd": "npx eslint src/ --cache", "status": "pass", "detail": "0 errors" },
+    { "id": "val-fn-unit-factory", "category": "functional", "status": "pass", "detail": "factory setItem no-op pre-hydration + writes post-rehydrate + _hasHydrated flip (T-1)" },
+    { "id": "val-fn-unit-shell-hydration", "category": "functional", "status": "pass", "detail": "SC-3 clobber + SC-6 empty + SC-7 corrupt JSON (T-1)" },
+    { "id": "val-fn-unit-transversal", "category": "functional", "status": "pass", "detail": "tenant + agenda + agenda-filters factory smoke (T-3)" },
+    { "id": "vitest-full", "category": "functional", "cmd": "npx vitest run", "status": "pass", "detail": "2310/2310 tests, 211 files" },
+    { "id": "val-fn-e2e-survives-reload", "category": "functional", "status": "pass", "detail": "SC-1/2/3 valeriaState+shellMode survive reload; 'full' never written when 'rail' saved (instrumentSetItem)" },
+    { "id": "val-fn-e2e-resize-unskipped", "category": "functional", "status": "pass", "detail": "2 deferred tests un-skipped GREEN" },
+    { "id": "val-fn-e2e-mobile-collapsed", "category": "functional", "status": "pass", "detail": "SC-4 fresh closed + SC-5 burger opens + SC-5b remembers (independent slice); 'ValeriaSlot oculto mobile' un-skipped GREEN" },
+    { "id": "val-fn-e2e-a11y", "category": "functional", "status": "pass", "detail": "SC-8 axe wcag2aa + keyboard open/close + focus return + aria-expanded/label neutro" },
+    { "id": "val-arch-fsd-boundaries", "category": "architectural_validation", "status": "pass", "detail": "148/148 arch fitness; lib/store no importa features; no default exports" },
+    { "id": "val-arch-no-store-in-skeleton", "category": "architectural_validation", "status": "pass", "detail": "ShellOrganismLayoutSkeleton renders store-free (TopBarGlobal variant=skeleton)" },
+    { "id": "val-arch-no-cross-brand-mirror", "category": "architectural_validation", "status": "pass", "detail": "factory vitalia-local; nicolify dismiss-store NOT touched (lift candidate /pm-luana)" }
+  ],
+  "e2e_run": { "passed": 28, "failed": 0, "duration_s": 19.4, "note": "Clerk FAPI 'Test ended' warnings are benign token-refresh-vs-teardown races; all assertions passed" },
+  "scenario_coverage": { "SC-1": "pass", "SC-2": "pass", "SC-3": "pass", "SC-4": "pass", "SC-5": "pass", "SC-5b": "pass", "SC-6": "pass", "SC-7": "pass", "SC-8": "pass" },
+  "notes": [
+    "T-1 followup: server-first arch test false-positive fixed (commit 58a4ce5b) — detección 'use client' tras comment block + ratchet shrunk back to empty (NO allowlist growth).",
+    "T-5 in-scope impl fix: Escape handler also calls setMobileDrawerOpen(false).",
+    "PM flags for merge: (1) ADR number 005→006 (005 ocupado por capability-model); 01-spec frontmatter cita 005 → corregir al merge. (2) nicolify dismiss-store mismo hazard → learning promotable:candidate /pm-luana.",
+    "Parallel build race: commit 54ffb8e4 mislabeled 'docs T-3' but contains T-2 impl (content correct, pushed; cannot amend pushed)."
+  ]
+}

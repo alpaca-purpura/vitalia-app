@@ -1,0 +1,478 @@
+# medical_kb_psychiatry_v1 — KB pack manifest
+# Story 11 T-kb-3 (R23 Opus 4.7) — Vitalia psychiatry vertical reference content.
+#
+# tenant_scope=brand → cross-tenant medical reference (NOT per-tenant PHI).
+# Chunks are educational content + medication safety + drug-drug interactions
+# + REQUIRED DISCLAIMER (forced top-1 on medication query).
+# No patient PII is stored here. Per-tenant clinic-specific protocols (if added
+# later) would carry tenant_id payload field and live in same collection.
+
+pack_id: medical_kb_psychiatry_v1
+qdrant_collection: vitalia_medical_kb_psychiatry_v1
+embedding_model: text-embedding-3-large
+embedding_dim: 1536          # text-embedding-3-large with `dimensions=1536` parameter
+tenant_scope: brand          # cross-tenant share (D7 hipaa_lite OK — no PHI)
+similarity_threshold: 0.72   # baseline RAG retrieval contract (03-arch § 7.5)
+top_k: 5                     # baseline RAG retrieval contract (03-arch § 7.5)
+schema_version: 1
+compliance_level: hipaa_lite
+
+# Chunk source files (alphabetical) — every .md scanned + chunked at H2 boundaries.
+# 02-design § 9.3: ~120 chunks across medication classes + side effects + interactions.
+chunk_sources:
+  - 00_disclaimer.md                    # Special chunk disclaimer_psychiatric_prescription_only
+  - 01_ssris_antidepressants.md         # SSRI class — sertralina/escitalopram/etc + side effects
+  - 02_anxiolytics_benzodiazepines.md   # Benzo class — clonazepam/alprazolam/lorazepam/etc
+  - 03_antipsychotics.md                # Antipsychotics — risperidona/olanzapina/quetiapina/etc
+  - 04_mood_stabilizers.md              # Mood stabilizers — litio/lamotrigina/valproato
+  - 05_drug_interactions.md             # Drug-drug interactions + analgesics co-use
+  - 06_common_questions.md              # Common patient questions (no medication adjustments)
+  - 07_safety_keywords_psychiatric.md   # Acute psychiatric crisis keywords (suicidal ideation etc)
+
+# ─── Medication-query forced retrieval (core T-kb-3 contract) ────────────────
+# When patient INPUT contains any of these keywords (case-insensitive contains
+# match), `VitaliaMedicalKbStore._detect_medication_query` triggers forced
+# retrieval of `disclaimer_psychiatric_prescription_only` chunk at top-1 —
+# bypassing similarity threshold. Sales_agent prompt template MUST quote the
+# disclaimer chunk verbatim in response (see 02-design § 9.3 + § 17.2 +
+# guardrail medical_safety_no_prescription).
+#
+# Catalog construction principles:
+#   1. Cover INN (international non-proprietary name) AND brand names — patients
+#      often say "Rivotril" or "Zoloft" before saying "clonazepam" / "sertralina".
+#   2. 200+ entries baseline per 02-design § 9.3 — driven by 6 psychiatric drug
+#      classes (antidepressants/anxiolytics/antipsychotics/mood-stabilizers/
+#      stimulants/sleep-aids) + brand-name multiplier (~3 brands per INN avg)
+#      + analgesics commonly co-mentioned by psych patients (paracetamol/
+#      ibuprofeno) since interactions matter.
+#   3. Lowercase canonical — detection case-insensitive.
+#   4. Spanish neutro covers AR/CL/MX/CO/PE/UY/EC.
+#   5. NO street/recreational drug names in this list (those route to
+#      `medical_safety_no_prescription` guardrail directly via different path).
+medication_keywords:
+  # ─── SSRIs (selective serotonin reuptake inhibitors) ──────────────────────
+  - sertralina
+  - sertraline
+  - zoloft
+  - altruline
+  - escitalopram
+  - lexapro
+  - cipralex
+  - esertia
+  - citalopram
+  - cipramil
+  - seropram
+  - fluoxetina
+  - fluoxetine
+  - prozac
+  - foxetin
+  - sarafem
+  - paroxetina
+  - paroxetine
+  - paxil
+  - aropax
+  - seroxat
+  - fluvoxamina
+  - fluvoxamine
+  - luvox
+  - dumirox
+  # ─── SNRIs (serotonin-norepinephrine reuptake inhibitors) ────────────────
+  - venlafaxina
+  - venlafaxine
+  - effexor
+  - elafax
+  - efexor
+  - desvenlafaxina
+  - desvenlafaxine
+  - pristiq
+  - duloxetina
+  - duloxetine
+  - cymbalta
+  - dialer
+  - milnacipran
+  # ─── TCAs (tricyclic antidepressants) ─────────────────────────────────────
+  - amitriptilina
+  - amitriptyline
+  - elavil
+  - tryptanol
+  - imipramina
+  - imipramine
+  - tofranil
+  - nortriptilina
+  - nortriptyline
+  - pamelor
+  - clomipramina
+  - clomipramine
+  - anafranil
+  # ─── MAOIs (monoamine oxidase inhibitors) ────────────────────────────────
+  - tranilcipromina
+  - tranylcypromine
+  - parnate
+  - moclobemida
+  - moclobemide
+  - aurorix
+  - phenelzine
+  - nardil
+  # ─── Atypical antidepressants ─────────────────────────────────────────────
+  - bupropion
+  - bupropión
+  - wellbutrin
+  - zyban
+  - mirtazapina
+  - mirtazapine
+  - remeron
+  - trazodona
+  - trazodone
+  - desyrel
+  - vortioxetina
+  - vortioxetine
+  - brintellix
+  - trintellix
+  - agomelatina
+  - agomelatine
+  - valdoxan
+  # ─── Anxiolytics — benzodiazepines ─────────────────────────────────────────
+  - clonazepam
+  - rivotril
+  - klonopin
+  - alprazolam
+  - xanax
+  - tranquinal
+  - lorazepam
+  - ativan
+  - sedicepam
+  - trapax
+  - diazepam
+  - valium
+  - bromazepam
+  - lexotanil
+  - lexotan
+  - midazolam
+  - dormicum
+  - hypnovel
+  - oxazepam
+  - serax
+  - clobazam
+  - frisium
+  - clorazepato
+  - clorazepate
+  - tranxene
+  # ─── Anxiolytics — non-benzo (z-drugs + buspirona) ────────────────────────
+  - zolpidem
+  - ambien
+  - stilnox
+  - somit
+  - zopiclona
+  - zopiclone
+  - imovane
+  - lunesta
+  - eszopiclona
+  - eszopiclone
+  - buspirona
+  - buspirone
+  - buspar
+  - pregabalina
+  - pregabalin
+  - lyrica
+  - gabapentina
+  - gabapentin
+  - neurontin
+  - propranolol         # ansiedad escénica (off-label)
+  - inderal
+  # ─── Antipsychotics — atypical ────────────────────────────────────────────
+  - risperidona
+  - risperidone
+  - risperdal
+  - olanzapina
+  - olanzapine
+  - zyprexa
+  - midax
+  - quetiapina
+  - quetiapine
+  - seroquel
+  - seroquel xr
+  - aripiprazol
+  - aripiprazole
+  - abilify
+  - clozapina
+  - clozapine
+  - leponex
+  - clozaril
+  - paliperidona
+  - paliperidone
+  - invega
+  - ziprasidona
+  - ziprasidone
+  - geodon
+  - lurasidona
+  - lurasidone
+  - latuda
+  - asenapina
+  - asenapine
+  - saphris
+  - cariprazina
+  - cariprazine
+  - vraylar
+  - brexpiprazol
+  - brexpiprazole
+  - rexulti
+  # ─── Antipsychotics — typical/conventional ────────────────────────────────
+  - haloperidol
+  - haldol
+  - levomepromazina
+  - levomepromazine
+  - nozinan
+  - clorpromazina
+  - chlorpromazine
+  - largactil
+  - thorazine
+  - tioridazina
+  - thioridazine
+  - mellaril
+  - flufenazina
+  - fluphenazine
+  - prolixin
+  - perfenazina
+  - perphenazine
+  - trilafon
+  - sulpirida
+  - sulpiride
+  - dogmatil
+  - tiapride
+  - tiaprida
+  # ─── Mood stabilizers ─────────────────────────────────────────────────────
+  - litio
+  - lithium
+  - carbolit
+  - eskalith
+  - lithobid
+  - lamotrigina
+  - lamotrigine
+  - lamictal
+  - valproato
+  - valproate
+  - acido valproico
+  - depakote
+  - depakine
+  - depakene
+  - carbamazepina
+  - carbamazepine
+  - tegretol
+  - oxcarbazepina
+  - oxcarbazepine
+  - trileptal
+  - topiramato
+  - topiramate
+  - topamax
+  # ─── Stimulants (ADHD) ────────────────────────────────────────────────────
+  - metilfenidato
+  - methylphenidate
+  - ritalin
+  - ritalina
+  - rubifen
+  - concerta
+  - medikinet
+  - lisdexanfetamina
+  - lisdexamfetamine
+  - vyvanse
+  - elvanse
+  - dextroanfetamina
+  - dextroamphetamine
+  - dexedrine
+  - atomoxetina
+  - atomoxetine
+  - strattera
+  - guanfacina
+  - guanfacine
+  - intuniv
+  - modafinilo
+  - modafinil
+  - provigil
+  - vigicer
+  # ─── Anti-craving / addiction support (psychiatric overlap) ──────────────
+  - naltrexona
+  - naltrexone
+  - revia
+  - vivitrol
+  - acamprosato
+  - acamprosate
+  - campral
+  - disulfiram
+  - antabuse
+  - vareniclina
+  - varenicline
+  - chantix
+  - champix
+  - bupropion sr     # also smoking cessation use
+  # ─── Common analgesics (interactions matter for psych patients) ──────────
+  - paracetamol
+  - acetaminofen
+  - acetaminofén
+  - acetaminophen
+  - tylenol
+  - tafirol
+  - panadol
+  - termofren
+  - ibuprofeno
+  - ibuprofen
+  - advil
+  - actron
+  - ibupirac
+  - ibevon
+  - naproxeno
+  - naproxen
+  - aleve
+  - apronax
+  - flanax
+  - aspirina
+  - aspirin
+  - bayer
+  - tramadol
+  - tramal
+  - calmador
+  - codeina
+  - codeine
+  # ─── Common antihistamines (sedation interactions) ───────────────────────
+  - difenhidramina
+  - diphenhydramine
+  - benadryl
+  - hidroxizina
+  - hydroxyzine
+  - atarax
+  - vistaril
+  # ─── Generic terms patients use ──────────────────────────────────────────
+  - antidepresivo
+  - antidepresivos
+  - ansiolítico
+  - ansiolíticos
+  - antipsicótico
+  - antipsicóticos
+  - estabilizador del ánimo
+  - estabilizadores del ánimo
+  - benzodiacepina
+  - benzodiacepinas
+  - benzodiazepina
+  - benzodiazepinas
+  - benzo
+  - benzos
+  - psicofármaco
+  - psicofármacos
+  - somnífero
+  - somníferos
+  - hipnótico
+  - hipnóticos
+  - tranquilizante
+  - tranquilizantes
+  - inhibidor de la recaptación
+  - inhibidor selectivo de la recaptación de serotonina
+
+# ─── Crisis keyword detection (orthogonal to medication detection) ───────────
+# Psychiatry pack ALSO covers self-harm / suicide ideation patterns — same
+# semantics as psychology pack but separate forced-retrieval chunks. When BOTH
+# medication keyword AND crisis keyword present, BOTH boundary chunks are
+# returned (forced-retrieval merge dedupes by point_id).
+crisis_keywords:
+  - suicidio
+  - matarme
+  - matarse
+  - me quiero matar
+  - me quiero morir
+  - quitarme la vida
+  - quitarse la vida
+  - no quiero vivir
+  - ya no quiero vivir
+  - autolesión
+  - autolesionarme
+  - autolesionarse
+  - cortarme
+  - lastimarme
+  - hacerme daño
+  - emergencia psiquiátrica
+  - crisis psiquiátrica
+  - estoy en crisis
+  - intoxicación intencional
+  - sobredosis intencional
+
+# ─── Boundary chunks (forced retrieval bypasses similarity threshold) ────────
+# Disclaimer is THE primary T-kb-3 contract: forced top-1 on ANY medication
+# query. Crisis lines mirror psychology pack pattern (per-country routing
+# applies same logic — see VitaliaMedicalKbStore._fetch_forced_boundary_hits).
+boundary_chunks:
+  # ── PRIMARY T-kb-3 contract ─────────────────────────────────────────────
+  - chunk_id: disclaimer_psychiatric_prescription_only
+    source: 00_disclaimer.md
+    forced_retrieval: true
+    triggers: medication_keywords          # NOT crisis_keywords — disclaimer triggers on ANY medication
+    priority: 1
+    applies_to_countries: ["*"]            # always returned on medication query
+
+  # ── Crisis lines (orthogonal — share psychology pack pattern) ──────────
+  - chunk_id: boundary_refer_out_general_psych
+    source: 07_safety_keywords_psychiatric.md
+    forced_retrieval: true
+    triggers: crisis_keywords
+    priority: 2
+    applies_to_countries: ["*"]
+
+  - chunk_id: crisis_line_AR
+    source: 07_safety_keywords_psychiatric.md
+    forced_retrieval: true
+    triggers: crisis_keywords
+    priority: 2
+    applies_to_countries: ["AR"]
+
+  - chunk_id: crisis_line_CL
+    source: 07_safety_keywords_psychiatric.md
+    forced_retrieval: true
+    triggers: crisis_keywords
+    priority: 2
+    applies_to_countries: ["CL"]
+
+  - chunk_id: crisis_line_MX
+    source: 07_safety_keywords_psychiatric.md
+    forced_retrieval: true
+    triggers: crisis_keywords
+    priority: 2
+    applies_to_countries: ["MX"]
+
+  - chunk_id: crisis_line_CO
+    source: 07_safety_keywords_psychiatric.md
+    forced_retrieval: true
+    triggers: crisis_keywords
+    priority: 2
+    applies_to_countries: ["CO"]
+
+  - chunk_id: crisis_line_PE
+    source: 07_safety_keywords_psychiatric.md
+    forced_retrieval: true
+    triggers: crisis_keywords
+    priority: 2
+    applies_to_countries: ["PE"]
+
+  - chunk_id: crisis_line_BR
+    source: 07_safety_keywords_psychiatric.md
+    forced_retrieval: true
+    triggers: crisis_keywords
+    priority: 2
+    applies_to_countries: ["BR"]
+
+# ─── Topic tag taxonomy (chunk metadata) ─────────────────────────────────────
+topic_tags:
+  - disclaimer
+  - ssri
+  - snri
+  - tca
+  - maoi
+  - atypical_antidepressant
+  - benzodiazepine
+  - non_benzo_anxiolytic
+  - antipsychotic_atypical
+  - antipsychotic_typical
+  - mood_stabilizer
+  - stimulant_adhd
+  - sleep_aid
+  - drug_interaction
+  - common_question
+  - safety_psychiatric
+  - crisis_line
+  - referral

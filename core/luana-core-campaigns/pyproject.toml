@@ -1,0 +1,40 @@
+[project]
+name = "luana-core-campaigns"
+version = "0.1.0"
+requires-python = ">=3.12"
+description = "Luana campaigns engine — lifted from AISALESHT backend/src/modules/campaigns/"
+dependencies = [
+    "pydantic>=2.0",
+    "sqlalchemy>=2.0",
+    "fastapi>=0.115",
+    "structlog>=24.0",
+    "httpx>=0.27",
+    "arq>=0.26",                   # workers (execution_task, scheduler_tick, audit_retention, segment_refresh)
+    "cachetools>=5.0",             # TTLCache in application/services/cache.py
+    "luana-core-platform",
+    "luana-core-iam",
+    "luana-core-observability",
+    "luana-core-idempotency",
+    "luana-core-channels",
+    "luana-core-events",
+    "luana-core-billing",              # TYPE_CHECKING + lazy imports (budget_guard, rate_limiter)
+    "luana-core-compliance",           # TYPE_CHECKING + lazy imports (compliance_service)
+    "luana-core-sales-agent",          # lazy import in external/sales_agent_adapter.py
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/luana_core_campaigns"]
+
+[dependency-groups]
+dev = [
+    "hypothesis>=6.0",              # property-based tests (test_campaign_fsm.py)
+    "aiosqlite>=0.19",              # async SQLite for integration tests
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+asyncio_mode = "auto"

@@ -1,0 +1,538 @@
+# F1-S8 vitalia-fase1-sub-tabs-line2 — work units atómicos
+#
+# 6 tickets · ZERO Opus (FE no-agentic puro). R23 production_code true T-1..T-4, false T-5..T-6 (POM/specs/visual goldens).
+# Cada ticket cita validator_ids + gherkin_coverage explícito (★ v4.1 mandatory post 2026-05-18).
+# Sequence: catalog extend foundation → tw-helper extend → molécula SubTab → organism SubTabsBar + URL extract → integration AppPanelSlot + arch tests → Playwright E2E behavior → visual goldens 13 PNGs.
+#
+# Builder: builder-frontend (Sonnet/opencode/qwen).
+# Auditor: auditor-frontend (Opus).
+# R23 NO aplica (no AGENTIC).
+# HIPAA-lite scope=not_applicable (chrome UI nav puro sin PHI per 04-validators.yaml).
+# Mockup gate visual ya ratificado pre-arch (checkpoint::ratified_visual_by_chris=true 2026-05-25T09:05:00Z iter 1).
+
+story_id: vitalia-fase1-sub-tabs-line2
+brand: vitalia
+phase: fase-1
+last_modified: 2026-05-25
+architect_iter: 1
+total_tickets: 6
+parallelizable: false   # secuencial estricto — T-2 depende T-1 catalog · T-3 depende T-2 molécula · T-4 depende T-3 organism · T-5 depende T-4 integration · T-6 depende T-5 specs ready
+opus_tickets: 0         # ZERO Opus (FE no-agentic puro)
+sonnet_tickets: 6       # opencode/sonnet/qwen permitidos
+
+tickets:
+
+  # ──────────────────────────────────────────────────────────────
+  # T-1 — agent-catalog.ts EXTEND (foundation SubTabMeta + RIBBON_SUBTABS + extractSubtabFromPath)
+  # ──────────────────────────────────────────────────────────────
+  - id: T-1
+    title: "agent-catalog.ts EXTEND: SubTabMeta interface + RIBBON_SUBTABS Record + extractSubtabFromPath helper"
+    state: pushed
+    surface: frontend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: true
+    estimated_loc: 100
+    estimated_hours: 1
+    files:
+      new: []
+      modify:
+        - vitalia/frontend/src/lib/agent-catalog.ts
+        - vitalia/frontend/src/lib/__tests__/agent-catalog.test.ts
+      delete: []
+    depends_on: []
+    acceptance:
+      validator_ids: [val-fe-tsc, val-fe-lint, val-fe-prettier, val-fe-vitest-unit, val-fe-arch-fsd, val-fe-arch-agent-catalog-ssot, val-fe-arch-no-hex, val-fe-arch-no-voseo]
+    gherkin_coverage:
+      - scenario: "SC-1 / SC-2 happy · SubTabMeta interface shape exported + type-safe"
+        tests:
+          - "vitalia/frontend/src/lib/__tests__/agent-catalog.test.ts::SubTabMeta interface exports { id: string; label: string; icon: string } required fields"
+          - "vitalia/frontend/src/lib/__tests__/agent-catalog.test.ts::SubTabMeta is readonly per item via 'as const' assertion"
+      - scenario: "SC-1 / SC-2 / SC-3 happy · RIBBON_SUBTABS Record exhaustive per RibbonTabSlug"
+        tests:
+          - "vitalia/frontend/src/lib/__tests__/agent-catalog.test.ts::RIBBON_SUBTABS satisfies Record<RibbonTabSlug, readonly SubTabMeta[]> (TypeScript exhaustive check)"
+          - "vitalia/frontend/src/lib/__tests__/agent-catalog.test.ts::RIBBON_SUBTABS.lisa has 4 sub-tabs ['marca','doctores','servicios','compliance'] in order"
+          - "vitalia/frontend/src/lib/__tests__/agent-catalog.test.ts::RIBBON_SUBTABS.lucas has 5 sub-tabs ['lanzar','envuelo','recursos','resultados','mercado'] in order (caso max)"
+          - "vitalia/frontend/src/lib/__tests__/agent-catalog.test.ts::RIBBON_SUBTABS.adrian has 4 sub-tabs ['inbox','embudo','outbound','propuestas'] in order"
+          - "vitalia/frontend/src/lib/__tests__/agent-catalog.test.ts::RIBBON_SUBTABS.valeria has 2 sub-tabs ['agenda','pacientes'] in order (caso mínimo)"
+          - "vitalia/frontend/src/lib/__tests__/agent-catalog.test.ts::RIBBON_SUBTABS.camila has 4 sub-tabs ['voz','reactivar','multiplicar','reputacion'] in order"
+          - "vitalia/frontend/src/lib/__tests__/agent-catalog.test.ts::RIBBON_SUBTABS.config has 3 sub-tabs ['cuenta','conexiones','avanzado'] in order"
+          - "vitalia/frontend/src/lib/__tests__/agent-catalog.test.ts::sum across all 6 RibbonTabSlug entries === 22 sub-tabs total"
+          - "vitalia/frontend/src/lib/__tests__/agent-catalog.test.ts::no 'mateo' key in RIBBON_SUBTABS (Mateo transversal, excluido per checkpoint Q1)"
+      - scenario: "SC-1 / SC-9 happy · sub-tab labels verbatim Spanish neutro"
+        tests:
+          - "vitalia/frontend/src/lib/__tests__/agent-catalog.test.ts::RIBBON_SUBTABS.lisa labels === ['Marca','Doctores','Servicios','Compliance']"
+          - "vitalia/frontend/src/lib/__tests__/agent-catalog.test.ts::RIBBON_SUBTABS.lucas labels === ['Lanzar','En vuelo','Recursos','Resultados','Mercado']"
+          - "vitalia/frontend/src/lib/__tests__/agent-catalog.test.ts::RIBBON_SUBTABS.adrian labels === ['Inbox','Embudo','Outbound','Propuestas']"
+          - "vitalia/frontend/src/lib/__tests__/agent-catalog.test.ts::RIBBON_SUBTABS.valeria labels === ['Agenda','Pacientes']"
+          - "vitalia/frontend/src/lib/__tests__/agent-catalog.test.ts::RIBBON_SUBTABS.camila labels === ['Voz del paciente','Reactivar','Multiplicar','Reputación'] (Reputación con tilde)"
+          - "vitalia/frontend/src/lib/__tests__/agent-catalog.test.ts::RIBBON_SUBTABS.config labels === ['Mi cuenta','Conexiones','Avanzado']"
+          - "vitalia/frontend/src/lib/__tests__/agent-catalog.test.ts::cero voseo matches in labels (Reactivá/Multiplicalo/Configuralo not present)"
+      - scenario: "SC-1 happy · sub-tab icons emoji (no PNG dependency)"
+        tests:
+          - "vitalia/frontend/src/lib/__tests__/agent-catalog.test.ts::RIBBON_SUBTABS.lisa icons === ['🏥','👨‍⚕️','🩺','🛡️']"
+          - "vitalia/frontend/src/lib/__tests__/agent-catalog.test.ts::RIBBON_SUBTABS.lucas icons === ['🚀','📡','📚','📈','🌍']"
+          - "vitalia/frontend/src/lib/__tests__/agent-catalog.test.ts::all 22 icons are non-empty strings (emoji native — no PNG path)"
+      - scenario: "SC-3 happy · extractSubtabFromPath helper · valid input retorna subtab segment"
+        tests:
+          - "vitalia/frontend/src/lib/__tests__/agent-catalog.test.ts::extractSubtabFromPath('/tenant-x/lisa/marca') returns 'marca'"
+          - "vitalia/frontend/src/lib/__tests__/agent-catalog.test.ts::extractSubtabFromPath('/tenant-x/camila/voz') returns 'voz'"
+          - "vitalia/frontend/src/lib/__tests__/agent-catalog.test.ts::extractSubtabFromPath('/tenant-x/config/cuenta') returns 'cuenta'"
+          - "vitalia/frontend/src/lib/__tests__/agent-catalog.test.ts::extractSubtabFromPath('/tenant-x/lisa/inexistente') returns 'inexistente' (raw segment — sin validación contra RIBBON_SUBTABS — esa decisión consumer-side)"
+      - scenario: "SC-4 / SC-5 negative · extractSubtabFromPath · insufficient/invalid input returns null"
+        tests:
+          - "vitalia/frontend/src/lib/__tests__/agent-catalog.test.ts::extractSubtabFromPath('/tenant-x/lisa') returns null (no subtab segment)"
+          - "vitalia/frontend/src/lib/__tests__/agent-catalog.test.ts::extractSubtabFromPath('/tenant-x') returns null (insufficient segments)"
+          - "vitalia/frontend/src/lib/__tests__/agent-catalog.test.ts::extractSubtabFromPath('/') returns null (empty)"
+          - "vitalia/frontend/src/lib/__tests__/agent-catalog.test.ts::extractSubtabFromPath(null) returns null (defensive nullable input)"
+          - "vitalia/frontend/src/lib/__tests__/agent-catalog.test.ts::extractSubtabFromPath(undefined) returns null"
+          - "vitalia/frontend/src/lib/__tests__/agent-catalog.test.ts::extractSubtabFromPath('') returns null"
+      - scenario: "SC-7 adversarial · extractSubtabFromPath · XSS payload raw passthrough (consumer compares vs static ids)"
+        tests:
+          - "vitalia/frontend/src/lib/__tests__/agent-catalog.test.ts::extractSubtabFromPath('/tenant-x/lisa/<script>alert(1)</script>') returns '<script>alert(1)</script>' raw — consumer match against static RIBBON_SUBTABS.lisa[].id fails → no active (no XSS execution since React JSX auto-escapes downstream)"
+      - scenario: "(no regression heredado F1-S6/F1-S7) existing fields preserved"
+        tests:
+          - "vitalia/frontend/src/lib/__tests__/agent-catalog.test.ts::AGENT_CATALOG existing fields (name, role, colorToken, hex, thumbnail, transparent, initial, tabLabel, defaultSubtab) unchanged across 6 entries"
+          - "vitalia/frontend/src/lib/__tests__/agent-catalog.test.ts::AGENT_RIBBON_ORDER deep-equals ['lisa','lucas','adrian','valeria','camila'] (F1-S7 invariant)"
+          - "vitalia/frontend/src/lib/__tests__/agent-catalog.test.ts::extractAgentFromPath F1-S7 behavior unchanged (no regression)"
+    spec_anchor: "01-spec.md § Catalog SSoT + § Microcopy · 03-arch.md § 2.1 + § 3 + § 5"
+
+  # ──────────────────────────────────────────────────────────────
+  # T-2 — _agent-tw-classes.ts EXTEND (agentTextClassSubTab helper Lucas exception)
+  # ──────────────────────────────────────────────────────────────
+  - id: T-2
+    title: "_agent-tw-classes.ts EXTEND: agentTextClassSubTab(slug) Tailwind switch helper con Lucas exception"
+    state: pushed
+    surface: frontend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: true
+    estimated_loc: 40
+    estimated_hours: 0.5
+    files:
+      new: []
+      modify:
+        - vitalia/frontend/src/components/shared/shell-organism/_agent-tw-classes.ts
+      delete: []
+    depends_on: [T-1]   # consume RibbonTabSlug union type
+    acceptance:
+      validator_ids: [val-fe-tsc, val-fe-lint, val-fe-prettier, val-fe-vitest-unit, val-fe-arch-fsd, val-fe-arch-no-hex]
+    gherkin_coverage:
+      - scenario: "SC-1 happy · agentTextClassSubTab returns text-agent-{slug} for standard agents"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTab.test.tsx::agentTextClassSubTab('lisa') === 'text-agent-lisa' (inline import verify via T-3 SubTab.test.tsx)"
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTab.test.tsx::agentTextClassSubTab('adrian') === 'text-agent-adrian'"
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTab.test.tsx::agentTextClassSubTab('valeria') === 'text-agent-valeria'"
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTab.test.tsx::agentTextClassSubTab('camila') === 'text-agent-camila'"
+      - scenario: "(Lucas exception per guidelines § 3 D18) agentTextClassSubTab('lucas') returns text-foreground"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTab.test.tsx::agentTextClassSubTab('lucas') === 'text-foreground' (NO 'text-agent-lucas' — contrast issue near-black on rgba 10% black bg)"
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTab.test.tsx::distinguishable from agentTextClass('lucas') existing F1-S6 helper (different semantic — preserved)"
+      - scenario: "(Config exception per guidelines § 3 D19) agentTextClassSubTab('config') returns text-foreground"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTab.test.tsx::agentTextClassSubTab('config') === 'text-foreground' (Config no es agente — bg-muted + text-foreground neutral mockup ratificado verbatim)"
+      - scenario: "(exhaustive switch) all 6 RibbonTabSlug values handled"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTab.test.tsx::switch statement is exhaustive per TypeScript — passes 'never' assertion in default branch"
+    spec_anchor: "01-spec.md § Estados visuales + § Active state Lucas exception · 03-arch.md § 2.2"
+
+  # ──────────────────────────────────────────────────────────────
+  # T-3 — SubTab molécula low-level (button + roving tabindex slot + active/inactive states)
+  # ──────────────────────────────────────────────────────────────
+  - id: T-3
+    title: "SubTab molécula — button forwardRef + emoji + label + active/inactive states + Lucas/Config exceptions + focus-visible ring"
+    state: pushed
+    surface: frontend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: true
+    estimated_loc: 140
+    estimated_hours: 1.5
+    files:
+      new:
+        - vitalia/frontend/src/components/shared/shell-organism/SubTab.tsx
+        - vitalia/frontend/src/components/shared/shell-organism/SubTab.test.tsx
+      modify: []
+      delete: []
+    depends_on: [T-2]   # consume agentTextClassSubTab helper + RibbonTabSlug + SubTabMeta
+    acceptance:
+      validator_ids: [val-fe-tsc, val-fe-lint, val-fe-prettier, val-fe-vitest-unit, val-fe-arch-fsd, val-fe-arch-no-hex, val-fe-arch-no-voseo, val-fe-arch-no-vt, val-fe-arch-server-first]
+    gherkin_coverage:
+      - scenario: "SC-1 happy · SubTab renders button + emoji + label"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTab.test.tsx::renders <button role='tab'> with data-testid=`sub-tab-${subtab.id}`"
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTab.test.tsx::renders emoji span aria-hidden='true' (decorative — no double-narration con label)"
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTab.test.tsx::renders label span with subtab.label text"
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTab.test.tsx::data-color='{slug}' attribute reflects color prop"
+      - scenario: "SC-1 / SC-3 happy · SubTab active state (standard agent Lisa/Adrián/Valeria/Camila)"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTab.test.tsx::color='lisa' + active=true → className contains 'bg-agent-lisa-soft' + 'text-agent-lisa' + 'font-semibold'"
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTab.test.tsx::color='camila' + active=true → className contains 'bg-agent-camila-soft' + 'text-agent-camila'"
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTab.test.tsx::color='valeria' + active=true → className contains 'bg-agent-valeria-soft' + 'text-agent-valeria'"
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTab.test.tsx::active=true → aria-selected='true' + data-active='true' attributes"
+      - scenario: "SC-1 happy · SubTab active state Lucas exception (text-foreground)"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTab.test.tsx::color='lucas' + active=true → className contains 'bg-agent-lucas-soft' + 'text-foreground' (NO 'text-agent-lucas' — Lucas exception per § 3 D18)"
+      - scenario: "SC-1 happy · SubTab active state Config exception (bg-muted + text-foreground neutral)"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTab.test.tsx::color='config' + active=true → className contains 'bg-muted' + 'text-foreground' (Config no es agente — neutral mockup ratificado)"
+      - scenario: "SC-1 happy · SubTab inactive state visual"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTab.test.tsx::active=false → className contains 'text-muted-foreground' + 'font-medium'"
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTab.test.tsx::active=false → className contains 'hover:bg-muted' + 'hover:text-foreground'"
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTab.test.tsx::active=false → aria-selected='false' + data-active='false'"
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTab.test.tsx::any agent slug inactive class structure identical (color-agnostic when inactive)"
+      - scenario: "SC-1 / (Q16 paridad F1-S7) active:hover preserves tint exception"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTab.test.tsx::color='lisa' + active=true → className contains hover preserves bg-agent-lisa-soft (no competing hover:bg-muted in active branch)"
+      - scenario: "SC-8 a11y · SubTab tabIndex prop + focus-visible ring"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTab.test.tsx::tabIndex=0 prop → DOM attribute tabIndex='0'"
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTab.test.tsx::tabIndex=-1 prop → DOM attribute tabIndex='-1'"
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTab.test.tsx::className contains 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1'"
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTab.test.tsx::no plain 'focus:' classes (only focus-visible — mouse-click no muestra ring)"
+      - scenario: "(layout) whitespace-nowrap + flex emoji+label"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTab.test.tsx::className contains 'whitespace-nowrap' (HARD — label NO wrap)"
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTab.test.tsx::className contains 'flex items-center gap-1.5' + 'px-3 py-1.5' + 'rounded-md' + 'text-sm'"
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTab.test.tsx::className contains 'transition-all' (smooth state transitions)"
+      - scenario: "SC-8 a11y · onClick handler fires when clicked"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTab.test.tsx::onClick mock called once when button clicked"
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTab.test.tsx::onClick mock receives synthetic event"
+      - scenario: "SC-8 a11y · onFocus handler fires for roving tabindex parent control"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTab.test.tsx::onFocus mock called when button focused (parent SubTabsBar uses to track focusedIdx)"
+      - scenario: "(forwardRef contract) ref forwards to button element"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTab.test.tsx::forwardRef pattern — ref.current is HTMLButtonElement when parent passes ref"
+      - scenario: "SC-7 adversarial · XSS guard label rendered as text not HTML"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTab.test.tsx::no dangerouslySetInnerHTML usage (grep verifies)"
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTab.test.tsx::subtab.label with '<script>alert(1)</script>' renders as literal text (React JSX auto-escape)"
+    spec_anchor: "01-spec.md § Componentes (SubTab) + § Estados visuales + § Accessibility · 03-arch.md § 2.3"
+
+  # ──────────────────────────────────────────────────────────────
+  # T-4 — SubTabsBar organism root + roving tabindex + URL active extraction + return null guard
+  # ──────────────────────────────────────────────────────────────
+  - id: T-4
+    title: "SubTabsBar organism — N SubTabs from RIBBON_SUBTABS[activeAgent] + roving tabindex WAI-ARIA + URL active extraction + return null total cuando activeAgent null"
+    state: pushed
+    surface: frontend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: true
+    estimated_loc: 200
+    estimated_hours: 2.5
+    files:
+      new:
+        - vitalia/frontend/src/components/shared/shell-organism/SubTabsBar.tsx
+        - vitalia/frontend/src/components/shared/shell-organism/SubTabsBar.test.tsx
+      modify: []
+      delete: []
+    depends_on: [T-3]   # consume SubTab molécula + RIBBON_SUBTABS + extractSubtabFromPath + extractAgentFromPath
+    acceptance:
+      validator_ids: [val-fe-tsc, val-fe-lint, val-fe-prettier, val-fe-vitest-unit, val-fe-arch-fsd, val-fe-arch-no-hex, val-fe-arch-no-voseo, val-fe-arch-no-vt, val-fe-arch-server-first, val-fe-arch-shell-store-readonly-heredado]
+    gherkin_coverage:
+      - scenario: "SC-1 happy · SubTabsBar renders nav role='tablist' + N SubTabs from RIBBON_SUBTABS[activeAgent]"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTabsBar.test.tsx::mock usePathname '/tenant-x/lisa/marca' → renders <nav role='tablist' aria-label='Sub-secciones Lisa' data-testid='sub-tabs-bar'>"
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTabsBar.test.tsx::renders exactly 4 SubTab children when activeAgent=lisa (RIBBON_SUBTABS.lisa.length === 4)"
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTabsBar.test.tsx::mock usePathname '/tenant-x/lucas/lanzar' → 5 SubTabs (caso max)"
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTabsBar.test.tsx::mock usePathname '/tenant-x/valeria/agenda' → 2 SubTabs (caso mínimo)"
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTabsBar.test.tsx::container className contains 'min-h-[42px] bg-card border-b border-border flex items-center px-4 gap-1 overflow-x-auto'"
+      - scenario: "SC-1 happy · click SubTab → router.push to /{tenant}/{agent}/{subtab}"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTabsBar.test.tsx::mock useParams returns {tenantId: 'tenant-x'} + usePathname='/tenant-x/lisa/marca' → click sub-tab-doctores → router.push called with '/tenant-x/lisa/doctores'"
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTabsBar.test.tsx::usePathname='/tenant-x/camila/voz' → click sub-tab-reactivar → router.push('/tenant-x/camila/reactivar')"
+      - scenario: "SC-2 happy · agent change re-renders SubTabsBar with new sub-tabs"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTabsBar.test.tsx::initial mock usePathname '/tenant-x/lisa/doctores' → 4 SubTabs Lisa + nav aria-label='Sub-secciones Lisa'"
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTabsBar.test.tsx::re-render with mock usePathname='/tenant-x/lucas/lanzar' → 5 SubTabs Lucas + nav aria-label='Sub-secciones Lucas'"
+      - scenario: "SC-3 happy · deep link → URL-derived active state correct"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTabsBar.test.tsx::usePathname '/tenant-x/camila/reactivar' → sub-tab-reactivar data-active='true' aria-selected='true' + others data-active='false'"
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTabsBar.test.tsx::usePathname '/tenant-x/lisa/compliance' → sub-tab-compliance active + sub-tab-marca inactive"
+      - scenario: "SC-4 negative · activeAgent null → SubTabsBar return null total"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTabsBar.test.tsx::mock usePathname '/tenant-x/foobar/anything' (extractAgentFromPath returns null) → component returns null → container.firstChild is null"
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTabsBar.test.tsx::no <nav data-testid='sub-tabs-bar'> rendered in DOM"
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTabsBar.test.tsx::no console.error fired (defensive)"
+      - scenario: "SC-4 negative · usePathname '/' (root) → SubTabsBar return null"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTabsBar.test.tsx::usePathname='/' → return null (extractAgentFromPath returns null)"
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTabsBar.test.tsx::usePathname=null → return null (defensive nullable input)"
+      - scenario: "SC-5 edge · invalid subtab segment → no SubTab active (all inactive)"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTabsBar.test.tsx::usePathname '/tenant-x/lisa/inexistente' → 4 SubTabs Lisa rendered (no return null — agent valid) + NINGÚN SubTab has aria-selected='true'"
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTabsBar.test.tsx::all 4 SubTabs have data-active='false' + className includes 'text-muted-foreground'"
+      - scenario: "SC-7 adversarial · XSS payload en subtab segment → safe (no match, no execute)"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTabsBar.test.tsx::usePathname '/tenant-x/lisa/<script>alert(1)</script>' → 4 SubTabs Lisa render + ninguno active + no script tag injected into DOM"
+      - scenario: "SC-8 a11y · roving tabindex pattern paridad F1-S7 Ribbon"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTabsBar.test.tsx::initial focusedIdx = index of active sub-tab (or 0 if no active) → only that SubTab has tabIndex='0'"
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTabsBar.test.tsx::Arrow Right → setFocusedIdx +1 + tabRef.focus() imperative"
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTabsBar.test.tsx::Arrow Left → setFocusedIdx -1 + circular wrap"
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTabsBar.test.tsx::Home → focus first SubTab (idx 0)"
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTabsBar.test.tsx::End → focus last SubTab (idx N-1)"
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTabsBar.test.tsx::Enter on focused → navigateTo called (router.push)"
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTabsBar.test.tsx::Space on focused → navigateTo called (same as Enter)"
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTabsBar.test.tsx::Arrow Right wraps from last to first (circular modulo)"
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTabsBar.test.tsx::other keys (Tab, Escape, etc.) → no navigateTo, no focus change"
+      - scenario: "SC-8 a11y · onFocus on SubTab updates focusedIdx (no navigation side-effect)"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTabsBar.test.tsx::synthetic onFocus on SubTab idx=2 → setFocusedIdx(2) called · router.push NOT called"
+      - scenario: "SC-9 i18n · nav aria-label dynamic per agente (Spanish neutro)"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTabsBar.test.tsx::activeAgent='lisa' → aria-label='Sub-secciones Lisa'"
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTabsBar.test.tsx::activeAgent='lucas' → aria-label='Sub-secciones Lucas'"
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTabsBar.test.tsx::activeAgent='adrian' → aria-label='Sub-secciones Adrián' (con tilde)"
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTabsBar.test.tsx::activeAgent='valeria' → aria-label='Sub-secciones Valeria'"
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTabsBar.test.tsx::activeAgent='camila' → aria-label='Sub-secciones Camila'"
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTabsBar.test.tsx::activeAgent='config' → aria-label='Sub-secciones Configuración' (con tilde)"
+      - scenario: "(defensive) useParams.tenantId undefined → navigation cancelled"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTabsBar.test.tsx::mock useParams returns null → click SubTab → router.push NOT called (early return guard)"
+          - "vitalia/frontend/src/components/shared/shell-organism/SubTabsBar.test.tsx::mock useParams returns {} (no tenantId) → click SubTab → router.push NOT called"
+      - scenario: "(invariant heredado F1-S5) shell-store.ts NOT modified by SubTabsBar"
+        tests:
+          - "vitalia/frontend/src/__tests__/architecture/test-shell-store-schema-readonly-f1-s5.test.ts::shell-store.ts unchanged — F1-S8 component is stateless URL-derived (no zustand store mutation)"
+    spec_anchor: "01-spec.md § Gherkin SC-1..SC-9 + § Wireframe + § Accessibility + § Estados visuales · 03-arch.md § 2.4 + § 6"
+
+  # ──────────────────────────────────────────────────────────────
+  # T-5 — Integration AppPanelSlot MODIFY + arch tests EXTEND
+  # ──────────────────────────────────────────────────────────────
+  - id: T-5
+    title: "AppPanelSlot MODIFY: swap sub-tabs skeleton → <SubTabsBar /> real + arch tests EXTEND (cross-brand mirror 5 names + server-first 2 components + voseo glossary 22 labels + 6 aria-labels)"
+    state: pushed
+    surface: frontend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: true
+    estimated_loc: 130
+    estimated_hours: 1.5
+    files:
+      new: []
+      modify:
+        - vitalia/frontend/src/components/shared/shell-organism/AppPanelSlot.tsx
+        - vitalia/frontend/src/components/shared/shell-organism/AppPanelSlot.test.tsx
+        - vitalia/frontend/src/__tests__/architecture/test-no-cross-brand-shell-mirror.test.ts
+        - vitalia/frontend/src/__tests__/architecture/test_server_first.test.ts
+        - vitalia/frontend/src/__tests__/architecture/test-vitalia-ui-strings-no-voseo.test.ts
+      delete: []
+    depends_on: [T-4]   # consume <SubTabsBar /> ready to mount
+    acceptance:
+      validator_ids:
+        - val-fe-tsc
+        - val-fe-lint
+        - val-fe-prettier
+        - val-fe-vitest-unit
+        - val-fe-arch-fsd
+        - val-fe-arch-no-cross-brand-mirror
+        - val-fe-arch-shell-store-readonly-heredado
+        - val-fe-arch-agent-catalog-ssot
+        - val-fe-arch-server-first
+        - val-fe-arch-no-hex
+        - val-fe-arch-no-vt
+        - val-fe-arch-no-voseo
+        - val-fe-arch-skip-link
+        - val-fe-arch-ribbon-no-shadcn-tabs-heredado
+    gherkin_coverage:
+      - scenario: "(integration) AppPanelSlot renders <SubTabsBar /> real (no sub-tabs skeleton)"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/AppPanelSlot.test.tsx::renders [data-testid=sub-tabs-bar] from <SubTabsBar /> child component (mock useParams + usePathname /tenant-x/lisa/marca)"
+          - "vitalia/frontend/src/components/shared/shell-organism/AppPanelSlot.test.tsx::skeleton sub-tabs lines 45-54 placeholder REMOVED from DOM (no longer present after T-5 swap)"
+          - "vitalia/frontend/src/components/shared/shell-organism/AppPanelSlot.test.tsx::ribbon real (F1-S7) PRESERVED ([data-testid=ribbon] still in DOM)"
+          - "vitalia/frontend/src/components/shared/shell-organism/AppPanelSlot.test.tsx::content area skeleton PRESERVED (still rendered — F1-S10 will replace)"
+          - "vitalia/frontend/src/components/shared/shell-organism/AppPanelSlot.test.tsx::slot label text updated to 'AppPanelSlot · F1-S10' (S8 done — removed from label)"
+          - "vitalia/frontend/src/components/shared/shell-organism/AppPanelSlot.test.tsx::aria-label updated to 'Panel aplicación' (no longer mentions F1-S8)"
+          - "vitalia/frontend/src/components/shared/shell-organism/AppPanelSlot.test.tsx::children prop still pass-through preserved (z-10 overlay layer unchanged)"
+      - scenario: "(integration) AppPanelSlot grid layout collapses when SubTabsBar returns null"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/AppPanelSlot.test.tsx::mock usePathname '/tenant-x/foobar/anything' (invalid agent) → <SubTabsBar /> returns null → DOM does not contain [data-testid=sub-tabs-bar] · no error"
+      - scenario: "(arch) test-no-cross-brand-shell-mirror.test.ts EXTEND with 5 NEW names"
+        tests:
+          - "vitalia/frontend/src/__tests__/architecture/test-no-cross-brand-shell-mirror.test.ts::no matches for 'SubTabsBar' in nicolify/comunify/lupulo/frontend/src"
+          - "vitalia/frontend/src/__tests__/architecture/test-no-cross-brand-shell-mirror.test.ts::no matches for 'SubTab' across brands (case-sensitive — distinguished from RibbonTab)"
+          - "vitalia/frontend/src/__tests__/architecture/test-no-cross-brand-shell-mirror.test.ts::no matches for 'RIBBON_SUBTABS' across brands"
+          - "vitalia/frontend/src/__tests__/architecture/test-no-cross-brand-shell-mirror.test.ts::no matches for 'extractSubtabFromPath' across brands"
+          - "vitalia/frontend/src/__tests__/architecture/test-no-cross-brand-shell-mirror.test.ts::no matches for 'SubTabMeta' across brands"
+      - scenario: "(arch) test_server_first.test.ts EXTEND allowlist with 2 NEW client components"
+        tests:
+          - "vitalia/frontend/src/__tests__/architecture/test_server_first.test.ts::SubTabsBar.tsx in 'use client' allowlist (justified: hooks usePathname/useRouter/useParams + useState focusedIdx + useRef tabRefs + onKeyDown handler)"
+          - "vitalia/frontend/src/__tests__/architecture/test_server_first.test.ts::SubTab.tsx in allowlist (justified: forwardRef + onClick/onFocus handlers)"
+          - "vitalia/frontend/src/__tests__/architecture/test_server_first.test.ts::allowlist remains shrink-only (no new entries beyond 2 NEW F1-S8 components)"
+      - scenario: "SC-9 i18n · (arch) test-vitalia-ui-strings-no-voseo.test.ts EXTEND glossary"
+        tests:
+          - "vitalia/frontend/src/__tests__/architecture/test-vitalia-ui-strings-no-voseo.test.ts::scan SubTabsBar.tsx + SubTab.tsx + agent-catalog.ts RIBBON_SUBTABS new strings cero voseo matches"
+          - "vitalia/frontend/src/__tests__/architecture/test-vitalia-ui-strings-no-voseo.test.ts::verifies 22 sub-tab labels verbatim ['Marca','Doctores','Servicios','Compliance','Lanzar','En vuelo','Recursos','Resultados','Mercado','Inbox','Embudo','Outbound','Propuestas','Agenda','Pacientes','Voz del paciente','Reactivar','Multiplicar','Reputación','Mi cuenta','Conexiones','Avanzado']"
+          - "vitalia/frontend/src/__tests__/architecture/test-vitalia-ui-strings-no-voseo.test.ts::verifies 6 nav aria-labels verbatim ['Sub-secciones Lisa','Sub-secciones Lucas','Sub-secciones Adrián','Sub-secciones Valeria','Sub-secciones Camila','Sub-secciones Configuración']"
+          - "vitalia/frontend/src/__tests__/architecture/test-vitalia-ui-strings-no-voseo.test.ts::tildes correctas (Adrián / Reputación / Configuración)"
+      - scenario: "(arch) invariants heredados preserved"
+        tests:
+          - "shell-store.ts NOT modified — test-shell-store-schema-readonly-f1-s5.test.ts passes"
+          - "agent-catalog.ts hex/thumbnail allowlist unchanged — test-agent-catalog-ssot.test.ts passes (F1-S8 EXTEND added SubTabMeta interface + RIBBON_SUBTABS const + helper — no hex literals)"
+          - "skip-link target <main id='main-content'> unaffected — test-skip-link-target.test.ts passes"
+          - "no hex literals in NEW files — test_no_hardcoded_colors.test.ts passes"
+          - "no .vt-* classes — test-no-vt-classes-in-new-features.test.ts passes"
+          - "Ribbon/RibbonTab/ConfigTab still don't import from @/components/ui/tabs — test-ribbon-no-shadcn-tabs.test.ts passes (heredado F1-S7 invariant; SubTabsBar/SubTab voluntary acoplamiento mismo pattern verificable code review)"
+    spec_anchor: "01-spec.md § Componentes (AppPanelSlot MODIFY) · 03-arch.md § 2.5 + § 12"
+
+  # ──────────────────────────────────────────────────────────────
+  # T-6 — Playwright E2E suite (POM + 9 behavior specs + 13 visual goldens + axe + i18n)
+  # ──────────────────────────────────────────────────────────────
+  - id: T-6
+    title: "Playwright E2E suite: POM sub-tabs-bar-page + 9 behavior specs (1 per SC funcional) + visual-goldens.spec.ts con 13 PNGs (--update-snapshots iter 1 post Chris ratify) + axe wcag2aa + i18n regex"
+    state: pushed
+    pushed_at: 2026-05-25T10:10:00Z
+    note: "Visual goldens deferred — require --update-snapshots run against live app at localhost:3002 + Chris re-ratify post-implementation. Behavior + axe + i18n specs ready for auditor verification."
+    surface: frontend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: false   # tests/POM/fixtures/goldens — no production runtime code
+    estimated_loc: 850
+    estimated_hours: 6
+    files:
+      new:
+        - vitalia/frontend/e2e/regression/vitalia-fase1-sub-tabs-line2/poms/sub-tabs-bar-page.pom.ts
+        - vitalia/frontend/e2e/regression/vitalia-fase1-sub-tabs-line2/sub-tabs-nav.spec.ts
+        - vitalia/frontend/e2e/regression/vitalia-fase1-sub-tabs-line2/sub-tabs-agent-change.spec.ts
+        - vitalia/frontend/e2e/regression/vitalia-fase1-sub-tabs-line2/sub-tabs-deeplink.spec.ts
+        - vitalia/frontend/e2e/regression/vitalia-fase1-sub-tabs-line2/sub-tabs-null-agent.spec.ts
+        - vitalia/frontend/e2e/regression/vitalia-fase1-sub-tabs-line2/sub-tabs-invalid-subtab.spec.ts
+        - vitalia/frontend/e2e/regression/vitalia-fase1-sub-tabs-line2/sub-tabs-mobile-overflow.spec.ts
+        - vitalia/frontend/e2e/regression/vitalia-fase1-sub-tabs-line2/sub-tabs-xss-guard.spec.ts
+        - vitalia/frontend/e2e/regression/vitalia-fase1-sub-tabs-line2/sub-tabs-keyboard.spec.ts
+        - vitalia/frontend/e2e/regression/vitalia-fase1-sub-tabs-line2/sub-tabs-i18n.spec.ts
+        - vitalia/frontend/e2e/regression/vitalia-fase1-sub-tabs-line2/visual-goldens.spec.ts
+        - vitalia/frontend/e2e/__screenshots__/shell/sub-tabs-lisa-light.png
+        - vitalia/frontend/e2e/__screenshots__/shell/sub-tabs-lisa-dark.png
+        - vitalia/frontend/e2e/__screenshots__/shell/sub-tabs-lucas-light.png
+        - vitalia/frontend/e2e/__screenshots__/shell/sub-tabs-lucas-dark.png
+        - vitalia/frontend/e2e/__screenshots__/shell/sub-tabs-adrian-light.png
+        - vitalia/frontend/e2e/__screenshots__/shell/sub-tabs-adrian-dark.png
+        - vitalia/frontend/e2e/__screenshots__/shell/sub-tabs-valeria-light.png
+        - vitalia/frontend/e2e/__screenshots__/shell/sub-tabs-valeria-dark.png
+        - vitalia/frontend/e2e/__screenshots__/shell/sub-tabs-camila-light.png
+        - vitalia/frontend/e2e/__screenshots__/shell/sub-tabs-camila-dark.png
+        - vitalia/frontend/e2e/__screenshots__/shell/sub-tabs-config-light.png
+        - vitalia/frontend/e2e/__screenshots__/shell/sub-tabs-config-dark.png
+        - vitalia/frontend/e2e/__screenshots__/shell/sub-tabs-mobile-lucas-375.png
+      modify: []
+      delete: []
+    depends_on: [T-5]   # consume integrated <SubTabsBar /> en AppPanelSlot real
+    acceptance:
+      validator_ids:
+        - val-fe-e2e-nav
+        - val-fe-e2e-agent-change
+        - val-fe-e2e-deeplink
+        - val-fe-e2e-null-agent
+        - val-fe-e2e-invalid-subtab
+        - val-fe-e2e-mobile-overflow
+        - val-fe-e2e-xss-guard
+        - val-fe-e2e-keyboard
+        - val-fe-axe
+        - val-fe-e2e-i18n
+        - val-fe-visual-active-lisa
+        - val-fe-visual-active-lisa-dark
+        - val-fe-visual-active-lucas
+        - val-fe-visual-active-lucas-dark
+        - val-fe-visual-active-adrian
+        - val-fe-visual-active-adrian-dark
+        - val-fe-visual-active-valeria
+        - val-fe-visual-active-valeria-dark
+        - val-fe-visual-active-camila
+        - val-fe-visual-active-camila-dark
+        - val-fe-visual-active-config
+        - val-fe-visual-active-config-dark
+        - val-fe-visual-mobile-lucas-375
+    gherkin_coverage:
+      - scenario: "SC-1 happy · sub-tabs-nav.spec.ts"
+        tests:
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-sub-tabs-line2/sub-tabs-nav.spec.ts::Given user en /{tenant}/lisa/marca When click sub-tab-doctores Then URL=/tenant/lisa/doctores + Doctores sub-tab data-active=true + bg-agent-lisa-soft + text-agent-lisa + Marca sub-tab data-active=false text-muted-foreground"
+      - scenario: "SC-2 happy · sub-tabs-agent-change.spec.ts"
+        tests:
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-sub-tabs-line2/sub-tabs-agent-change.spec.ts::Given user en /{tenant}/lisa/doctores (Lisa active + 4 SubTabs visible) When click RibbonTab Lucas (F1-S7) Then URL=/tenant/lucas/lanzar + SubTabsBar re-renders 5 SubTabs Lucas + Lanzar default active + nav aria-label cambia a 'Sub-secciones Lucas'"
+      - scenario: "SC-3 happy · sub-tabs-deeplink.spec.ts"
+        tests:
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-sub-tabs-line2/sub-tabs-deeplink.spec.ts::Given navigate direct to /{tenant}/camila/reactivar When page loads Then 4 SubTabs Camila + Reactivar aria-selected=true bg-agent-camila-soft text-agent-camila + other 3 aria-selected=false text-muted-foreground"
+      - scenario: "SC-4 negative · sub-tabs-null-agent.spec.ts"
+        tests:
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-sub-tabs-line2/sub-tabs-null-agent.spec.ts::Given navigate to /{tenant}/foobar/anything Then document.querySelector('[data-testid=sub-tabs-bar]') is null in DOM + no console error fired + AppPanel grid collapses fila naturalmente"
+      - scenario: "SC-5 edge · sub-tabs-invalid-subtab.spec.ts"
+        tests:
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-sub-tabs-line2/sub-tabs-invalid-subtab.spec.ts::Given navigate to /{tenant}/lisa/inexistente (agent valid, subtab inválido) Then 4 SubTabs Lisa rendered (no return null) + cero SubTab tiene aria-selected=true + todos text-muted-foreground + no console error"
+      - scenario: "SC-6 edge · sub-tabs-mobile-overflow.spec.ts"
+        tests:
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-sub-tabs-line2/sub-tabs-mobile-overflow.spec.ts::setViewport(375, 667) + navigate to /{tenant}/lucas/lanzar (5 SubTabs caso límite) → SubTabsBar overflow-x-auto preserves whitespace-nowrap + Lanzar+En vuelo+parte Recursos visibles + scroll lateral reaches Mercado + no wrap a 2 líneas"
+      - scenario: "SC-7 adversarial · sub-tabs-xss-guard.spec.ts"
+        tests:
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-sub-tabs-line2/sub-tabs-xss-guard.spec.ts::navigate to /{tenant}/lisa/<script>alert(1)</script> · page.on('dialog') no fires · document.querySelector('script[data-injected]') null · 4 SubTabs Lisa render + ninguno active (no match contra RIBBON_SUBTABS.lisa[].id) + React JSX auto-escape verbatim"
+      - scenario: "SC-8 a11y · sub-tabs-keyboard.spec.ts (incluye axe @tag)"
+        tests:
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-sub-tabs-line2/sub-tabs-keyboard.spec.ts::Given focus en sub-tab-marca · Arrow Right cycles Doctores → Servicios → Compliance → wrap-around Marca (NO activa router.push) · Home → Marca · End → Compliance · Enter en focused Doctores → router.push(/tenant/lisa/doctores) · focus-visible ring-2 visible cada paso"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-sub-tabs-line2/sub-tabs-keyboard.spec.ts::@axe injectAxe on [data-testid=sub-tabs-bar] · wcag2aa ruleset · 0 critical violations · light + dark themes"
+      - scenario: "SC-9 i18n · sub-tabs-i18n.spec.ts"
+        tests:
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-sub-tabs-line2/sub-tabs-i18n.spec.ts::Given user en /{tenant}/camila/voz Then 4 SubTabs visibles verbatim 'Voz del paciente' (con tilde implícita por el 'ó') · 'Reactivar' · 'Multiplicar' · 'Reputación' (con tilde) + aria-label='Sub-secciones Camila' + cero voseo (no 'Reactivá'/'Multiplicalo'/etc.)"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-sub-tabs-line2/sub-tabs-i18n.spec.ts::cross-agent verification — navega 6 agentes y verifica 22 sub-tab labels verbatim glossary spec § Microcopy + 6 nav aria-labels (Adrián / Configuración con tildes)"
+      - scenario: "(visual) visual-goldens.spec.ts — 13 PNGs"
+        tests:
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-sub-tabs-line2/visual-goldens.spec.ts::active=lisa/marca light 1280x800 toHaveScreenshot sub-tabs-lisa-light.png maxDiffPixelRatio 0.001"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-sub-tabs-line2/visual-goldens.spec.ts::active=lisa/marca dark 1280 sub-tabs-lisa-dark.png"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-sub-tabs-line2/visual-goldens.spec.ts::active=lucas/lanzar light 1280 sub-tabs-lucas-light.png (5 SubTabs caso max · text-foreground en active Lucas exception)"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-sub-tabs-line2/visual-goldens.spec.ts::active=lucas/lanzar dark 1280 sub-tabs-lucas-dark.png"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-sub-tabs-line2/visual-goldens.spec.ts::active=adrian/inbox light 1280 sub-tabs-adrian-light.png"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-sub-tabs-line2/visual-goldens.spec.ts::active=adrian/inbox dark 1280 sub-tabs-adrian-dark.png"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-sub-tabs-line2/visual-goldens.spec.ts::active=valeria/agenda light 1280 sub-tabs-valeria-light.png (2 SubTabs caso mínimo)"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-sub-tabs-line2/visual-goldens.spec.ts::active=valeria/agenda dark 1280 sub-tabs-valeria-dark.png"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-sub-tabs-line2/visual-goldens.spec.ts::active=camila/voz light 1280 sub-tabs-camila-light.png (label largo 'Voz del paciente' edge case)"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-sub-tabs-line2/visual-goldens.spec.ts::active=camila/voz dark 1280 sub-tabs-camila-dark.png"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-sub-tabs-line2/visual-goldens.spec.ts::active=config/cuenta light 1280 sub-tabs-config-light.png (3 SubTabs · neutral muted exception)"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-sub-tabs-line2/visual-goldens.spec.ts::active=config/cuenta dark 1280 sub-tabs-config-dark.png"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-sub-tabs-line2/visual-goldens.spec.ts::mobile 375x667 active=lucas/lanzar (5 SubTabs Lucas) horizontal scroll sub-tabs-mobile-lucas-375.png"
+      - scenario: "(POM contract) SubTabsBarPage methods"
+        tests:
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-sub-tabs-line2/poms/sub-tabs-bar-page.pom.ts::class SubTabsBarPage exports with methods (goto, getSubTabsBar, getSubTab, clickSubTab, pressKey, getActiveSubtabId, getFocusedSubtabId, getSubTabAriaSelected, getSubTabsBarHidden, getNavAriaLabel, setViewport, setTheme)"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-sub-tabs-line2/poms/sub-tabs-bar-page.pom.ts::goto({tenantId, agent, subtab}) navigates to URL pattern + waits for sub-tabs-bar visible (or null if invalid agent)"
+          - "vitalia/frontend/e2e/regression/vitalia-fase1-sub-tabs-line2/poms/sub-tabs-bar-page.pom.ts::REUSE shell-theme.fixture.ts + clerk-auth.fixture.ts (no NEW fixture)"
+    spec_anchor: "01-spec.md § Gherkin SC-1..SC-9 + § Visual goldens · 03-arch.md § 10 Test Construction Plan + § 11"
+
+# ──────────────────────────────────────────────────────────────
+# Validation summary
+# ──────────────────────────────────────────────────────────────
+
+scenario_to_ticket_matrix:
+  SC-1:
+    title: "happy · click sub-tab navega correctly"
+    tickets: [T-1, T-3, T-4, T-6]
+  SC-2:
+    title: "happy · cambio de agente re-renderiza sub-tabs"
+    tickets: [T-1, T-4, T-6]
+  SC-3:
+    title: "happy · deep link a sub-tab arbitraria marca active state"
+    tickets: [T-1, T-3, T-4, T-6]
+  SC-4:
+    title: "negative · activeAgent null → SubTabsBar oculto"
+    tickets: [T-1, T-4, T-6]
+  SC-5:
+    title: "edge · sub-tab URL inválida → ningún SubTab active"
+    tickets: [T-1, T-4, T-6]
+  SC-6:
+    title: "edge · viewport mobile 375px → horizontal scroll Lucas (5 sub-tabs)"
+    tickets: [T-4, T-6]
+  SC-7:
+    title: "adversarial · XSS en sub-tab segment → safe"
+    tickets: [T-1, T-3, T-4, T-6]
+  SC-8:
+    title: "a11y · keyboard navigation roving tabindex"
+    tickets: [T-3, T-4, T-6]
+  SC-9:
+    title: "i18n · microcopy Spanish neutro renderizado correcto"
+    tickets: [T-1, T-4, T-5, T-6]
+
+ticket_dependencies_dag: |
+  T-1 (catalog extend SubTabMeta + RIBBON_SUBTABS + extractSubtabFromPath)
+    → T-2 (_agent-tw-classes EXTEND agentTextClassSubTab)
+    → T-3 (SubTab molécula consume T-1 + T-2)
+    → T-4 (SubTabsBar organism consume T-3 + T-1 RIBBON_SUBTABS + extractSubtabFromPath + extractAgentFromPath heredado F1-S7)
+    → T-5 (AppPanelSlot integration MODIFY + arch tests EXTEND)
+    → T-6 (Playwright POM + 9 behavior specs + 13 visual goldens)
+  Strict sequential — no parallel possible (single worktree wip/vitalia code bucket).
+
+total_estimated_hours: 13   # 1 + 0.5 + 1.5 + 2.5 + 1.5 + 6 = 13h

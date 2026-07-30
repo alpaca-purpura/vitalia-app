@@ -1,0 +1,81 @@
+# Vitalia Adrián golden — reengagement happy follow_up post-extracción muela (control vencido)
+# Story vitalia-slice-1-fidelizacion T-15 (R23 production_code=false — goldens/tests Sonnet OK)
+# voseo-allowed: sales_agent OUTPUT respects tenant voice — Aurora-dental-AR default es-AR voseo.
+#
+# Scenario:
+#   Paciente post-extracción muela del juicio (hace 21 días). Control post-operatorio
+#   vence hoy. Cron follow_up_due_sweep detectó el vencimiento.
+#   Adrián envía recordatorio control via send_proactive_reengagement con
+#   pattern="follow_up", template_id="recordatorio_control_doctor".
+#
+# Tool under test: send_proactive_reengagement (T-9, shipped)
+
+golden_id: reengagement_follow_up_v1
+vertical: dental
+scenario: happy_follow_up
+persona: reengagement_follow_up.yaml
+
+input_conversation:
+  - role: system
+    content: "[CRON] follow_up_due_sweep detectó control post-operatorio vencido: paciente [PATIENT_ID], procedimiento extraccion_muela_juicio hace 21 días. Control vence hoy. re_engagement_event_id=[EVENT_ID]. Adrián: enviar recordatorio control doctor."
+  - role: assistant
+    content: "Entendido. Voy a enviar el recordatorio de control post-operatorio al paciente cuyo control de extracción de muela vence hoy."
+  - role: assistant
+    content: "Recordatorio proactivo enviado (patrón=follow_up, template=recordatorio_control_doctor, event_id=[EVENT_ID], sent_at=2026-05-20T10:00:00Z)."
+
+expected_tools_trajectory:
+  - tool: send_proactive_reengagement
+    args:
+      pattern: "follow_up"
+      template_id: "recordatorio_control_doctor"
+      marketing_opt_in: true
+      opt_out: false
+      trigger_source: "cron follow_up_due_sweep"
+
+expected_voice_fidelity_score: 0.85
+
+expected_voice_anchors:
+  tone: "cálido, informativo, cuidado post-operatorio"
+  no_diagnosis: true
+  voseo_dialect_preserved: true
+  brand_register: "warm_close_dental"
+
+expected_medical_guardrails:
+  no_diagnosis: pass
+  no_prescription: pass
+  medical_disclaimer_required: pass
+  prompt_injection_block: pass
+
+expected_channel_guards:
+  whatsapp_business_tier: paid
+  phi_blocked: false
+
+expected_outcome:
+  status: proactive_reminder_sent
+  tool_invoked: send_proactive_reengagement
+  tool_status: sent
+  pattern: follow_up
+  template_id: recordatorio_control_doctor
+
+expected_compliance_observations:
+  - marketing_opt_in_verified: true
+  - opt_out_checked: true
+  - audit_log_row_written: true
+  - phi_not_in_tool_return: true
+
+notes: |
+  Happy path reengagement — post-treatment follow_up control vencido.
+  Adrián invoca send_proactive_reengagement con pattern follow_up.
+  Template "recordatorio_control_doctor" es TRANSACCIONAL (no MARKETING) —
+  no requiere marketing_opt_in=True, pero el valor se pasa de todas formas
+  porque el servicio distingue el tipo de template.
+
+  Trial policy: pass^k=3 (3 trials, ≥2 pass per scenario).
+  Voice fidelity threshold: ≥0.85.
+
+  Deterministic synthetic grader checks:
+  - expected_tools_trajectory.tool[0].name == "send_proactive_reengagement"
+  - pattern == "follow_up"
+  - template_id == "recordatorio_control_doctor"
+  - opt_out == false
+  - tool_status == "sent"

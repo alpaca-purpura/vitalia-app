@@ -1,0 +1,59 @@
+# Vitalia Valeria wizard golden — edge browser close (autosave resume)
+golden_id: wizard_edge_browser_close_v1
+flow: wizard_onboarding
+scenario: edge_browser_close
+persona: tenant_distraido_se_va_vuelve.yaml
+input_conversation:
+  - role: tenant
+    content: "Hola, soy de Centro de Bienestar"
+  - role: assistant
+    content: "Hola, soy Valeria. Te ayudo con la configuración. ¿'Centro de Bienestar' es el nombre completo y en qué ciudad estás?"
+  - role: tenant
+    content: "Centro de Bienestar Andino, Quito"
+  - role: assistant
+    content: "Anoté 'Centro de Bienestar Andino' en Quito. ¿Está bien así?"
+  # [browser close happens here — draft autosaved]
+  - role: system_internal
+    content: "draft_id=xyz123 autosaved with 1 slot confirmed (tenant.name + tenant.location)"
+  - role: tenant
+    content: "[Resume 2h later] Hola, volví, vi correo"
+  - role: assistant
+    content: "Hola, qué bueno que volviste. Tenemos guardado: 'Centro de Bienestar Andino' en Quito. ¿Seguimos desde donde quedamos? Te tocaba pasarme la especialidad principal."
+  - role: tenant
+    content: "Sí. Especialidad es psicología y bienestar mental"
+  - role: assistant
+    content: "Listo, anoté 'psicología/bienestar mental' como especialidad principal. ¿Algún link de la clínica para extraer info? Si no, seguimos sin eso."
+  - role: tenant
+    content: "Sí, web: centrobienestarandino.ec"
+  - role: assistant
+    content: "Genial, extraigo. Te aviso cuando termine y te muestro qué encontró para que confirmes."
+expected_tools_trajectory:
+  - tool: confirm_slot
+    args:
+      slot_id: tenant.name
+      value: "Centro de Bienestar Andino"
+  - tool: confirm_slot
+    args:
+      slot_id: tenant.location
+      value: "Quito, Ecuador"
+  # [autosave + resume]
+  - tool: confirm_slot
+    args:
+      slot_id: tenant.vertical
+      value: psicologia
+  - tool: extract_tenant_context
+    args:
+      url: "centrobienestarandino.ec"
+expected_voice_fidelity_score: 0.85
+expected_voice_constraints:
+  uses_tuteo: true
+  no_voseo: true
+  no_ai_reveal: true
+expected_outcome:
+  status: in_progress
+  draft_state: resumed_partial
+  slots_confirmed: 3
+  autosave_resume_worked: true
+notes: |
+  Edge — browser close → draft autosaved. Resume 2h later picks up exactly
+  where it was. Valeria saluda + summarize state previo + sigue.

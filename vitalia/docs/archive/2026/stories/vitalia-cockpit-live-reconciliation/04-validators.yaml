@@ -1,0 +1,204 @@
+# 04-validators.yaml — vitalia-cockpit-live-reconciliation
+# Technical-story (diagnóstico + infra + ledger). Validators ejecutables native Linux.
+# ${WS} = git rev-parse --show-toplevel (resuelto por gate-runner).
+
+validators:
+  # ─── NON-FUNCTIONAL ───
+  - id: fe_typecheck
+    category: non_functional
+    type: shell
+    cmd: "cd vitalia/frontend && npx tsc --noEmit"
+    must_pass: true
+    timeout_sec: 120
+  - id: fe_lint
+    category: non_functional
+    type: shell
+    cmd: "cd vitalia/frontend && npx eslint e2e/regression/live-reconciliation/ --cache"
+    must_pass: true
+    timeout_sec: 60
+  - id: yaml_caps_parse
+    category: non_functional
+    type: shell
+    cmd: "cd ${WS} && .venv/bin/python -c \"import yaml,glob; [yaml.safe_load(open(f)) for f in glob.glob('vitalia/docs/product/capabilities/**/*.yaml', recursive=True)]\""
+    must_pass: true
+    timeout_sec: 30
+    description: "Todo cap YAML editado sigue siendo YAML válido tras reconcile"
+
+  # ─── FUNCTIONAL — Fase 0 boot ───
+  - id: boot_frontend_200
+    category: functional
+    type: shell
+    cmd: "curl -s -o /dev/null -w '%{http_code}' --max-time 8 http://127.0.0.1:3002/sign-in"
+    expect: "200"
+    must_pass: true
+    timeout_sec: 15
+  - id: boot_no_module_not_found
+    category: functional
+    type: shell
+    cmd: "test $(docker logs luana-dev-vitalia_frontend_dev-1 --tail 80 2>&1 | grep -c 'Module not found') -eq 0"
+    must_pass: true
+    timeout_sec: 15
+  - id: boot_valeria_chat_happy
+    category: functional
+    type: playwright
+    cmd: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/shell-organism/valeria-chat-happy.spec.ts --reporter=line"
+    must_pass: true
+    timeout_sec: 180
+
+  # ─── FUNCTIONAL — Fase 1 sweep + matriz ───
+  - id: sweep_executes
+    category: functional
+    type: playwright
+    cmd: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/live-reconciliation/ --reporter=line"
+    must_pass: true
+    timeout_sec: 600
+    description: "Sweep recorre todas las superficies navegables sin crash del harness (findings emitidos)"
+  - id: matrix_artifact_exists
+    category: functional
+    type: shell
+    cmd: "test -f vitalia/docs/domains/ops/live-reconciliation.md && grep -q 'sweep_verdict' vitalia/docs/domains/ops/live-reconciliation.md"
+    must_pass: true
+    timeout_sec: 10
+  - id: matrix_evidence_for_broken
+    category: functional
+    type: shell
+    cmd: "cd ${WS} && .venv/bin/python scripts/check_matrix_evidence.py --matrix vitalia/docs/domains/ops/live-reconciliation.md || echo 'SCRIPT_TBD: review manual — toda fila ROTO/easy-fix tiene evidencia no vacía'"
+    must_pass: false   # advisory hasta que el script helper exista; auditor verifica manual
+    timeout_sec: 30
+    description: "Toda fila ROTO/easy-fix tiene columna evidencia con path a screenshot/log"
+
+  # ─── FUNCTIONAL — Fase 3 ledger honesto ───
+  - id: ledger_computed_status
+    category: functional
+    type: shell
+    cmd: "cd ${WS} && .venv/bin/python scripts/compute_capability_status.py --brand vitalia"
+    must_pass: true
+    timeout_sec: 60
+    description: "Recomputa status; output _status-computed.json refleja realidad post-reconcile"
+  - id: ledger_validate
+    category: functional
+    type: shell
+    cmd: "cd ${WS} && .venv/bin/python scripts/reconcile_capabilities.py --brand vitalia --validate-ledger; echo exit=$?"
+    expect: "exit=0"
+    must_pass: true
+    timeout_sec: 60
+  - id: ledger_no_inflated_live
+    category: functional
+    type: shell
+    cmd: "cd ${WS} && .venv/bin/python scripts/validate_code_cap_bidirectional.py --brand vitalia 2>&1 | tail -10"
+    must_pass: true
+    timeout_sec: 90
+    description: "cross_check_3 (scenarios→e2e existen) sin drift para caps que queden status: live"
+
+  # ─── VISUAL — fidelidad de las caps live-reales ───
+  - id: visual_live_surfaces
+    category: visual
+    type: playwright
+    cmd: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/visual/ --reporter=line"
+    capture: screenshots
+    must_pass: false   # baseline puede tener drift conocido (audit 2026-05-27); resultado se registra en matriz, no bloquea
+    timeout_sec: 300
+    description: "Corre visuales existentes; PASS/FAIL/drift se registra por cap en la matriz"
+  - id: a11y_live_surfaces
+    category: visual
+    type: playwright
+    cmd: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/a11y/ --reporter=line"
+    must_pass: false   # timeouts conocidos (valeria-agenda/lisa-marca) se investigan, no bloquean el harness
+    timeout_sec: 360
+    description: "Estado a11y real por cap registrado en matriz; timeouts → investigar (data-testid drift vs bug)"
+
+  # ─── ARCHITECTURAL VALIDATION ───
+  - id: arch_fe_fsd
+    category: architectural_validation
+    type: shell
+    cmd: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/"
+    must_pass: true
+    timeout_sec: 120
+    description: "FSD boundaries intactos tras fixes inline FE"
+  - id: arch_be_fitness
+    category: architectural_validation
+    type: shell
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/architecture/ -x -q --override-ini='addopts='"
+    must_pass: true
+    timeout_sec: 180
+    description: "Arch fitness BE (ratchet shrink-only) intacto tras cualquier fix inline BE"
+  - id: arch_jscpd_no_dup
+    category: architectural_validation
+    type: shell
+    cmd: "cd vitalia/frontend && npx jscpd e2e/regression/live-reconciliation/ --threshold 5 || echo 'jscpd advisory'"
+    must_pass: false
+    timeout_sec: 60
+    description: "Harness sin duplicación copy-paste"
+  - id: arch_no_engine_edit
+    category: architectural_validation
+    type: shell
+    cmd: "cd ${WS} && ! git diff --name-only main...HEAD | grep -E '^core/luana-core-[^/]+/src/'"
+    must_pass: true
+    timeout_sec: 10
+    description: "Ningún ticket editó engine core/luana-core-*/src/ (boundary HARD)"
+  - id: no_slice1_rebuild
+    category: architectural_validation
+    type: shell
+    cmd: "cd ${WS} && ! git diff --stat main...HEAD | grep -E 'vitalia/(backend|frontend)/src/.*(adrian|lucas|camila|pipeline|funnel|attribution)' || echo 'revisar: cero reconstrucción slice-1 esperada'"
+    must_pass: false   # advisory: confirma disciplina de scope (no reconstruir features Fase 2)
+    timeout_sec: 15
+    description: "Disciplina de scope: NO se reconstruyeron features slice-1 (eso es Fase 2)"
+
+scenario_coverage:
+  - { scenario_id: boot-restored, validators: [boot_frontend_200, boot_no_module_not_found, boot_valeria_chat_happy] }
+  - { scenario_id: surface-broken-flagged, validators: [sweep_executes, matrix_evidence_for_broken] }
+  - { scenario_id: superseded-cap-detected, validators: [ledger_computed_status, no_slice1_rebuild] }
+  - { scenario_id: false-green-resisted, validators: [ledger_no_inflated_live, ledger_validate] }
+  - { scenario_id: network-failure, validators: [sweep_executes] }
+  - { scenario_id: accessibility, validators: [a11y_live_surfaces] }
+  - { scenario_id: ledger-honest-after, validators: [ledger_computed_status, ledger_validate, matrix_artifact_exists] }
+
+test_construction_plan:
+  playwright_required: true
+  base_path: "vitalia/frontend/e2e/regression/live-reconciliation/"
+  creation_order:
+    - { step: 1, file: "vitalia/docker-compose.dev.yml", content: "Fase 0: remount core/ + node_modules anon volume", depends_on: [] }
+    - { step: 2, file: "vitalia/frontend/e2e/regression/live-reconciliation/surface-catalog.ts", content: "Deriva superficies navegables desde shell-routes.ts (RIBBON_SUBTABS + AGENT_SUBSUBTABS) + rutas app/", depends_on: [1] }
+    - { step: 3, file: "vitalia/frontend/e2e/regression/live-reconciliation/sweep.spec.ts", content: "Recorre cada superficie: status+console+screenshot+a11y básico → emite findings JSON", depends_on: [2] }
+    - { step: 4, file: "scripts/build_live_reconciliation_matrix.py", content: "Toma findings JSON + _status-computed.json → escribe vitalia/docs/domains/ops/live-reconciliation.md", depends_on: [3] }
+    - { step: 5, file: "vitalia/docs/domains/ops/live-reconciliation.md", content: "Matriz v1 generada (cap↔realidad)", depends_on: [4] }
+    - { step: 6, file: "vitalia/docs/product/capabilities/**/*.yaml", content: "Fase 3: reconciliar status real + replaced_by (findings-driven)", depends_on: [5] }
+  scenario_to_test:
+    - gherkin_scenario: "Scenario 1 — boot-restored"
+      test_file: "vitalia/frontend/e2e/shell-organism/valeria-chat-happy.spec.ts (existente)"
+      assertions: ["curl :3002/sign-in == 200", "logs sin 'Module not found'", "shell-organism carga (topbar+ribbon+valeria visibles)"]
+    - gherkin_scenario: "Scenario 2 — surface-broken-flagged"
+      test_file: "vitalia/frontend/e2e/regression/live-reconciliation/sweep.spec.ts"
+      assertions: ["superficie con 500/console-error → fila sweep_verdict=ROTO", "evidencia (screenshot+log+status) adjunta"]
+    - gherkin_scenario: "Scenario 4 — false-green-resisted"
+      test_file: "scripts validation (validate_code_cap_bidirectional + reconcile --validate-ledger)"
+      assertions: ["cap queda live SOLO si computed=verified-live o infra-only declarada", "cada verde cita path del e2e que la verifica"]
+  poms_required:
+    - file: "surface-catalog.ts"
+      methods: ["enumerateNavigableSurfaces() → Surface[]", "surfaceToCapId(surface) → string|null"]
+  fixtures_required:
+    - { name: "authedAs(tenant)", content: "Reusa e2e/auth.fixture.ts (Clerk storage state) — NO reinventar" }
+
+# ★ playwright_visual_scope — disciplina de scope (NO exceder + NO romper otras pantallas)
+playwright_visual_scope:
+  story_scope_routes:
+    - "/[tenantId]/(shell-organism)/** (todas las navegables, modo read/observe)"
+  story_scope_components:
+    - "vitalia/frontend/e2e/regression/live-reconciliation/** (harness nuevo)"
+    - "vitalia/docs/domains/ops/live-reconciliation.md (matriz)"
+  forbidden_visual_changes:
+    paths:
+      - "vitalia/frontend/src/components/ui/"        # Shadcn primitives — un fix acá impacta TODA la app
+      - "vitalia/frontend/src/components/shared/shell-organism/"  # wrapper shell — cambio rompe todas las superficies
+      - "vitalia/frontend/src/app/layout.tsx"
+    reasons:
+      - "El sweep OBSERVA; reparar el shell wrapper compartido excede 'fix acotado' y arriesga romper las 24 superficies a la vez"
+  if_visual_change_needed_outside_scope:
+    action: "STOP. Documentar en T-3 impl-log § Cross-surface findings + mapear a story F2 dedicada. NO reparar inline el shell compartido."
+  non_egoismo_clause: "Bug en superficie fuera de scope reparable = fila ROTO en matriz + entrada backlog F2 con evidencia. NUNCA ignorar; NUNCA arreglar el shell compartido inline."
+
+iteration:
+  max_iterations: 10
+  on_fail: "fix targeted (compose/spec/script/cap-yaml) según output, re-run validator que falló"
+  on_all_pass: "state developing→developed, append iteration_log a T-{n}-impl-log.md"
+  on_cap_reached: "state developing→blocked, escalate Chris con último trace"

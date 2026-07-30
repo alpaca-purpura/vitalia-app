@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>F2-S1 · Slot states matrix — Vitalia</title>
+<link rel="stylesheet" href="_shared.css">
+<style>
+  .matrix-frame { padding: 24px; max-width: 1280px; margin: 0 auto; }
+  .matrix-grid {
+    display: grid;
+    grid-template-columns: 140px repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    overflow: hidden;
+  }
+  .matrix-cell {
+    background: var(--bg-panel);
+    padding: 16px;
+    min-height: 110px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .matrix-row-header {
+    background: var(--bg-elevated);
+    font-weight: 700;
+    font-size: 12px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 16px;
+  }
+  .matrix-col-header {
+    background: var(--bg-elevated);
+    font-weight: 700;
+    font-size: 12px;
+    text-align: center;
+    padding: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .matrix-row-label-main { font-size: 13px; }
+  .matrix-row-label-sub { font-size: 10px; color: var(--text-muted); font-weight: 500; margin-top: 2px; text-transform: none; letter-spacing: 0; }
+  .agenda-slot.matrix-demo { padding: 8px 10px; min-height: 48px; font-size: 12px; }
+  .agenda-slot.matrix-demo .slot-title { font-size: 12px; }
+  .agenda-slot.matrix-demo .slot-meta { font-size: 10px; }
+
+  .interactive-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-top: 32px;
+  }
+  .interactive-card {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    padding: 16px;
+  }
+  .interactive-card-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+
+  .legend {
+    margin-top: 32px;
+    padding: 20px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+  }
+  .legend-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 12px;
+  }
+  .legend-item { display: flex; align-items: flex-start; gap: 10px; font-size: 12px; }
+  .legend-box {
+    width: 32px; height: 32px; border-radius: var(--r-sm); background: var(--bg-elevated);
+    flex-shrink: 0;
+  }
+</style>
+</head>
+<body>
+
+<button class="theme-btn" onclick="toggleTheme()" style="position:fixed;top:16px;right:16px;z-index:200">🌓 Tema</button>
+
+<div class="matrix-frame">
+  <div class="mockup-header">
+    <div>
+      <div class="mockup-title">Slot states matrix · 12 base + 4 interactive = 16 cells</div>
+      <div class="mockup-subtitle">4 estados pago × 3 orígenes (base) · estados default/hover/active/selected (interactivos)</div>
+    </div>
+  </div>
+
+  <!-- MATRIX 4 × 3 -->
+  <div class="matrix-grid">
+    <div class="matrix-row-header"></div>
+    <div class="matrix-col-header">
+      👤<br><div style="text-transform:none;letter-spacing:0;font-weight:500;color:var(--text-muted);margin-top:4px">Walk-in</div>
+    </div>
+    <div class="matrix-col-header">
+      📞<br><div style="text-transform:none;letter-spacing:0;font-weight:500;color:var(--text-muted);margin-top:4px">Teléfono</div>
+    </div>
+    <div class="matrix-col-header">
+      🤖<br><div style="text-transform:none;letter-spacing:0;font-weight:500;color:var(--text-muted);margin-top:4px">Proactivo Adrián</div>
+    </div>
+
+    <!-- Row 1: PAGADO 🟢 -->
+    <div class="matrix-row-header">
+      <div class="matrix-row-label-main">🟢 Pagado</div>
+      <div class="matrix-row-label-sub">border-left: var(--c-success)<br>balance=0</div>
+    </div>
+    <div class="matrix-cell">
+      <div class="agenda-slot paid matrix-demo">
+        <span class="slot-origin">👤</span>
+        <div class="slot-title">L. Mendoza</div>
+        <div class="slot-meta">Limpieza · Dr. García</div>
+      </div>
+    </div>
+    <div class="matrix-cell">
+      <div class="agenda-slot paid matrix-demo">
+        <span class="slot-origin">📞</span>
+        <div class="slot-title">C. Vargas</div>
+        <div class="slot-meta">Control · Dra. Vega</div>
+      </div>
+    </div>
+    <div class="matrix-cell">
+      <div class="agenda-slot paid matrix-demo">
+        <span class="slot-origin">🤖</span>
+        <div class="slot-title">H. Pérez</div>
+        <div class="slot-meta">Ortodoncia · Dr. Ríos</div>
+      </div>
+    </div>
+
+    <!-- Row 2: DEPÓSITO 🟡 -->
+    <div class="matrix-row-header">
+      <div class="matrix-row-label-main">🟡 Depósito</div>
+      <div class="matrix-row-label-sub">border-left: var(--c-warning)<br>balance &gt; 0 &amp;&amp; deposit &gt; 0</div>
+    </div>
+    <div class="matrix-cell">
+      <div class="agenda-slot deposit matrix-demo">
+        <span class="slot-origin">👤</span>
+        <div class="slot-title">P. Hernández</div>
+        <div class="slot-meta">Limpieza · Dr. García</div>
+      </div>
+    </div>
+    <div class="matrix-cell">
+      <div class="agenda-slot deposit matrix-demo">
+        <span class="slot-origin">📞</span>
+        <div class="slot-title">M. Quispe</div>
+        <div class="slot-meta">Endodoncia · Dr. Ríos</div>
+      </div>
+    </div>
+    <div class="matrix-cell">
+      <div class="agenda-slot deposit matrix-demo">
+        <span class="slot-origin">🤖</span>
+        <div class="slot-title">F. Rojas</div>
+        <div class="slot-meta">Ortodoncia · Dra. Vega</div>
+      </div>
+    </div>
+
+    <!-- Row 3: SIN PAGO 🔴 -->
+    <div class="matrix-row-header">
+      <div class="matrix-row-label-main">🔴 Sin pago</div>
+      <div class="matrix-row-label-sub">border-left: var(--c-destructive)<br>balance == total</div>
+    </div>
+    <div class="matrix-cell">
+      <div class="agenda-slot unpaid matrix-demo">
+        <span class="slot-origin">👤</span>
+        <div class="slot-title">B. Suárez</div>
+        <div class="slot-meta">Limpieza · Dr. Ríos</div>
+      </div>
+    </div>
+    <div class="matrix-cell">
+      <div class="agenda-slot unpaid matrix-demo">
+        <span class="slot-origin">📞</span>
+        <div class="slot-title">G. Ramírez</div>
+        <div class="slot-meta">Control · Dr. García</div>
+      </div>
+    </div>
+    <div class="matrix-cell">
+      <div class="agenda-slot unpaid matrix-demo">
+        <span class="slot-origin">🤖</span>
+        <div class="slot-title">A. Torres</div>
+        <div class="slot-meta">Consulta · Dra. Vega</div>
+      </div>
+    </div>
+
+    <!-- Row 4: NO-SHOW ⚫ -->
+    <div class="matrix-row-header">
+      <div class="matrix-row-label-main">⚫ No-show</div>
+      <div class="matrix-row-label-sub">border-left: var(--c-muted-status)<br>status=no_show</div>
+    </div>
+    <div class="matrix-cell">
+      <div class="agenda-slot noshow matrix-demo">
+        <span class="slot-origin">👤</span>
+        <div class="slot-title">R. Silva</div>
+        <div class="slot-meta">Limpieza · Dr. García</div>
+      </div>
+    </div>
+    <div class="matrix-cell">
+      <div class="agenda-slot noshow matrix-demo">
+        <span class="slot-origin">📞</span>
+        <div class="slot-title">D. Flores</div>
+        <div class="slot-meta">Consulta · Dra. Vega</div>
+      </div>
+    </div>
+    <div class="matrix-cell">
+      <div class="agenda-slot noshow matrix-demo">
+        <span class="slot-origin">🤖</span>
+        <div class="slot-title">K. Salinas</div>
+        <div class="slot-meta">Control · Dr. Ríos</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- INTERACTIVE STATES -->
+  <h2 style="font-size:14px;font-weight:700;margin-top:32px;margin-bottom:12px">Estados interactivos (4)</h2>
+  <div class="interactive-row">
+    <div class="interactive-card">
+      <div class="interactive-card-label">Default</div>
+      <div class="agenda-slot paid matrix-demo">
+        <span class="slot-origin">👤</span>
+        <div class="slot-title">J. Castro</div>
+        <div class="slot-meta">Limpieza · 09:00</div>
+      </div>
+      <div class="muted text-xs" style="margin-top:8px">Sin interacción</div>
+    </div>
+
+    <div class="interactive-card">
+      <div class="interactive-card-label">Hover (cursor)</div>
+      <div class="agenda-slot paid matrix-demo" style="background:var(--bg-hover);transform:translateX(1px)">
+        <span class="slot-origin">👤</span>
+        <div class="slot-title">J. Castro</div>
+        <div class="slot-meta">Limpieza · 09:00</div>
+      </div>
+      <div class="muted text-xs" style="margin-top:8px">+ shift X 1px · bg-hover</div>
+    </div>
+
+    <div class="interactive-card">
+      <div class="interactive-card-label">Focus (keyboard)</div>
+      <div class="agenda-slot paid matrix-demo" style="outline:2px solid var(--c-adrian);outline-offset:2px">
+        <span class="slot-origin">👤</span>
+        <div class="slot-title">J. Castro</div>
+        <div class="slot-meta">Limpieza · 09:00</div>
+      </div>
+      <div class="muted text-xs" style="margin-top:8px">focus-visible:ring-2 ring-primary</div>
+    </div>
+
+    <div class="interactive-card">
+      <div class="interactive-card-label">Selected (drawer open)</div>
+      <div class="agenda-slot paid selected matrix-demo">
+        <span class="slot-origin">👤</span>
+        <div class="slot-title">J. Castro</div>
+        <div class="slot-meta">Limpieza · 09:00</div>
+      </div>
+      <div class="muted text-xs" style="margin-top:8px">outline solid + bg agent-soft</div>
+    </div>
+  </div>
+
+  <!-- LEGEND -->
+  <div class="legend">
+    <h3 style="font-size:13px;font-weight:700">Mapping border-color → status pago</h3>
+    <div class="legend-grid">
+      <div class="legend-item">
+        <div class="legend-box" style="border-left:3px solid var(--c-success)"></div>
+        <div>
+          <strong>Pagado total</strong> · #10b981 (--c-success)<br>
+          <span class="muted">balance_amount == 0 · payment.status='completed'</span>
+        </div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-box" style="border-left:3px solid var(--c-warning)"></div>
+        <div>
+          <strong>Depósito parcial</strong> · #f59e0b (--c-warning)<br>
+          <span class="muted">balance &gt; 0 &amp;&amp; deposit_paid &gt; 0</span>
+        </div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-box" style="border-left:3px solid var(--c-destructive)"></div>
+        <div>
+          <strong>Sin pago</strong> · #ef4444 (--c-destructive)<br>
+          <span class="muted">balance == total · 0 pagos previos</span>
+        </div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-box" style="border-left:3px solid var(--c-muted-status)"></div>
+        <div>
+          <strong>No-show</strong> · #94a3b8 (--c-muted-status)<br>
+          <span class="muted">appointment.status='no_show' · line-through + opacity .6</span>
+        </div>
+      </div>
+    </div>
+
+    <h3 style="font-size:13px;font-weight:700;margin-top:16px">Mapping badge origin → AppointmentOrigin enum</h3>
+    <div class="legend-grid">
+      <div class="legend-item">
+        <div class="legend-box" style="display:flex;align-items:center;justify-content:center;font-size:18px">👤</div>
+        <div>
+          <strong>walk-in</strong> · Paciente llegó directo a clínica<br>
+          <span class="muted">Creado por Valeria desde CrearCitaButton</span>
+        </div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-box" style="display:flex;align-items:center;justify-content:center;font-size:18px">📞</div>
+        <div>
+          <strong>telefono</strong> · Reserva vía llamada<br>
+          <span class="muted">Creado por Valeria con datos de la llamada</span>
+        </div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-box" style="display:flex;align-items:center;justify-content:center;font-size:18px">🤖</div>
+        <div>
+          <strong>proactivo_adrian</strong> · Lead reservado por Adrián AI<br>
+          <span class="muted">F2-S4 adrian-embudo stage=reservado auto-crea slot</span>
+        </div>
+      </div>
+      <div class="legend-item" style="opacity:0.5">
+        <div class="legend-box"></div>
+        <div>
+          <strong>Tooltip detail</strong> · Hover origin badge muestra source<br>
+          <span class="muted">Aria-label completo: "Slot 09:00 lunes · P. Hernández · pagado · walk-in"</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="text-align:center;padding:24px">
+  <a href="agenda-cockpit-grid.html" class="muted text-sm">← Volver al cockpit índice</a>
+</div>
+
+<script>
+function toggleTheme() {
+  const html = document.documentElement;
+  const current = html.getAttribute('data-theme');
+  html.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark');
+}
+</script>
+
+</body>
+</html>

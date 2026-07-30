@@ -1,0 +1,22 @@
+# Vitalia Adrián eval persona — reengagement multi-session dental (active treatment plan)
+# voseo-allowed: persona simula paciente AR (es-AR voseo). sales_agent OUTPUT respects tenant voice.
+persona_id: reengagement_multi_session
+archetype: compliant_patient_dropped
+dialect: es-AR
+vertical: dental
+voice_constraints:
+  formality: informal
+  opening: "Holiii, ¿me pueden contar si hay turno?"
+  common_objections:
+    - "se me fue el tiempo"
+    - "tuve muchas cosas"
+  red_flags: []
+profile:
+  intent: resume_treatment
+  urgency: high
+  budget_hint: already_paid_package
+  emotional_state: slightly_guilty_responsive
+  tech_savvy: medium
+  treatment_sessions_completed: 4
+  treatment_sessions_total: 8
+  days_since_last_session: 21

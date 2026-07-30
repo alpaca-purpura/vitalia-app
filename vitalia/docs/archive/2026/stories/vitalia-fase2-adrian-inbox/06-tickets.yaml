@@ -1,0 +1,289 @@
+# 06-tickets.yaml — vitalia-fase2-adrian-inbox
+# Owner: /architect. Cada ticket: assignment block (NUNCA general-purpose) + production_code + acceptance + gherkin_coverage + DAG.
+# Naturaleza: MIGRACIÓN + consolidación + un-stub. NO build virgen. Cero tickets editan core/ o sales_agent/ runtime.
+
+story_id: vitalia-fase2-adrian-inbox
+brand: vitalia
+architecture_pattern: ADR-vitalia-004
+autonomous_mode: true            # Chris ratified 2026-06-03 ("cubre todos los pasos hasta done")
+human_gate: "reviewing → done requiere Chris demo sign-off en dev-app (Rule #37 + ADR-vitalia-008)"
+
+tickets:
+
+  # ───────────────────────────────────────────────────────────────
+  - id: T-1
+    title: "BE — un-stub ComplianceService real + PhiChannelPolicy (SC-3/AC-9/RN-7)"
+    surface: backend
+    production_code: true
+    owner_eligibility: [builder-backend]
+    depends_on: []
+    blocks: [T-2, T-6]
+    assignment:
+      primary_agent: builder-backend
+      model_preference: sonnet           # BE no-agentic; consume engine (no AGENTIC production code)
+      must_load_skills: [backend-expert, sales-agent-expert]   # sales-agent-expert SOLO § anti-duplication (consume tool, no import)
+      must_load_artifacts:
+        - vitalia/docs/product/stories/vitalia-fase2-adrian-inbox/03-arch-be.md
+        - vitalia/docs/product/stories/vitalia-fase2-adrian-inbox/05-guidelines.md
+        - vitalia/.claude/rules/hipaa-lite.md
+      forbidden_to_touch:
+        - core/**
+        - vitalia/backend/src/modules/vitalia/sales_agent/**
+        - vitalia/backend/src/modules/vitalia/copilot/**
+        - "vitalia_conversations schema (sin migración)"
+      rationale: >-
+        Consume ComplianceService.check() del engine compliance vía una PhiChannelPolicy que cumple
+        el CompliancePolicy Protocol (extensión, no mirror). Wire DI NoOp→real en _get_send_service/
+        _get_proactive_service. NO crea layer nuevo. Sonnet OK (no agentic production code).
+    deliverables:
+      - "inbox/application/policies/phi_channel_policy.py (NEW — implementa CompliancePolicy Protocol)"
+      - "inbox/api/router.py (MODIFY — DI ComplianceService real en send/proactive paths)"
+      - "send path: si !allowed → redirect a portal (microcopy SSoT) + activity event + audit row 'compliance_block_outbound_phi'"
+    acceptance:
+      validator_ids: [fn-be-phi-policy, av-be-arch-fitness, av-no-sales-agent-import, av-no-core-edit]
+    gherkin_coverage: [SC-3]
+    tests_red_first:
+      - "tests/modules/vitalia/inbox/application/test_phi_channel_policy.py"
+      - "tests/modules/vitalia/inbox/compliance/test_phi_voice_redirect.py (llenar stub)"
+
+  # ───────────────────────────────────────────────────────────────
+  - id: T-2
+    title: "BE — NudgeService + endpoint POST /nudge (RN-13)"
+    surface: backend
+    production_code: true
+    owner_eligibility: [builder-backend]
+    depends_on: [T-1]                     # comparte DI/router con T-1; serializar para evitar conflicto en router.py
+    blocks: [T-6]
+    assignment:
+      primary_agent: builder-backend
+      model_preference: sonnet
+      must_load_skills: [backend-expert, sales-agent-expert]
+      must_load_artifacts:
+        - vitalia/docs/product/stories/vitalia-fase2-adrian-inbox/03-arch-be.md
+        - vitalia/.claude/rules/hipaa-lite.md
+      forbidden_to_touch:
+        - core/**
+        - vitalia/backend/src/modules/vitalia/sales_agent/**
+      rationale: >-
+        Nudge consume send_proactive_reengagement (brand tool shipped) vía service resolver — NUNCA
+        import directo de sales_agent/. Scoped a UNA conv viva estancada (no conv nueva, no lead frío).
+        Idempotency dedup. response_model + dual filter + audit sync. Sonnet OK (no agentic prod code).
+    deliverables:
+      - "inbox/application/services/nudge_service.py (NEW)"
+      - "inbox/application/dto/nudge_dto.py (NEW — NudgeRequest/Response)"
+      - "inbox/api/router.py (MODIFY — POST /conversations/{id}/nudge + _get_nudge_service DI)"
+    acceptance:
+      validator_ids: [fn-be-nudge, fn-schemathesis-nudge, av-be-arch-fitness, av-no-sales-agent-import]
+    gherkin_coverage: [SC-6]
+    tests_red_first:
+      - "tests/modules/vitalia/inbox/application/test_nudge_service.py"
+      - "tests/modules/vitalia/inbox/api/test_router_nudge.py"
+
+  # ───────────────────────────────────────────────────────────────
+  - id: T-3
+    title: "FE — ruta adrian/inbox/page.tsx + registro shell (SHIPPED_STATIC_SUBTABS) + ChannelBadge + barrel (CONN)"
+    surface: frontend
+    production_code: true
+    owner_eligibility: [builder-frontend]
+    depends_on: []                        # independiente de BE (consume contrato shipped)
+    blocks: [T-4, T-5]
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: sonnet
+      must_load_skills: [frontend-expert, vitalia-design-system]
+      must_load_artifacts:
+        - vitalia/docs/product/stories/vitalia-fase2-adrian-inbox/03-arch-fe.md
+        - vitalia/docs/product/stories/vitalia-fase2-adrian-inbox/05-guidelines.md
+        - vitalia/docs/architecture/ADR-vitalia-004-shell-feature-architecture.md
+      forbidden_to_touch:
+        - components/ui/**
+        - "components/shared/shell-organism/{ShellOrganismLayout,ValeriaSidebar,Ribbon,SubTabsBar,EmptyState,SubSubTabsBar}.tsx"
+        - stores/shell-store.ts
+        - core/**
+      rationale: >-
+        Mirror exacto de mateo/agenda/page.tsx (RSC + getInitialInboxState SSR). Registro CONN:
+        SHIPPED_STATIC_SUBTABS += adrian.inbox (sin esto la ruta es isla → dispatcher → placeholder).
+        ChannelBadge reusable a shared/shell-organism/. Establece el esqueleto que T-4 llena.
+    deliverables:
+      - "app/[tenantId]/(shell-organism)/adrian/inbox/page.tsx (NEW)"
+      - "features/adrian/api/inbox-server.ts (NEW — getInitialInboxState, graceful degradation)"
+      - "components/shared/shell-organism/ChannelBadge.tsx (NEW)"
+      - "lib/agent-catalog.ts (MODIFY — SHIPPED_STATIC_SUBTABS += adrian.inbox)"
+      - "features/adrian/index.ts (MODIFY — export AdrianInboxView + getInitialInboxState; quitar InboxPlaceholder del wiring activo)"
+    acceptance:
+      validator_ids: [nf-fe-tsc, av-no-orphan-inbox, av-fe-arch-fitness, vis-runtime-error-gate]
+    gherkin_coverage: [SC-7, SC-8]
+
+  # ───────────────────────────────────────────────────────────────
+  - id: T-4
+    title: "FE — consolidación features/inbox → features/adrian/components/inbox + MERGE parity + DELETE huérfano"
+    surface: frontend
+    production_code: true
+    owner_eligibility: [builder-frontend]
+    depends_on: [T-3]                     # necesita ruta + barrel + ChannelBadge
+    blocks: [T-5, T-6]
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: sonnet
+      must_load_skills: [frontend-expert, vitalia-design-system]
+      must_load_artifacts:
+        - vitalia/docs/product/stories/vitalia-fase2-adrian-inbox/03-arch.md          # § 9 migration plan (source→dest verbatim)
+        - vitalia/docs/product/stories/vitalia-fase2-adrian-inbox/03-arch-fe.md
+      forbidden_to_touch:
+        - components/ui/**
+        - "components/shared/shell-organism/{ShellOrganismLayout,ValeriaSidebar,Ribbon,SubTabsBar}.tsx"
+        - stores/shell-store.ts
+      rationale: >-
+        Migra la lógica rica (~40 comps + hooks + store) de features/inbox/ → features/adrian/components/inbox/,
+        merge con la versión parity (quedarse con la más rica), mueve Vitest co-located, y DELETE
+        features/inbox/ en el MISMO PR (anti-duplicación: dos sets no conviven). Gate av-no-orphan-inbox valida.
+    deliverables:
+      - "features/adrian/components/inbox/** (MIGRATE+MERGE per 03-arch.md § 9.1/9.2)"
+      - "features/adrian/api/{inbox.ts,_keys.ts} (NEW/MIGRATE — hooks RQ consolidados)"
+      - "features/adrian/hooks/** + store/inbox-store.ts (MIGRATE+EXTEND priorValeriaState)"
+      - "features/adrian/types/{inbox.types.ts,inbox-schema.ts} (MIGRATE+NEW)"
+      - "features/inbox/ (DELETE — todo el directorio)"
+    acceptance:
+      validator_ids: [nf-fe-tsc, nf-fe-eslint, nf-no-dup-jscpd, av-no-orphan-inbox, av-fe-arch-fitness, fn-fe-vitest-inbox]
+    gherkin_coverage: [SC-1, SC-2]
+
+  # ───────────────────────────────────────────────────────────────
+  - id: T-5
+    title: "FE — piezas NEW: AdrianInboxView 3-pane + ModeToggle + ConversationModeButton + ToolCallCard + NudgeButton + Valeria-reacciona"
+    surface: frontend
+    production_code: true
+    owner_eligibility: [builder-frontend]
+    depends_on: [T-3, T-4]
+    blocks: [T-6]
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: sonnet
+      must_load_skills: [frontend-expert, vitalia-design-system]
+      must_load_artifacts:
+        - vitalia/docs/product/stories/vitalia-fase2-adrian-inbox/03-arch-fe.md       # § 5 mapping, § 6 modo conversación, § 7 valeria-reacciona
+        - vitalia/docs/product/stories/vitalia-fase2-adrian-inbox/01-spec.md           # § Wireframes + § Estados visuales
+      forbidden_to_touch:
+        - components/ui/**
+        - stores/shell-store.ts                # consume setValeriaState, NO modifica
+        - core/**
+        - vitalia/backend/src/modules/vitalia/sales_agent/**
+      rationale: >-
+        Las piezas que no existían: 3-pane ResizablePanelGroup, ModeToggle (mapping 3-modos→backend),
+        ConversationModeButton (colapsa Valeria + recuerda estado via useShellStore REUSE),
+        ToolCallCard inline, NudgeButton (consume endpoint T-2), useValeriaReaccion básica.
+        Segmented control NO Shadcn Tabs.
+    deliverables:
+      - "features/adrian/components/inbox/{AdrianInboxView,ModeToggle,ConversationModeButton,ToolCallCard,NudgeButton}.tsx (NEW)"
+      - "features/adrian/hooks/useValeriaReaccion.ts (NEW)"
+      - "Vitest co-located para cada pieza NEW"
+    acceptance:
+      validator_ids: [nf-fe-tsc, nf-fe-eslint, fn-fe-vitest-inbox, av-fe-arch-fitness]
+    gherkin_coverage: [SC-1, SC-4, SC-5, SC-6]
+
+  # ───────────────────────────────────────────────────────────────
+  - id: T-6
+    title: "Tests E2E + visual goldens + a11y + BE regression_guard + demo-script (live-verify DoD #37)"
+    surface: frontend                       # mayormente FE e2e; incluye verificar suite BE verde
+    production_code: false                  # tests + demo-script (no production code)
+    owner_eligibility: [builder-frontend]
+    depends_on: [T-1, T-2, T-4, T-5]
+    blocks: []
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: sonnet
+      must_load_skills: [frontend-expert, playwright-expert, vitalia-design-system]
+      must_load_artifacts:
+        - vitalia/docs/product/stories/vitalia-fase2-adrian-inbox/04-validators.yaml   # scenario_coverage + test_construction_plan
+        - vitalia/docs/product/stories/vitalia-fase2-adrian-inbox/01-spec.md           # § Gherkin SC-1..SC-10
+      forbidden_to_touch:
+        - core/**
+        - "production code de T-1..T-5 (solo tests + demo-script; bugs → handoff al builder owner)"
+      rationale: >-
+        E2E de los 10 SC importando e2e/fixtures/base.ts (anti-burbuja). 12 visual goldens. axe.
+        Verifica suite BE inbox verde (regression_guard). Produce demo-script.md (4 secciones) para
+        el sign-off de Chris. NO mockea el backend del surface (DoD #37 — live-verify real).
+    deliverables:
+      - "e2e/shell-organism/adrian-inbox-{modes,phi-redirect,nudge,states,tenant,a11y,visual}.spec.ts (NEW — importan base.ts)"
+      - "e2e/pages/AdrianInboxPage.ts (NEW POM)"
+      - "e2e/__screenshots__/inbox/*.png (12 goldens)"
+      - "demo-script.md (SETUP/HAPPY/EDGE/TEARDOWN derivado de SC)"
+    acceptance:
+      validator_ids: [fn-e2e-modes, fn-e2e-phi-redirect, fn-e2e-nudge-empty-error, fn-e2e-cross-tenant, vis-goldens, vis-axe, vis-runtime-error-gate, fn-be-inbox-suite]
+    gherkin_coverage: [SC-1, SC-2, SC-3, SC-4, SC-5, SC-6, SC-7, SC-8, SC-9, SC-10]
+
+# ═══════════════════════════════════════════════════════════════
+# DAG (depends_on / blocks)
+# ═══════════════════════════════════════════════════════════════
+dag:
+  description: >-
+    Lane BE (T-1 → T-2) y lane FE (T-3 → T-4 → T-5) corren EN PARALELO (sin deps cruzadas hasta T-6).
+    T-1→T-2 serializan por compartir router.py. T-3→T-4→T-5 serializan por compartir features/adrian/.
+    T-6 (tests + demo) cierra: depende de T-1,T-2,T-4,T-5.
+  critical_path: [T-3, T-4, T-5, T-6]       # FE es el camino más largo
+  parallel_lanes:
+    - { lane: BE, tickets: [T-1, T-2] }
+    - { lane: FE, tickets: [T-3, T-4, T-5] }
+  join: T-6
+
+# ═══════════════════════════════════════════════════════════════
+# Guardrails globales (todos los tickets)
+# ═══════════════════════════════════════════════════════════════
+guardrails:
+  - "NINGÚN ticket edita core/luana-core-*/src/ ni vitalia/.../sales_agent/ o copilot/ runtime."
+  - "Necesidad genuina de tocar sales_agent tool/prompt → escalar /pm-vitalia (NO ticket)."
+  - "Necesidad de primitive nuevo en engine compliance → escalar /pm-luana (NO ticket)."
+  - "Anti-duplicación: features/inbox/ se BORRA en T-4 (no dos sets)."
+  - "Tenant+clinic dual filter + audit sync write + response_model en todo endpoint."
+  - "e2e importan e2e/fixtures/base.ts (anti-burbuja). NO mockear backend del surface (DoD #37)."
+  - "Native Linux host (no docker exec). FE :3002 / BE :8002."
+
+# ═══════════════════════════════════════════════════════════════
+# Follow-ups (★ amendment 2026-06-04 · NO bloquean este `done` → /pm-vitalia backlog)
+# Origen: HANDOFF-audit-ready-r6-r8.md § 7. El scope se amplió a 2-modos durante el build;
+# estos quedan para stories aparte. Rutear a /pm-vitalia al merge.
+# ═══════════════════════════════════════════════════════════════
+follow_ups:
+  - id: FU-1
+    title: "Config tenant 'Máxima seguridad' (re-enmascarar leads)"
+    detail: "Flag BE + toggle en Plataforma/Configuración + ContactSidebar/PiiMaskedSpan leen el flag (ON → masked=true). Terreno listo (prop PiiMaskedSpan.masked). PHI/seguridad → pasa por /architect."
+    severity: medium
+    route: "/pm-vitalia (nueva story · PHI → /architect)"
+  - id: FU-2
+    title: "Migrar nudge/retract/proactive a query-keys crm-shared"
+    detail: "Mismo mismatch que mode/pause/send (ya fixeados): sus efectos no reflejan hasta migrar a ['crm','conversation',id]. 1 línea c/u."
+    severity: low
+    route: "/pm-vitalia backlog (bugfix lite)"
+  - id: FU-3
+    title: "Pausa permanente real (flag indefinido BE)"
+    detail: "Hoy 'permanente' = far-future (~100 años). Flag indefinido real = cambio BE (PauseAdrianService + _PauseRequest)."
+    severity: low
+    route: "/pm-vitalia backlog"
+  - id: FU-4
+    title: "Consolidar _INBOX_OPERATOR_ROLES a constante shared vitalia"
+    detail: "Hoy mirror en crm + inbox routers. Lift a un shared vitalia (no cross-brand)."
+    severity: low
+    route: "/pm-vitalia backlog (refactor)"
+  - id: FU-5
+    title: "Detalles estéticos menores diferidos (Chris)"
+    detail: "open_items de demo_signoff (severity low). Capturar la lista al hacer la demo final."
+    severity: low
+    route: "/pm-vitalia backlog"
+  - id: FU-6
+    title: "use-set-mode: refrescar updated_at del cache tras 200 (evitar 409 OCC en re-toggle rápido)"
+    detail: >-
+      onMutate optimistic actualiza handler_mode pero NO updated_at; tras un cambio que
+      ahora SÍ persiste (commit fix 2026-06-04), un segundo toggle inmediato manda el
+      expected_updated_at viejo → 409 OCC (la UI lo maneja: rollback + ring + refetch).
+      Fix: en onSuccess usar SetModeResult.conversation.updated_at para setear el cache.
+      No bloquea: en uso real single-toggle no ocurre; el golden espera el refetch entre toggles.
+    severity: low
+    route: "/pm-vitalia backlog (FE polish)"
+  - id: FU-7
+    title: "Live-verify del retract (POST .../revert) tras el commit-fix HB-50"
+    detail: >-
+      auditor-backend cazó que _get_retract_service tenía el mismo bug missing-commit y lo
+      arregló (Carril R) — gate-cubierto por 103 BE inbox tests. Falta ejercerlo LIVE (efecto
+      en DB) per DoD #37. NO bloquea este `done`: retract NO es un scenario de esta story
+      (sin Gherkin retract en el modelo 2-modos); el fix es sistémico (mismo patrón que mode/pause).
+    severity: low
+    route: "/pm-vitalia backlog (live-verify cuando retract entre a scope)"

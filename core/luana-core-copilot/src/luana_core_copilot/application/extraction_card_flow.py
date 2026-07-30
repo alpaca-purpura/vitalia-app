@@ -1,0 +1,449 @@
+"""Extraction card flow — event subscribers + card emitters in one place.
+
+Unified handler for extraction domain events published by brand/offer workers
+(and by ``extract_from_doc`` running inline). Subscribes at app/worker startup
+and renders:
+
+- ``navigation`` pills per completed section.
+- A final ``extraction_summary`` card per completed job.
+
+Idempotency: each emission is guarded by a Redis SET key
+``extract_card:{job_id}:{kind}:{slug}`` (TTL 24h) so worker retries are safe.
+
+Previously split across:
+  - ``application/subscribers/extraction_events.py`` (thin subscriber wrapper)
+  - ``application/emitters/extraction_card_emitter.py`` (card building)
+
+Merged here because the two files were coupled 1:1 and the indirection added
+no value. Reintroduce a ``subscribers/``/``emitters/`` split when a second
+card-emission feature lands with a different emitter life-cycle.
+"""
+
+from __future__ import annotations
+
+from uuid import UUID, uuid4
+
+import structlog
+from luana_core_platform.core.database import (
+    get_redis_client as _get_redis_client,
+)  # T-2: lazy — avoid eager Settings() at import time
+from luana_core_platform.domain.events import DomainEvent, EventBus
+
+from luana_core_copilot.domain.events import CardEmitted
+from luana_core_copilot.infrastructure.repositories.conversation_repository import (
+    ConversationRepository,
+)
+
+logger = structlog.get_logger(__name__)
+
+
+# ── Card emitters ─────────────────────────────────────────────────────────────
+
+
+def emit_section_complete_pill(
+    *,
+    db: object,
+    tenant_id: UUID,
+    conversation_id: UUID,
+    job_id: str,
+    section_slug: str,
+    section_label: str,
+    fields_count: int,
+    module: str,
+    nav_route_template: str | None = None,
+    entity_id: str | None = None,
+) -> None:
+    """Insert a navigation pill for a completed section.
+
+    Idempotent: duplicate calls with same job_id + section_slug are no-ops.
+    Pill label: ``✓ {section_label} lista · {fields_count} campos``.
+
+    Route resolution (in priority order):
+    1. ``nav_route_template`` from the event payload (preferred — module-owned).
+       Template placeholders: ``{section_slug}`` substituted here; ``{entityId}``
+       substituted with ``entity_id`` when present; ``{tenantId}`` left literal
+       for the FE navigator to substitute at click-time.
+    2. Legacy fallback: ``/{module}-studio/{section_slug}`` — kept for
+       backward-compat with events published before this refactor.
+    """
+    idempotency_key = f"extract_card:{job_id}:nav:{section_slug}"
+    _rc = _get_redis_client()
+    if _rc:
+        # Atomic NX claim: returns True on first set, None if key already exists.
+        claimed = _rc.set(idempotency_key, "1", ex=86400, nx=True)
+        if not claimed:
+            logger.debug(
+                "nav_pill_duplicate_skipped",
+                job_id=job_id,
+                section_slug=section_slug,
+            )
+            return
+
+    page_label = f"✓ {section_label} lista · {fields_count} campos"
+
+    # Build the route from the module-owned template when available.
+    if nav_route_template:
+        route = nav_route_template.replace("{section_slug}", section_slug)
+        if entity_id:
+            route = route.replace("{entityId}", entity_id)
+        # Leave ``{tenantId}`` literal — FE substitutes at click-time.
+    else:
+        # Legacy fallback: module did not supply a template (old event format).
+        module_slug = f"{module}-studio" if not module.endswith("-studio") else module
+        # Leave the ``{tenantId}`` placeholder literal — the FE navigator substitutes
+        # it at click-time from the current route. Hardcoding the tenant UUID here
+        # would bake stale state into persisted cards if the user ever switches
+        # tenants; shipping a path without the tenant segment sends the user to a
+        # not-found page because every studio route requires ``[tenantId]``.
+        route = f"/{{tenantId}}/{module_slug}/{section_slug}"
+
+    # ``type`` must match the UIAction enum the frontend navigator switch-cases
+    # on (see frontend/.../use-copilot-navigator.ts). Emitting "navigation_card"
+    # here silently no-ops the click. Stay on "navigate".
+    nav_payload = {
+        "type": "navigate",
+        "route": route,
+        "page_label": page_label,
+        "section_id": section_slug,
+    }
+
+    message = _build_card_message(card_kind="navigation", payload=nav_payload)
+
+    try:
+        conv_repo = ConversationRepository(db)
+        conv_repo.append_messages(conversation_id, tenant_id, [message])
+        logger.info(
+            "extraction_nav_pill_emitted",
+            job_id=job_id,
+            section_slug=section_slug,
+            conversation_id=str(conversation_id),
+        )
+        # Publish CardEmitted so the observability subscriber persists a
+        # ``card_emitted`` row in copilot_trace_event. The bus owns the
+        # indirection (no direct recorder dependency anymore).
+        EventBus.publish(
+            CardEmitted.create(
+                tenant_id=tenant_id,
+                turn_id=conversation_id,
+                conversation_id=conversation_id,
+                card_kind="navigation",
+                source_tool="extract_from_url",
+                payload_keys=["job_id", "section_slug", "fields_count"],
+            ),
+            session=None,
+        )
+    except Exception:  # noqa: BLE001 — card emission must not fail the job
+        logger.warning(
+            "nav_pill_emit_failed",
+            exc_info=True,
+            job_id=job_id,
+            section_slug=section_slug,
+        )
+
+
+def emit_extraction_summary_card(
+    *,
+    db: object,
+    tenant_id: UUID,
+    conversation_id: UUID,
+    job_id: str,
+    source_ref: str,
+    duration_seconds: int,
+    filled_fields: list[str],
+    filled_fields_by_section: dict[str, list[str]],
+    sections_completed: list[str],
+    primary_cta_route: str | None = None,
+    entity_id: str | None = None,
+) -> None:
+    """Insert an extraction_summary card into the conversation.
+
+    Idempotent: duplicate calls with same job_id are no-ops. The frontend
+    resolves section labels from its canonical catalog, so ``coverage_by_section``
+    emits slug names and the UI translates.
+
+    ``primary_cta_route`` is the module-owned pre-formatted route (only
+    ``{tenantId}`` literal remains — FE substitutes at click time). When
+    None and sections completed, the CTA is omitted; no hardcoded fallback
+    to brand-studio (would mis-route offer flows). ``entity_id`` is stored
+    in the card payload for future FE reference.
+    """
+    idempotency_key = f"extract_card:{job_id}:summary"
+    _rc = _get_redis_client()
+    if _rc:
+        # Atomic NX claim: returns True on first set, None if key already exists.
+        claimed = _rc.set(idempotency_key, "1", ex=86400, nx=True)
+        if not claimed:
+            logger.debug("summary_card_duplicate_skipped", job_id=job_id)
+            return
+
+    coverage_by_section = [
+        {
+            "slug": slug,
+            "label": slug,  # frontend resolves Spanish label from catalog
+            "filled": len(filled_fields_by_section.get(slug, [])),
+            "total": len(filled_fields_by_section.get(slug, [])),
+        }
+        for slug in sections_completed
+    ]
+
+    module_from_cta: str | None = None
+    if primary_cta_route:
+        if "/brand-studio" in primary_cta_route:
+            module_from_cta = "brand"
+        elif "/offer-studio" in primary_cta_route:
+            module_from_cta = "offer"
+
+    # ``{tenantId}`` placeholder (same convention as nav pills) — FE navigator
+    # replaces at click-time. Never bake a concrete tenant UUID here.
+    # Note: no default fallback to brand-studio here — if the worker did not
+    # supply a primary_cta_route, we emit None rather than pointing an offer
+    # extraction summary to the brand studio (Bug 2 fix).
+    if primary_cta_route is None and sections_completed:
+        logger.warning(
+            "extraction_summary_missing_cta_route",
+            job_id=job_id,
+            sections_completed=sections_completed,
+        )
+
+    summary_payload = {
+        "type": "extraction_summary",
+        "source_ref": source_ref,
+        "module": module_from_cta,
+        "duration_seconds": duration_seconds,
+        "total_fields": len(filled_fields),
+        "total_sections": len(sections_completed),
+        "coverage_by_section": coverage_by_section,
+        "strong_assumptions_count": 0,
+        "open_questions_count": 0,
+        "primary_cta_route": primary_cta_route,
+    }
+
+    message = _build_card_message(
+        card_kind="extraction_summary",
+        payload=summary_payload,
+    )
+
+    try:
+        conv_repo = ConversationRepository(db)
+        conv_repo.append_messages(conversation_id, tenant_id, [message])
+        logger.info(
+            "extraction_summary_card_emitted",
+            job_id=job_id,
+            total_fields=len(filled_fields),
+            total_sections=len(sections_completed),
+            conversation_id=str(conversation_id),
+        )
+        # Publish CardEmitted so the observability subscriber records the
+        # ``card_emitted`` row in copilot_trace_event.
+        EventBus.publish(
+            CardEmitted.create(
+                tenant_id=tenant_id,
+                turn_id=conversation_id,
+                conversation_id=conversation_id,
+                card_kind="extraction_summary",
+                source_tool="extract_from_url",
+                payload_keys=["job_id", "total_fields", "total_sections"],
+            ),
+            session=None,
+        )
+    except Exception:  # noqa: BLE001 — card emission must not fail the job
+        logger.warning("summary_card_emit_failed", exc_info=True, job_id=job_id)
+
+
+def _build_card_message(*, card_kind: str, payload: dict) -> dict:
+    """Build a persisted assistant message dict containing a CardBlock (v2 shape)."""
+    from luana_core_platform.domain.datetime_utils import utc_now
+
+    block_id = str(uuid4())
+    message_id = str(uuid4())
+    now = utc_now().isoformat()
+
+    return {
+        "id": message_id,
+        "role": "assistant",
+        "content": "",
+        "blocks": [
+            {
+                "type": "card",
+                "id": block_id,
+                "card_kind": card_kind,
+                "payload": payload,
+            }
+        ],
+        "status": "sent",
+        "created_at": now,
+    }
+
+
+# ── Event subscribers ─────────────────────────────────────────────────────────
+
+
+def _coerce_event_uuids(
+    event: DomainEvent,
+    conversation_id_raw: str,
+) -> tuple[UUID, UUID] | None:
+    """Parse ``event.tenant_id`` + ``conversation_id_raw`` into UUIDs.
+
+    Event payloads are domain-typed but the bus accepts stringy inputs too.
+    Return ``None`` when either slot is missing or malformed — lets the
+    subscriber log a specific warning instead of crashing via ``UUID(None)``.
+    """
+    if event.tenant_id is None:
+        return None
+    try:
+        tenant = (
+            event.tenant_id
+            if isinstance(event.tenant_id, UUID)
+            else UUID(str(event.tenant_id))
+        )
+        conv = UUID(conversation_id_raw)
+    except (TypeError, ValueError):
+        return None
+    return tenant, conv
+
+
+def handle_section_completed(event: DomainEvent) -> None:
+    """Handle extraction_section_completed: insert navigation pill."""
+    conversation_id_raw: str | None = event.payload.get("conversation_id")
+    if not conversation_id_raw:
+        return
+
+    ids = _coerce_event_uuids(event, conversation_id_raw)
+    if ids is None:
+        logger.warning(
+            "extraction_section_handler_missing_ids",
+            tenant_id=str(event.tenant_id),
+            conversation_id=conversation_id_raw,
+        )
+        return
+    tenant_uuid, conv_uuid = ids
+
+    try:
+        from luana_core_platform.core.database import SessionLocal
+
+        db = SessionLocal()
+        try:
+            emit_section_complete_pill(
+                db=db,
+                tenant_id=tenant_uuid,
+                conversation_id=conv_uuid,
+                job_id=str(event.payload.get("job_id", "")),
+                section_slug=str(event.payload.get("section_slug", "")),
+                section_label=str(event.payload.get("section_label", "")),
+                fields_count=int(event.payload.get("fields_count", 0)),
+                module=str(event.payload.get("module", "brand")),
+                nav_route_template=event.payload.get("nav_route_template"),
+                entity_id=event.payload.get("entity_id"),
+            )
+            db.commit()
+        except Exception:
+            db.rollback()
+            raise
+        finally:
+            db.close()
+    except Exception:
+        logger.exception(
+            "extraction_section_handler_failed",
+            tenant_id=str(event.tenant_id),
+            job_id=event.payload.get("job_id"),
+            section_slug=event.payload.get("section_slug"),
+        )
+
+
+def handle_job_completed(event: DomainEvent) -> None:
+    """Handle extraction_job_completed: insert extraction_summary card + clear active job state."""
+    conversation_id_raw: str | None = event.payload.get("conversation_id")
+    if not conversation_id_raw:
+        return
+
+    ids = _coerce_event_uuids(event, conversation_id_raw)
+    if ids is None:
+        logger.warning(
+            "extraction_job_handler_missing_ids",
+            tenant_id=str(event.tenant_id),
+            conversation_id=conversation_id_raw,
+        )
+        return
+    tenant_uuid, conv_uuid = ids
+
+    try:
+        from luana_core_platform.core.database import SessionLocal
+
+        from luana_core_copilot.application.extraction.active_job_persistence import (
+            write_active_job,
+        )
+
+        db = SessionLocal()
+        try:
+            emit_extraction_summary_card(
+                db=db,
+                tenant_id=tenant_uuid,
+                conversation_id=conv_uuid,
+                job_id=str(event.payload.get("job_id", "")),
+                source_ref=str(event.payload.get("source_ref", "")),
+                duration_seconds=int(event.payload.get("duration_seconds", 0)),
+                filled_fields=list(event.payload.get("filled_fields", [])),
+                filled_fields_by_section=dict(
+                    event.payload.get("filled_fields_by_section", {})
+                ),
+                sections_completed=list(event.payload.get("sections_completed", [])),
+                primary_cta_route=event.payload.get("primary_cta_route"),
+                entity_id=event.payload.get("entity_id"),
+            )
+            db.commit()
+        except Exception:
+            db.rollback()
+            raise
+        finally:
+            db.close()
+
+        # Clear the active_extraction_job flag so guided resumes question flow
+        # on the paused block. Done after card emission so a failure here does
+        # not block the UX feedback.
+        try:
+            write_active_job(conversation_id_raw, None, tenant_uuid)
+        except Exception:  # noqa: BLE001 — best-effort cleanup
+            logger.warning(
+                "active_extraction_job_clear_failed",
+                conversation_id=conversation_id_raw,
+                job_id=event.payload.get("job_id"),
+            )
+    except Exception:
+        logger.exception(
+            "extraction_job_handler_failed",
+            tenant_id=str(event.tenant_id),
+            job_id=event.payload.get("job_id"),
+            module=event.payload.get("module"),
+        )
+
+
+def register_extraction_event_handlers() -> None:
+    """Register subscribers. Idempotent — safe from multiple startup paths."""
+    already_section = handle_section_completed in EventBus._handlers.get(
+        "extraction_section_completed",
+        [],
+    )
+    already_job = handle_job_completed in EventBus._handlers.get(
+        "extraction_job_completed",
+        [],
+    )
+
+    if not already_section:
+        EventBus.subscribe("extraction_section_completed", handle_section_completed)
+    if not already_job:
+        EventBus.subscribe("extraction_job_completed", handle_job_completed)
+
+    if not already_section or not already_job:
+        logger.info(
+            "copilot_extraction_event_handlers_registered",
+            events=["extraction_section_completed", "extraction_job_completed"],
+        )
+
+
+__all__ = [
+    "emit_extraction_summary_card",
+    "emit_section_complete_pill",
+    "handle_job_completed",
+    "handle_section_completed",
+    "register_extraction_event_handlers",
+]

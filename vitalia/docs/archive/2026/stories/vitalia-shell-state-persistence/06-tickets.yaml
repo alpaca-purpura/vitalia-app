@@ -1,0 +1,168 @@
+# 06-tickets — vitalia-shell-state-persistence
+# FE-only transversal fix. All tickets: builder-frontend (Sonnet). NO BE, NO AGENTIC.
+story_id: vitalia-shell-state-persistence
+brand: vitalia
+schema_version: v4.1
+architecture_pattern: ADR-vitalia-004
+governing_adr: ADR-vitalia-006-ssr-safe-persisted-store
+autonomous_mode: false
+
+_shared_assignment_defaults: &fe_defaults
+  primary_agent: builder-frontend
+  model_preference: sonnet
+  must_load_skills:
+    - frontend-expert
+    - playwright-expert
+    - tessl__react-patterns
+    - tessl__nextjs-app-router-modularization
+    - tessl__vitest
+    - .claude/rules/frontend-fsd.md
+    - .claude/rules/spanish-text.md
+    - .claude/rules/anti-duplication.md
+    - .claude/rules/tdd-mandatory.md
+  forbidden_to_touch:
+    - "core/luana-core-*/src/"
+    - "core/@luana/*"
+    - "nicolify/"
+    - "comunify/"
+    - "lupulo/"
+    - "vitalia/frontend/src/components/ui/"
+    - "vitalia/frontend/src/lib/api/fetchClient.ts"
+    - "vitalia/frontend/src/app/layout.tsx"
+
+tickets:
+  - id: T-1
+    title: "Factory SSR-safe createSsrSafePersistedStore + hook useStoreHydration + ADR-vitalia-006; aplicar a shell-store (mata el clobber)"
+    surface: FE
+    production_code: true
+    owner_eligibility: [opencode, sonnet, opus]
+    depends_on: []
+    assignment:
+      <<: *fe_defaults
+      must_load_artifacts:
+        - "vitalia/docs/product/stories/vitalia-shell-state-persistence/00-research.md (4 técnicas FALLIDAS)"
+        - "vitalia/docs/product/stories/vitalia-shell-state-persistence/03-arch.md § 2 + § 4"
+        - "vitalia/docs/architecture/ADR-vitalia-006-ssr-safe-persisted-store.md"
+      rationale: "Patrón núcleo. Factory + skipHydration + setItem no-op pre-hydration. RED unit (SC-3 clobber) ANTES de migrar shell-store. FE Sonnet sweet spot."
+    gherkin_coverage: [SC-3, SC-6, SC-7]
+    creates:
+      - "vitalia/frontend/src/lib/store/create-ssr-safe-persisted-store.ts"
+      - "vitalia/frontend/src/lib/store/use-store-hydration.ts"
+      - "vitalia/frontend/src/lib/store/__tests__/create-ssr-safe-persisted-store.test.ts"
+      - "vitalia/frontend/src/stores/__tests__/shell-store-hydration.test.ts"
+    modifies:
+      - "vitalia/frontend/src/stores/shell-store.ts"
+
+  - id: T-2
+    title: "Skeleton store-free: TopBarGlobal variant + ShellOrganismLayoutClient dispara rehydrate; arch guard no-store-in-ssr-skeleton"
+    surface: FE
+    production_code: true
+    owner_eligibility: [opencode, sonnet, opus]
+    depends_on: [T-1]
+    assignment:
+      <<: *fe_defaults
+      must_load_artifacts:
+        - "vitalia/docs/product/stories/vitalia-shell-state-persistence/03-arch.md § 2 D3+D4"
+      rationale: "Opción A surgical: saca el store del path SSR. RED arch guard ANTES. Cierra el trigger inmediato del clobber."
+    gherkin_coverage: [SC-1, SC-2, SC-3]
+    creates:
+      - "vitalia/frontend/src/components/shared/shell-organism/__tests__/no-store-in-ssr-skeleton.test.tsx"
+    modifies:
+      - "vitalia/frontend/src/components/shared/shell-organism/ShellOrganismLayout.tsx"
+      - "vitalia/frontend/src/components/shared/shell-organism/ShellOrganismLayoutClient.tsx"
+      - "vitalia/frontend/src/components/shared/shell-organism/TopBarGlobal.tsx"
+
+  - id: T-3
+    title: "Aplicar factory a los otros 3 stores persist (tenant, agenda, agenda-filters) — convención transversal"
+    surface: FE
+    production_code: true
+    owner_eligibility: [opencode, sonnet, opus]
+    depends_on: [T-1]
+    assignment:
+      <<: *fe_defaults
+      must_load_artifacts:
+        - "vitalia/docs/product/stories/vitalia-shell-state-persistence/03-arch.md § 6 (EXTEND los 4 stores)"
+      rationale: "Cementa el patrón brand-wide (defensa en profundidad). Smoke hydration tests por store. Paralelo a T-2 (ambos dependen solo de T-1)."
+    gherkin_coverage: [SC-3]
+    creates:
+      - "vitalia/frontend/src/stores/__tests__/tenant-store-hydration.test.ts"
+      - "vitalia/frontend/src/features/valeria/store/__tests__/agenda-stores-hydration.test.ts"
+    modifies:
+      - "vitalia/frontend/src/stores/tenant-store.ts"
+      - "vitalia/frontend/src/features/valeria/store/agenda-store.ts"
+      - "vitalia/frontend/src/features/valeria/store/agenda-filters-store.ts"
+
+  - id: T-4
+    title: "Mobile collapsed-pero-recuerda: mobileDrawerOpen slice + ValeriaSidebar drawer lee slice + useViewportGuard <768 + burger"
+    surface: FE
+    production_code: true
+    owner_eligibility: [opencode, sonnet, opus]
+    depends_on: [T-1, T-2]
+    assignment:
+      <<: *fe_defaults
+      must_load_artifacts:
+        - "vitalia/docs/product/stories/vitalia-shell-state-persistence/01-spec.md § Decisión usabilidad + SC-4/SC-5/SC-5b"
+        - "vitalia/docs/product/stories/vitalia-shell-state-persistence/03-arch.md § 2 D5"
+      playwright_visual_scope_ref: "04-validators.yaml § playwright_visual_scope"
+      rationale: "extend = 1 scenario nuevo (mobile recuerda). Slice INDEPENDIENTE de valeriaState. RED e2e SC-4/5/5b ANTES. Burger setea mobileDrawerOpen (NO valeriaState)."
+    gherkin_coverage: [SC-4, SC-5, SC-5b]
+    modifies:
+      - "vitalia/frontend/src/stores/shell-store.ts"
+      - "vitalia/frontend/src/components/shared/shell-organism/ValeriaSidebar.tsx"
+      - "vitalia/frontend/src/components/shared/shell-organism/useViewportGuard.ts"
+      - "vitalia/frontend/src/components/shared/shell-organism/TopBarGlobal.tsx"
+
+  - id: T-5
+    title: "Un-skip 3 regresiones + nuevos e2e (survives-reload + mobile-collapsed-default + a11y); extender POM"
+    surface: FE
+    production_code: true
+    owner_eligibility: [opencode, sonnet, opus]
+    depends_on: [T-2, T-3, T-4]
+    assignment:
+      <<: *fe_defaults
+      must_load_artifacts:
+        - "vitalia/docs/product/stories/vitalia-shell-state-persistence/04-validators.yaml § test_construction_plan"
+      playwright_visual_scope_ref: "04-validators.yaml § playwright_visual_scope"
+      rationale: "Cierra cobertura E2E completa. Des-skipear (no reescribir) los 3 [DEFERRED] + nuevos specs SC-1/2/3 reload + SC-4/5/5b mobile + SC-8 axe/keyboard. Reuse ShellLayoutPage + shell-theme.fixture."
+    gherkin_coverage: [SC-1, SC-2, SC-3, SC-4, SC-5, SC-5b, SC-8]
+    creates:
+      - "vitalia/frontend/e2e/regression/shell-state-persistence/valeria-state-survives-reload.spec.ts"
+      - "vitalia/frontend/e2e/regression/shell-state-persistence/mobile-collapsed-default.spec.ts"
+    modifies:
+      - "vitalia/frontend/e2e/regression/vitalia-fase1-shell-layout-5050/resize-and-state.spec.ts"
+      - "vitalia/frontend/e2e/regression/vitalia-fase1-shell-layout-5050/mobile-collapse.spec.ts"
+      - "vitalia/frontend/e2e/pages/ShellLayoutPage.ts"
+
+# ── DAG ──────────────────────────────────────────────────────────────────────
+dag:
+  - "T-1 (factory + shell-store)"
+  - "T-1 → T-2 (skeleton store-free)"
+  - "T-1 → T-3 (transversal stores)  [T-2 ∥ T-3]"
+  - "T-2 + T-1 → T-4 (mobile slice)"
+  - "T-2 + T-3 + T-4 → T-5 (e2e un-skip + new)"
+
+# ── gherkin_coverage rollup (ALL SC mapped to ≥1 ticket) ─────────────────────
+gherkin_coverage_rollup:
+  SC-1:  [T-2, T-5]
+  SC-2:  [T-2, T-5]
+  SC-3:  [T-1, T-2, T-3, T-5]
+  SC-4:  [T-4, T-5]
+  SC-5:  [T-4, T-5]
+  SC-5b: [T-4, T-5]
+  SC-6:  [T-1]
+  SC-7:  [T-1]
+  SC-8:  [T-5]
+
+# ── post-merge (Fase F.3 — /pm-vitalia) ──────────────────────────────────────
+post_merge:
+  cap_change_type: extend
+  cap_target: "vitalia/docs/product/capabilities/valeria/shell.yaml"
+  cap_actions:
+    - "append change_log entry type:extend (mobile collapsed-pero-recuerda)"
+    - "append ≥1 atomic nuevo: mobile-drawer-remembers-state (added_in_story: vitalia-shell-state-persistence)"
+    - "si shell.yaml user_visible + tiene scenarios[] → append SC-4 + SC-5b"
+  learning_candidate:
+    promotable: candidate
+    target: /pm-luana
+    note: "SSR-safe persisted store (Next 16 + Zustand 5). nicolify dismiss-store tiene el mismo hazard → lift a core/@luana candidate."
+  adr_number_correction: "checkpoint.md::new_adr_candidate + 01-spec frontmatter citan ADR-vitalia-005 (ya ocupado por capability-model). Governing ADR real = ADR-vitalia-006."

@@ -1,0 +1,1193 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>D11 · Nueva cita usable (hoja full-page) — Vitalia · Mateo (Operar)</title>
+<link rel="stylesheet" href="_shared.css">
+<style>
+  /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+     D11 Nueva cita — CONTENEDOR: hoja full-page (leaf)
+     (drawer→leaf · AC-9). Compone sobre _shared.css.
+     Espeja el lenguaje de servicio-workspace.html:
+       shell chrome (topbar+ribbon+subtabs) + franja N3
+       full-bleed con back-pill + cuerpo FormLayout 2-col
+       + barra de acción sticky abajo. NO drawer, NO backdrop.
+     Internos del form REUTILIZADOS verbatim (Select canon,
+     duración badge, fin autocalc, chip disponibilidad, mini-
+     vista del día, médicos disponibles, validaciones, 409).
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+  html, body { height: 100%; }
+  body { overflow-x: hidden; }
+
+  /* ── Tag "★ PROPUESTO" (átomo propuesto al canon @luana/ui-kit) ── */
+  .canon-proposed-tag {
+    display: inline-flex; align-items: center;
+    background: #7B2D91; color: #fff;
+    font-size: 9px; font-weight: 700;
+    padding: 2px 6px; border-radius: 4px;
+    letter-spacing: .3px; margin-left: 6px;
+    vertical-align: middle; white-space: nowrap;
+  }
+
+  /* La hoja ocupa todo el alto (chrome + header N3 + body scroll + footer sticky) */
+  .leaf-root {
+    display: flex; flex-direction: column;
+    min-height: 100vh;
+    background: var(--bg-app);
+  }
+
+  /* Mateo = agente dueño de esta hoja → ribbon/subtab activos en mateo */
+  .ribbon-tab.active.mateo {
+    background: var(--c-mateo-soft);
+    color: #92400e;
+  }
+  [data-theme="dark"] .ribbon-tab.active.mateo { color: #fde047; }
+  .subtab-link.active.mateo {
+    border-bottom-color: var(--c-mateo);
+    color: var(--text-primary);
+  }
+
+  /* Botón primary acento Mateo (sobre fondo amarillo el texto va oscuro) */
+  .btn-mateo {
+    background: var(--c-mateo);
+    color: #422006;
+    font-weight: 600;
+  }
+  .btn-mateo:hover { background: #eccc00; }
+  .btn-mateo:disabled { opacity: 0.45; cursor: not-allowed; }
+
+  /* ── Franja N3 full-bleed (header de la hoja · espeja EntitySubNavBar canon) ──
+     MISMO lenguaje que ribbon/subtabs: bg-panel + border-bottom + sticky.
+     NO es card flotante. ─────────────────────────────────────────────────── */
+  .leaf-n3 {
+    background: var(--bg-panel);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 24px;
+    display: flex; align-items: center; gap: 14px;
+    position: sticky; top: 0; z-index: 20;
+  }
+  .back-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 12px 6px 10px;
+    border: 1px solid var(--border-strong);
+    border-radius: 9999px;
+    background: var(--bg-panel);
+    color: var(--text-secondary);
+    font-size: 12.5px; font-weight: 600;
+    transition: all 0.15s; white-space: nowrap;
+  }
+  .back-pill:hover { background: var(--bg-hover); color: var(--text-primary); border-color: var(--border-focus); }
+  .back-pill .rl-arrow { font-size: 15px; line-height: 1; }
+  .leaf-n3-title-wrap { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+  .leaf-n3-agent-dot {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--c-mateo-soft); color: #92400e;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 14px; flex-shrink: 0;
+  }
+  [data-theme="dark"] .leaf-n3-agent-dot { color: #fde047; }
+  .leaf-n3-title { font-size: 18px; font-weight: 700; line-height: 1.15; }
+  .leaf-n3-sub { font-size: 11px; color: var(--text-muted); }
+
+  /* ── Caja "Mapeo al canon @luana/ui-kit" (legend discreta sobre el form) ── */
+  .canon-map {
+    max-width: 1180px; margin: 16px auto 0;
+    border: 1px solid var(--border);
+    background: color-mix(in srgb, var(--bg-hover) 45%, transparent);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 12px;
+  }
+  .canon-map-title {
+    font-size: 12px; font-weight: 700;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+    display: flex; align-items: center; gap: 7px;
+  }
+  .canon-map-title .cm-kit {
+    font-family: ui-monospace, monospace; font-size: 11px;
+    color: var(--text-muted); font-weight: 600;
+  }
+  .canon-map-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 4px 28px;
+  }
+  @media (max-width: 720px) { .canon-map-grid { grid-template-columns: 1fr; } }
+  .cm-row {
+    display: flex; align-items: baseline; gap: 7px;
+    padding: 2px 0; line-height: 1.45;
+  }
+  .cm-mark { flex-shrink: 0; font-weight: 700; width: 14px; text-align: center; }
+  .cm-mark.exist { color: var(--c-success); }
+  .cm-mark.prop  { color: #7B2D91; }
+  .cm-mark.feat  { color: var(--text-muted); }
+  .cm-block { color: var(--text-secondary); }
+  .cm-atom {
+    font-family: ui-monospace, monospace; font-size: 11px;
+    color: var(--text-primary);
+  }
+  .cm-legend {
+    display: flex; flex-wrap: wrap; gap: 14px;
+    margin-top: 11px; padding-top: 9px;
+    border-top: 1px dashed var(--border);
+    font-size: 10.5px; color: var(--text-muted);
+  }
+  .cm-legend .lg { display: inline-flex; align-items: center; gap: 5px; }
+
+  /* ── Cuerpo de la hoja (2 columnas · FormLayout full-page) ── */
+  .leaf-body { flex: 1; overflow-y: auto; }
+  .leaf-inner {
+    max-width: 1180px; margin: 0 auto;
+    padding: 24px 24px 28px;
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    gap: 28px;
+    align-items: start;
+  }
+  /* En anchos estrechos: apila (form arriba, disponibilidad abajo) */
+  @media (max-width: 880px) {
+    .leaf-inner { grid-template-columns: 1fr; gap: 20px; }
+  }
+  .leaf-col-form { min-width: 0; }
+  .leaf-col-avail { min-width: 0; }
+  /* La columna derecha "se queda" a la vista mientras se llena el form */
+  @media (min-width: 881px) {
+    .leaf-col-avail { position: sticky; top: 24px; }
+  }
+
+  .col-head {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.04em; color: var(--text-muted);
+    margin-bottom: 14px;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border);
+  }
+
+  /* card-section (agrupa campos del form sin verse como flotante: borde sutil) */
+  .form-card {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    padding: 18px;
+  }
+
+  .nc-field-label {
+    font-size: 12px; font-weight: 600;
+    color: var(--text-secondary); margin-bottom: 5px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .nc-field { margin-bottom: 16px; }
+  .nc-field:last-child { margin-bottom: 0; }
+  .nc-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .req { color: var(--c-destructive); font-weight: 700; }
+
+  /* ── Segmented control (Canal de ingreso · 2 opciones) ───── */
+  .segmented {
+    display: grid; grid-template-columns: repeat(2, 1fr);
+    background: var(--bg-hover);
+    border-radius: var(--r-md);
+    padding: 3px; gap: 3px;
+  }
+  .segmented-opt {
+    padding: 8px 8px; border-radius: var(--r-sm);
+    font-size: 12.5px; font-weight: 500; text-align: center;
+    color: var(--text-secondary); cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    transition: all 0.15s; user-select: none;
+  }
+  .segmented-opt:hover { color: var(--text-primary); }
+  .segmented-opt.active {
+    background: var(--bg-panel); color: var(--text-primary);
+    font-weight: 600; box-shadow: var(--shadow-sm);
+  }
+  [data-theme="dark"] .segmented-opt.active { background: var(--bg-elevated); }
+
+  /* ── Paciente: typeahead "existing-first" + acción crear ── */
+  .patient-typeahead { position: relative; }
+  .ta-input-wrap { position: relative; }
+  .ta-input-wrap .ta-icon {
+    position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
+    color: var(--text-muted); font-size: 13px; pointer-events: none;
+  }
+  .ta-input { padding-left: 32px; }
+  .ta-panel {
+    position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    box-shadow: var(--shadow-lg);
+    z-index: 30; padding: 4px; display: none;
+    max-height: 240px; overflow-y: auto;
+  }
+  .patient-typeahead.open .ta-panel { display: block; }
+  .ta-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px; border-radius: var(--r-sm);
+    cursor: pointer;
+  }
+  .ta-item:hover { background: var(--bg-hover); }
+  .ta-item .ta-name { font-weight: 600; font-size: 13px; }
+  .ta-item .ta-sub { font-size: 11px; color: var(--text-muted); font-family: ui-monospace, monospace; }
+  /* Acción "+ Crear paciente" como fila final del panel (existing-first) */
+  .ta-create {
+    display: flex; align-items: center; gap: 8px;
+    padding: 9px 10px; margin-top: 2px;
+    border-top: 1px dashed var(--border);
+    border-radius: var(--r-sm);
+    color: var(--c-mateo); font-weight: 600; font-size: 12.5px; cursor: pointer;
+  }
+  [data-theme="dark"] .ta-create { color: #fde047; }
+  .ta-create:hover { background: var(--c-mateo-soft); }
+  .ta-create .plus { font-size: 15px; }
+
+  /* fila acción crear paciente fuera del panel (siempre visible junto al typeahead) */
+  .patient-row { display: flex; gap: 10px; align-items: stretch; }
+  .patient-row .patient-typeahead { flex: 1; }
+  .btn-create-patient {
+    white-space: nowrap; flex-shrink: 0;
+    border: 1px dashed var(--border-strong);
+    background: transparent; color: var(--text-secondary);
+  }
+  .btn-create-patient:hover { border-color: var(--c-mateo); color: #92400e; background: var(--c-mateo-soft); }
+  [data-theme="dark"] .btn-create-patient:hover { color: #fde047; }
+
+  /* ── Patient chip (paciente seleccionado vía typeahead) ── */
+  .patient-chip {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 11px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--r-md);
+    background: var(--bg-panel);
+  }
+  .patient-chip .pc-meta { flex: 1; }
+  .patient-chip .pc-name { font-weight: 600; font-size: 13px; }
+  .patient-chip .pc-sub { font-size: 11px; color: var(--text-muted); font-family: ui-monospace, monospace; }
+  .pc-remove { color: var(--text-muted); font-size: 16px; line-height: 1; padding: 4px; border-radius: var(--r-sm); }
+  .pc-remove:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+  /* ── Select canónico (Shadcn-style · NO native <select>) ── */
+  .nc-select { position: relative; }
+  .nc-select-trigger {
+    width: 100%;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 9px 12px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--r-sm);
+    background: var(--bg-panel);
+    color: var(--text-primary);
+    font-size: 13px; cursor: pointer;
+    transition: all 0.15s;
+  }
+  .nc-select-trigger:hover { border-color: var(--border-focus); }
+  .nc-select.open .nc-select-trigger {
+    border-color: var(--border-focus);
+    box-shadow: 0 0 0 3px rgba(1, 178, 248, 0.15);
+  }
+  .nc-select-chevron { color: var(--text-muted); font-size: 11px; transition: transform 0.2s; }
+  .nc-select.open .nc-select-chevron { transform: rotate(180deg); }
+  .nc-select-panel {
+    position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    box-shadow: var(--shadow-lg);
+    z-index: 30; padding: 4px; display: none;
+    max-height: 220px; overflow-y: auto;
+  }
+  .nc-select.open .nc-select-panel { display: block; }
+  .nc-select-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 10px; border-radius: var(--r-sm);
+    font-size: 13px; color: var(--text-primary); cursor: pointer;
+  }
+  .nc-select-item:hover { background: var(--bg-hover); }
+  .nc-select-item .check { color: var(--c-mateo); font-weight: 700; width: 14px; }
+  .nc-select-item.selected { font-weight: 600; }
+  .nc-select-item .si-sub { color: var(--text-muted); font-size: 11px; margin-left: auto; }
+
+  /* Duración badge bajo el servicio */
+  .dur-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    margin-top: 6px;
+    font-size: 11px; color: var(--text-secondary);
+  }
+  .dur-badge .pill {
+    background: var(--c-mateo-soft); color: #92400e;
+    padding: 2px 8px; border-radius: 9999px; font-weight: 600;
+  }
+  [data-theme="dark"] .dur-badge .pill { color: #fde047; }
+
+  /* Hora-fin read-only autocalculado */
+  .computed-input {
+    width: 100%; padding: 9px 12px;
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--r-sm);
+    background: var(--bg-hover);
+    color: var(--text-primary);
+    font-size: 13px; display: flex; align-items: center; justify-content: space-between;
+  }
+  .computed-hint {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 10px; color: var(--text-muted);
+  }
+  .computed-edit { font-size: 11px; color: var(--c-adrian); cursor: pointer; }
+  .computed-edit:hover { text-decoration: underline; }
+
+  /* ── Chip de disponibilidad (el elemento clave nuevo) ── */
+  .avail-chip {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 8px 14px;
+    border-radius: 9999px;
+    font-size: 13px; font-weight: 600;
+    border: 1px solid transparent;
+  }
+  .avail-chip.ok       { background: var(--c-success-soft); color: #065f46; border-color: var(--c-success); }
+  .avail-chip.busy     { background: var(--c-destructive-soft); color: #991b1b; border-color: var(--c-destructive); }
+  .avail-chip.outhours { background: var(--c-warning-soft); color: #92400e; border-color: var(--c-warning); }
+  .avail-chip.none     { background: var(--bg-hover); color: var(--text-muted); border-color: var(--border-strong); }
+  [data-theme="dark"] .avail-chip.ok       { color: #6ee7b7; }
+  [data-theme="dark"] .avail-chip.busy     { color: #fca5a5; }
+  [data-theme="dark"] .avail-chip.outhours { color: #fbbf24; }
+
+  /* ── Mini-vista del día del médico (elemento clave · AC-8) ── */
+  .miniday {
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    background: var(--bg-panel);
+    padding: 14px;
+  }
+  .miniday-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .miniday-doc { font-size: 13px; font-weight: 600; }
+  .miniday-date { font-size: 11px; color: var(--text-muted); }
+  /* La franja: una columna por bloque horario relativo (08–18 = 10h) */
+  .miniday-track {
+    position: relative;
+    height: 64px;
+    border-radius: var(--r-sm);
+    background: repeating-linear-gradient(
+      90deg, transparent 0, transparent calc(10% - 1px),
+      var(--border) calc(10% - 1px), var(--border) 10%);
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+  /* Bloque de atención (horario de trabajo) = fondo claro */
+  .md-working {
+    position: absolute; top: 0; bottom: 0;
+    background: var(--c-success-soft); opacity: 0.45;
+  }
+  /* Cita ocupada existente = relleno sólido gris-azul */
+  .md-busy {
+    position: absolute; top: 8px; bottom: 8px;
+    background: var(--text-secondary); opacity: 0.55;
+    border-radius: 3px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .md-busy span {
+    font-size: 9px; color: var(--bg-panel); font-weight: 600;
+    white-space: nowrap; padding: 0 2px; overflow: hidden;
+  }
+  /* Slot nuevo propuesto = acento Mateo */
+  .md-new {
+    position: absolute; top: 3px; bottom: 3px;
+    background: var(--c-mateo);
+    border: 1.5px solid #b45309;
+    border-radius: 3px; z-index: 2;
+    box-shadow: 0 0 0 2px rgba(254, 226, 9, 0.3);
+  }
+  /* Slot nuevo en colisión = rojo */
+  .md-new.collide {
+    background: var(--c-destructive);
+    border-color: #991b1b;
+    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.3);
+  }
+  /* Slot nuevo fuera de horario = ámbar punteado */
+  .md-new.out {
+    background: var(--c-warning);
+    border-color: #92400e;
+    box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.3);
+  }
+  .miniday-axis {
+    display: flex; justify-content: space-between;
+    margin-top: 6px; font-size: 9px; color: var(--text-muted);
+  }
+  .miniday-legend {
+    display: flex; gap: 14px; flex-wrap: wrap;
+    margin-top: 11px; font-size: 10px; color: var(--text-secondary);
+  }
+  .miniday-legend .lg { display: inline-flex; align-items: center; gap: 5px; }
+  .lg-sw { width: 11px; height: 11px; border-radius: 2px; display: inline-block; }
+
+  /* ── Médicos disponibles a esta hora (lista accionable) ── */
+  .doc-suggest {
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    overflow: hidden; margin-top: 12px;
+  }
+  .doc-suggest-head {
+    padding: 8px 12px; font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.04em;
+    color: var(--text-muted);
+    background: var(--bg-elevated);
+    border-bottom: 1px solid var(--border);
+  }
+  .doc-suggest-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 12px; border-bottom: 1px solid var(--border);
+  }
+  .doc-suggest-item:last-child { border-bottom: none; }
+  .doc-suggest-item .ds-meta { flex: 1; }
+  .doc-suggest-item .ds-name { font-weight: 600; font-size: 12.5px; }
+  .doc-suggest-item .ds-sub { font-size: 11px; color: var(--text-muted); }
+
+  /* ── Barra de acción sticky (footer de la hoja · reemplaza drawer-footer) ── */
+  .leaf-actionbar {
+    position: sticky; bottom: 0; z-index: 20;
+    background: var(--bg-panel);
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.05);
+    padding: 12px 24px;
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  }
+  [data-theme="dark"] .leaf-actionbar { box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.35); }
+  .leaf-actionbar .ab-left { font-size: 11px; color: var(--text-muted); }
+  .leaf-actionbar .ab-right { display: flex; gap: 10px; }
+  .leaf-actionbar .btn { padding: 9px 18px; font-size: 13px; }
+
+  /* ── Gallery (Estados) ─────────────────────────────── */
+  .gallery {
+    max-width: 1180px; margin: 0 auto; padding: 40px 24px 64px;
+  }
+  .gallery-intro {
+    border-top: 2px dashed var(--border-strong);
+    padding-top: 28px; margin-bottom: 24px;
+  }
+  .gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+    gap: 20px;
+  }
+  .state-card {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    padding: 18px;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .state-card-head { display: flex; align-items: center; gap: 8px; }
+  .state-card-title { font-size: 13px; font-weight: 700; }
+  .state-card-sc { font-size: 10px; color: var(--text-muted); font-family: ui-monospace, monospace; }
+  .inline-mini .miniday-track { height: 40px; }
+
+  .micro-errors {
+    display: grid; grid-template-columns: 1fr; gap: 14px;
+    max-width: 760px; margin: 26px auto 0;
+  }
+
+  /* ── Sección "★ Átomos propuestos al canon" ── */
+  .proposed-atoms {
+    border-top: 2px dashed #7B2D91;
+    margin-top: 44px; padding-top: 28px;
+  }
+  .proposed-atoms-title {
+    font-size: 16px; font-weight: 700;
+    color: var(--text-primary);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .proposed-atoms-title .pa-star { color: #7B2D91; }
+  .proposed-atoms-sub {
+    font-size: 12px; color: var(--text-muted);
+    margin: 4px 0 22px;
+  }
+  .proposed-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 18px;
+  }
+  .atom-card {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-left: 3px solid #7B2D91;
+    border-radius: var(--r-lg);
+    padding: 16px;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .atom-name {
+    font-family: ui-monospace, monospace;
+    font-size: 13px; font-weight: 700;
+    color: var(--text-primary);
+  }
+  .atom-demo {
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--r-md);
+    background: var(--bg-hover);
+    padding: 12px; min-height: 56px;
+    display: flex; align-items: center;
+  }
+  .atom-api {
+    font-family: ui-monospace, monospace;
+    font-size: 11px; color: var(--text-muted);
+    line-height: 1.5; word-break: break-word;
+  }
+  .atom-note {
+    font-size: 11px; color: var(--text-secondary);
+    line-height: 1.45; font-style: italic;
+  }
+  /* mini demo del FormActionBar */
+  .demo-actionbar {
+    width: 100%;
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    padding: 8px 10px;
+  }
+  .demo-actionbar .da-hint { font-size: 10px; color: var(--text-muted); }
+  .demo-actionbar .da-btns { display: flex; gap: 6px; }
+  .demo-actionbar .btn { padding: 5px 12px; font-size: 11.5px; }
+  /* mini demo del back-pill */
+  .demo-pageheader { display: flex; align-items: center; gap: 9px; }
+  .demo-pageheader .ph-title { font-size: 14px; font-weight: 700; }
+  /* mini demo del EntityPicker createAction */
+  .demo-picker {
+    width: 100%;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--r-md);
+    background: var(--bg-panel);
+    overflow: hidden;
+  }
+  .demo-picker .dp-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 10px; font-size: 12px;
+  }
+  .demo-picker .dp-item .avatar { flex-shrink: 0; }
+  .demo-picker .dp-create {
+    display: flex; align-items: center; gap: 7px;
+    padding: 8px 10px; font-size: 12px; font-weight: 600;
+    color: var(--c-valeria);
+    border-top: 1px dashed var(--border);
+  }
+  [data-theme="dark"] .demo-picker .dp-create { color: #c98fdf; }
+
+  /* ── Create paciente INLINE en el picker (popover abierto · NO hoja, NO popup) ── */
+  .cp-inline-popover {
+    border: 1px solid var(--border-strong);
+    border-radius: var(--r-md);
+    box-shadow: var(--shadow-lg);
+    background: var(--bg-panel);
+    padding: 6px;
+    overflow: hidden;
+  }
+  .cp-inline-search {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 10px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--r-sm);
+    background: var(--bg-panel);
+  }
+  .cp-inline-icon { color: var(--text-muted); font-size: 13px; }
+  .cp-inline-typed { font-size: 13px; color: var(--text-primary); }
+  .cp-inline-empty {
+    padding: 9px 10px 4px;
+    font-size: 11.5px; color: var(--text-muted);
+  }
+  /* Fila de acción "▾ + Crear paciente" en estado expandido */
+  .cp-inline-create-row {
+    display: flex; align-items: center; gap: 6px;
+    padding: 8px 10px;
+    border-top: 1px dashed var(--border);
+    color: var(--c-mateo); font-weight: 600; font-size: 12.5px;
+  }
+  [data-theme="dark"] .cp-inline-create-row { color: #fde047; }
+  /* Mini-form inline · indentado + barra lateral = "está adentro del picker" */
+  .cp-inline-form {
+    margin: 4px 4px 4px 16px;
+    padding: 12px 12px 12px 12px;
+    border-left: 2px solid var(--c-mateo);
+    border-radius: var(--r-sm);
+    background: var(--bg-hover);
+  }
+  .cp-inline-actions {
+    display: flex; align-items: center; gap: 12px;
+  }
+  .cp-inline-cancel {
+    font-size: 12px; color: var(--text-muted); cursor: pointer;
+  }
+  .cp-inline-cancel:hover { color: var(--text-primary); text-decoration: underline; }
+  .cp-inline-caption {
+    font-size: 11px; color: var(--text-muted);
+    line-height: 1.45; margin-top: 2px;
+  }
+</style>
+</head>
+<body>
+
+<button class="theme-btn" onclick="toggleTheme()" style="position:fixed;top:14px;right:16px;z-index:200">🌓 Tema</button>
+
+<!-- ══════════════════════════════════════════════════════
+     HOJA FULL-PAGE · NUEVA CITA — estado HAPPY (disponible)
+     Sin drawer, sin backdrop, sin agenda dimmed detrás.
+     ══════════════════════════════════════════════════════ -->
+<div class="leaf-root">
+
+  <!-- ── SHELL CHROME (verbatim del shell-organism) ── -->
+  <div class="shell-topbar">
+    <strong style="font-size:15px">🏥 Vitalia</strong>
+    <span class="muted">|</span>
+    <span class="secondary">Clínica Dental Sonrisa <span class="muted">· Lima, PE</span></span>
+    <div style="flex:1"></div>
+    <span class="muted text-xs">recepcion@sonrisa.pe</span>
+  </div>
+
+  <div class="shell-ribbon">
+    <div class="ribbon-tab"><span style="color:var(--c-lisa)">●</span> Lisa</div>
+    <div class="ribbon-tab active mateo"><span style="color:var(--c-mateo)">●</span> Mateo</div>
+    <div class="ribbon-tab"><span style="color:var(--c-adrian)">●</span> Adrián</div>
+    <div class="ribbon-tab"><span style="color:var(--c-lucas)">●</span> Lucas</div>
+    <div class="ribbon-tab"><span style="color:var(--c-camila)">●</span> Camila</div>
+    <div class="ribbon-tab" style="margin-left:auto"><span class="muted">⚙</span> Plataforma</div>
+  </div>
+
+  <div class="shell-subtabs">
+    <div class="subtab-link active mateo">Agenda</div>
+    <div class="subtab-link">Mi día</div>
+    <div class="subtab-link">Recordatorios</div>
+  </div>
+
+  <!-- ── FRANJA N3 FULL-BLEED (header de la hoja · back-pill + título) ── -->
+  <div class="leaf-n3">
+    <a class="back-pill" href="agenda-week.html" title="Volver a la Agenda (sin perder datos)">
+      <span class="rl-arrow">‹</span> Agenda
+    </a>
+    <span class="canon-proposed-tag" title="PageHeader back-pill — átomo propuesto al canon">★ PROPUESTO</span>
+    <div class="leaf-n3-title-wrap">
+      <span class="leaf-n3-agent-dot">📅</span>
+      <div>
+        <div class="leaf-n3-title">Nueva cita</div>
+        <div class="leaf-n3-sub">Mateo · Agenda — Clínica Dental Sonrisa</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MAPEO AL CANON @luana/ui-kit (legend discreta) ── -->
+  <div class="canon-map">
+    <div class="canon-map-title">
+      Mapeo al canon <span class="cm-kit">@luana/ui-kit</span>
+    </div>
+    <div class="canon-map-grid">
+      <div class="cm-row"><span class="cm-mark exist">✓</span> <span class="cm-block">Contenedor hoja</span> → <span class="cm-atom">archetypes.FormPageScaffold</span></div>
+      <div class="cm-row"><span class="cm-mark exist">✓</span> <span class="cm-block">Canal de ingreso</span> → <span class="cm-atom">shell.TogglePill</span></div>
+      <div class="cm-row"><span class="cm-mark exist">✓</span> <span class="cm-block">Servicio / Médico</span> → <span class="cm-atom">inputs.RichSelect</span></div>
+      <div class="cm-row"><span class="cm-mark exist">✓</span> <span class="cm-block">Paciente</span> → <span class="cm-atom">EntityPicker</span></div>
+      <div class="cm-row"><span class="cm-mark exist">✓</span> <span class="cm-block">Fecha y hora</span> → <span class="cm-atom">inputs.SmartDatetimePicker</span></div>
+      <div class="cm-row"><span class="cm-mark exist">✓</span> <span class="cm-block">Hora de fin</span> → <span class="cm-atom">inline-editable + Badge</span></div>
+      <div class="cm-row"><span class="cm-mark exist">✓</span> <span class="cm-block">Notas</span> → <span class="cm-atom">textarea</span></div>
+      <div class="cm-row"><span class="cm-mark exist">✓</span> <span class="cm-block">Médico card</span> → <span class="cm-atom">card / EntityInfoCard</span></div>
+      <div class="cm-row"><span class="cm-mark exist">✓</span> <span class="cm-block">Toast 409</span> → <span class="cm-atom">overlays.Sonner</span></div>
+      <div class="cm-row"><span class="cm-mark exist">✓</span> <span class="cm-block">Avatars</span> → <span class="cm-atom">avatar</span></div>
+      <div class="cm-row"><span class="cm-mark prop">★</span> <span class="cm-block">Barra de acción sticky</span> → <span class="cm-atom">FormActionBar</span></div>
+      <div class="cm-row"><span class="cm-mark prop">★</span> <span class="cm-block">Chips de disponibilidad</span> → <span class="cm-atom">Badge success / warning</span></div>
+      <div class="cm-row"><span class="cm-mark prop">★</span> <span class="cm-block">Volver a Agenda</span> → <span class="cm-atom">PageHeader back-pill</span></div>
+      <div class="cm-row"><span class="cm-mark prop">★</span> <span class="cm-block">Crear paciente sin salir</span> → <span class="cm-atom">EntityPicker.createAction</span></div>
+      <div class="cm-row"><span class="cm-mark feat">◆</span> <span class="cm-block">Mini-vista del día</span> → <span class="cm-atom">DayAvailabilityStrip</span></div>
+    </div>
+    <div class="cm-legend">
+      <span class="lg"><span class="cm-mark exist">✓</span> Existente en el canon</span>
+      <span class="lg"><span class="cm-mark prop">★</span> Propuesto (va por /pm-luana)</span>
+      <span class="lg"><span class="cm-mark feat">◆</span> Componente de feature (scheduling · lift-candidate)</span>
+    </div>
+  </div>
+
+  <!-- ── CUERPO DE LA HOJA · 2 columnas ── -->
+  <div class="leaf-body">
+    <div class="leaf-inner">
+
+      <!-- ░░░ COLUMNA IZQUIERDA · campos del form ░░░ -->
+      <div class="leaf-col-form">
+        <div class="col-head">Datos de la cita</div>
+        <div class="form-card">
+
+          <!-- 1 · Canal de ingreso (segmented · 2 opciones) -->
+          <div class="nc-field">
+            <div class="nc-field-label">Canal de ingreso <span class="req">*</span></div>
+            <div class="segmented" role="tablist">
+              <div class="segmented-opt active" role="tab" aria-selected="true">🚶 Walk-in</div>
+              <div class="segmented-opt" role="tab">📞 Teléfono</div>
+            </div>
+          </div>
+
+          <!-- 2 · Paciente (typeahead existing-first + crear) → seleccionado -->
+          <div class="nc-field">
+            <div class="nc-field-label">Paciente <span class="req">*</span></div>
+            <!-- Estado: paciente ya seleccionado vía typeahead -->
+            <div class="patient-chip">
+              <div class="avatar avatar-sm" style="background:var(--c-mateo-soft);color:#92400e">MF</div>
+              <div class="pc-meta">
+                <div class="pc-name">María Fernanda López</div>
+                <div class="pc-sub">DNI 45.***.*** · +51 998 ••• 421</div>
+              </div>
+              <button class="pc-remove" aria-label="Quitar paciente" onclick="resetPatient()">✕</button>
+            </div>
+            <div class="form-helper" style="margin-top:5px">Datos del paciente protegidos (PHI enmascarado).</div>
+
+            <!-- Estado alterno (oculto): typeahead vacío + acción crear -->
+            <div id="patient-search-row" class="patient-row" style="display:none;margin-top:8px">
+              <div class="patient-typeahead" onclick="openTA(event)">
+                <div class="ta-input-wrap">
+                  <span class="ta-icon">🔍</span>
+                  <input class="form-input ta-input" type="text" placeholder="Buscar paciente…" value="lópe" />
+                </div>
+                <div class="ta-panel" onclick="event.stopPropagation()">
+                  <div class="ta-item" onclick="pickPatient()">
+                    <div class="avatar avatar-sm" style="background:var(--c-mateo-soft);color:#92400e">MF</div>
+                    <div><div class="ta-name">María Fernanda López</div><div class="ta-sub">DNI 45.***.*** · +51 998 ••• 421</div></div>
+                  </div>
+                  <div class="ta-item" onclick="pickPatient()">
+                    <div class="avatar avatar-sm" style="background:var(--c-adrian-soft);color:var(--c-adrian)">JL</div>
+                    <div><div class="ta-name">Jorge López Quispe</div><div class="ta-sub">DNI 41.***.*** · +51 987 ••• 003</div></div>
+                  </div>
+                  <div class="ta-create" onclick="openCrearPaciente()">
+                    <span class="plus">＋</span> Crear paciente «lópe»
+                  </div>
+                </div>
+              </div>
+              <button class="btn btn-create-patient" onclick="openCrearPaciente()">＋ Crear paciente</button>
+            </div>
+          </div>
+
+          <!-- 3 · Servicio (Select canónico) + duración badge -->
+          <div class="nc-field">
+            <div class="nc-field-label">Servicio <span class="req">*</span></div>
+            <div class="nc-select" onclick="toggleSelect(this)">
+              <div class="nc-select-trigger">
+                <span>Limpieza dental profunda</span>
+                <span class="nc-select-chevron">▾</span>
+              </div>
+              <div class="nc-select-panel" onclick="event.stopPropagation()">
+                <div class="nc-select-item selected"><span class="check">✓</span> Limpieza dental profunda <span class="si-sub">30 min</span></div>
+                <div class="nc-select-item"><span class="check"></span> Botox facial <span class="si-sub">45 min</span></div>
+                <div class="nc-select-item"><span class="check"></span> Ácido hialurónico <span class="si-sub">60 min</span></div>
+                <div class="nc-select-item"><span class="check"></span> Consulta inicial <span class="si-sub">30 min</span></div>
+                <div class="nc-select-item"><span class="check"></span> Blanqueamiento <span class="si-sub">90 min</span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 4 + 5 · Fecha/hora inicio + Duración (min) -->
+          <div class="nc-row-2">
+            <div class="nc-field">
+              <div class="nc-field-label">Fecha y hora de inicio <span class="req">*</span></div>
+              <input class="form-input" type="text" value="22/06/2026  09:00" />
+            </div>
+            <div class="nc-field">
+              <div class="nc-field-label">Duración (min) <span class="req">*</span></div>
+              <input class="form-input" type="number" value="30" />
+              <div class="form-helper">viene del servicio · editable</div>
+            </div>
+          </div>
+
+          <!-- 6 · Hora de fin (read-only autocalculado) -->
+          <div class="nc-field">
+            <div class="nc-field-label">Hora de fin</div>
+            <div class="computed-input">
+              <span>09:30</span>
+              <span style="display:flex;align-items:center;gap:10px">
+                <span class="computed-hint">⚙ autocalculado</span>
+                <span class="computed-edit">editar</span>
+              </span>
+            </div>
+          </div>
+
+          <!-- 7 · Médico (Select canónico) -->
+          <div class="nc-field">
+            <div class="nc-field-label">Médico <span class="req">*</span></div>
+            <div class="nc-select" onclick="toggleSelect(this)">
+              <div class="nc-select-trigger">
+                <span>Dra. Ana García Mendoza</span>
+                <span class="nc-select-chevron">▾</span>
+              </div>
+              <div class="nc-select-panel" onclick="event.stopPropagation()">
+                <div class="nc-select-item selected"><span class="check">✓</span> Dra. Ana García Mendoza <span class="si-sub">Odontología</span></div>
+                <div class="nc-select-item"><span class="check"></span> Dr. Juan Pérez <span class="si-sub">Medicina estética</span></div>
+                <div class="nc-select-item"><span class="check"></span> Dra. Lucía Ramírez <span class="si-sub">Odontología</span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 8 · Notas internas -->
+          <div class="nc-field">
+            <div class="nc-field-label">Notas internas <span class="muted" style="font-weight:400">(opcional)</span></div>
+            <textarea class="form-textarea" placeholder="Solo logística — sin información clínica. Ej: la paciente prefiere las mañanas."></textarea>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ░░░ COLUMNA DERECHA · disponibilidad ░░░ -->
+      <div class="leaf-col-avail">
+        <div class="col-head">Disponibilidad del médico</div>
+
+        <!-- 9 · Chip de disponibilidad (HAPPY) -->
+        <div class="form-card" style="display:flex;flex-direction:column;gap:16px">
+          <div>
+            <span class="avail-chip ok">✓ Disponible</span>
+            <span class="canon-proposed-tag" title="Badge variants success/warning — propuestos al canon">★ PROPUESTO</span>
+          </div>
+
+          <!-- 10 · Mini-vista del día del médico (AC-8) — más grande en la columna -->
+          <div class="miniday">
+            <div class="miniday-head">
+              <span class="miniday-doc">Dra. Ana García Mendoza</span>
+              <span class="miniday-date">Lun 22 jun · 09:00–18:00</span>
+            </div>
+            <!-- 08–18 = 10 columnas (cada 10% = 1h). left:(h-8)*10% , width: min*10/60% -->
+            <div class="miniday-track">
+              <!-- horario de atención 09–18 -->
+              <div class="md-working" style="left:10%;width:90%"></div>
+              <!-- citas ocupadas -->
+              <div class="md-busy" style="left:20%;width:5%"><span>10:00</span></div>
+              <div class="md-busy" style="left:50%;width:7.5%"><span>13:00</span></div>
+              <!-- slot nuevo propuesto 09:00–09:30 (resaltado Mateo) -->
+              <div class="md-new" style="left:10%;width:5%" title="Nueva cita 09:00–09:30"></div>
+            </div>
+            <div class="miniday-axis">
+              <span>08</span><span>09</span><span>10</span><span>11</span><span>12</span><span>13</span><span>14</span><span>15</span><span>16</span><span>17</span><span>18</span>
+            </div>
+            <div class="miniday-legend">
+              <span class="lg"><span class="lg-sw" style="background:var(--c-success-soft)"></span> Horario de atención</span>
+              <span class="lg"><span class="lg-sw" style="background:var(--text-secondary);opacity:.55"></span> Ocupado</span>
+              <span class="lg"><span class="lg-sw" style="background:var(--c-mateo);border:1px solid #b45309"></span> Cita nueva</span>
+            </div>
+            <div class="form-helper" style="margin-top:10px">Elige una hora libre de un vistazo — la franja amarilla es la cita nueva.</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── BARRA DE ACCIÓN STICKY (footer de la hoja · FormActionBar propuesto) ── -->
+  <div class="leaf-actionbar">
+    <div class="ab-left">Sin guardar todavía · los datos no se pierden si navegas dentro de la hoja.<span class="canon-proposed-tag" title="FormActionBar — átomo propuesto al canon">★ PROPUESTO</span></div>
+    <div class="ab-right">
+      <button class="btn btn-outline">Cancelar</button>
+      <button class="btn btn-mateo">Crear cita</button>
+    </div>
+  </div>
+
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════
+     GALERÍA DE ESTADOS — para ratificar todos los comportamientos
+     ══════════════════════════════════════════════════════ -->
+<div class="gallery">
+  <div class="gallery-intro">
+    <div class="mockup-title">Galería de estados — disponibilidad + paciente</div>
+    <div class="mockup-subtitle">
+      La hoja de arriba muestra el estado <strong>Disponible</strong> (happy path). Acá los 4 estados de bloqueo
+      + validaciones inline + el <strong>crear paciente inline en el picker</strong> (sin salir del form de la cita),
+      para ratificar cada comportamiento (RN-1..RN-8 · AC-4/AC-5/AC-6/AC-8/AC-10).
+    </div>
+  </div>
+
+  <div class="gallery-grid">
+
+    <!-- A · Ocupado / solape -->
+    <div class="state-card">
+      <div class="state-card-head">
+        <span class="avail-chip busy">✕ Ocupado</span>
+        <span class="state-card-sc">SC-solape · RN-1</span>
+      </div>
+      <div class="text-sm secondary">Se solapa con cita de <strong>09:15 — Botox</strong> de la Dra. García. Crear queda bloqueado.</div>
+      <div class="miniday inline-mini">
+        <div class="miniday-head">
+          <span class="miniday-doc">Dra. Ana García Mendoza</span>
+          <span class="miniday-date">Lun 22 jun</span>
+        </div>
+        <div class="miniday-track">
+          <div class="md-working" style="left:10%;width:90%"></div>
+          <div class="md-busy" style="left:11.25%;width:7.5%"><span>09:15 Botox</span></div>
+          <div class="md-new collide" style="left:10%;width:5%" title="Colisión 09:00–09:30"></div>
+        </div>
+        <div class="miniday-axis"><span>08</span><span>10</span><span>12</span><span>14</span><span>16</span><span>18</span></div>
+      </div>
+      <!-- Médicos disponibles a esta hora -->
+      <div class="doc-suggest">
+        <div class="doc-suggest-head">Médicos disponibles a esta hora</div>
+        <div class="doc-suggest-item">
+          <div class="avatar avatar-sm" style="background:var(--c-adrian-soft);color:var(--c-adrian)">JP</div>
+          <div class="ds-meta"><div class="ds-name">Dr. Juan Pérez</div><div class="ds-sub">Medicina estética · libre 09:00–09:30</div></div>
+          <button class="btn btn-outline btn-sm">Asignar</button>
+        </div>
+        <div class="doc-suggest-item">
+          <div class="avatar avatar-sm" style="background:var(--c-lisa-soft);color:var(--c-lisa)">LR</div>
+          <div class="ds-meta"><div class="ds-name">Dra. Lucía Ramírez</div><div class="ds-sub">Odontología · libre 09:00–09:30</div></div>
+          <button class="btn btn-outline btn-sm">Asignar</button>
+        </div>
+      </div>
+      <button class="btn btn-mateo" disabled style="width:100%">Crear cita</button>
+    </div>
+
+    <!-- B · Fuera de horario -->
+    <div class="state-card">
+      <div class="state-card-head">
+        <span class="avail-chip outhours">✕ Fuera de horario</span>
+        <span class="state-card-sc">SC-fuera-horario · RN-3</span>
+      </div>
+      <div class="text-sm secondary">La Dra. García atiende de <strong>09:00 a 18:00</strong>. La franja 08:00–08:30 cae fuera de su horario.</div>
+      <div class="miniday inline-mini">
+        <div class="miniday-head">
+          <span class="miniday-doc">Dra. Ana García Mendoza</span>
+          <span class="miniday-date">Lun 22 jun</span>
+        </div>
+        <div class="miniday-track">
+          <div class="md-working" style="left:10%;width:90%"></div>
+          <div class="md-new out" style="left:0%;width:5%" title="08:00–08:30 fuera de horario"></div>
+        </div>
+        <div class="miniday-axis"><span>08</span><span>10</span><span>12</span><span>14</span><span>16</span><span>18</span></div>
+      </div>
+      <div class="alert alert-warning">
+        <span>⏰</span>
+        <div>Elige una hora dentro del horario de atención, o reasigna a otro médico que atienda más temprano.</div>
+      </div>
+      <button class="btn btn-mateo" disabled style="width:100%">Crear cita</button>
+    </div>
+
+    <!-- C · Sin horario cargado -->
+    <div class="state-card">
+      <div class="state-card-head">
+        <span class="avail-chip none">○ Sin horario cargado</span>
+        <span class="state-card-sc">SC-sin-horario · RN-4</span>
+      </div>
+      <div class="text-sm secondary">El <strong>Dr. Juan Pérez</strong> todavía no tiene un horario de atención cargado para este día.</div>
+      <div class="miniday inline-mini">
+        <div class="miniday-head">
+          <span class="miniday-doc">Dr. Juan Pérez</span>
+          <span class="miniday-date">Lun 22 jun</span>
+        </div>
+        <div class="miniday-track" style="opacity:.5">
+          <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--text-muted)">Sin horario</div>
+        </div>
+        <div class="miniday-axis"><span>08</span><span>10</span><span>12</span><span>14</span><span>16</span><span>18</span></div>
+      </div>
+      <div class="alert alert-info">
+        <span>📋</span>
+        <div>Carga el horario de este médico primero en <strong>Mi Clínica › Horarios</strong>.</div>
+      </div>
+      <button class="btn btn-mateo" disabled style="width:100%">Crear cita</button>
+    </div>
+
+    <!-- D · Crear paciente INLINE en el picker (NO hoja, NO popup · AC-10) -->
+    <div class="state-card" style="grid-column:span 1">
+      <div class="state-card-head">
+        <span class="status-pill info">＋ Crear paciente</span>
+        <span class="canon-proposed-tag" title="EntityPicker.createAction — átomo propuesto al canon">★ PROPUESTO</span>
+        <span class="state-card-sc">SC-crear-paciente · AC-10</span>
+      </div>
+      <div class="text-sm secondary">Inline en el picker — el operador busca, no hay resultado, y crea sin salir del form de la cita.</div>
+      <!-- Popover del picker de Paciente ABIERTO con el create inline expandido -->
+      <div class="cp-inline-popover">
+        <div class="cp-inline-search">
+          <span class="cp-inline-icon">🔍</span>
+          <span class="cp-inline-typed">Lópe</span>
+        </div>
+        <div class="cp-inline-empty">Sin resultados para «Lópe»</div>
+        <div class="cp-inline-create-row">
+          <span class="rl-arrow" style="font-size:13px">▾</span>
+          <span class="plus" style="font-size:14px">＋</span> Crear paciente
+        </div>
+        <!-- Mini-form inline EXPANDIDO · adentro del mismo popover (indent + borde dejan claro que NO es página nueva) -->
+        <div class="cp-inline-form">
+          <div class="nc-field" style="margin-bottom:12px">
+            <div class="nc-field-label">Nombre completo <span class="req">*</span></div>
+            <input class="form-input" type="text" value="María Fernanda López" placeholder="Ej. María Fernanda López" />
+          </div>
+          <div class="nc-field" style="margin-bottom:12px">
+            <div class="nc-field-label">Teléfono <span class="req">*</span></div>
+            <input class="form-input" type="text" value="+51 998 123 456" placeholder="+51 9XX XXX XXX" />
+          </div>
+          <div class="nc-field" style="margin-bottom:14px">
+            <div class="nc-field-label">Email <span class="muted" style="font-weight:400">(opcional)</span></div>
+            <input class="form-input" type="text" placeholder="correo@ejemplo.com" />
+          </div>
+          <div class="cp-inline-actions">
+            <button class="btn btn-mateo btn-sm">Crear y elegir</button>
+            <span class="cp-inline-cancel">Cancelar</span>
+          </div>
+        </div>
+      </div>
+      <div class="cp-inline-caption">Guarda → colapsa → «María Fernanda López» queda elegida en el form. Registro real mínimo (no descartable); el perfil completo se enriquece después en Mateo › Pacientes. NO es popup ni hoja aparte.</div>
+    </div>
+
+  </div>
+
+  <!-- Validaciones inline + carrera (409) -->
+  <div class="micro-errors">
+    <div class="state-card" style="gap:14px">
+      <div class="state-card-title">Validaciones inline + carrera (409)</div>
+
+      <!-- fin <= inicio -->
+      <div>
+        <div class="nc-field-label">Hora de fin</div>
+        <input class="form-input" type="text" value="08:45" style="border-color:var(--c-destructive)" />
+        <div class="form-error" style="margin-top:4px">La hora de fin debe ser posterior al inicio.</div>
+        <div class="state-card-sc" style="margin-top:4px">SC-fin-invalido · RN-5</div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- paciente nuevo incompleto (en el create inline del picker) -->
+      <div>
+        <div class="nc-field-label">Crear paciente · Teléfono <span class="req">*</span></div>
+        <input class="form-input" type="text" value="" placeholder="+51 9XX XXX XXX" style="border-color:var(--c-destructive)" />
+        <div class="form-error" style="margin-top:4px">El nombre y el teléfono son obligatorios para crear un paciente.</div>
+        <div class="state-card-sc" style="margin-top:4px">SC-paciente-incompleto</div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- toast carrera 409 -->
+      <div>
+        <div class="state-card-sc" style="margin-bottom:6px">SC-race · 409 · AC-6 — toast al intentar Crear</div>
+        <div class="toast" style="position:static;border-left-color:var(--c-destructive);min-width:0">
+          <div style="display:flex;gap:10px;align-items:flex-start">
+            <span style="font-size:18px">⚠️</span>
+            <div>
+              <div style="font-weight:600;margin-bottom:2px">Ese horario acaba de ocuparse</div>
+              <div class="muted text-xs">Otra persona tomó esta franja. Elige otra hora o reasigna el médico.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       ★ ÁTOMOS PROPUESTOS AL CANON @luana/ui-kit (van por /pm-luana)
+       ══════════════════════════════════════════════════════ -->
+  <div class="proposed-atoms">
+    <div class="proposed-atoms-title"><span class="pa-star">★</span> Átomos propuestos al canon <span style="font-family:ui-monospace,monospace;font-size:14px;color:var(--text-secondary)">@luana/ui-kit</span> (van por /pm-luana)</div>
+    <div class="proposed-atoms-sub">Cuatro primitivas que esta hoja necesita y el canon todavía no tiene. Contrato completo en <span style="font-family:ui-monospace,monospace">PROPOSED-CANON-ATOMS.md</span>.</div>
+
+    <div class="proposed-grid">
+
+      <!-- 1 · FormActionBar -->
+      <div class="atom-card">
+        <div class="atom-name">FormActionBar</div>
+        <div class="atom-demo">
+          <div class="demo-actionbar">
+            <span class="da-hint">Sin guardar todavía</span>
+            <div class="da-btns">
+              <button class="btn btn-outline">Cancelar</button>
+              <button class="btn btn-mateo">Crear cita</button>
+            </div>
+          </div>
+        </div>
+        <div class="atom-api">&lt;FormActionBar hint cancelLabel submitLabel onCancel onSubmit submitting? /&gt;</div>
+        <div class="atom-note">El canon hoy es solo autosave; este es el segundo modo, para flujos de crear / submit.</div>
+      </div>
+
+      <!-- 2 · Badge success | warning -->
+      <div class="atom-card">
+        <div class="atom-name">Badge success | warning</div>
+        <div class="atom-demo" style="gap:10px">
+          <span class="avail-chip ok">Disponible</span>
+          <span class="avail-chip outhours">Fuera de horario</span>
+        </div>
+        <div class="atom-api">&lt;Badge variant="success | warning"&gt;</div>
+        <div class="atom-note">Hoy badge solo tiene default / secondary / destructive / outline.</div>
+      </div>
+
+      <!-- 3 · PageHeader back-pill -->
+      <div class="atom-card">
+        <div class="atom-name">PageHeader back-pill</div>
+        <div class="atom-demo">
+          <div class="demo-pageheader">
+            <span class="back-pill"><span class="rl-arrow">‹</span> Agenda</span>
+            <span class="ph-title">Nueva cita</span>
+          </div>
+        </div>
+        <div class="atom-api">&lt;PageHeader backLabel="Agenda" onBack={...} title subtitle actions /&gt;</div>
+        <div class="atom-note">Para hojas-leaf, sin abusar de EntitySubNavBar (que es nav de entidad).</div>
+      </div>
+
+      <!-- 4 · EntityPicker.createAction -->
+      <div class="atom-card">
+        <div class="atom-name">EntityPicker.createAction</div>
+        <div class="atom-demo">
+          <div class="demo-picker">
+            <div class="dp-item">
+              <div class="avatar avatar-sm" style="background:var(--c-mateo-soft);color:#92400e">MF</div>
+              <span>María Fernanda López</span>
+            </div>
+            <div class="dp-create"><span style="font-size:14px">＋</span> Crear paciente</div>
+          </div>
+        </div>
+        <div class="atom-api">&lt;EntityPicker createAction={{ label, onCreate }} ... /&gt;</div>
+        <div class="atom-note">Cuando la entidad no existe, crearla inline sin salir del picker.</div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+function toggleTheme() {
+  const html = document.documentElement;
+  const current = html.getAttribute('data-theme');
+  html.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark');
+}
+// Select canónico open/close (demo)
+function toggleSelect(el) {
+  const wasOpen = el.classList.contains('open');
+  document.querySelectorAll('.nc-select.open').forEach(s => s.classList.remove('open'));
+  if (!wasOpen) el.classList.add('open');
+}
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.nc-select')) {
+    document.querySelectorAll('.nc-select.open').forEach(s => s.classList.remove('open'));
+  }
+  if (!e.target.closest('.patient-typeahead')) {
+    document.querySelectorAll('.patient-typeahead.open').forEach(s => s.classList.remove('open'));
+  }
+});
+// Segmented demo (Canal de ingreso)
+document.querySelectorAll('.segmented-opt').forEach(opt => {
+  opt.addEventListener('click', () => {
+    opt.parentElement.querySelectorAll('.segmented-opt').forEach(o => {
+      o.classList.remove('active'); o.removeAttribute('aria-selected');
+    });
+    opt.classList.add('active'); opt.setAttribute('aria-selected', 'true');
+  });
+});
+// Patient typeahead demo
+function openTA(e) {
+  const ta = e.currentTarget;
+  ta.classList.add('open');
+}
+function pickPatient() {
+  // (demo) volver al estado chip seleccionado
+  document.getElementById('patient-search-row').style.display = 'none';
+  document.querySelector('.patient-chip').style.display = 'flex';
+  document.querySelectorAll('.patient-typeahead.open').forEach(s => s.classList.remove('open'));
+}
+function resetPatient() {
+  // mostrar el typeahead vacío + acción crear (estado "buscando")
+  document.querySelector('.patient-chip').style.display = 'none';
+  document.getElementById('patient-search-row').style.display = 'flex';
+}
+function openCrearPaciente() {
+  // (demo) en producción navega a la hoja Crear paciente (full-page).
+  // Acá hace scroll al panel ilustrativo de la galería.
+  const panel = document.querySelector('.crear-paciente-leaf');
+  if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+</script>
+
+</body>
+</html>

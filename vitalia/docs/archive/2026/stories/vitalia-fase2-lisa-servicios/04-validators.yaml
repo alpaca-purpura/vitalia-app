@@ -1,0 +1,305 @@
+story_id: vitalia-fase2-lisa-servicios
+brand: vitalia
+schema_version: v4.1
+architecture_pattern: ADR-vitalia-004
+
+# Naturaleza de la verificación (D-X4 · top-level · keyea los gates · definition-of-done-live-verify §1-6)
+verification_nature: ambas       # FE = funcional (UI + reglas de negocio + demo) · BE/migrations/EP-2 = técnica
+demo_required: true              # funcional → chris_verify.signoff en G (NO en F)
+dev_app_verified:
+  required: true                 # DoD #37 — ejercer acción real (writes) en dev-app vitalia + leer logs
+  env: "make dev-app-vitalia → dev-app.vitalialat.com (Chrome DevTools MCP) o localhost:3002 fallback"
+
+# ───────────────────────────────────────────────────────────────────────────
+# 1 · NON_FUNCTIONAL
+# ───────────────────────────────────────────────────────────────────────────
+non_functional:
+  performance:
+    - id: NF-1
+      desc: "Catálogo grande (300 servicios) pagina con cursor server-side (NO filtra en memoria)."
+      scenario: "§1 Catálogo grande no carga todo al cliente"
+      verification: e2e
+  security:
+    - id: NF-2
+      desc: "Cross-tenant query bloqueada (404, no leak) · tenant-isolation TODA query."
+      rn: [RN-12, RN-13]
+      scenario: "§16 Query cross-tenant bloqueada"
+      verification: [int, arch]
+    - id: NF-3
+      desc: "RBAC: admin_clinic+owner write; doctor/nurse/staff → 403."
+      rn: [RN-7]
+      scenario: "§1 RBAC read-only · §16 Staff no edita precio"
+      verification: [int, e2e]
+    - id: NF-4
+      desc: "Case (foto paciente) requiere consent_signed=true (HIPAA-lite) + audit_log sync write."
+      rn: [RN-33]
+      scenario: "§10 Caso sin consentimiento se bloquea"
+      verification: [int]
+  resilience:
+    - id: NF-5
+      desc: "Servicio activo sin especialistas → UI avisa + agente degrada (responde, no matchea)."
+      rn: [RN-9]
+      scenario: "§8 Servicio activo sin especialistas"
+      verification: [e2e, live]
+
+# ───────────────────────────────────────────────────────────────────────────
+# 2 · FUNCTIONAL — scenario_coverage (cada grupo Gherkin del spec · 16 grupos)
+# ───────────────────────────────────────────────────────────────────────────
+functional:
+  scenario_coverage:
+    - group: "§1 Catálogo (lista·búsqueda·filtros·RBAC·borrado)"
+      scenarios: [catalogo-vacio-biblioteca, buscar-filtrar, activar-card, rbac-readonly, soft-delete, catalogo-grande-cursor]
+      sub_categories: [empty, large, network]
+    - group: "§2 Crear (picker inline·plantilla·personalizado·borrador)"
+      scenarios: [crear-plantilla, typeahead-sinonimo, crear-personalizado, no-borrador-fantasma, volver-elegir, crear=editar]
+      sub_categories: [empty]
+    - group: "§3 Resumen · Identidad + herencia bloqueada (RN-30)"
+      scenarios: [estandar-hereda-bloqueado, personalizado-pide-categoria-peldano, no-recategorizar-estandar, chip-origen-readonly]
+      sub_categories: []
+    - group: "§4 Resumen · Qué es + variantes (RN-8·RN-29)"
+      scenarios: [descripcion-voz-marca, agregar-variante, quitar-variante, sin-variantes-precio-base, adrian-cotiza-variante]
+      sub_categories: [empty]
+    - group: "§5 Resumen · Modalidad y agenda (RN-28·31·32)"
+      scenarios: [unica-sin-extra, sesiones-revela-paquete, recurrente-revela-cadencia, plantilla-sugiere-modalidad, sesiones-invalida-rechaza, richselect-descripcion, duracion-numerica-min]
+      sub_categories: [empty, i18n]
+    - group: "§6 Resumen · ficha paciente (procedimiento·riesgos·RN-26)"
+      scenarios: [ficha-completa-editable, riesgos-curados-cita-textual]
+      sub_categories: []
+    - group: "§7 Para Adrián (argumentario·FAQ·objeciones·keywords·safety)"
+      scenarios: [argumentario-completo, faq-objeciones-pares, keywords-match, contraindicaciones-frenan-agente]
+      sub_categories: []
+    - group: "§8 Especialistas (vincular·desvincular·sin-doctor·RN-9·AC-5)"
+      scenarios: [vincular-roster, vincular-no-crea, ver-detalle-desvincular, activo-sin-especialistas]
+      sub_categories: [empty]
+    - group: "§9 Plan de pago (3 cobros·calculados·publicable·RN-6·RN-11)"
+      scenarios: [tres-cobros-independientes, derivados-calculan-solos, no-publicable-agenda-valoracion, precio-rango, precio-negativo-rechaza, moneda-readonly-origen]
+      sub_categories: []
+    - group: "§10 Prueba social (manual·consentimiento·RN-33)"
+      scenarios: [agregar-testimonio, quitar-testimonio, caso-requiere-consent, caso-sin-consent-bloquea]
+      sub_categories: [empty]
+    - group: "§11 Escalera (peldaños fijos·drag·a11y·RN-2·AC-3)"
+      scenarios: [peldano-con-servicios, peldano-vacio-guia, mover-entre-peldanos, mover-estandar-fijo, keyboard-mover-peldano]
+      sub_categories: [a11y, empty]
+    - group: "§12 Autoguardado (RN-20)"
+      scenarios: [todo-autoguarda-sin-boton, acciones-estado-vs-autosave]
+      sub_categories: [network]
+    - group: "§13 Tooltips + edición (RN-18·RN-23)"
+      scenarios: [campos-no-obvios-tooltip, readonly-dice-donde-edita]
+      sub_categories: []
+    - group: "§14 Fuentes & conocimiento (autocompletar+RAG+guardas·RN-17/21/22)"
+      scenarios:
+        - { id: doc-autocompleta, verification_phase: A }       # extract one-shot (Sub-phase A)
+        - { id: doc-queda-conocimiento-rag, verification_phase: B }   # indexado RAG (engine-lift)
+        - { id: precio-nunca-del-documento, verification_phase: B }
+        - { id: pregunta-clinica-escala-doctor, verification_phase: B }
+        - { id: ingesta-scrub-phi, verification_phase: B }
+      sub_categories: [adversarial]
+    - group: "§15 KEYSTONE — agente conoce el catálogo (AC-6)"
+      scenarios: [servicio-activo-entra-conocimiento-adrian]
+      sub_categories: [keystone]
+    - group: "§16 Adversarial transversal (tenant·RBAC·idioma·vertical)"
+      scenarios: [cross-tenant-bloqueada, staff-no-edita, ui-espanol-neutro, misma-estructura-dental-estetica]
+      sub_categories: [adversarial, i18n]
+
+  # business_rules matrix (RN → @rule-tag → scenario · cada RN ≥1 happy + ≥1 negative/edge)
+  business_rules:
+    - { rn: RN-1, tag: "@RN-1", scenarios: [crear-plantilla, servicio-activo-entra-conocimiento-adrian], verification: [int, arch] }
+    - { rn: RN-2, tag: "@RN-2", scenarios: [mover-entre-peldanos], verification: [unit, e2e] }
+    - { rn: RN-3, tag: "@RN-3", scenarios: [precio-rango, moneda-readonly-origen], verification: [unit, e2e] }
+    - { rn: RN-4, tag: "@RN-4", scenarios: [sesiones-revela-paquete], verification: [unit, e2e] }
+    - { rn: RN-5-superseded-28, tag: "@RN-28", scenarios: [recurrente-revela-cadencia], verification: [unit] }
+    - { rn: RN-6, tag: "@RN-6", scenarios: [tres-cobros-independientes, derivados-calculan-solos], verification: [unit, e2e], mutation_critical: true }
+    - { rn: RN-7, tag: "@RN-7", scenarios: [rbac-readonly, staff-no-edita], verification: [int, e2e], mutation_critical: true }
+    - { rn: RN-8, tag: "@RN-8", scenarios: [descripcion-voz-marca], verification: [int] }
+    - { rn: RN-9, tag: "@RN-9", scenarios: [activo-sin-especialistas], verification: [e2e, live] }
+    - { rn: RN-10, tag: "@RN-10", scenarios: [activar-card], verification: [e2e] }
+    - { rn: RN-11, tag: "@RN-11", scenarios: [precio-negativo-rechaza], verification: [unit, int] }
+    - { rn: RN-12, tag: "@RN-12", scenarios: [cross-tenant-bloqueada], verification: [int, arch], mutation_critical: true }
+    - { rn: RN-13, tag: "@RN-13", scenarios: [cross-tenant-bloqueada], verification: [int, arch] }
+    - { rn: RN-14, tag: "@RN-14", scenarios: [ui-espanol-neutro], verification: [arch, e2e] }
+    - { rn: RN-15, tag: "@RN-15", scenarios: [buscar-filtrar, catalogo-grande-cursor], verification: [e2e] }
+    - { rn: RN-16, tag: "@RN-16", scenarios: [crear=editar, no-borrador-fantasma, keywords-match], verification: [e2e, live] }
+    - { rn: RN-17a, tag: "@RN-17", scenarios: [doc-autocompleta], verification: [int, live], verification_phase: A }
+    - { rn: RN-17b, tag: "@RN-17", scenarios: [doc-queda-conocimiento-rag], verification: [int, live], verification_phase: B }
+    - { rn: RN-18, tag: "@RN-18", scenarios: [campos-no-obvios-tooltip], verification: [e2e] }
+    - { rn: RN-19, tag: "@RN-19", scenarios: [misma-estructura-dental-estetica], verification: [e2e] }
+    - { rn: RN-20, tag: "@RN-20", scenarios: [todo-autoguarda-sin-boton, vincular-roster], verification: [e2e, live] }
+    - { rn: RN-21, tag: "@RN-21", scenarios: [doc-autocompleta], verification: [e2e] }
+    - { rn: RN-22, tag: "@RN-22", scenarios: [riesgos-curados-cita-textual, precio-nunca-del-documento, pregunta-clinica-escala-doctor, ingesta-scrub-phi], verification: [int, live, eval], verification_phase: B }
+    - { rn: RN-23, tag: "@RN-23", scenarios: [chip-origen-readonly, readonly-dice-donde-edita, moneda-readonly-origen], verification: [e2e] }
+    - { rn: RN-24, tag: "@RN-24", scenarios: [misma-estructura-dental-estetica], verification: [e2e] }
+    - { rn: RN-25, tag: "@RN-25", scenarios: [crear-plantilla, typeahead-sinonimo], verification: [e2e, live] }
+    - { rn: RN-26, tag: "@RN-26", scenarios: [ficha-completa-editable], verification: [e2e] }
+    - { rn: RN-27, tag: "@RN-27", scenarios: [crear-personalizado], verification: [int] }
+    - { rn: RN-28, tag: "@RN-28", scenarios: [unica-sin-extra, sesiones-revela-paquete, recurrente-revela-cadencia, plantilla-sugiere-modalidad], verification: [unit, e2e] }
+    - { rn: RN-29, tag: "@RN-29", scenarios: [agregar-variante, quitar-variante, sin-variantes-precio-base, adrian-cotiza-variante], verification: [unit, e2e, live] }
+    - { rn: RN-30, tag: "@RN-30", scenarios: [estandar-hereda-bloqueado, personalizado-pide-categoria-peldano, no-recategorizar-estandar, mover-estandar-fijo], verification: [e2e] }
+    - { rn: RN-31, tag: "@RN-31", scenarios: [sesiones-invalida-rechaza, duracion-numerica-min], verification: [unit, e2e] }
+    - { rn: RN-32, tag: "@RN-32", scenarios: [richselect-descripcion], verification: [unit, e2e] }
+    - { rn: RN-33, tag: "@RN-33", scenarios: [agregar-testimonio, quitar-testimonio, caso-requiere-consent, caso-sin-consent-bloquea], verification: [e2e, int] }
+
+# ───────────────────────────────────────────────────────────────────────────
+# 3 · VISUAL (goldens · ADR-003 · maxDiffPixelRatio 0.001)
+# ───────────────────────────────────────────────────────────────────────────
+visual:
+  golden_tolerance: 0.001
+  goldens:
+    - { mockup: mockups/catalogo.html, snapshot: "e2e/__screenshots__/servicios/catalogo-{theme}.png", component: "features/lisa/components/servicios/CatalogoView.tsx", themes: [light, dark] }
+    - { mockup: mockups/escalera.html, snapshot: "e2e/__screenshots__/servicios/escalera-{theme}.png", component: "features/lisa/components/servicios/EscaleraView.tsx", themes: [light, dark] }
+    - { mockup: mockups/servicio-workspace.html, snapshot: "e2e/__screenshots__/servicios/servicio-workspace-{theme}.png", component: "features/lisa/components/servicios/ServicioWorkspaceView.tsx", themes: [light, dark] }
+    - { mockup: mockups/nuevo-servicio.html, snapshot: "e2e/__screenshots__/servicios/nuevo-servicio-{theme}.png", component: "features/lisa/components/servicios/BibliotecaPicker.tsx", themes: [light, dark] }
+  design_contract_ref: "docs/architecture/luana-platform/design-system-canon.md §2 + vitalia/docs/architecture/SHELL-DESIGN-CONTRACT.md"
+
+# ───────────────────────────────────────────────────────────────────────────
+# 4 · AGENTIC_EVAL
+# ───────────────────────────────────────────────────────────────────────────
+agentic_eval:
+  sub_phase_A:
+    - id: AE-A1
+      desc: "KEYSTONE: Offer activo aparece en TenantKnowledgeBuilder.build_identity output (data shape · consume-only)."
+      rn: [AC-6]
+      verification: [int, live]
+      note: "BE assertion + LIVE-verify (activar + leer logs). NO eval goldens (sin sales_agent code nuevo en A)."
+  sub_phase_B:
+    deferred_pending_engine_lift: true
+    goldens_required: 4   # 1 happy + 3 adversarial · drift threshold grader_score >= 0.85
+    owner_eligibility: flagship   # R23
+    evals:
+      - id: AE-B1
+        desc: "RAG retrieval responde de fuentes comerciales (1 happy)."
+        verification_phase: B
+      - id: AE-B2
+        desc: "Adversarial: precio del doc rechazado (precio sale del campo)."
+        verification_phase: B
+      - id: AE-B3
+        desc: "Adversarial: pregunta clínica escala al doctor."
+        verification_phase: B
+      - id: AE-B4
+        desc: "Adversarial: ingesta con scrub PHI."
+        verification_phase: B
+
+# ───────────────────────────────────────────────────────────────────────────
+# 5 · ARCHITECTURAL_VALIDATION
+# ───────────────────────────────────────────────────────────────────────────
+architectural_validation:
+  adr_004_compliance: full
+  gates:
+    - "vitalia/backend/tests/architecture/test_response_model_required.py — toda ruta nueva response_model="
+    - "vitalia/backend/tests/architecture/ DDD boundaries — offer no importa luana_core_offer_studio.domain directo (solo port)"
+    - "vitalia/backend/tests/architecture/test_audit_log_sync_write.py — Case consent gate escribe audit_log"
+    - "vitalia/frontend/src/__tests__/architecture/test_features_no_cross_imports.test.ts"
+    - "vitalia/frontend/src/__tests__/architecture/test_react_query_keys_convention.test.ts"
+    - "vitalia/frontend/src/__tests__/architecture/test_no_phi_in_url_params.test.ts"
+    - "vitalia/frontend/src/__tests__/architecture/test_no_clerk_organizations.test.ts — tenant_id de useTenantId()"
+    - "vitalia/frontend/src/__tests__/architecture/test_agent_subsubtabs_ssot.test.ts — AGENT_SUBSUBTABS['lisa.servicios']"
+    - "core/luana-core-offer-studio/tests/test_catalogs_dag_smoke.py — EP-2 preset pack NO regresa engine catalog"
+  new_arch_test_suggested:
+    - "test_offer_no_engine_edit.py (shrink-only) — offer/ consume engine solo vía luana_core_platform.links.ports.offer"
+  allowlist_policy: shrink-only
+
+# ───────────────────────────────────────────────────────────────────────────
+# technical_gates (opt-in por naturaleza · DoD §2)
+# ───────────────────────────────────────────────────────────────────────────
+technical_gates:
+  baseline: [tsc, eslint, ruff, arch-fitness, vitest-unit, pytest-unit]
+  mutation:
+    enabled: true
+    mode: hard
+    diff_scoped: true     # 100% mutantes muertos sobre líneas NUEVAS
+    surfaces:
+      - "offer/domain/pricing_calc.py (3-charge derived calc)"
+      - "offer/domain/completeness.py (26 must-have · is_active NUNCA bloqueado)"
+      - "offer/api/decorators RBAC gate (RN-7)"
+      - "offer/infrastructure/repositories tenant-isolation filter (RN-12)"
+    degrade_advisory_if_tool_missing: true   # mutmut/Stryker ausente → advisory, no rompe ci-parity
+  schemathesis:
+    enabled: true
+    note: "endpoints nuevos /api/v1/offer/servicios/*"
+  hypothesis:
+    enabled: false
+
+# ───────────────────────────────────────────────────────────────────────────
+# test_construction_plan (por naturaleza · TDD RED-first)
+# ───────────────────────────────────────────────────────────────────────────
+test_construction_plan:
+  playwright_required: true
+  creation_order:
+    - "RED domain: pricing_calc + completeness (unit · mutation-critical)"
+    - "RED infra: offer_ext_repository dual-tenant"
+    - "RED application: catalog/biblioteca/link/proof services + keystone offer shape"
+    - "RED api: RBAC 403 + cross-tenant 404 + response_model + consent gate"
+    - "RED FE hooks: use-autosave (debounce + UNA indicator) + useServiciosQuery (MSW)"
+    - "RED FE components: RungPicker(locked) + ModalidadPicker(discriminated) + VariantsRepeater + FichaCompletenessChip"
+    - "RED e2e smoke: ruta /lisa/servicios"
+    - "GREEN build per layer → visual goldens (8) → axe → live-verify"
+  scenario_to_test:
+    crear-plantilla: "e2e/shell-organism/lisa-servicios-crear.spec.ts"
+    crear=editar: "e2e/shell-organism/lisa-servicios-crear.spec.ts"
+    todo-autoguarda-sin-boton: "e2e/shell-organism/lisa-servicios-autosave.spec.ts"
+    mover-entre-peldanos: "e2e/shell-organism/lisa-servicios-escalera-drag.spec.ts"
+    keyboard-mover-peldano: "e2e/shell-organism/lisa-servicios-escalera-drag.spec.ts (a11y)"
+    vincular-roster: "e2e/shell-organism/lisa-servicios-especialistas.spec.ts"
+    servicio-activo-entra-conocimiento-adrian: "backend/tests/modules/vitalia/offer/test_keystone_offer_shape.py + live-verify"
+    caso-sin-consent-bloquea: "backend/tests/modules/vitalia/offer/test_case_consent_gate.py"
+  poms_required: [ServiciosCatalogoPage, ServicioWorkspacePage, EscaleraPage, NuevoServicioPage]
+  fixtures_required: [auth.fixture (admin_clinic + doctor roles), seeded-tenant (biblioteca preset pack), base.ts anti-burbuja]
+
+# playwright_visual_scope
+playwright_visual_scope:
+  story_scope_routes:
+    - "/{tenantId}/lisa/servicios"
+    - "/{tenantId}/lisa/servicios/catalogo"
+    - "/{tenantId}/lisa/servicios/escalera"
+    - "/{tenantId}/lisa/servicios/[offer-id]/*"
+    - "/{tenantId}/lisa/servicios/nuevo"
+  forbidden_visual_changes:
+    - "vitalia/frontend/src/components/ui/** (Shadcn primitives)"
+    - "core/@luana/ui-kit/src/** (lift-gate)"
+    - "vitalia/frontend/src/components/shared/shell-organism/** (shell chrome shipped — solo CONSUME)"
+    - "otras features/*"
+  allowed_new_files:
+    - "vitalia/frontend/src/components/shared/NumberWithUnit.tsx (NEW shared · no modifica existentes)"
+    - "vitalia/frontend/src/lib/shell-routes.ts (AGENT_SUBSUBTABS append · no modifica entries existentes)"
+  non_egoismo: "commit por pathspec (bucket code:offer FE+BE); no tocar scope de otras sesiones"
+
+# regression_guard
+regression_guard:
+  - "core/luana-core-offer-studio engine catalog NO regresa (consume, no edita)"
+  - "TenantKnowledgeBuilder consume sync NO regresa (D-1 wrapping)"
+  - "shell-routes.ts AGENT_SUBSUBTABS existentes (lisa.marca, config.cuenta) intactos"
+
+# ───────────────────────────────────────────────────────────────────────────
+# RECONCILE (Fase R · /pm-vitalia · 2026-06-19) — validators reconciliados a la realidad construida
+# HB-79: validator de scope DEFERIDO/descopado → must_pass:false + deferred: (no green-phantom).
+# Cada G-round finding (live-verify de Chris) construido + su regression. Paths REALES.
+# ───────────────────────────────────────────────────────────────────────────
+reconcile:
+  reconciled_by: /pm-vitalia
+  reconciled_date: 2026-06-19
+  note: >
+    El verde de los gates NO cazó estos comportamientos — los cazó la live-verify de Chris en G.
+    Cada uno tiene regression con el SHAPE REAL del wire + sin mockear el componente/hook bajo prueba
+    (ver learning 2026-06-19-unit-green-not-runtime-truth). Spec § Gherkin RECONCILE §17-22 + § Matriz reconciliada.
+
+  # Regression construida + verde (gate runs · re-run independiente /pm-vitalia)
+  g_round_regression:
+    - { id: VR-1, finding: G2-F11, must_pass: true, desc: "Autosave value-from-RHF-local + gate arch-fitness", tests: ["vitalia/frontend/src/__tests__/architecture/test-autosave-value-from-local-state.test.ts", "vitalia/frontend/src/features/lisa/components/servicios/leaves/__tests__/ResumenView.test.tsx"], commit: e6f97173 }
+    - { id: VR-2, finding: G2-F12, must_pass: true, desc: "BE _apply coerce faq/objections list[dict]→VOs (500→200)", tests: ["vitalia/backend/tests/modules/vitalia/offer/test_sales_brief_service.py", "vitalia/frontend/src/features/lisa/components/servicios/__tests__/FaqPairList.test.tsx", "vitalia/frontend/src/features/lisa/components/servicios/__tests__/ObjecionPairList.test.tsx"], commit: "cc4a2ea9+54119aaf" }
+    - { id: VR-3, finding: G2-F12b, must_pass: true, desc: "FE filtra pares incompletos (VO exige ambos campos · invariante intacto)", tests: ["vitalia/frontend/src/features/lisa/components/servicios/leaves/__tests__/ParaAdrianView.test.tsx"], commit: 5bfa7d4a }
+    - { id: VR-4, finding: G2-F13, must_pass: true, desc: "SpecialistLink enrich display_name+specialty (UUID→nombre)", tests: ["vitalia/backend/tests/modules/vitalia/offer/test_specialist_link_service.py", "vitalia/frontend/src/features/lisa/components/servicios/leaves/__tests__/EspecialistasView.test.tsx"], commit: "f40556ea+8a51ad4b" }
+    - { id: VR-5, finding: "G2-F14/F14b", must_pass: true, desc: "Plan-pago defaultValues full-shape + Decimal-string→number coerce (no-crash + montos persisten al recargar)", tests: ["vitalia/frontend/src/features/lisa/components/servicios/leaves/__tests__/PlanPagoView.test.tsx"], commit: "c0e89ca1+2dc86a85" }
+    - { id: VR-6, finding: "G2-F2a/F2b", must_pass: true, desc: "Activar confirm dialog + setQueryData(detail) refleja sin refresh", tests: ["vitalia/frontend/src/features/lisa/components/servicios/__tests__/ServiceStatusBar.test.tsx"], commit: 9b3c0a13 }
+    - { id: VR-7, finding: G2-F4, must_pass: true, desc: "Ver detalle doctor → /lisa/staff (no 404)", tests: ["vitalia/frontend/src/features/lisa/components/servicios/leaves/__tests__/EspecialistasView.test.tsx"], commit: 2eabe9bd }
+    - { id: VR-8, finding: G2-F5, must_pass: true, desc: "[offer-id]→resumen en N3_DEFAULT_LEAF (no Next16 negative-timestamp)", tests: ["vitalia/frontend/src/__tests__/ (shell-routes shellInRenderRedirectTarget)"], commit: "findings_round2b" }
+    - { id: VR-9, finding: G2-F3, must_pass: true, desc: "EntityPicker null-safe (deriveInitials) + 7 hooks mutación anidada no corrompen cache", tests: ["@luana/ui-kit EntityPicker (7/7 · proposal accepted)", "vitalia caller guard"], commit: 9b3c0a13 }
+    - { id: VR-10, finding: G2-F6, must_pass: true, desc: "plan-pago price re-hidrata (RHF values)", tests: ["vitalia/frontend/src/features/lisa/components/servicios/leaves/__tests__/PlanPagoView.test.tsx"], commit: e7d5766f }
+
+  # Deferred — NO se corre como gate HARD (no existe el verde aún). Owner explícito.
+  deferred:
+    - { id: VR-D1, must_pass: false, deferred: e2e-happy-path, desc: "E2E happy-path del workspace (crear→editar→plan-pago→especialista→activar) real-backend anti-burbuja. Specs existen pero test.skip gated en E2E_OFFER_ID/E2E_ENABLE_WRITES → no ejercidos.", paths: ["vitalia/frontend/e2e/shell-organism/lisa-servicios-crear.spec.ts", "vitalia/frontend/e2e/shell-organism/lisa-servicios-autosave.spec.ts", "vitalia/frontend/e2e/shell-organism/lisa-servicios-especialistas.spec.ts", "vitalia/frontend/e2e/shell-organism/lisa-servicios-escalera-drag.spec.ts"], owner: "auditor Carril R (un-skip + seed offer-id) o follow-up", reason: "hueco más grande para el auditor (RECONCILE-HANDOFF §5)" }
+    - { id: VR-D2, must_pass: false, deferred: visual-goldens, desc: "8 visual goldens (catalogo/escalera/workspace/nuevo × 2 themes · 0.001). Baselines NO generados (e2e/__screenshots__/servicios/ vacío).", paths: ["vitalia/frontend/e2e/visual/lisa-servicios-visual.spec.ts"], owner: "auditor/dev-team (generar baselines + ratchet)", reason: "live-verify de Chris cubrió el render real; goldens pendientes" }
+    - { id: VR-D3, must_pass: false, deferred: contract-test, desc: "Contract-test FE↔BE (shape real del wire). Ausente. Los bugs G2-F11/F14b nacieron de contratos imaginados (camelCase / Decimal-string).", paths: [], owner: "HB-42 (gate transversal) + esta story", reason: "lección recurrente (embudo · servicios) — gate faltante" }
+    - { id: VR-D4, must_pass: false, deferred: sub-phase-B-rag, desc: "RAG runtime: indexer Qdrant + tool retrieval sales_agent + 4 eval goldens (AE-B1..B4). verification_phase: B.", paths: [], owner: "/pm-luana engine-lift (STOP-2)", reason: "engine-lift fuera de scope brand · ya marcado deferred_pending_engine_lift" }
+
+  # G3/F3 originales del reconcile round 1 (ya resueltos · ledger)
+  round_1_resolved: [F1, F2, F3]   # ficha rica widen DTO + StatusBar en shell + appointment_type

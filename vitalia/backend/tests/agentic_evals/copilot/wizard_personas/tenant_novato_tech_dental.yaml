@@ -1,0 +1,17 @@
+# Vitalia wizard eval persona — tenant novato tech (dental, attaches Instagram URL)
+persona_id: tenant_novato_tech_dental
+archetype: explorer
+dialect: es-PE
+vertical: dental
+voice_constraints:
+  formality: informal
+  opening: "Hola, soy de Clínica Dental Norte de Lima"
+  common_objections: []
+  red_flags: []
+profile:
+  tech_savvy: medium
+  patience: high
+  has_url: true
+  preferred_url: "https://www.instagram.com/clinica.dental.norte"
+  willing_to_extract: true
+  reads_preview: true

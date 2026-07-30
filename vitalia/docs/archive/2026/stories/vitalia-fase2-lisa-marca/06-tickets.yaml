@@ -1,0 +1,934 @@
+# 06-tickets.yaml — F2-S7 vitalia-fase2-lisa-marca
+# Owner: /architect orchestrator (single-shot full-stack)
+# Schema v4.1 — must_load_skills enforceable per ticket
+#
+# DAG: 12 tickets total · BE foundations → BE API → BE tests → FE foundations → FE components → FE tests
+# Service-deps: NONE blocking (engine brand-studio + sales-agent compiler v2 shipped)
+#
+# Owner pool: all tickets non-agentic → [qwen-opencode, claude-sonnet, claude-opus]
+#   (claude_opus_required: false — story has zero surface=AGENTIC tickets)
+#
+# Estimación total: ~38 hours · 4-5 dev-days
+#
+# Convención IDs:
+#   T-1         BE migration (table + seed) + telemetry whitelist extend
+#   T-2         BE API endpoints + voice-preview cache + audit log
+#   T-3         BE tests (pytest dual-tenant + arch fitness creep guards)
+#   T-4         FE routing N3-static + SubSubTabsBar + AGENT_SUBSUBTABS catalog
+#   T-5         FE Identidad sub-sub-tab (View + 8 components)
+#   T-6         FE Voz y tono sub-sub-tab (View + 6 components + BrandVoicePreview footer)
+#   T-7         FE Presencia sub-sub-tab (View + 5 components)
+#   T-8         FE forms RHF + Zod schemas IMPORT verbatim nicolify + ADAPT
+#   T-9         FE Vitest unit tests components + hooks + form validation
+#   T-10        FE E2E Playwright (fixtures + 4 POMs + 11 scenarios)
+#   T-11        FE visual goldens (3 subsubtabs × 2 themes = 6 PNGs)
+#   T-12        FE a11y axe scan WCAG 2.1 AA
+
+---
+story_id: vitalia-fase2-lisa-marca
+brand: vitalia
+sprint: F2-S7
+pi: fase-2
+generated_at: 2026-05-27T05:52:36Z
+generated_by: /architect (Opus 4.7 single-shot)
+schema_version: v4.1
+total_tickets: 12
+estimated_total_hours: 38
+hipaa_lite_overlay: true
+architecture_pattern: ADR-vitalia-004
+adr_004_compliance: full
+
+# ── Resumen pila (alto nivel) ─────────────────────────────────────
+summary:
+  - id: T-1
+    title: "BE migration f2_s7_vitalia_lisa_marca — prohibited_phrases table + seed PE + telemetry whitelist extend"
+    surface: BE
+    owner_pool: [qwen-opencode, claude-sonnet, claude-opus]
+    state: pushed
+    production_code: true
+    blocks: [T-2, T-3]
+    estimate_hours: 2
+  - id: T-2
+    title: "BE API — marca_router (21 endpoints) + MarcaService + VoicePreviewService + VoiceBlocklistService + TrustCatalogService + RBAC decorator"
+    surface: BE
+    owner_pool: [qwen-opencode, claude-sonnet, claude-opus]
+    state: pushed
+    production_code: true
+    blocked_by: [T-1]
+    blocks: [T-3, T-4]
+    estimate_hours: 6
+    push_commit_sha: 1261f6dc3b488bc4cd6ffd4304d59ebb9c62c7ba
+  - id: T-3
+    title: "BE pytest — dual-tenant + seed test + voice_warning audit log + arch fitness creep guards (no_health_voice_validator + no_brand_voice_summary_table + brand_studio_module_ddd)"
+    surface: BE
+    owner_pool: [qwen-opencode, claude-sonnet, claude-opus]
+    state: pushed
+    production_code: false
+    blocked_by: [T-1, T-2]
+    blocks: []
+    estimate_hours: 4
+    push_commit_sha: d324517a
+  - id: T-4
+    title: "FE routing N3-static — [subsubtab]/page.tsx (3) + SubSubTabsBar component + AGENT_SUBSUBTABS catalog + ShellOrganismLayout mount"
+    surface: FE
+    owner_pool: [qwen-opencode, claude-sonnet, claude-opus]
+    state: pushed
+    production_code: true
+    blocked_by: [T-2]
+    blocks: [T-5, T-6, T-7]
+    estimate_hours: 3
+    push_commit_sha: 88883702
+  - id: T-5
+    title: "FE Identidad sub-sub-tab — IdentidadView client root + IdentityCard + ClinicVerticalReadOnly + LogoDropZone + ColorTriadEditor + TypographyEditor + TeamPreviewRow + ExtractFromWebsiteButton + AutosaveBadge"
+    surface: FE
+    owner_pool: [qwen-opencode, claude-sonnet, claude-opus]
+    state: pushed
+    production_code: true
+    blocked_by: [T-4, T-8]
+    blocks: [T-9, T-10]
+    estimate_hours: 5
+  - id: T-6
+    title: "FE Voz y tono sub-sub-tab — VozTonoView + ArchetypeSelector (4 cards salud) + VoiceCompilerBlocks (6 textareas) + VoiceTextareaWithWarning (soft warning) + TreatmentLanguageCard + BrandVoicePreview (footer único OQ-E)"
+    surface: FE
+    owner_pool: [qwen-opencode, claude-sonnet, claude-opus]
+    state: draft
+    production_code: true
+    blocked_by: [T-4, T-8]
+    blocks: [T-9, T-10]
+    estimate_hours: 5
+  - id: T-7
+    title: "FE Presencia sub-sub-tab — PresenciaView + WebsiteCard + SocialMediaLinksEditor (4 socials) + TrustSignalsEditor (hybrid catalog OQ-D) + LocationsCard"
+    surface: FE
+    owner_pool: [qwen-opencode, claude-sonnet, claude-opus]
+    state: pushed
+    production_code: true
+    blocked_by: [T-4, T-8]
+    blocks: [T-9, T-10]
+    estimate_hours: 4
+  - id: T-8
+    title: "FE forms — RHF + Zod schemas (identity, visuals, personality salud ADAPT, contact, team, presence, trust-signals, voice-preview, prohibited-phrase) IMPORT verbatim nicolify + ADAPT"
+    surface: FE
+    owner_pool: [qwen-opencode, claude-sonnet, claude-opus]
+    state: pushed
+    production_code: true
+    blocks: [T-5, T-6, T-7]
+    estimate_hours: 2
+    push_commit_sha: fa37c721
+  - id: T-9
+    title: "FE Vitest unit tests — components per subsubtab + hooks autosave + form validation + zustand store"
+    surface: FE
+    owner_pool: [qwen-opencode, claude-sonnet, claude-opus]
+    state: pushed
+    production_code: false
+    blocked_by: [T-5, T-6, T-7]
+    blocks: []
+    estimate_hours: 3
+    history:
+      - { from: draft, to: pushed, at: 2026-05-27, by: claude-sonnet-f2-s7-t9 }
+  - id: T-10
+    title: "FE E2E Playwright — fixtures (4) + 4 POMs + 11 scenarios (happy + negative + edge + adversarial + race + concurrent + network_failure + empty_state + large_dataset + a11y + i18n)"
+    surface: FE
+    owner_pool: [qwen-opencode, claude-sonnet, claude-opus]
+    state: draft
+    production_code: false
+    blocked_by: [T-5, T-6, T-7]
+    blocks: [T-11, T-12]
+    estimate_hours: 5
+  - id: T-11
+    title: "FE visual goldens — 3 subsubtabs × 2 themes = 6 PNGs Playwright + cleanup legacy /(dashboard)/brand-studio/[section]/page.tsx"
+    surface: FE
+    owner_pool: [qwen-opencode, claude-sonnet, claude-opus]
+    state: draft
+    production_code: false
+    blocked_by: [T-10]
+    blocks: []
+    estimate_hours: 2
+  - id: T-12
+    title: "FE a11y axe-core scan — WCAG 2.1 AA per subsubtab × idle/loading/success/error/empty states"
+    surface: FE
+    owner_pool: [qwen-opencode, claude-sonnet, claude-opus]
+    state: draft
+    production_code: false
+    blocked_by: [T-10]
+    blocks: []
+    estimate_hours: 1
+
+
+# ── Tickets detail ────────────────────────────────────────────────
+
+tickets:
+
+  T-1:
+    id: T-1
+    title: "BE migration f2_s7_vitalia_lisa_marca — prohibited_phrases table + seed PE + telemetry whitelist extend"
+    type: backend
+    surface: BE
+    production_code: true
+    state: changes-requested
+    push_commit_sha: c4a4f8e9
+    audit_verdict: CHANGES_REQUESTED
+    audit_iterations: 1
+    audit_review_path: T-1-review.md
+    transitions:
+      - { from: draft, to: pushed, at: 2026-05-27, by: claude-sonnet-f2-s7-t1 }
+      - { from: pushed, to: changes-requested, at: 2026-05-27T09:32:41Z, by: auditor-backend-opus-4-7, reason: "F1 datetime.utcnow violation (master-data); F2 integration tests skipped pending Postgres" }
+    owner_eligibility:
+      qwen_opencode: true
+      claude_sonnet: true
+      claude_opus_required: false
+    priority: 1
+    estimate_hours: 2
+    decisions_applicable: [D2-voice, OQ-D, A4, A5, A14]
+    inputs:
+      spec: "../01-spec.md"
+      arch_doc: "../03-arch.md"
+      rules:
+        - .claude/rules/backend-migrations.md
+        - .claude/rules/tenant-isolation.md
+        - vitalia/.claude/rules/hipaa-lite.md
+        - .claude/rules/sales-agent-brand-voice.md
+    must_load_skills:
+      - backend-expert
+      - .claude/rules/tenant-isolation.md
+      - .claude/rules/backend-ddd.md
+      - .claude/rules/backend-migrations.md
+      - .claude/rules/anti-duplication.md
+      - .claude/rules/tdd-mandatory.md
+      - .claude/rules/sales-agent-brand-voice.md
+      - vitalia/.claude/rules/hipaa-lite.md
+      - tessl__pytest-api-testing
+    deliverables:
+      - "vitalia/backend/alembic/versions/XXXX_f2_s7_vitalia_lisa_marca.py (idempotent raw SQL — 1 table + 3 indexes + 10 seed rows PE per 03-arch § 9.1)"
+      - "vitalia/backend/src/modules/vitalia/_shared/telemetry/growth_studio_emitter.py (MODIFY — extend whitelist _KNOWN_EVENT_NAMES with 13 lisa_marca_* events)"
+      - "vitalia/backend/src/modules/vitalia/_shared/telemetry/file_size_bucket.py (NEW helper for lisa_marca_logo_uploaded event)"
+      - "Verify migration runs twice no-op (prod-clone test per 03-arch § 9.3)"
+    out_of_scope:
+      - "Domain entities (T-2)"
+      - "Service layer (T-2)"
+      - "API endpoints (T-2)"
+    acceptance:
+      - { id: A1, description: "alembic upgrade head succeeds idempotent", verifier: { type: shell, cmd: "cd vitalia/backend && docker exec luana-vitalia-backend-dev alembic upgrade head && docker exec luana-vitalia-backend-dev alembic upgrade head" } }
+      - { id: A2, description: "vitalia_prohibited_phrases table created with 3 composite indexes", verifier: { type: shell, cmd: "docker exec luana-vitalia-postgres-dev psql -U postgres -d vitalia_dev -c \"\\\\dt vitalia_prohibited_phrases\" | grep -E 'vitalia_prohibited_phrases'" } }
+      - { id: A3, description: "10 seed rows PE inserted (tenant_id IS NULL, country_scope='PE')", verifier: { type: pytest, cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/brand_studio/test_prohibited_phrases_seed.py -v" } }
+      - { id: A4, description: "growth_studio_emitter whitelist extended with 13 lisa_marca_* events", verifier: { type: shell, cmd: "grep -c 'lisa_marca_' vitalia/backend/src/modules/vitalia/_shared/telemetry/growth_studio_emitter.py | xargs test 13 -le" } }
+    gherkin_coverage: []
+    gherkin_coverage_note: "Migration + telemetry whitelist ticket; scenarios SC-1..SC-11 cubiertos por tickets BE+FE downstream."
+    quality_gates:
+      - "be_arch_fitness GREEN"
+      - "Migration idempotent (second run = no-op)"
+      - "Seed PE: 10 rows tenant_id IS NULL + country_scope='PE'"
+    depends_on: []
+    blocks: [T-2, T-3]
+
+  T-2:
+    id: T-2
+    title: "BE API — marca_router (21 endpoints) + MarcaService + VoicePreviewService + VoiceBlocklistService + TrustCatalogService + RBAC decorator"
+    type: backend
+    surface: BE
+    production_code: true
+    state: changes-requested
+    push_commit_sha: 1261f6dc3b488bc4cd6ffd4304d59ebb9c62c7ba
+    audit_verdict: FAIL
+    audit_iterations: 1
+    audit_review_path: T-2-review.md
+    transitions:
+      - { from: pushed, to: changes-requested, at: 2026-05-27T09:32:41Z, by: auditor-backend-opus-4-7, reason: "F1 router unloadable ImportError SqlaProhibitedPhraseRepository; F2 router→service signature mismatch 7 GETs; F3 router not registered main.py/extensions.py; F4 10 declared test files missing — spawn /dev-team Caso B" }
+    owner_eligibility:
+      qwen_opencode: true
+      claude_sonnet: true
+      claude_opus_required: false
+    priority: 1
+    estimate_hours: 6
+    decisions_applicable: [D1-arch, D2-voice, D5-archetype, OQ-A, OQ-B, OQ-C, OQ-D, OQ-E, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A13]
+    inputs:
+      spec: "../01-spec.md"
+      arch_doc: "../03-arch.md"
+      rules:
+        - .claude/rules/backend-ddd.md
+        - .claude/rules/tenant-isolation.md
+        - vitalia/.claude/rules/hipaa-lite.md
+        - .claude/rules/sales-agent-brand-voice.md
+        - .claude/rules/anti-duplication.md
+    must_load_skills:
+      - backend-expert
+      - brand-expert
+      - sales-agent-expert
+      - .claude/rules/backend-ddd.md
+      - .claude/rules/tenant-isolation.md
+      - .claude/rules/anti-duplication.md
+      - .claude/rules/tdd-mandatory.md
+      - .claude/rules/master-data.md
+      - .claude/rules/sales-agent-brand-voice.md
+      - vitalia/.claude/rules/hipaa-lite.md
+      - vitalia/.claude/rules/shell-feature-architecture-mandatory.md
+      - tessl__fastapi
+      - tessl__pytest-api-testing
+    deliverables:
+      - "vitalia/backend/src/modules/vitalia/brand_studio/domain/{prohibited_phrase, archetype, voice_preview, trust_signal}.py"
+      - "vitalia/backend/src/modules/vitalia/brand_studio/persistence/models/prohibited_phrase_model.py"
+      - "vitalia/backend/src/modules/vitalia/brand_studio/infrastructure/repositories/{prohibited_phrase_repository, trust_signal_repository}.py (ABC + impl)"
+      - "vitalia/backend/src/modules/vitalia/brand_studio/application/services/marca_service.py (★ orchestrator: get_initial_state + patch_identity/visuals/personality/contact + upload_logo + audit + telemetry)"
+      - "vitalia/backend/src/modules/vitalia/brand_studio/application/services/voice_preview_service.py (compile + cache LRU + invalidate)"
+      - "vitalia/backend/src/modules/vitalia/brand_studio/application/services/voice_blocklist_service.py (CRUD + seed defaults_pe + log_warning_override)"
+      - "vitalia/backend/src/modules/vitalia/brand_studio/application/services/trust_catalog_service.py (HYBRID_CATALOG per país PE seed)"
+      - "vitalia/backend/src/modules/vitalia/brand_studio/api/marca_router.py (21 endpoints — GET/PATCH identity/visuals/personality/contact + POST/DELETE logos + POST voice-warning-override + GET voice-preview + GET trust-catalog + CRUD trust-signals + GET team-preview + GET clinic-config + GET prohibited-phrases + GET initial-state/{subsubtab})"
+      - "vitalia/backend/src/modules/vitalia/brand_studio/api/dtos/marca_dtos.py (18 Pydantic v2 DTOs per 03-arch § 4)"
+      - "vitalia/backend/src/modules/vitalia/_shared/auth/rbac.py (MODIFY — add require_brand_owner_access decorator)"
+      - "vitalia/backend/src/modules/vitalia/extensions.py (MODIFY — register brand_studio router via include_router)"
+      - "vitalia/backend/src/main.py (MODIFY — include new router)"
+    out_of_scope:
+      - "Tests (T-3)"
+      - "Frontend (T-4..T-12)"
+      - "Engine modify (escalate /pm-luana)"
+    acceptance:
+      - { id: A1, description: "21 endpoints declared with response_model= mandatory", verifier: { type: pytest, cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/architecture/test_response_model_required.py -v" } }
+      - { id: A2, description: "All PATCH/POST/DELETE endpoints have @Depends(require_brand_owner_access())", verifier: { type: shell, cmd: "grep -c 'Depends(require_brand_owner_access' vitalia/backend/src/modules/vitalia/brand_studio/api/marca_router.py | xargs test 11 -le" } }
+      - { id: A3, description: "MarcaService writes audit_log row pre-response per mutation", verifier: { type: pytest, cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/architecture/test_audit_log_sync_write.py -v" } }
+      - { id: A4, description: "VoicePreviewService caches by tenant_id + profile_id + compiler_version + blocks_hash + invalidates on patch", verifier: { type: pytest, cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/brand_studio/test_voice_preview_service.py -v" } }
+      - { id: A5, description: "TrustCatalogService PE seed HYBRID_CATALOG = 8 entries (DIGESA, MINSA, SUSALUD, COP_ODONTO, CMP, SUNAT, ISO_9001, ESSALUD)", verifier: { type: pytest, cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/brand_studio/test_trust_catalog_service.py -v" } }
+      - { id: A6, description: "Logo upload server validates ≤5MB + format whitelist {png, jpg, jpeg, webp}", verifier: { type: pytest, cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/brand_studio/test_marca_router_visuals.py::test_logo_oversize_blocked -v" } }
+      - { id: A7, description: "No health_voice_validator.py created (creep guard)", verifier: { type: shell, cmd: "! find vitalia/backend/src -name 'health_voice_validator.py' 2>/dev/null | grep ." } }
+      - { id: A8, description: "Cross-tenant PATCH attempt returns 403 + audit row", verifier: { type: pytest, cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/brand_studio/test_marca_cross_tenant.py -v" } }
+    gherkin_coverage:
+      - SC-1
+      - SC-2
+      - SC-3
+      - SC-4
+      - SC-5
+      - SC-6
+    quality_gates:
+      - "be_lint GREEN"
+      - "be_format GREEN"
+      - "be_arch_fitness GREEN"
+      - "be_unit_marca_service GREEN"
+      - "be_unit_voice_preview_service GREEN"
+      - "be_integration_marca_router_identity GREEN"
+    depends_on: [T-1]
+    blocks: [T-3, T-4]
+
+  T-3:
+    id: T-3
+    title: "BE pytest — dual-tenant + seed + voice_warning audit log + arch fitness creep guards"
+    type: backend
+    surface: BE
+    production_code: false
+    state: changes-requested
+    push_commit_sha: d324517a
+    audit_verdict: CHANGES_REQUESTED
+    audit_iterations: 1
+    audit_review_path: T-3-review.md
+    transitions:
+      - { from: pushed, to: changes-requested, at: 2026-05-27T09:32:41Z, by: auditor-backend-opus-4-7, reason: "F1 10 of 18 declared test files missing; T-2 acceptance A6+A8 verifiers reference non-existent files; spawn /dev-team Caso B AFTER T-2 fix lands" }
+    owner_eligibility:
+      qwen_opencode: true
+      claude_sonnet: true
+      claude_opus_required: false
+    priority: 1
+    estimate_hours: 4
+    decisions_applicable: [D2-voice, A2, A6, A7, A10]
+    inputs:
+      spec: "../01-spec.md"
+      arch_doc: "../03-arch.md"
+      rules:
+        - .claude/rules/tdd-mandatory.md
+        - .claude/rules/sales-agent-brand-voice.md
+        - .claude/rules/anti-duplication.md
+    must_load_skills:
+      - backend-expert
+      - .claude/rules/tdd-mandatory.md
+      - .claude/rules/tenant-isolation.md
+      - .claude/rules/sales-agent-brand-voice.md
+      - .claude/rules/anti-duplication.md
+      - vitalia/.claude/rules/hipaa-lite.md
+      - tessl__pytest-api-testing
+    deliverables:
+      - "vitalia/backend/tests/modules/vitalia/brand_studio/{__init__.py, test_prohibited_phrase_domain.py, test_voice_preview_domain.py, test_prohibited_phrase_repository.py, test_trust_signal_repository.py, test_marca_service.py, test_voice_preview_service.py, test_voice_blocklist_service.py, test_trust_catalog_service.py, test_marca_router_identity.py, test_marca_router_visuals.py, test_marca_router_personality.py, test_marca_router_contact.py, test_marca_router_voice_preview.py, test_marca_router_trust_signals.py, test_marca_cross_tenant.py, test_prohibited_phrases_seed.py, test_voice_warning_audit_log.py}"
+      - "vitalia/backend/tests/architecture/test_brand_studio_module_ddd.py (NEW — DDD layers enforce + tenant_id every query)"
+      - "vitalia/backend/tests/architecture/test_no_health_voice_validator.py (NEW — creep guard cardinal per sales-agent-brand-voice.md)"
+      - "vitalia/backend/tests/architecture/test_no_brand_voice_summary_table.py (NEW or EXTEND nicolify version — creep guard cardinal)"
+      - "vitalia/backend/tests/architecture/test_growth_studio_event_no_phi.py (EXTEND — 13 new events whitelist + payload no PHI)"
+    out_of_scope:
+      - "BE implementation (T-2)"
+      - "FE tests (T-9, T-10)"
+    acceptance:
+      - { id: A1, description: "All BE unit + integration tests pass", verifier: { type: pytest, cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/brand_studio/ -v" } }
+      - { id: A2, description: "Cross-tenant 403 + audit_log row test passes", verifier: { type: pytest, cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/brand_studio/test_marca_cross_tenant.py -v" } }
+      - { id: A3, description: "Seed defaults PE test passes (10 rows tenant_id IS NULL + country_scope='PE')", verifier: { type: pytest, cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/brand_studio/test_prohibited_phrases_seed.py -v" } }
+      - { id: A4, description: "Voice warning override creates audit row test passes", verifier: { type: pytest, cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/brand_studio/test_voice_warning_audit_log.py -v" } }
+      - { id: A5, description: "Creep guard arch tests pass (no_health_voice_validator + no_brand_voice_summary_table)", verifier: { type: pytest, cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/architecture/test_no_health_voice_validator.py tests/architecture/test_no_brand_voice_summary_table.py -v" } }
+      - { id: A6, description: "brand_studio module DDD arch test passes", verifier: { type: pytest, cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/architecture/test_brand_studio_module_ddd.py -v" } }
+      - { id: A7, description: "growth_studio_event_no_phi extended + 13 new events validated", verifier: { type: pytest, cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/architecture/test_growth_studio_event_no_phi.py -v" } }
+    gherkin_coverage:
+      - SC-4
+      - SC-5
+    quality_gates:
+      - "be_arch_fitness GREEN (incl 4 new arch tests)"
+      - "be_unit_* GREEN (8 unit/integration test files)"
+    depends_on: [T-1, T-2]
+    blocks: []
+
+  T-4:
+    id: T-4
+    title: "FE routing N3-static — [subsubtab]/page.tsx (3) + SubSubTabsBar component + AGENT_SUBSUBTABS catalog + ShellOrganismLayout mount"
+    type: frontend
+    surface: FE
+    production_code: true
+    state: audit-passed
+    audit_verdict: APPROVED
+    audit_iterations: 1
+    audit_review_path: T-4-review.md
+    audit_at: 2026-05-27T18:30:00Z
+    audit_by: auditor-frontend-opus-4-7
+    owner_eligibility:
+      qwen_opencode: true
+      claude_sonnet: true
+      claude_opus_required: false
+    priority: 1
+    estimate_hours: 3
+    decisions_applicable: [D1-arch, OQ-A, A11, A12]
+    inputs:
+      spec: "../01-spec.md"
+      arch_doc: "../03-arch.md"
+      rules:
+        - .claude/rules/frontend-fsd.md
+        - vitalia/.claude/rules/shell-feature-architecture-mandatory.md
+        - vitalia/.claude/rules/shell-mockup-per-component.md
+    must_load_skills:
+      - frontend-expert
+      - .claude/rules/frontend-fsd.md
+      - .claude/rules/tdd-mandatory.md
+      - .claude/rules/spanish-text.md
+      - vitalia/.claude/rules/shell-feature-architecture-mandatory.md
+      - vitalia/.claude/rules/shell-mockup-per-component.md
+      - tessl__react-patterns
+      - tessl__nextjs-app-router-modularization
+      - tessl__shadcn-ui
+      - tessl__tailwind
+    deliverables:
+      - "vitalia/frontend/src/lib/routing/shell-routes.ts (MODIFY or NEW — add AGENT_SUBSUBTABS catalog with lisa.marca = ['identidad', 'voz-y-tono', 'presencia'] + extractSubsubtabFromPath helper)"
+      - "vitalia/frontend/src/components/shared/shell-organism/SubSubTabsBar.tsx (NEW — verbatim copy of SubTabsBar pattern + URL-derived active + tint --agent-{name} + render null if empty)"
+      - "vitalia/frontend/src/components/shared/shell-organism/ShellOrganismLayout.tsx (MODIFY — mount <SubSubTabsBar /> between SubTabsBar and content slot)"
+      - "vitalia/frontend/src/app/[tenantId]/(shell-organism)/lisa/marca/page.tsx (NEW — Server Component redirect to first subsubtab)"
+      - "vitalia/frontend/src/app/[tenantId]/(shell-organism)/lisa/marca/identidad/page.tsx (NEW — Server Component getInitialMarcaState({tenantId, subsubtab: 'identidad'}) + IdentidadView)"
+      - "vitalia/frontend/src/app/[tenantId]/(shell-organism)/lisa/marca/voz-y-tono/page.tsx (NEW — similar pattern for voz-y-tono)"
+      - "vitalia/frontend/src/app/[tenantId]/(shell-organism)/lisa/marca/presencia/page.tsx (NEW — idem)"
+      - "vitalia/frontend/src/components/ui/{label, radio-group, checkbox, switch, sheet}.tsx (verify install via npx shadcn — skip if present)"
+      - "vitalia/frontend/src/features/lisa/index.ts (NEW — public API stub exports)"
+      - "vitalia/frontend/src/features/lisa/api/marca-server.ts (NEW — getInitialMarcaState SSR fetch helper)"
+    out_of_scope:
+      - "View components (T-5, T-6, T-7)"
+      - "Forms schemas (T-8)"
+      - "Tests (T-9, T-10, T-11, T-12)"
+    acceptance:
+      - { id: A1, description: "AGENT_SUBSUBTABS catalog declared with lisa.marca = ['identidad', 'voz-y-tono', 'presencia']", verifier: { type: shell, cmd: "grep -c \"marca: \\['identidad', 'voz-y-tono', 'presencia'\\]\" vitalia/frontend/src/lib/routing/shell-routes.ts | xargs test 1 -le" } }
+      - { id: A2, description: "SubSubTabsBar renders null when AGENT_SUBSUBTABS[agent][subtab] undefined", verifier: { type: shell, cmd: "cd vitalia/frontend && npx vitest run src/components/shared/shell-organism/__tests__/SubSubTabsBar.test.tsx --reporter=default 2>&1 | grep -q 'renders null when undefined'" } }
+      - { id: A3, description: "/lisa/marca redirects to /lisa/marca/identidad (first entry of AGENT_SUBSUBTABS)", verifier: { type: playwright, cmd: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/vitalia-fase2-lisa-marca/lisa-marca-identidad-autosave.spec.ts -g 'redirect to identidad'" } }
+      - { id: A4, description: "fe_typecheck + fe_lint GREEN", verifier: { type: shell, cmd: "cd vitalia/frontend && npx tsc --noEmit && npx eslint src/components/shared/shell-organism/SubSubTabsBar.tsx 'src/app/[tenantId]/(shell-organism)/lisa/**/*'" } }
+    gherkin_coverage:
+      - SC-10
+    quality_gates:
+      - "fe_typecheck GREEN"
+      - "fe_lint GREEN"
+      - "fe_arch_fitness GREEN"
+      - "SubSubTabsBar a11y roving tabindex pattern WAI-ARIA tablist"
+    depends_on: [T-2]
+    blocks: [T-5, T-6, T-7]
+
+  T-5:
+    id: T-5
+    title: "FE Identidad sub-sub-tab — IdentidadView + IdentityCard + ClinicVerticalReadOnly + LogoDropZone + ColorTriadEditor + TypographyEditor + TeamPreviewRow + ExtractFromWebsiteButton + AutosaveBadge"
+    type: frontend
+    surface: FE
+    production_code: true
+    state: audit-passed
+    audit_verdict: APPROVED
+    audit_iterations: 1
+    audit_review_path: T-5-review.md
+    audit_at: 2026-05-27T18:30:00Z
+    audit_by: auditor-frontend-opus-4-7
+    owner_eligibility:
+      qwen_opencode: true
+      claude_sonnet: true
+      claude_opus_required: false
+    priority: 1
+    estimate_hours: 5
+    decisions_applicable: [D3-clinic, D4-extract, A9, A13, OQ-A]
+    inputs:
+      spec: "../01-spec.md"
+      arch_doc: "../03-arch.md"
+      mockup: "../mockups/identidad-section.html"
+      rules:
+        - .claude/rules/frontend-fsd.md
+        - .claude/rules/spanish-text.md
+        - vitalia/.claude/rules/shell-feature-architecture-mandatory.md
+        - vitalia/.claude/rules/shell-mockup-per-component.md
+    must_load_skills:
+      - frontend-expert
+      - brand-expert
+      - .claude/rules/frontend-fsd.md
+      - .claude/rules/tdd-mandatory.md
+      - .claude/rules/spanish-text.md
+      - vitalia/.claude/rules/shell-feature-architecture-mandatory.md
+      - vitalia/.claude/rules/shell-mockup-per-component.md
+      - tessl__react-patterns
+      - tessl__shadcn-ui
+      - tessl__tailwind
+      - tessl__zod
+    deliverables:
+      - "vitalia/frontend/src/features/lisa/components/marca/identidad/IdentidadView.tsx (client root + React Query hydration + autosave hooks composition)"
+      - "vitalia/frontend/src/features/lisa/components/marca/identidad/IdentityCard.tsx (RHF + Zod identitySchema + autosave 600ms — name + tagline + slug read-only)"
+      - "vitalia/frontend/src/features/lisa/components/marca/identidad/ClinicVerticalReadOnly.tsx (display clinic_vertical + primary_specialties + edit-link to /onboarding/clinic-config)"
+      - "vitalia/frontend/src/features/lisa/components/marca/identidad/LogoDropZone.tsx (drag+drop + client-side 5MB validation + format whitelist + preview live + upload to /lisa/marca/logos)"
+      - "vitalia/frontend/src/features/lisa/components/marca/identidad/ColorTriadEditor.tsx (3 color pickers Shadcn Popover + hex input + WCAG contrast warning per pair)"
+      - "vitalia/frontend/src/features/lisa/components/marca/identidad/TypographyEditor.tsx (2 selects heading + body font + autosave 600ms)"
+      - "vitalia/frontend/src/features/lisa/components/marca/identidad/TeamPreviewRow.tsx (avatars row max 3 + counter +N más + link 'Gestionar equipo' to /lisa/doctores disabled tooltip si story not done)"
+      - "vitalia/frontend/src/features/lisa/components/marca/identidad/ExtractFromWebsiteButton.tsx (disabled button + Tooltip 'Próximamente' + telemetry emit on click — D4 stub)"
+      - "vitalia/frontend/src/features/lisa/components/marca/identidad/AutosaveBadge.tsx (footer 'Guardado hace Xs' with states saving/saved/error/dirty)"
+      - "vitalia/frontend/src/features/lisa/hooks/{useIdentityAutosave, useVisualsAutosave}.ts (debounce 600ms via tanstack useMutation + telemetry emit)"
+      - "vitalia/frontend/src/features/lisa/api/marca.ts (NEW — React Query hooks per resource + marcaKeys factory)"
+    out_of_scope:
+      - "Voz y tono sub-sub-tab (T-6)"
+      - "Presencia sub-sub-tab (T-7)"
+      - "Forms schemas (T-8 — IMPORT verbatim nicolify)"
+      - "Tests (T-9, T-10, T-11, T-12)"
+    acceptance:
+      - { id: A1, description: "IdentidadView composes 7 sub-components + AutosaveBadge", verifier: { type: shell, cmd: "grep -c 'import' vitalia/frontend/src/features/lisa/components/marca/identidad/IdentidadView.tsx | xargs test 7 -le" } }
+      - { id: A2, description: "LogoDropZone blocks >5MB client-side + emits telemetry lisa_marca_logo_oversized", verifier: { type: shell, cmd: "cd vitalia/frontend && npx vitest run src/features/lisa/components/marca/identidad/__tests__/LogoDropZone.test.tsx -t 'rejects oversize' 2>&1 | grep -q 'PASS'" } }
+      - { id: A3, description: "ExtractFromWebsiteButton disabled + Tooltip + telemetry on click", verifier: { type: shell, cmd: "grep -E 'disabled.*true|aria-disabled' vitalia/frontend/src/features/lisa/components/marca/identidad/ExtractFromWebsiteButton.tsx" } }
+      - { id: A4, description: "ColorTriadEditor uses CSS vars (no hex literals in className)", verifier: { type: shell, cmd: "! grep -E '#[0-9A-Fa-f]{6}' vitalia/frontend/src/features/lisa/components/marca/identidad/ColorTriadEditor.tsx | grep className" } }
+      - { id: A5, description: "Spanish neutro grep 0 voseo", verifier: { type: shell, cmd: "! grep -rEn '\\b(vos|sos|tenés|podés|mirá|andá|fijate|dale)\\b' vitalia/frontend/src/features/lisa/components/marca/identidad/" } }
+      - { id: A6, description: "fe_typecheck + fe_lint GREEN", verifier: { type: shell, cmd: "cd vitalia/frontend && npx tsc --noEmit && npx eslint 'src/features/lisa/components/marca/identidad/**/*' --cache" } }
+    gherkin_coverage:
+      - SC-1
+      - SC-3
+      - SC-8
+    quality_gates:
+      - "fe_typecheck GREEN"
+      - "fe_lint GREEN"
+      - "fe_unit_identidad_view GREEN"
+      - "fe_unit_identidad_components GREEN"
+      - "Visual fidelity vs mockup identidad-section.html (T-11)"
+    depends_on: [T-4, T-8]
+    blocks: [T-9, T-10]
+
+  T-6:
+    id: T-6
+    title: "FE Voz y tono sub-sub-tab — VozTonoView + ArchetypeSelector + VoiceCompilerBlocks + VoiceTextareaWithWarning + TreatmentLanguageCard + BrandVoicePreview footer único"
+    type: frontend
+    surface: FE
+    production_code: true
+    state: audit-passed
+    audit_verdict: APPROVED_WITH_WARN
+    audit_iterations: 1
+    audit_review_path: T-6-review.md
+    audit_at: 2026-05-27T18:30:00Z
+    audit_by: auditor-frontend-opus-4-7
+    owner_eligibility:
+      qwen_opencode: true
+      claude_sonnet: true
+      claude_opus_required: false
+    priority: 1
+    estimate_hours: 5
+    decisions_applicable: [D2-voice, D5-archetype, OQ-B, OQ-C, OQ-E, A3]
+    inputs:
+      spec: "../01-spec.md"
+      arch_doc: "../03-arch.md"
+      mockup: "../mockups/voz-tono-section.html"
+      rules:
+        - .claude/rules/frontend-fsd.md
+        - .claude/rules/spanish-text.md
+        - .claude/rules/sales-agent-brand-voice.md
+        - vitalia/.claude/rules/shell-feature-architecture-mandatory.md
+        - vitalia/.claude/rules/shell-mockup-per-component.md
+    must_load_skills:
+      - frontend-expert
+      - brand-expert
+      - sales-agent-expert
+      - .claude/rules/frontend-fsd.md
+      - .claude/rules/tdd-mandatory.md
+      - .claude/rules/spanish-text.md
+      - .claude/rules/sales-agent-brand-voice.md
+      - vitalia/.claude/rules/shell-feature-architecture-mandatory.md
+      - vitalia/.claude/rules/shell-mockup-per-component.md
+      - tessl__react-patterns
+      - tessl__shadcn-ui
+      - tessl__tailwind
+      - tessl__zod
+    deliverables:
+      - "vitalia/frontend/src/features/lisa/components/marca/voz-y-tono/VozTonoView.tsx (client root + React Query hydration + cards order Archetype → VoiceCompilerBlocks → TreatmentLanguageCard → BrandVoicePreview footer único)"
+      - "vitalia/frontend/src/features/lisa/components/marca/voz-y-tono/ArchetypeSelector.tsx (4 radio cards Caregiver default/Sage/Healer/Hero + tooltips + autosave on-select)"
+      - "vitalia/frontend/src/features/lisa/components/marca/voz-y-tono/VoiceCompilerBlocks.tsx (6 textareas — identity_anchor + domain_context + so_i_speak + so_i_dont_speak + technical_context + format_instructions — RHF + autosave 600ms per-field)"
+      - "vitalia/frontend/src/features/lisa/components/marca/voz-y-tono/VoiceTextareaWithWarning.tsx (textarea + blocklist phrase detector + Alert variant=warning + override button + audit log via POST /voice-warning-override)"
+      - "vitalia/frontend/src/features/lisa/components/marca/voz-y-tono/TreatmentLanguageCard.tsx (tratamiento tú/usted toggle + idioma fallback select)"
+      - "vitalia/frontend/src/features/lisa/components/marca/voz-y-tono/BrandVoicePreview.tsx (★ footer ÚNICO debajo de TreatmentLanguageCard per OQ-E — 2 samples WhatsApp + Email reactivación + refresh on autosave 600ms debounce hash)"
+      - "vitalia/frontend/src/features/lisa/hooks/{usePersonalityAutosave, useVoicePreview, useVoiceBlocklist}.ts"
+    out_of_scope:
+      - "Identidad sub-sub-tab (T-5)"
+      - "Presencia sub-sub-tab (T-7)"
+      - "Tests (T-9, T-10, T-11, T-12)"
+    acceptance:
+      - { id: A1, description: "ArchetypeSelector renders exactly 4 cards (Caregiver default + Sage + Healer + Hero) — Outlaw/Magician/Lover/Innocent omitted", verifier: { type: shell, cmd: "grep -c 'archetype.*caregiver\\|archetype.*sage\\|archetype.*healer\\|archetype.*hero' vitalia/frontend/src/features/lisa/components/marca/voz-y-tono/ArchetypeSelector.tsx | xargs test 4 -le" } }
+      - { id: A2, description: "VoiceTextareaWithWarning shows Alert variant=warning + override button", verifier: { type: shell, cmd: "cd vitalia/frontend && npx vitest run src/features/lisa/components/marca/voz-y-tono/__tests__/VoiceTextareaWithWarning.test.tsx -t 'shows warning' 2>&1 | grep -q 'PASS'" } }
+      - { id: A3, description: "BrandVoicePreview footer único — only ONE BrandVoicePreview component in VozTonoView (single instance)", verifier: { type: shell, cmd: "grep -c 'BrandVoicePreview' vitalia/frontend/src/features/lisa/components/marca/voz-y-tono/VozTonoView.tsx | xargs test 2 -le" } }
+      - { id: A4, description: "BrandVoicePreview refreshes via debounceHash key change on autosave", verifier: { type: shell, cmd: "grep 'debounceHash' vitalia/frontend/src/features/lisa/components/marca/voz-y-tono/BrandVoicePreview.tsx" } }
+      - { id: A5, description: "Spanish neutro grep 0 voseo en UI strings", verifier: { type: shell, cmd: "! grep -rEn '\\b(vos|sos|tenés|podés|mirá|andá|fijate|dale)\\b' vitalia/frontend/src/features/lisa/components/marca/voz-y-tono/" } }
+      - { id: A6, description: "fe_typecheck + fe_lint GREEN", verifier: { type: shell, cmd: "cd vitalia/frontend && npx tsc --noEmit && npx eslint 'src/features/lisa/components/marca/voz-y-tono/**/*' --cache" } }
+    gherkin_coverage:
+      - SC-2
+      - SC-6
+    quality_gates:
+      - "fe_typecheck GREEN"
+      - "fe_lint GREEN"
+      - "fe_unit_voz_tono_view GREEN"
+      - "fe_unit_voz_tono_components GREEN"
+      - "Visual fidelity vs mockup voz-tono-section.html (T-11)"
+    depends_on: [T-4, T-8]
+    blocks: [T-9, T-10]
+
+  T-7:
+    id: T-7
+    title: "FE Presencia sub-sub-tab — PresenciaView + WebsiteCard + SocialMediaLinksEditor + TrustSignalsEditor (hybrid catalog) + LocationsCard"
+    type: frontend
+    surface: FE
+    production_code: true
+    state: audit-passed
+    audit_verdict: APPROVED
+    audit_iterations: 1
+    audit_review_path: T-7-review.md
+    audit_at: 2026-05-27T18:30:00Z
+    audit_by: auditor-frontend-opus-4-7
+    owner_eligibility:
+      qwen_opencode: true
+      claude_sonnet: true
+      claude_opus_required: false
+    priority: 1
+    estimate_hours: 4
+    decisions_applicable: [OQ-D]
+    inputs:
+      spec: "../01-spec.md"
+      arch_doc: "../03-arch.md"
+      mockup: "../mockups/presencia-section.html"
+      rules:
+        - .claude/rules/frontend-fsd.md
+        - .claude/rules/spanish-text.md
+        - vitalia/.claude/rules/shell-feature-architecture-mandatory.md
+        - vitalia/.claude/rules/shell-mockup-per-component.md
+    must_load_skills:
+      - frontend-expert
+      - .claude/rules/frontend-fsd.md
+      - .claude/rules/tdd-mandatory.md
+      - .claude/rules/spanish-text.md
+      - vitalia/.claude/rules/shell-feature-architecture-mandatory.md
+      - vitalia/.claude/rules/shell-mockup-per-component.md
+      - tessl__react-patterns
+      - tessl__shadcn-ui
+      - tessl__tailwind
+      - tessl__zod
+    deliverables:
+      - "vitalia/frontend/src/features/lisa/components/marca/presencia/PresenciaView.tsx (client root + React Query hydration)"
+      - "vitalia/frontend/src/features/lisa/components/marca/presencia/WebsiteCard.tsx (public landing URL read-only + Ver button + Copiar link + sitio web propio input + autosave)"
+      - "vitalia/frontend/src/features/lisa/components/marca/presencia/SocialMediaLinksEditor.tsx (4 inputs Instagram/TikTok/Facebook/Google Business + URL/handle validation Zod + autosave 600ms)"
+      - "vitalia/frontend/src/features/lisa/components/marca/presencia/TrustSignalsEditor.tsx (★ hybrid catalog dropdown per país + free-text 'Otra' + logo upload optional + CRUD + drag-drop reorder)"
+      - "vitalia/frontend/src/features/lisa/components/marca/presencia/LocationsCard.tsx (read-only display ubicaciones from clinics module + link 'Gestionar ubicaciones' disabled si story not done)"
+      - "vitalia/frontend/src/features/lisa/hooks/useContactAutosave.ts"
+    out_of_scope:
+      - "Identidad + Voz y tono sub-sub-tabs (T-5, T-6)"
+      - "Tests (T-9, T-10, T-11, T-12)"
+    acceptance:
+      - { id: A1, description: "TrustSignalsEditor consumes hybrid catalog per país (PE seed shows 8 entries DIGESA/MINSA/etc + free-text 'Otra' option)", verifier: { type: shell, cmd: "cd vitalia/frontend && npx vitest run src/features/lisa/components/marca/presencia/__tests__/TrustSignalsEditor.test.tsx -t 'PE catalog 8 entries' 2>&1 | grep -q 'PASS'" } }
+      - { id: A2, description: "SocialMediaLinksEditor validates handle vs URL per field via Zod", verifier: { type: shell, cmd: "grep 'z.string' vitalia/frontend/src/features/lisa/types/marca/presence-schema.ts" } }
+      - { id: A3, description: "Spanish neutro grep 0 voseo", verifier: { type: shell, cmd: "! grep -rEn '\\b(vos|sos|tenés|podés|mirá|andá|fijate|dale)\\b' vitalia/frontend/src/features/lisa/components/marca/presencia/" } }
+      - { id: A4, description: "fe_typecheck + fe_lint GREEN", verifier: { type: shell, cmd: "cd vitalia/frontend && npx tsc --noEmit && npx eslint 'src/features/lisa/components/marca/presencia/**/*' --cache" } }
+    gherkin_coverage:
+      - SC-1
+      - SC-9
+    quality_gates:
+      - "fe_typecheck GREEN"
+      - "fe_lint GREEN"
+      - "fe_unit_presencia_view GREEN"
+      - "fe_unit_presencia_components GREEN"
+      - "Visual fidelity vs mockup presencia-section.html (T-11)"
+    depends_on: [T-4, T-8]
+    blocks: [T-9, T-10]
+
+  T-8:
+    id: T-8
+    title: "FE forms — RHF + Zod schemas IMPORT verbatim nicolify + ADAPT salud (personality 4 archetypes)"
+    type: frontend
+    surface: FE
+    production_code: true
+    state: audit-passed
+    audit_verdict: APPROVED
+    audit_iterations: 1
+    audit_review_path: T-8-review.md
+    audit_at: 2026-05-27T18:30:00Z
+    audit_by: auditor-frontend-opus-4-7
+    owner_eligibility:
+      qwen_opencode: true
+      claude_sonnet: true
+      claude_opus_required: false
+    priority: 1
+    estimate_hours: 2
+    decisions_applicable: [D5-archetype, OQ-B, A8]
+    inputs:
+      spec: "../01-spec.md"
+      arch_doc: "../03-arch.md"
+      rules:
+        - .claude/rules/frontend-fsd.md
+        - .claude/rules/anti-duplication.md
+    must_load_skills:
+      - frontend-expert
+      - brand-expert
+      - .claude/rules/frontend-fsd.md
+      - .claude/rules/anti-duplication.md
+      - .claude/rules/tdd-mandatory.md
+      - tessl__zod
+      - tessl__react-patterns
+    deliverables:
+      - "vitalia/frontend/src/features/lisa/types/marca/identity-schema.ts (IMPORT verbatim from nicolify/frontend/src/features/brand-studio/schemas/identity.schema.ts)"
+      - "vitalia/frontend/src/features/lisa/types/marca/visuals-schema.ts (IMPORT verbatim from nicolify visuals.schema.ts + optional ClinicBrandVisuals stub for D4 future)"
+      - "vitalia/frontend/src/features/lisa/types/marca/personality-schema.ts (IMPORT + ADAPT — SALUD_ARCHETYPES = ['caregiver','sage','healer','hero'] only, default 'caregiver')"
+      - "vitalia/frontend/src/features/lisa/types/marca/contact-schema.ts (IMPORT verbatim from nicolify contact.schema.ts)"
+      - "vitalia/frontend/src/features/lisa/types/marca/team-schema.ts (IMPORT verbatim from nicolify team.schema.ts — read-only preview)"
+      - "vitalia/frontend/src/features/lisa/types/marca/presence-schema.ts (NEW — social media + own website + Google Business URL validation)"
+      - "vitalia/frontend/src/features/lisa/types/marca/trust-signals-schema.ts (NEW — hybrid catalog code OR free-text 'Otra' discriminated union)"
+      - "vitalia/frontend/src/features/lisa/types/marca/voice-preview-schema.ts (NEW — VoicePreviewDTO type mirror)"
+      - "vitalia/frontend/src/features/lisa/types/marca/prohibited-phrase-schema.ts (NEW — ProhibitedPhraseDTO mirror)"
+      - "vitalia/frontend/src/features/lisa/types/marca/marca.types.ts (union types + helpers)"
+      - "vitalia/frontend/src/features/lisa/store/marca-store.ts (zustand UI state — pendingVoiceOverride + trustSignalDraft)"
+    out_of_scope:
+      - "Component implementations (T-5, T-6, T-7)"
+      - "Tests (T-9)"
+    acceptance:
+      - { id: A1, description: "8 schemas + types file present", verifier: { type: shell, cmd: "ls vitalia/frontend/src/features/lisa/types/marca/*.ts | wc -l | xargs test 9 -le" } }
+      - { id: A2, description: "personalitySchema uses 4 archetypes only (Caregiver/Sage/Healer/Hero) — omits Outlaw/Magician/Lover/Innocent", verifier: { type: shell, cmd: "grep -c 'outlaw\\|magician\\|lover\\|innocent' vitalia/frontend/src/features/lisa/types/marca/personality-schema.ts | xargs test 0 -eq" } }
+      - { id: A3, description: "identitySchema mirror verbatim from nicolify (same field shape)", verifier: { type: shell, cmd: "diff <(grep -E 'name:|tagline:' nicolify/frontend/src/features/brand-studio/schemas/identity.schema.ts) <(grep -E 'name:|tagline:' vitalia/frontend/src/features/lisa/types/marca/identity-schema.ts) | wc -l | xargs test 5 -gt" } }
+      - { id: A4, description: "fe_typecheck GREEN", verifier: { type: shell, cmd: "cd vitalia/frontend && npx tsc --noEmit" } }
+    gherkin_coverage:
+      - SC-2
+    quality_gates:
+      - "fe_typecheck GREEN"
+      - "fe_lint GREEN"
+      - "fe_unit_marca_store GREEN"
+    depends_on: []
+    blocks: [T-5, T-6, T-7]
+
+  T-9:
+    id: T-9
+    title: "FE Vitest unit tests — components per subsubtab + hooks autosave + form validation + store"
+    type: frontend
+    surface: FE
+    production_code: false
+    state: audit-passed
+    audit_verdict: APPROVED
+    audit_iterations: 1
+    audit_review_path: T-9-review.md
+    audit_at: 2026-05-27T18:30:00Z
+    audit_by: auditor-frontend-opus-4-7
+    owner_eligibility:
+      qwen_opencode: true
+      claude_sonnet: true
+      claude_opus_required: false
+    priority: 2
+    estimate_hours: 3
+    decisions_applicable: []
+    inputs:
+      spec: "../01-spec.md"
+      arch_doc: "../03-arch.md"
+    must_load_skills:
+      - frontend-expert
+      - .claude/rules/tdd-mandatory.md
+      - tessl__vitest
+      - tessl__react-patterns
+    deliverables:
+      - "vitalia/frontend/src/features/lisa/components/marca/identidad/__tests__/*.test.tsx (9 files — IdentidadView + 8 components)"
+      - "vitalia/frontend/src/features/lisa/components/marca/voz-y-tono/__tests__/*.test.tsx (7 files — VozTonoView + 6 components)"
+      - "vitalia/frontend/src/features/lisa/components/marca/presencia/__tests__/*.test.tsx (6 files — PresenciaView + 5 components)"
+      - "vitalia/frontend/src/features/lisa/components/marca/shared/__tests__/*.test.tsx (2 files — AutosaveProvider + MarcaFormFooter)"
+      - "vitalia/frontend/src/features/lisa/api/__tests__/marca.test.ts"
+      - "vitalia/frontend/src/features/lisa/hooks/__tests__/*.test.ts (7 files — useIdentityAutosave + useVisualsAutosave + usePersonalityAutosave + useContactAutosave + useVoicePreview + useVoiceBlocklist)"
+      - "vitalia/frontend/src/features/lisa/store/__tests__/marca-store.test.ts"
+      - "vitalia/frontend/src/test-utils/msw/handlers/lisa-marca-handlers.ts (NEW — MSW handlers for unit tests)"
+    out_of_scope:
+      - "E2E Playwright (T-10)"
+      - "Visual goldens (T-11)"
+      - "a11y axe (T-12)"
+    acceptance:
+      - { id: A1, description: "All vitest files pass", verifier: { type: shell, cmd: "cd vitalia/frontend && npx vitest run src/features/lisa/" } }
+      - { id: A2, description: "Coverage ≥ 20% per Vitalia baseline (advisory if higher)", verifier: { type: shell, cmd: "cd vitalia/frontend && npx vitest run --coverage src/features/lisa/" } }
+      - { id: A3, description: "MSW handlers cover all 21 endpoints + 2xx/4xx/5xx variants", verifier: { type: shell, cmd: "grep -c 'http.' vitalia/frontend/src/test-utils/msw/handlers/lisa-marca-handlers.ts | xargs test 18 -le" } }
+    gherkin_coverage: []
+    gherkin_coverage_note: "Unit tests support all SCs via component-level validation."
+    quality_gates:
+      - "fe_unit_* (8 validators) GREEN"
+    depends_on: [T-5, T-6, T-7]
+    blocks: []
+
+  T-10:
+    id: T-10
+    title: "FE E2E Playwright — fixtures + 4 POMs + 11 scenarios"
+    type: frontend
+    surface: FE
+    production_code: false
+    state: audit-passed
+    audit_verdict: APPROVED
+    audit_iterations: 1
+    audit_review_path: T-10-review.md
+    audit_at: 2026-05-27T18:30:00Z
+    audit_by: auditor-frontend-opus-4-7
+    owner_eligibility:
+      qwen_opencode: true
+      claude_sonnet: true
+      claude_opus_required: false
+    priority: 2
+    estimate_hours: 5
+    decisions_applicable: []
+    inputs:
+      spec: "../01-spec.md"
+      arch_doc: "../03-arch.md"
+      validators: "../04-validators.yaml"
+    must_load_skills:
+      - playwright-expert
+      - .claude/rules/e2e-testing.md
+      - .claude/rules/tdd-mandatory.md
+      - frontend-expert
+    deliverables:
+      - "vitalia/frontend/e2e/regression/vitalia-fase2-lisa-marca/fixtures/lisa-marca.fixture.ts (Clerk authedAsOwner + tenant PE seed brand data + MSW worker)"
+      - "vitalia/frontend/e2e/regression/vitalia-fase2-lisa-marca/fixtures/voice-preview-mock.ts (MSW handlers GET /voice-preview hit/miss/error)"
+      - "vitalia/frontend/e2e/regression/vitalia-fase2-lisa-marca/fixtures/large-dataset.fixture.ts (DB seed 50 testimonials + 30 team)"
+      - "vitalia/frontend/e2e/regression/vitalia-fase2-lisa-marca/fixtures/network-failure.ts (page.route abort helper)"
+      - "vitalia/frontend/e2e/regression/vitalia-fase2-lisa-marca/poms/lisa-marca-page.pom.ts"
+      - "vitalia/frontend/e2e/regression/vitalia-fase2-lisa-marca/poms/identidad-section.pom.ts"
+      - "vitalia/frontend/e2e/regression/vitalia-fase2-lisa-marca/poms/voz-tono-section.pom.ts"
+      - "vitalia/frontend/e2e/regression/vitalia-fase2-lisa-marca/poms/presencia-section.pom.ts"
+      - "vitalia/frontend/e2e/regression/vitalia-fase2-lisa-marca/lisa-marca-identidad-autosave.spec.ts (SC-1)"
+      - "vitalia/frontend/e2e/regression/vitalia-fase2-lisa-marca/lisa-marca-voice-warning.spec.ts (SC-2)"
+      - "vitalia/frontend/e2e/regression/vitalia-fase2-lisa-marca/lisa-marca-logo-upload-size.spec.ts (SC-3)"
+      - "vitalia/frontend/e2e/regression/vitalia-fase2-lisa-marca/lisa-marca-cross-tenant.spec.ts (SC-4 — FE side; BE in test_marca_cross_tenant.py)"
+      - "vitalia/frontend/e2e/regression/vitalia-fase2-lisa-marca/lisa-marca-race-autosave.spec.ts (SC-5)"
+      - "vitalia/frontend/e2e/regression/vitalia-fase2-lisa-marca/lisa-marca-concurrent-owners.spec.ts (SC-6)"
+      - "vitalia/frontend/e2e/regression/vitalia-fase2-lisa-marca/lisa-marca-autosave-timeout.spec.ts (SC-7)"
+      - "vitalia/frontend/e2e/regression/vitalia-fase2-lisa-marca/lisa-marca-empty-state.spec.ts (SC-8)"
+      - "vitalia/frontend/e2e/regression/vitalia-fase2-lisa-marca/lisa-marca-large-dataset.spec.ts (SC-9)"
+      - "vitalia/frontend/e2e/regression/vitalia-fase2-lisa-marca/lisa-marca-keyboard.spec.ts (SC-10)"
+      - "vitalia/frontend/e2e/regression/vitalia-fase2-lisa-marca/lisa-marca-i18n.spec.ts (SC-11)"
+    out_of_scope:
+      - "Visual goldens (T-11)"
+      - "a11y axe (T-12)"
+    acceptance:
+      - { id: A1, description: "All 11 E2E specs created per creation_order step 9-19 of test_construction_plan", verifier: { type: shell, cmd: "ls vitalia/frontend/e2e/regression/vitalia-fase2-lisa-marca/lisa-marca-*.spec.ts | wc -l | xargs test 11 -le" } }
+      - { id: A2, description: "All 4 POMs created", verifier: { type: shell, cmd: "ls vitalia/frontend/e2e/regression/vitalia-fase2-lisa-marca/poms/*.pom.ts | wc -l | xargs test 4 -le" } }
+      - { id: A3, description: "All 4 fixtures created", verifier: { type: shell, cmd: "ls vitalia/frontend/e2e/regression/vitalia-fase2-lisa-marca/fixtures/*.ts | wc -l | xargs test 4 -le" } }
+      - { id: A4, description: "All e2e validators pass per 04-validators.yaml functional category", verifier: { type: playwright, cmd: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/vitalia-fase2-lisa-marca/ --project=smoke" } }
+    gherkin_coverage:
+      - SC-1
+      - SC-2
+      - SC-3
+      - SC-4
+      - SC-5
+      - SC-6
+      - SC-7
+      - SC-8
+      - SC-9
+      - SC-10
+      - SC-11
+    quality_gates:
+      - "All e2e_* validators GREEN"
+      - "Preflight passes (bash scripts/e2e-preflight.sh)"
+    depends_on: [T-5, T-6, T-7]
+    blocks: [T-11, T-12]
+
+  T-11:
+    id: T-11
+    title: "FE visual goldens — 3 subsubtabs × 2 themes = 6 PNGs + cleanup legacy /(dashboard)/brand-studio/[section]/page.tsx"
+    type: frontend
+    surface: FE
+    production_code: false
+    state: audit-passed
+    audit_verdict: APPROVED
+    audit_iterations: 1
+    audit_review_path: T-11-review.md
+    audit_at: 2026-05-27T18:30:00Z
+    audit_by: auditor-frontend-opus-4-7
+    owner_eligibility:
+      qwen_opencode: true
+      claude_sonnet: true
+      claude_opus_required: false
+    priority: 2
+    estimate_hours: 2
+    decisions_applicable: []
+    inputs:
+      spec: "../01-spec.md"
+      arch_doc: "../03-arch.md"
+      mockups:
+        - "../mockups/identidad-section.html"
+        - "../mockups/voz-tono-section.html"
+        - "../mockups/presencia-section.html"
+    must_load_skills:
+      - playwright-expert
+      - vitalia/.claude/rules/shell-mockup-per-component.md
+      - frontend-expert
+    deliverables:
+      - "vitalia/frontend/e2e/visual/lisa-marca-visual.spec.ts (Playwright visual goldens spec — 3 subsubtabs × 2 themes = 6 snapshots)"
+      - "vitalia/frontend/e2e/__screenshots__/lisa-marca/identidad-light.png"
+      - "vitalia/frontend/e2e/__screenshots__/lisa-marca/identidad-dark.png"
+      - "vitalia/frontend/e2e/__screenshots__/lisa-marca/voz-y-tono-light.png"
+      - "vitalia/frontend/e2e/__screenshots__/lisa-marca/voz-y-tono-dark.png"
+      - "vitalia/frontend/e2e/__screenshots__/lisa-marca/presencia-light.png"
+      - "vitalia/frontend/e2e/__screenshots__/lisa-marca/presencia-dark.png"
+      - "DELETE vitalia/frontend/src/app/(dashboard)/brand-studio/[section]/page.tsx (legacy)"
+      - "DELETE vitalia/frontend/src/features/vitalia/components/brand-studio-section-client.tsx (legacy refactored to features/lisa)"
+    out_of_scope:
+      - "a11y axe (T-12)"
+    acceptance:
+      - { id: A1, description: "6 PNG visual goldens generated + ratchet shrink-only", verifier: { type: shell, cmd: "ls vitalia/frontend/e2e/__screenshots__/lisa-marca/*.png | wc -l | xargs test 6 -le" } }
+      - { id: A2, description: "Visual fidelity vs mockup `maxDiffPixelRatio: 0.001` (0.1% tolerance)", verifier: { type: playwright, cmd: "cd vitalia/frontend && npx playwright test e2e/visual/lisa-marca-visual.spec.ts" } }
+      - { id: A3, description: "Legacy dashboard route deleted", verifier: { type: shell, cmd: "! ls vitalia/frontend/src/app/\\(dashboard\\)/brand-studio/ 2>/dev/null" } }
+    gherkin_coverage:
+      - SC-1
+      - SC-8
+    quality_gates:
+      - "visual_fidelity_subsubtabs GREEN"
+      - "visual_responsive_breakpoints GREEN"
+    depends_on: [T-10]
+    blocks: []
+
+  T-12:
+    id: T-12
+    title: "FE a11y axe-core scan — WCAG 2.1 AA per subsubtab × idle/loading/success/error/empty states"
+    type: frontend
+    surface: FE
+    production_code: false
+    state: audit-passed
+    audit_verdict: APPROVED
+    audit_iterations: 1
+    audit_review_path: T-12-review.md
+    audit_at: 2026-05-27T18:30:00Z
+    audit_by: auditor-frontend-opus-4-7
+    owner_eligibility:
+      qwen_opencode: true
+      claude_sonnet: true
+      claude_opus_required: false
+    priority: 2
+    estimate_hours: 1
+    decisions_applicable: []
+    inputs:
+      spec: "../01-spec.md"
+      arch_doc: "../03-arch.md"
+    must_load_skills:
+      - playwright-expert
+      - frontend-expert
+      - .claude/rules/e2e-testing.md
+    deliverables:
+      - "vitalia/frontend/e2e/a11y/lisa-marca-a11y.spec.ts (axe-core wcag2aa scan per subsubtab × 5 states)"
+    out_of_scope: []
+    acceptance:
+      - { id: A1, description: "axe-core scan returns 0 critical + 0 serious violations across 3 subsubtabs × 5 states", verifier: { type: playwright, cmd: "cd vitalia/frontend && npx playwright test e2e/a11y/lisa-marca-a11y.spec.ts --project=smoke" } }
+      - { id: A2, description: "Keyboard nav assertion: aria-selected correct on SubSubTabsBar + focus ring visible", verifier: { type: playwright, cmd: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/vitalia-fase2-lisa-marca/lisa-marca-keyboard.spec.ts" } }
+    gherkin_coverage:
+      - SC-10
+    quality_gates:
+      - "a11y_axe GREEN"
+      - "e2e_keyboard_a11y GREEN"
+    depends_on: [T-10]
+    blocks: []

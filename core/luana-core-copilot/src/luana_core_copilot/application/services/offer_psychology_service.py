@@ -1,0 +1,79 @@
+"""Offer psychology service for copilot."""
+
+from uuid import UUID
+
+from luana_core_brand_studio.infrastructure.repositories.avatar_repository import (
+    AvatarRepository,
+)
+from luana_core_offer_studio.application.ports import PsychologyGeneratorPort
+from luana_core_offer_studio.domain.offer_ai_schemas import (
+    PsychologyGenerationRequest,
+    PsychologyGenerationResponse,
+)
+from luana_core_platform.application.ai_action_service import (
+    AIActionPolicy,
+    AIActionService,
+    AIModelPolicy,
+)
+from luana_core_platform.core.enums import ModelRole
+from sqlalchemy.orm import Session
+
+from luana_core_copilot.infrastructure.prompts.base import prompt_loader
+
+
+class CopilotOfferPsychologyService(PsychologyGeneratorPort):
+    """Service for copilot offer psychology operations."""
+
+    def __init__(self, session: Session) -> None:
+        """Initialize copilot offer psychology service."""
+        self.session = session
+        self.avatar_repo = AvatarRepository(session)
+        self.ai_action_service = AIActionService()
+
+    async def generate_psychology(
+        self,
+        request: PsychologyGenerationRequest,
+        tenant_id: UUID,
+    ) -> PsychologyGenerationResponse:
+        """Execute generate psychology operation."""
+        avatar = self.avatar_repo.get_by_id(request.avatar_id)
+        if not avatar:
+            msg = f"Avatar with ID {request.avatar_id} not found"
+            raise ValueError(msg)
+
+        if avatar.tenant_id and str(avatar.tenant_id) != str(tenant_id):
+            msg = "Avatar not found in this tenant"
+            raise ValueError(msg)
+
+        system_prompt_content = prompt_loader.render(
+            template_name="offer_psychology_generator.j2",
+            offer_name=request.offer_name,
+            offer_description=request.offer_description or "",
+            current_pains=", ".join(request.current_pains),
+            current_desires=", ".join(request.current_desires),
+            avatar_name=avatar.name,
+            avatar_description=avatar.icp_description or "No description provided",
+            avatar_pains="See Description",
+            avatar_desires="See Description",
+        )
+
+        return self.ai_action_service.run_structured_action(
+            action_name="offer_psychology_generation",
+            tenant_id=tenant_id,
+            system_prompt=system_prompt_content,
+            user_prompt=(
+                "Analiza el avatar y la oferta, y genera los puntos de dolor y deseos"
+                " según las instrucciones. Recuerda devolver JSON válido."
+            ),
+            response_model=PsychologyGenerationResponse,
+            policy=AIActionPolicy(
+                retries=2,
+                retry_delay_seconds=0.4,
+                model=AIModelPolicy(
+                    model_type=ModelRole.REASONING,
+                    temperature=0.7,
+                    max_output_tokens=800,
+                ),
+            ),
+            metadata={"prompt_template": "offer_psychology_generator"},
+        )

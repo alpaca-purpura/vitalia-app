@@ -1,0 +1,37 @@
+---
+# Release schema (v2 cement 2026-05-27)
+# Doc: docs/process/release-protocol.md
+# Path canónico: {brand}/docs/product/releases/{release_id}.yaml
+
+release_id: RELEASE_ID                # ej "F2" · PK funcional · NO renombrar después
+brand: BRAND                          # vitalia | nicolify | comunify | lupulo | ...
+name: "Nombre corto del release"      # ej "Migración progresiva · primer valor Valeria + Lisa"
+description: "Descripción 1-2 líneas que explican el bloque de trabajo + outcome esperado"
+status: planning                       # planning | in_progress | ready_to_merge | shipped | backlog
+production_status: not_deployed        # not_deployed | staged | deployed · eje deployment v4 (independiente de status)
+target_date: null                      # ISO date YYYY-MM-DD · null hasta que Chris la llene
+shipped_date: null                      # ISO date · solo al cerrar status=shipped
+shipped_gate_evidence: null            # link o path al artefacto de evidencia DoD (#37) · requerido antes de status=shipped
+order: 0                                # int (menor = primero en Roadmap)
+created_at: YYYY-MM-DDTHH:MM:SS-05:00
+created_by: chris
+
+# Stories asignadas (denormalizada · source-of-truth = checkpoint.md de cada story)
+# Drag stories entre releases en cockpit Roadmap actualiza esta lista + el `release:` field del checkpoint.md
+stories: []
+# stories:
+#   - story-id-1
+#   - story-id-2
+---
+
+# {RELEASE_ID} · {Nombre del release}
+
+> Descripción larga del release (opcional). Resumen del outcome esperado + criterios de éxito + dependencias.
+
+## Stories incluidas
+
+<!-- Auto-poblado por cockpit · refleja stories[] del frontmatter -->
+
+## Notas del release
+
+(libre · Chris escribe aquí contexto adicional · decisiones · gotchas)

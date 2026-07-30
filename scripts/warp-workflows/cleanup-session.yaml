@@ -1,0 +1,17 @@
+name: cleanup-session
+description: Cerrar worktree Luana — push final + remove worktree (+ opcional delete branch).
+command: bash scripts/git/cleanup-session.sh {{arg}}{{delete}}
+arguments:
+  - name: arg
+    description: BRAND-SLUG[-LANE] o core-SLUG. Ej. vitalia-copilot-tools-impl
+    default_value: ""
+  - name: delete
+    description: " --delete-branch" para borrar branch local + remote (use AFTER squash-merge a main)
+    default_value: ""
+tags:
+  - luana
+  - git
+  - worktree
+shells:
+  - bash
+  - zsh

@@ -1,0 +1,152 @@
+# 06-tickets.yaml — vitalia-fase2-config-cuenta
+# Ticket assignments per surface. R23 checked (non-agentic → Sonnet OK).
+# Consumed by /dev-team (spawn) + dispatch-plan.md.
+
+story_id: vitalia-fase2-config-cuenta
+brand: vitalia
+release: F4
+architecture_pattern: ADR-vitalia-004
+cap_target: configuracion.cuenta
+cap_change_type: new
+
+# Build order: T-2 (BE) primero, T-1 (FE) consume contrato. Pueden paralelizar
+# si T-1 trabaja contra los DTOs de 03-arch § 5 (camelCase ya especificado) +
+# registra el CONTRACT_PAIR — evita el drift imaginado del embudo (HB-42).
+# Bucket lock: code:clinics (BE) + code:config (FE) — módulos distintos, paralelo OK.
+
+tickets:
+
+  - id: T-2
+    title: "BE — config-cuenta: campos cuenta Clinic + fiscal/specialty validators + account_router + PATCH editable"
+    surface: backend
+    module: clinics
+    nature: feature_be_inside_out
+    state: audit-passed        # /auditor iter 2 APPROVED 2026-06-12 · C9-1 RESOLVED (audit row durable, live count 1→2 verificado por el auditor) · C1-2/C10-1 closed. Ver T-2-review.md § Audit iteration 2
+    audit_verdict: APPROVED
+    audit_iterations: 2
+    repro_evidence:
+      repro_verified: true
+      reproduced_local: false
+      not_a_bugfix: "feature nuevo (CRUD + validators) — repro N/A; live-verify en DoD"
+    assignment:
+      primary_agent: builder-backend
+      model_preference: sonnet           # R23: production_code BE non-agentic → Sonnet OK (NO copilot/sales_agent)
+      must_load_skills:
+        - backend-expert
+        - brand-expert
+      must_load_artifacts:
+        - 03-arch.md
+        - 04-validators.yaml
+        - vitalia/.claude/rules/hipaa-lite.md
+      forbidden_to_touch:
+        - "vitalia/frontend/**"
+        - "core/luana-core-tenant-profile/**"
+        - "core/luana-core-iam/**"
+        - "clinics/api/router.py"
+        - "clinics/application/credential_validator.py"
+      rationale: >
+        BE puro (DDD Inside-Out). No agentic. Sonnet adecuado. brand-expert necesario
+        porque specialties viven en tenant.config_json (no en Clinic). Forbidden: engine
+        schema (config_json se escribe vía brand service RMW, no column), router CRUD existente.
+    deliverables:
+      domain:
+        - "clinics/domain/clinic.py — EXTEND (legal_name, fiscal_id, address, phone, email, language, currency · nullable back-compat)"
+        - "clinics/domain/events.py — NEW (ClinicSpecialtiesChanged)"
+      infrastructure:
+        - "clinics/infrastructure/models/clinic_model.py — EXTEND columnas (Column() style)"
+        - "clinics/infrastructure/repositories/clinic_repository.py — EXTEND (get_active_for_tenant, update_account)"
+        - "clinics/infrastructure/repositories/clinic_config_repository.py — NEW (config_json JSONB read/write tenant-scoped)"
+        - "alembic/versions/039_vitalia_config_cuenta_fields.py — NEW (raw SQL IF NOT EXISTS · down_revision via alembic current)"
+      application:
+        - "clinics/application/clinic_account_service.py — NEW (get_account, patch_account, get_specialty_catalog, get_dpo_reference)"
+      api:
+        - "clinics/api/account_router.py — NEW (GET/PATCH /account, GET /account/specialties-catalog, GET /account/dpo)"
+        - "clinics/api/dtos.py — EXTEND (ClinicAccountResponse, ClinicAccountPatchRequest, SpecialtyCatalogResponse, DpoReferenceResponse)"
+        - "main.py / module wiring — include_router(account_router) (notarized)"
+      shared:
+        - "_shared/validation/fiscal_id_validator.py — NEW (AR/PE/MX/CL/CO/UY country-rules + FiscalIdValidationError)"
+        - "_shared/catalogs/specialty_catalog.py — NEW (SPECIALTY_CATALOG por país + FISCAL_ID_LABEL_BY_COUNTRY + LANGUAGE_BY_COUNTRY + validate_specialties)"
+      tests:
+        - "tests/modules/vitalia/_shared/test_fiscal_id_validator.py (hypothesis invariantes)"
+        - "tests/modules/vitalia/_shared/test_specialty_catalog.py"
+        - "tests/modules/vitalia/clinics/test_clinic_account_repository.py"
+        - "tests/modules/vitalia/clinics/test_clinic_account_service.py"
+        - "tests/modules/vitalia/clinics/test_account_router.py"
+        - "tests/architecture/test_fe_be_contract_parity.py — EXTEND CONTRACT_PAIRS (registrar par ClinicAccountResponse)"
+      acceptance: [AC-1, AC-2, AC-3, AC-4, AC-4b, AC-5, AC-6]
+    gates_must_pass:
+      - "${WS}/.venv/bin/ruff check src/ tests/"
+      - "${WS}/.venv/bin/pytest tests/modules/vitalia/clinics/ tests/modules/vitalia/_shared/ -v"
+      - "${WS}/.venv/bin/pytest tests/architecture/ -x -q"
+
+  - id: T-1
+    title: "FE — config-cuenta: sub-tab Mi cuenta N3-static (Datos/Preferencias/Responsable) + autosave + specialties multi-select"
+    surface: frontend
+    module: config
+    nature: ui_story_n3_static
+    state: audit-passed        # /auditor 2026-06-12 APPROVED · 16 cats PASS (4 WARN no-bloqueantes) · E2E 6/6 real · engine-touch validado backward-compat. Ver T-1-review.md
+    audit_verdict: APPROVED
+    repro_evidence:
+      repro_verified: true
+      reproduced_local: false
+      not_a_bugfix: "feature UI nuevo — repro N/A; live-verify en DoD"
+    depends_on: [T-2]                     # consume DTOs · pero puede paralelizar contra 03-arch § 5 contract
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: sonnet           # R23: FE non-agentic → Sonnet OK
+      must_load_skills:
+        - frontend-expert
+        - vitalia-design-system
+        - playwright-expert
+      must_load_artifacts:
+        - 03-arch.md
+        - 04-validators.yaml
+        - mockups/cuenta.html
+        - docs/architecture/luana-platform/design-system-canon.md
+        - vitalia/docs/architecture/ADR-vitalia-004-shell-feature-architecture.md
+      forbidden_to_touch:
+        - "vitalia/backend/**"
+        - "core/@luana/ui-kit/**"
+        - "vitalia/frontend/src/components/shared/shell-organism/**"
+        - "config/conexiones, config/avanzado"
+      rationale: >
+        FE UI N3-static (ADR-vitalia-004). No agentic. Sonnet adecuado. vitalia-design-system
+        HARD (shell + canon @luana/ui-kit). playwright-expert para live-verify real (anti-burbuja).
+        Forbidden: BE (T-2), ui-kit engine (consumir), chrome shipped (verbatim).
+    deliverables:
+      routing:
+        - "app/[tenantId]/(shell-organism)/config/cuenta/page.tsx — NEW (Server → redirect leaf 'datos')"
+        - "app/[tenantId]/(shell-organism)/config/cuenta/layout.tsx — NEW (SubSubTabsBar)"
+        - "app/[tenantId]/(shell-organism)/config/cuenta/{datos,preferencias,responsable}/page.tsx — NEW (SSR)"
+        - "lib/shell-routes.ts — EXTEND AGENT_SUBSUBTABS['config.cuenta']"
+        - "lib/agent-catalog.ts — EXTEND SHIPPED_STATIC_SUBTABS ('config.cuenta')"
+      components:
+        - "features/config/components/cuenta/AccountDataView.tsx — NEW ('use client' RHF+Zod+autosave)"
+        - "features/config/components/cuenta/PreferencesView.tsx — NEW (timezone/currency Select)"
+        - "features/config/components/cuenta/ResponsibleView.tsx — NEW (read-only + link)"
+        - "features/config/components/cuenta/SpecialtiesField.tsx — NEW (multi-select chips @luana/ui-kit)"
+      data:
+        - "features/config/hooks/use-account-form.ts — NEW (RHF + use-autosave 600ms)"
+        - "features/config/api/get-account.ts — NEW (React Query + camelize boundary)"
+        - "features/config/api/patch-account.ts — NEW (mutation)"
+        - "features/config/api/get-specialty-catalog.ts — NEW"
+        - "features/config/types/cuenta.types.ts — NEW (camelCase mirror EXACTO § 5)"
+        - "features/config/types/cuenta-schema.ts — NEW (Zod + fiscal validators client preview)"
+        - "features/config/index.ts — MODIFIED (export views; remove CuentaPlaceholder)"
+      tests:
+        - "src/features/config/hooks/__tests__/use-account-form.test.ts"
+        - "src/features/config/components/cuenta/__tests__/{AccountDataView,PreferencesView,ResponsibleView}.test.tsx"
+        - "e2e/specs/config/cuenta.spec.ts (live-verify · anti-burbuja fixture · NO mock BE)"
+        - "visual goldens: cuenta-datos.png, cuenta-prefs.png, cuenta-resp.png"
+      acceptance: [AC-1, AC-2, AC-3, AC-4, AC-4b, AC-6]
+    gates_must_pass:
+      - "cd vitalia/frontend && npx tsc --noEmit"
+      - "cd vitalia/frontend && npx eslint src/ --cache"
+      - "cd vitalia/frontend && npx vitest run src/features/config/"
+      - "cd vitalia/frontend && npx vitest run src/__tests__/architecture/"
+      - "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test config/cuenta"
+
+# ── R23 compliance check ────────────────────────────────────────────────────
+r23_check:
+  agentic_tickets: 0
+  note: "Ninguna superficie agentic (sin copilot/ ni sales_agent/). Ambos tickets non-agentic → Sonnet OK. La 'recalc agentes' (D3-revoked) se resuelve por event runtime (zero-touch agentic, 03-arch § 8) — NO requiere builder-agentic/Opus."

@@ -1,0 +1,233 @@
+# --- Global / Root ---
+# Quality reports
+.jscpd-report/
+report/
+
+# Environments (Secrets)
+.env
+.env.prod
+.env.dev
+.env.local
+.env.dev.local
+.env.example
+*.env
+*.env.prod
+*.env.dev
+*.env.local
+*.env.dev.local
+*.env.example
+
+# Cloudflare tunnel credentials (per brand, gitignored)
+**/deploy/cloudflared/.credentials/
+
+# OS & System
+.DS_Store
+Thumbs.db
+.Desktop
+.VolumeIcon.icns
+._*
+
+# IDEs & Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*.sublime-project
+*.sublime-workspace
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# --- Python ---
+**/__pycache__/
+*.py[cod]
+*$py.class
+build/
+dist/
+*.egg-info/
+
+# Virtual Environments
+venv/
+.venv/
+env/
+
+# Testing & Coverage
+.coverage
+.coverage.*
+coverage.json
+htmlcov/
+.pytest_cache/
+**/coverage/
+
+# --- Node.js / pnpm ---
+node_modules/
+.next/
+out/
+.turbo/
+*.tsbuildinfo
+.eslintcache
+storybook-static/
+
+# --- Infrastructure & Data ---
+data/
+postgres_data/
+tmp/
+temp/
+static/uploads/
+
+# --- Claude Code ---
+.claude/worktrees/
+.claude/scheduled_tasks.lock
+CLAUDE.local.md
+
+# --- Auto-installed Skills (user-local, no scope project) ---
+# clerk-* and sentry-* skills auto-installed por claude harness via skills-lock.json.
+# No usados por specs/skills proyecto; mantener fuera de git para reducir noise.
+.agents/
+.claude/skills/clerk*
+.claude/skills/sentry*
+skills-lock.json
+
+# --- Turborepo ---
+.turbo/
+
+# --- Playwright ---
+test-results/
+playwright-report/
+playwright/.clerk/
+blob-report/
+
+# --- Brand env files (secretos — NO commitear nunca) ---
+# S-DOCKER-DEV-MULTIBRAND T-7 — 2026-05-15
+# Templates (.env.dev.template, .env.prod.template) SI se commitean.
+# Los .env.dev y .env.prod reales NUNCA.
+nicolify/.env.dev
+nicolify/.env.prod
+vitalia/.env.dev
+vitalia/.env.prod
+comunify/.env.dev
+comunify/.env.prod
+lupulo/.env.dev
+lupulo/.env.prod
+# Futuros (6 brands pendientes bootstrap)
+saasora/.env.dev
+saasora/.env.prod
+inmoflow/.env.dev
+inmoflow/.env.prod
+retailly/.env.dev
+retailly/.env.prod
+fixia/.env.dev
+fixia/.env.prod
+guestly/.env.dev
+guestly/.env.prod
+fitflow/.env.dev
+fitflow/.env.prod
+
+# v2 worktree protocol — session locks per worktree (M14 N sesiones mismo cwd)
+.session-locks/
+
+# v2 worktree protocol — session log per canonical worktree (step-0 #12)
+.session-log
+
+# --- Auto-generated docs (regen via `make` / scripts — NUNCA commitear) ---
+# Cement 2026-05-20 — Chris ratificó "gitignore total" para evitar merge conflicts
+# crónicos en archivos derivados. SSoT vive en las sources; estos son views.
+#
+# Cómo regenerar localmente cuando los necesites:
+#   make portfolio          # docs/portfolio/{PORTFOLIO,brand,luana}.md cross-brand
+#   make infra-matrix       # docs/portfolio/INFRA-MATRIX.md
+#   .venv/bin/python scripts/generate_backlog.py --brand vitalia    # per-brand
+#   .venv/bin/python scripts/generate_backlog.py                    # legacy root
+#   make scan-promotables   # docs/promotion-protocol/scan-{date}.yaml
+#
+# Pre-commit hook Sections 6 + 10 siguen regenerando localmente (working tree
+# fresh) pero ya NO auto-stage. Ver `.claude/rules/brand-docs-schema.md` R3.
+
+# Per-brand BACKLOG (10 brands: 4 active + 6 future templates)
+*/docs/product/BACKLOG.md
+*/docs/product/BACKLOG.yaml
+*/docs/product/BACKLOG-TLDR.md
+
+# Legacy single-brand BACKLOG (pre-multibrand reorg, todavia generado)
+docs/product/BACKLOG.md
+docs/product/BACKLOG.yaml
+docs/product/BACKLOG-TLDR.md
+
+# Cross-brand portfolio (vistas auto-gen master + per-brand + INFRA-MATRIX)
+docs/portfolio/PORTFOLIO.md
+docs/portfolio/INFRA-MATRIX.md
+docs/portfolio/comunify.md
+docs/portfolio/fitflow.md
+docs/portfolio/fixia.md
+docs/portfolio/guestly.md
+docs/portfolio/inmoflow.md
+docs/portfolio/luana.md
+docs/portfolio/lupulo.md
+docs/portfolio/nicolify.md
+docs/portfolio/retailly.md
+docs/portfolio/saasora.md
+docs/portfolio/vitalia.md
+
+# Per-brand capabilities index user-facing (auto-gen scripts/generate_capability_index.py · ADR-vitalia-005 v3 cement 2026-05-27)
+docs/portfolio/comunify-capabilities.md
+docs/portfolio/fitflow-capabilities.md
+docs/portfolio/fixia-capabilities.md
+docs/portfolio/guestly-capabilities.md
+docs/portfolio/inmoflow-capabilities.md
+docs/portfolio/lupulo-capabilities.md
+docs/portfolio/nicolify-capabilities.md
+docs/portfolio/retailly-capabilities.md
+docs/portfolio/saasora-capabilities.md
+docs/portfolio/vitalia-capabilities.md
+
+# Per-brand areas/ user-facing (auto-gen scripts/generate_capability_index.py · 1 file por agent_owner)
+*/docs/product/areas/*.md
+
+# Promotion-protocol dated scans (re-run cada vez con `make scan-promotables`)
+docs/promotion-protocol/scan-*.yaml
+
+# Frontend generated code (offer-field-paths + futuros __generated__)
+**/__generated__/
+
+# Story refs (chris-input.md binarios · v2 cement 2026-05-27)
+# Mantenemos chris-input.md tracked (cita paths) pero binarios uploaded vía /api/refs/upload no inflan repo.
+# Si Chris necesita compartir refs cross-machine → mover a {brand}/docs/product/stories/{id}/refs-shared/ (tracked manual opt-in).
+**/docs/product/stories/**/refs/*
+!**/docs/product/stories/**/refs/*.md
+!**/docs/product/stories/**/refs/.gitkeep
+
+# Phase execution log (autonomous /goal runs · ephemeral)
+.phase-execution-log.md
+
+# Cockpit (binario alpaca · pidfile/log del daemon per-worktree)
+.cockpit/
+
+
+# Cap verification outputs (auto-gen R3 v2)
+**/docs/product/capabilities/_status-computed.json
+**/docs/product/capabilities/_atomics-verification.json
+**/docs/product/capabilities/_code-index.json
+**/docs/product/capabilities/_bidirectional-validation.json
+**/docs/product/capabilities/_actions-index.json
+
+# Sweep harness evidence + findings (HIPAA-lite: screenshots pueden contener datos mock de pacientes)
+# vitalia-cockpit-live-reconciliation T-2
+vitalia/frontend/e2e/regression/live-reconciliation/.evidence/
+vitalia/frontend/e2e/regression/live-reconciliation/.sweep-findings.json
+
+# DOCS-SWEEP graph outputs (auto-gen R3 — regen: scripts/scan_docs_graph.py)
+docs/process/DOCS-GRAPH.md
+docs/process/_docs-graph.json
+
+# @luana/ui-kit catalog (auto-gen R3 · ADR-016 C2-T1 — regen: make ui-catalog)
+core/@luana/ui-kit/catalog.json
+core/@luana/ui-kit/catalog.md
+
+# Cockpit vendored (tools/cockpit) — intermedios de build (el binario go/cockpit SÍ se trackea)
+.cockpit-local/
+tools/cockpit/go/ui/

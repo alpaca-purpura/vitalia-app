@@ -1,0 +1,187 @@
+# 04-validators.yaml — vitalia-bugfix-shell-nav-scroll-errors
+# Bugfix lite (ADR-011). FE-only. Naturaleza: funcional. Paths brand-scoped vitalia/frontend/.
+# ${WS} = git rev-parse --show-toplevel. gate-runner resuelve antes de ejecutar.
+
+verification_nature: functional
+
+validators:
+  # ─── NON-FUNCTIONAL (baseline siempre) ───
+  - id: fe_typecheck
+    category: non_functional
+    type: shell
+    cmd: "cd vitalia/frontend && npx tsc --noEmit"
+    must_pass: true
+    timeout_sec: 120
+
+  - id: fe_lint
+    category: non_functional
+    type: shell
+    cmd: "cd vitalia/frontend && npx eslint src/ --cache --max-warnings 0"
+    must_pass: true
+    timeout_sec: 90
+
+  - id: fe_knip_deadcode
+    category: non_functional
+    type: shell
+    cmd: "cd vitalia/frontend && npx knip --include files,exports"
+    must_pass: true
+    timeout_sec: 90
+    description: "Bug #5 (delete InfoBannerLandingDescoped) + Bug #3 (posible SubTabHeader huérfano) NO dejan exports/archivos muertos."
+
+  # ─── ARCHITECTURAL VALIDATION ───
+  - id: arch_fsd_boundaries
+    category: architectural_validation
+    type: shell
+    cmd: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/"
+    must_pass: true
+    timeout_sec: 120
+    description: "FSD-Lite boundaries + agent-catalog SSoT + no-clerk-organizations + subtab-content-uses-ribbon-subtabs SSoT siguen verdes."
+
+  # ─── FUNCTIONAL (Vitest unit afectados) ───
+  - id: fe_unit_shell
+    category: functional
+    type: shell
+    cmd: "cd vitalia/frontend && npx vitest run src/components/shared/shell-organism/ src/stores/ src/hooks/"
+    must_pass: true
+    timeout_sec: 120
+    description: "TenantSwitcher / SubTabContent / AppPanelSlot / tenant-store / useTenants units (Bug #2/#3/#4)."
+
+  - id: fe_unit_lisa_marca
+    category: functional
+    type: shell
+    cmd: "cd vitalia/frontend && npx vitest run src/features/lisa/components/marca/"
+    must_pass: true
+    timeout_sec: 90
+    description: "Identidad/VozTono/Presencia views (Bug #3 title removal + Bug #5 banner removal)."
+
+  # ─── RUNTIME ERROR GATE (anti-burbuja · OBLIGATORIO toda superficie FE) ───
+  - id: e2e_shell_runtime_error_gate
+    category: functional
+    type: playwright
+    cmd: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/shell-nav-scroll/ --project=smoke"
+    must_pass: true
+    timeout_sec: 300
+    runtime_error_gate: required
+    description: >
+      Especs importan de e2e/fixtures/base.ts (NO @playwright/test). Asserta vacío al teardown:
+      pageerror / console.error (allowlist solo shrink) / response ≥400 en /api/ / nextjs-portal overlay ausente.
+      Cubre los 6 bugs en flujo real.
+
+  - id: backend_log_clean
+    category: functional
+    type: shell
+    cmd: "bash ${WS}/scripts/verify-no-backend-errors.sh vitalia"
+    must_pass: true
+    timeout_sec: 60
+    description: "Tras ejercer el shell en dev-app, los logs del backend vitalia no tienen ERROR/Traceback inesperado."
+
+# ─── SCENARIO COVERAGE (bug → verificación) ───
+scenario_coverage:
+  - scenario_id: "bug1_routing_lands_valid"
+    validators: [fe_unit_shell, e2e_shell_runtime_error_gate]
+  - scenario_id: "bug2_tenant_selector_visible_single_tenant"
+    validators: [fe_unit_shell, e2e_shell_runtime_error_gate]
+  - scenario_id: "bug3_no_redundant_sheet_title"
+    validators: [fe_unit_shell, fe_unit_lisa_marca, e2e_shell_runtime_error_gate]
+  - scenario_id: "bug4_content_scrolls"
+    validators: [e2e_shell_runtime_error_gate]
+  - scenario_id: "bug5_no_landing_placeholder_presencia"
+    validators: [fe_unit_lisa_marca, fe_knip_deadcode, e2e_shell_runtime_error_gate]
+  - scenario_id: "bug7_error_isolated_nav_alive"
+    validators: [e2e_shell_runtime_error_gate]
+  - scenario_id: "regression_no_clerk_org"
+    validators: [arch_fsd_boundaries]
+  - scenario_id: "empty_state_no_tenants"
+    validators: [fe_unit_shell]
+
+# ─── BUSINESS RULES (regla → @tag → scenario · happy + negative/edge) ───
+business_rules:
+  - id: RN-1
+    rule: "El landing post-login SIEMPRE aterriza en una ruta que existe (nunca 404)."
+    tag: "@rule-routing-valid-landing"
+    scenarios: ["bug1_routing_lands_valid"]
+    negative: "Recargar /{tenantId} y /{tenantId}/<agente-invalido> → 404 SOLO en el inválido; el default nunca 404."
+  - id: RN-2
+    rule: "El selector de tenant se muestra siempre que el usuario tenga ≥1 tenant (aunque sea 1)."
+    tag: "@rule-tenant-selector-always-visible"
+    scenarios: ["bug2_tenant_selector_visible_single_tenant"]
+    negative: "Con 0 tenants → selector oculto (graceful degrade) — comportamiento preservado."
+  - id: RN-3
+    rule: "Ninguna hoja muestra un título superior que duplique la opción de navegación activa."
+    tag: "@rule-no-redundant-title"
+    scenarios: ["bug3_no_redundant_sheet_title"]
+    negative: "Los headings de sección intra-contenido (form sections) NO se eliminan."
+  - id: RN-4
+    rule: "El contenido de cualquier hoja es scrolleable cuando excede el alto del panel."
+    tag: "@rule-content-scrollable"
+    scenarios: ["bug4_content_scrolls"]
+    negative: "Hojas con scroll interno propio (agenda) no quedan con doble-scroll roto."
+  - id: RN-5
+    rule: "Presencia no muestra el recuadro 'Editor de landing pública — próximamente'."
+    tag: "@rule-no-landing-placeholder"
+    scenarios: ["bug5_no_landing_placeholder_presencia"]
+    negative: "El resto de Presencia (website, redes, trust signals, sedes) sigue funcionando."
+  - id: RN-6
+    rule: "Un error en el contenido de una hoja se aísla al panel; la navegación (sidebar/ribbon/sub-tabs) sigue clickeable."
+    tag: "@rule-error-isolated"
+    scenarios: ["bug7_error_isolated_nav_alive"]
+    negative: "Forzar un throw en el contenido → fallback en el panel + botón Reintentar; NO pantalla global de Next.js."
+
+# ─── PLAYWRIGHT VISUAL / SCOPE DISCIPLINE ───
+playwright_visual_scope:
+  story_scope_routes:
+    - "/{tenantId}"                       # bug #1 redirect
+    - "/{tenantId}/mateo/agenda"          # bug #1 destino + #4 scroll + #7
+    - "/{tenantId}/lisa/marca/presencia"  # bug #3 + #5
+    - "/{tenantId}/lisa/marca/identidad"  # bug #3
+    - "/{tenantId}/lucas/lanzar"          # bug #3 (placeholder dispatcher) + #4 scroll
+  story_scope_components:
+    - "vitalia/frontend/src/components/shared/shell-organism/AppPanelSlot.tsx"
+    - "vitalia/frontend/src/components/shared/shell-organism/SubTabContent.tsx"
+    - "vitalia/frontend/src/components/shared/shell-organism/TenantSwitcher.tsx"
+    - "vitalia/frontend/src/app/[tenantId]/(shell-organism)/[agent]/error.tsx"
+    - "vitalia/frontend/src/features/lisa/components/marca/**"
+  forbidden_visual_changes:
+    paths:
+      - "vitalia/frontend/src/components/ui/"            # Shadcn primitives (impacto global)
+      - "vitalia/frontend/src/features/lisa/components/staff/"  # lisa-doctores (developing)
+      - "vitalia/frontend/src/app/layout.tsx"            # app shell raíz
+    reasons:
+      - "Primitives Shadcn impactan toda la app."
+      - "lisa/staff es superficie de vitalia-fase2-lisa-doctores (developing, bucket lisa)."
+  if_visual_change_needed_outside_scope:
+    action: "STOP. Documentar en T-{n}-impl-log.md. Escalar /pm-vitalia."
+  non_egoismo_clause: >
+    Bug #3 en lisa/staff (StaffDirectoryHeader h1 'Staff') = reportar en impl-log § Cross-story
+    observed bugs para que lisa-doctores lo absorba. NO arreglar inline (rompe scope discipline).
+
+# ─── REGRESSION GUARD (bugfix modifica existente) ───
+regression_guard:
+  must_stay_green_unmodified:
+    - "src/components/shared/shell-organism/ShellOrganismLayout.test.tsx (single-main/single-slot invariantes)"
+    - "src/__tests__/architecture/test-no-clerk-organizations.test.ts"
+    - "src/__tests__/architecture/ (agent-catalog SSoT, FSD boundaries)"
+  coverage_update:
+    - "(shell-organism)/not-found.test.tsx:88 — actualizar referencia valeria/agenda → mateo/agenda (revisar diff, NO -u mecánico)"
+    - "SubSubTabsBar.test.tsx:141 — idem"
+    - "PresenciaView test (si existe) — quitar assert del h2 'Presencia' + del banner"
+  new_coverage:
+    - "Bug #7: test del nuevo [agent]/error.tsx (throw → fallback + nav viva)."
+    - "Bug #1: test del default landing → mateo/agenda (no 404)."
+    - "TDD repro-first (ADR-011): test RED que reproduce cada bug ANTES del fix."
+
+# ─── DEMO (DoD #37 §5) ───
+demo_required: true
+demo_skip_reason: null
+
+# ─── DEV-APP LIVE VERIFY (ADR-vitalia-008) ───
+dev_app_verified:
+  required: true
+  env: "make dev-app-vitalia → https://dev-app.vitalialat.com (Chrome DevTools MCP, dr.demo@vitalialat.com)"
+  evidence_required_per_bug: true
+
+iteration:
+  max_iterations: 10
+  on_fail: "fix targeted file based on test output, re-run failing validator only"
+  on_all_pass: "set state developing→developed, append impl-log"
+  on_cap_reached: "set state developing→blocked, escalate Chris con last error trace"

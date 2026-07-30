@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>F1-S3 · TenantSwitcher open mockup — 5 states</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: ['class', '[data-theme="dark"]'],
+    }
+  </script>
+  <style>
+    :root {
+      --background: 0 0% 100%;
+      --foreground: 240 10% 4%;
+      --card: 0 0% 100%;
+      --muted: 240 5% 96%;
+      --muted-foreground: 240 4% 46%;
+      --border: 240 6% 90%;
+      --primary: 198 99% 49%;
+      --accent: 287 53% 37%;
+      --destructive: 0 72% 51%;
+      --destructive-foreground: 0 0% 98%;
+      --radius: 0.5rem;
+      --ring: 198 99% 49%;
+    }
+    [data-theme="dark"] {
+      --background: 240 10% 4%;
+      --foreground: 0 0% 98%;
+      --card: 240 8% 8%;
+      --muted: 240 6% 14%;
+      --muted-foreground: 240 4% 60%;
+      --border: 240 6% 18%;
+      --primary: 198 99% 49%;
+      --accent: 287 53% 60%;
+      --destructive: 0 62% 50%;
+      --destructive-foreground: 0 0% 98%;
+      --ring: 198 99% 60%;
+    }
+    body {
+      background: hsl(var(--muted));
+      color: hsl(var(--foreground));
+      font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+    }
+    .topbar-container {
+      background: hsl(var(--background));
+      color: hsl(var(--foreground));
+      border: 1px solid hsl(var(--border));
+      border-radius: var(--radius);
+      overflow: visible;
+      box-shadow: 0 1px 3px rgb(0 0 0 / 0.05);
+      position: relative;
+    }
+    .topbar-container[data-theme="dark"] {
+      background: hsl(240 10% 4%);
+      color: hsl(0 0% 98%);
+    }
+    .topbar {
+      height: 48px;
+      border-bottom: 1px solid hsl(var(--border));
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1.25rem;
+      position: relative;
+      z-index: 50;
+      background: inherit;
+    }
+    .topbar-container[data-theme="dark"] .topbar {
+      border-bottom-color: hsl(240 6% 18%);
+    }
+    .main-content {
+      padding: 1.5rem 1.25rem;
+      min-height: 60px;
+      font-size: 0.875rem;
+      color: hsl(var(--muted-foreground));
+    }
+    .topbar-container[data-theme="dark"] .main-content {
+      color: hsl(240 4% 60%);
+    }
+    .logo-text {
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      color: #1a1a5e;
+      font-size: 14px;
+    }
+    .topbar-container[data-theme="dark"] .logo-text {
+      color: #ffffff;
+    }
+    .dragon-fly {
+      width: 28px;
+      height: 28px;
+      background: conic-gradient(from 45deg, #06b6d4, #a855f7, #d946ef, #f59e0b, #84cc16, #06b6d4);
+      mask: radial-gradient(circle, transparent 30%, black 31%);
+      -webkit-mask: radial-gradient(circle, transparent 30%, black 31%);
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    /* Tenant badge — hash palette */
+    .tenant-badge {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 700;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .badge-cyan    { background: #06b6d4; color: white; }
+    .badge-purple  { background: #a855f7; color: white; }
+    .badge-fuchsia { background: #d946ef; color: white; }
+    .badge-amber   { background: #f59e0b; color: #451a03; }
+    .badge-lime    { background: #84cc16; color: #1a2e05; }
+    .badge-rose    { background: #f43f5e; color: white; }
+    /* Trigger button */
+    .switcher-trigger {
+      height: 36px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 10px;
+      border: 1px solid hsl(var(--border));
+      border-radius: var(--radius);
+      background: hsl(var(--muted));
+      color: hsl(var(--foreground));
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      max-width: 250px;
+    }
+    .topbar-container[data-theme="dark"] .switcher-trigger {
+      background: hsl(240 6% 14%);
+      color: hsl(0 0% 98%);
+      border-color: hsl(240 6% 18%);
+    }
+    .trigger-name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 180px;
+    }
+    .chevron {
+      width: 16px;
+      height: 16px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      flex-shrink: 0;
+      transform: rotate(180deg);
+    }
+    /* Theme toggle */
+    .theme-toggle {
+      width: 36px;
+      height: 36px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid hsl(var(--border));
+      border-radius: var(--radius);
+      background: hsl(var(--background));
+      color: hsl(var(--foreground));
+      cursor: pointer;
+    }
+    .topbar-container[data-theme="dark"] .theme-toggle {
+      background: hsl(240 10% 4%);
+      color: hsl(0 0% 98%);
+      border-color: hsl(240 6% 18%);
+    }
+    .topbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .logo-block {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* === DROPDOWN MENU CONTENT === */
+    .dropdown-menu {
+      position: absolute;
+      top: 52px;
+      right: 1.25rem;
+      min-width: 280px;
+      max-width: 320px;
+      background: hsl(var(--background));
+      border: 1px solid hsl(var(--border));
+      border-radius: 8px;
+      box-shadow: 0 10px 38px -10px rgba(22, 23, 24, 0.35),
+                  0 10px 20px -15px rgba(22, 23, 24, 0.2);
+      padding: 6px;
+      z-index: 100;
+      color: hsl(var(--foreground));
+    }
+    .topbar-container[data-theme="dark"] .dropdown-menu {
+      background: hsl(240 8% 8%);
+      border-color: hsl(240 6% 18%);
+      box-shadow: 0 10px 38px -10px rgba(0, 0, 0, 0.65),
+                  0 10px 20px -15px rgba(0, 0, 0, 0.5);
+    }
+    .dropdown-label {
+      padding: 8px 10px 6px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: hsl(var(--muted-foreground));
+    }
+    .dropdown-separator {
+      height: 1px;
+      background: hsl(var(--border));
+      margin: 4px -6px;
+    }
+    .tenant-option {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      min-height: 44px;
+      position: relative;
+    }
+    .tenant-option:hover {
+      background: hsl(var(--muted));
+    }
+    .tenant-option.active {
+      background: hsla(287, 53%, 60%, 0.18);
+    }
+    .topbar-container[data-theme="dark"] .tenant-option.active {
+      background: hsla(287, 53%, 60%, 0.22);
+    }
+    .tenant-text {
+      flex: 1;
+      min-width: 0;
+    }
+    .tenant-name {
+      font-size: 13px;
+      font-weight: 500;
+      line-height: 1.2;
+      color: hsl(var(--foreground));
+    }
+    .tenant-subtitle {
+      font-size: 11px;
+      color: hsl(var(--muted-foreground));
+      margin-top: 2px;
+      line-height: 1.2;
+    }
+    .check-icon {
+      width: 16px;
+      height: 16px;
+      stroke: currentColor;
+      stroke-width: 2;
+      fill: none;
+      color: hsl(var(--accent));
+      flex-shrink: 0;
+    }
+    .topbar-container[data-theme="dark"] .check-icon {
+      color: hsl(287 53% 75%);
+    }
+    .dropdown-action {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      color: hsl(var(--foreground));
+      min-height: 36px;
+    }
+    .dropdown-action:hover {
+      background: hsl(var(--muted));
+    }
+    .action-icon {
+      width: 14px;
+      height: 14px;
+      stroke: currentColor;
+      stroke-width: 2;
+      fill: none;
+      flex-shrink: 0;
+      color: hsl(var(--muted-foreground));
+    }
+
+    /* Skeleton state */
+    .skeleton {
+      background: hsl(var(--muted));
+      border-radius: 4px;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    .skeleton-badge {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+    }
+    .skeleton-name {
+      height: 10px;
+      width: 70%;
+    }
+    .skeleton-subtitle {
+      height: 8px;
+      width: 35%;
+      margin-top: 4px;
+    }
+
+    /* Error alert */
+    .alert-error {
+      padding: 12px;
+      border: 1px solid hsla(0, 72%, 51%, 0.3);
+      background: hsla(0, 72%, 51%, 0.08);
+      border-radius: 6px;
+      margin: 4px;
+    }
+    .topbar-container[data-theme="dark"] .alert-error {
+      background: hsla(0, 62%, 50%, 0.15);
+      border-color: hsla(0, 62%, 50%, 0.4);
+    }
+    .alert-icon {
+      width: 16px;
+      height: 16px;
+      stroke: hsl(var(--destructive));
+      stroke-width: 2;
+      fill: none;
+      flex-shrink: 0;
+    }
+    .alert-heading {
+      font-size: 13px;
+      font-weight: 600;
+      color: hsl(var(--destructive));
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .alert-description {
+      font-size: 12px;
+      color: hsl(var(--muted-foreground));
+      margin-top: 4px;
+      margin-bottom: 8px;
+    }
+    .alert-button {
+      padding: 6px 12px;
+      background: hsl(var(--destructive));
+      color: hsl(var(--destructive-foreground));
+      border: none;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .alert-button:hover {
+      opacity: 0.9;
+    }
+
+    /* State annotation card */
+    .state-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #475569;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 8px;
+    }
+    .state-card {
+      background: hsl(0 0% 100%);
+      border: 1px solid hsl(240 6% 90%);
+      border-radius: 8px;
+      padding: 16px;
+      padding-bottom: 280px; /* extra room for absolute dropdown */
+    }
+  </style>
+</head>
+<body class="p-8">
+  <div class="max-w-5xl mx-auto">
+    <header class="mb-6">
+      <h1 class="text-2xl font-bold text-slate-800">F1-S3 · TenantSwitcher open mockup</h1>
+      <p class="text-sm text-slate-600 mt-1">
+        5 states · brand: <strong>vitalia</strong> · DropdownMenu Radix · align="end" min-w-[280px]
+      </p>
+      <p class="text-xs text-slate-500 mt-2">
+        Anatomy: Label "MIS CLÍNICAS" · TenantOption rows (Badge + name + city + Check) · Separator · Footer actions (Agregar clínica + Administrar cuenta).
+      </p>
+    </header>
+
+    <!-- State 1: Light + default 3 tenants -->
+    <div class="mb-8">
+      <div class="state-label">1. Light + default · 3 clínicas (SP activa)</div>
+      <div class="state-card">
+        <div class="topbar-container" data-theme="light">
+          <div class="topbar">
+            <div class="logo-block">
+              <div class="dragon-fly"></div>
+              <span class="logo-text">VITALIA</span>
+            </div>
+            <div class="topbar-actions">
+              <button class="theme-toggle" aria-label="Cambiar tema">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
+                  <circle cx="12" cy="12" r="4" />
+                  <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+                </svg>
+              </button>
+              <button class="switcher-trigger" aria-expanded="true" aria-label="Cambiar clínica" title="Sonrisa Plena">
+                <span class="tenant-badge badge-cyan">SP</span>
+                <span class="trigger-name">Sonrisa Plena</span>
+                <svg class="chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9" /></svg>
+              </button>
+            </div>
+          </div>
+          <div class="main-content">…</div>
+
+          <div class="dropdown-menu" role="menu">
+            <div class="dropdown-label">Mis clínicas</div>
+
+            <div class="tenant-option active" role="menuitem" tabindex="0">
+              <span class="tenant-badge badge-cyan">SP</span>
+              <div class="tenant-text">
+                <div class="tenant-name">Sonrisa Plena</div>
+                <div class="tenant-subtitle">Lima</div>
+              </div>
+              <svg class="check-icon" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>
+              <span class="sr-only">Clínica activa</span>
+            </div>
+
+            <div class="tenant-option" role="menuitem" tabindex="0">
+              <span class="tenant-badge badge-purple">DM</span>
+              <div class="tenant-text">
+                <div class="tenant-name">Dermalia MX</div>
+                <div class="tenant-subtitle">CDMX</div>
+              </div>
+            </div>
+
+            <div class="tenant-option" role="menuitem" tabindex="0">
+              <span class="tenant-badge badge-fuchsia">CB</span>
+              <div class="tenant-text">
+                <div class="tenant-name">ClíniCare Bogotá</div>
+                <div class="tenant-subtitle">Bogotá</div>
+              </div>
+            </div>
+
+            <div class="dropdown-separator"></div>
+
+            <div class="dropdown-action" role="menuitem" tabindex="0">
+              <svg class="action-icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+              <span>Agregar clínica</span>
+            </div>
+            <div class="dropdown-action" role="menuitem" tabindex="0">
+              <svg class="action-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>
+              <span>Administrar cuenta</span>
+            </div>
+          </div>
+        </div>
+        <p class="text-xs text-slate-500 mt-2">
+          Active (SP) → bg-accent/40 + Check icon visible right. Inactive rows hover:bg-muted. Subtitle = solo ciudad (D2).
+        </p>
+      </div>
+    </div>
+
+    <!-- State 2: Light + loading (skeleton) -->
+    <div class="mb-8">
+      <div class="state-label">2. Light + loading · /api/tenants pending (skeleton)</div>
+      <div class="state-card">
+        <div class="topbar-container" data-theme="light">
+          <div class="topbar">
+            <div class="logo-block">
+              <div class="dragon-fly"></div>
+              <span class="logo-text">VITALIA</span>
+            </div>
+            <div class="topbar-actions">
+              <button class="theme-toggle" aria-label="Cambiar tema">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
+                  <circle cx="12" cy="12" r="4" />
+                  <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+                </svg>
+              </button>
+              <button class="switcher-trigger" aria-expanded="true" aria-busy="true" aria-label="Cambiar clínica" title="Sonrisa Plena">
+                <span class="tenant-badge badge-cyan">SP</span>
+                <span class="trigger-name">Sonrisa Plena</span>
+                <svg class="chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9" /></svg>
+              </button>
+            </div>
+          </div>
+          <div class="main-content">…</div>
+
+          <div class="dropdown-menu" role="menu" aria-busy="true">
+            <div class="dropdown-label">Mis clínicas</div>
+            <span class="sr-only" aria-live="polite">Cargando clínicas…</span>
+
+            <div class="tenant-option" aria-hidden="true">
+              <div class="skeleton skeleton-badge"></div>
+              <div class="tenant-text">
+                <div class="skeleton skeleton-name"></div>
+                <div class="skeleton skeleton-subtitle"></div>
+              </div>
+            </div>
+            <div class="tenant-option" aria-hidden="true">
+              <div class="skeleton skeleton-badge"></div>
+              <div class="tenant-text">
+                <div class="skeleton skeleton-name"></div>
+                <div class="skeleton skeleton-subtitle"></div>
+              </div>
+            </div>
+            <div class="tenant-option" aria-hidden="true">
+              <div class="skeleton skeleton-badge"></div>
+              <div class="tenant-text">
+                <div class="skeleton skeleton-name"></div>
+                <div class="skeleton skeleton-subtitle"></div>
+              </div>
+            </div>
+
+            <div class="dropdown-separator"></div>
+
+            <div class="dropdown-action" role="menuitem" tabindex="0">
+              <svg class="action-icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+              <span>Agregar clínica</span>
+            </div>
+            <div class="dropdown-action" role="menuitem" tabindex="0">
+              <svg class="action-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" /></svg>
+              <span>Administrar cuenta</span>
+            </div>
+          </div>
+        </div>
+        <p class="text-xs text-slate-500 mt-2">
+          3× Skeleton rows pulse animation. sr-only "Cargando clínicas…" para screen readers. Footer actions visibles (no bloquean en loading).
+        </p>
+      </div>
+    </div>
+
+    <!-- State 3: Light + error (API failure) -->
+    <div class="mb-8">
+      <div class="state-label">3. Light + error · /api/tenants 500 (Alert destructive inline)</div>
+      <div class="state-card">
+        <div class="topbar-container" data-theme="light">
+          <div class="topbar">
+            <div class="logo-block">
+              <div class="dragon-fly"></div>
+              <span class="logo-text">VITALIA</span>
+            </div>
+            <div class="topbar-actions">
+              <button class="theme-toggle" aria-label="Cambiar tema">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
+                  <circle cx="12" cy="12" r="4" />
+                  <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+                </svg>
+              </button>
+              <button class="switcher-trigger" aria-expanded="true" aria-label="Cambiar clínica" title="Sonrisa Plena">
+                <span class="tenant-badge badge-cyan">SP</span>
+                <span class="trigger-name">Sonrisa Plena</span>
+                <svg class="chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9" /></svg>
+              </button>
+            </div>
+          </div>
+          <div class="main-content">…</div>
+
+          <div class="dropdown-menu" role="menu">
+            <div class="dropdown-label">Mis clínicas</div>
+
+            <div class="alert-error" role="alert">
+              <div class="alert-heading">
+                <svg class="alert-icon" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
+                No pudimos cargar tus clínicas
+              </div>
+              <div class="alert-description">Intenta de nuevo o revisa tu conexión.</div>
+              <button class="alert-button">Reintentar</button>
+            </div>
+
+            <div class="dropdown-separator"></div>
+
+            <div class="dropdown-action" role="menuitem" tabindex="0">
+              <svg class="action-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" /></svg>
+              <span>Administrar cuenta</span>
+            </div>
+          </div>
+        </div>
+        <p class="text-xs text-slate-500 mt-2">
+          Alert role="alert" auto-announce screen readers. Reintentar button dispara refetch React Query.
+          "Agregar clínica" hidden en error (graceful degrade — sin lista no tiene sentido agregar).
+        </p>
+      </div>
+    </div>
+
+    <!-- State 4: Dark + default 3 tenants -->
+    <div class="mb-8">
+      <div class="state-label">4. Dark + default · 3 clínicas (SP activa)</div>
+      <div class="state-card">
+        <div class="topbar-container" data-theme="dark">
+          <div class="topbar">
+            <div class="logo-block">
+              <div class="dragon-fly"></div>
+              <span class="logo-text">VITALIA</span>
+            </div>
+            <div class="topbar-actions">
+              <button class="theme-toggle" aria-label="Cambiar tema">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
+                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                </svg>
+              </button>
+              <button class="switcher-trigger" aria-expanded="true" aria-label="Cambiar clínica" title="Sonrisa Plena">
+                <span class="tenant-badge badge-cyan">SP</span>
+                <span class="trigger-name">Sonrisa Plena</span>
+                <svg class="chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9" /></svg>
+              </button>
+            </div>
+          </div>
+          <div class="main-content">…</div>
+
+          <div class="dropdown-menu" role="menu">
+            <div class="dropdown-label">Mis clínicas</div>
+
+            <div class="tenant-option active" role="menuitem" tabindex="0">
+              <span class="tenant-badge badge-cyan">SP</span>
+              <div class="tenant-text">
+                <div class="tenant-name">Sonrisa Plena</div>
+                <div class="tenant-subtitle">Lima</div>
+              </div>
+              <svg class="check-icon" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>
+            </div>
+
+            <div class="tenant-option" role="menuitem" tabindex="0">
+              <span class="tenant-badge badge-purple">DM</span>
+              <div class="tenant-text">
+                <div class="tenant-name">Dermalia MX</div>
+                <div class="tenant-subtitle">CDMX</div>
+              </div>
+            </div>
+
+            <div class="tenant-option" role="menuitem" tabindex="0">
+              <span class="tenant-badge badge-fuchsia">CB</span>
+              <div class="tenant-text">
+                <div class="tenant-name">ClíniCare Bogotá</div>
+                <div class="tenant-subtitle">Bogotá</div>
+              </div>
+            </div>
+
+            <div class="dropdown-separator"></div>
+
+            <div class="dropdown-action" role="menuitem" tabindex="0">
+              <svg class="action-icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+              <span>Agregar clínica</span>
+            </div>
+            <div class="dropdown-action" role="menuitem" tabindex="0">
+              <svg class="action-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" /></svg>
+              <span>Administrar cuenta</span>
+            </div>
+          </div>
+        </div>
+        <p class="text-xs text-slate-500 mt-2">
+          Dark mode · active bg accent purple/22 alpha · contrast text vs bg AAA. Badges mantienen mismo color cross-mode (hash determinístico).
+        </p>
+      </div>
+    </div>
+
+    <!-- State 5: Light + single tenant -->
+    <div class="mb-8">
+      <div class="state-label">5. Light + single tenant · solo 1 clínica accesible</div>
+      <div class="state-card">
+        <div class="topbar-container" data-theme="light">
+          <div class="topbar">
+            <div class="logo-block">
+              <div class="dragon-fly"></div>
+              <span class="logo-text">VITALIA</span>
+            </div>
+            <div class="topbar-actions">
+              <button class="theme-toggle" aria-label="Cambiar tema">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
+                  <circle cx="12" cy="12" r="4" />
+                  <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+                </svg>
+              </button>
+              <button class="switcher-trigger" aria-expanded="true" aria-label="Cambiar clínica" title="Sonrisa Plena">
+                <span class="tenant-badge badge-cyan">SP</span>
+                <span class="trigger-name">Sonrisa Plena</span>
+                <svg class="chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9" /></svg>
+              </button>
+            </div>
+          </div>
+          <div class="main-content">…</div>
+
+          <div class="dropdown-menu" role="menu">
+            <div class="dropdown-label">Mis clínicas</div>
+
+            <div class="tenant-option active" role="menuitem" tabindex="0">
+              <span class="tenant-badge badge-cyan">SP</span>
+              <div class="tenant-text">
+                <div class="tenant-name">Sonrisa Plena</div>
+                <div class="tenant-subtitle">Lima</div>
+              </div>
+              <svg class="check-icon" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>
+            </div>
+
+            <div class="dropdown-separator"></div>
+
+            <div class="dropdown-action" role="menuitem" tabindex="0">
+              <svg class="action-icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+              <span>Agregar clínica</span>
+            </div>
+            <div class="dropdown-action" role="menuitem" tabindex="0">
+              <svg class="action-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" /></svg>
+              <span>Administrar cuenta</span>
+            </div>
+          </div>
+        </div>
+        <p class="text-xs text-slate-500 mt-2">
+          Scenario 12 single tenant edge. Trigger sigue funcional. Click no-op (mismo tenant), 2 actions footer disponibles.
+        </p>
+      </div>
+    </div>
+
+    <!-- Decisions log -->
+    <section class="mt-12 bg-slate-50 border border-slate-200 rounded-lg p-6">
+      <h2 class="text-sm font-bold text-slate-800 mb-3">Estados visuales cubiertos</h2>
+      <ul class="text-xs text-slate-700 space-y-1.5">
+        <li><strong>success default (3 tenants):</strong> states 1 + 4 (light + dark)</li>
+        <li><strong>loading:</strong> state 2 (skeleton + sr-only label)</li>
+        <li><strong>error:</strong> state 3 (Alert destructive + Reintentar inline + graceful degrade footer)</li>
+        <li><strong>single tenant edge:</strong> state 5 (1 row + 2 actions)</li>
+        <li><strong>empty 0 tenants:</strong> NO mockup separado — graceful degrade: TopBar oculta el switcher entero + banner top-page top de la app (cubierto verbatim en 01-spec.md § 5.6).</li>
+        <li><strong>large dataset 12 tenants:</strong> NO mockup separado — usa scroll vertical max-h-80 overflow-y-auto natural sobre state 1 layout.</li>
+      </ul>
+      <h2 class="text-sm font-bold text-slate-800 mt-4 mb-3">Microcopy Spanish neutro</h2>
+      <ul class="text-xs text-slate-700 space-y-1.5">
+        <li>"Mis clínicas" · "Cambiar clínica" · "Agregar clínica" · "Administrar cuenta"</li>
+        <li>"No pudimos cargar tus clínicas" · "Intenta de nuevo o revisa tu conexión." · "Reintentar"</li>
+        <li>"Cargando clínicas…" (sr-only) · "Clínica activa" (sr-only)</li>
+        <li>0 voseo · tildes correctos · ñ presente ("clínicas")</li>
+      </ul>
+    </section>
+
+    <footer class="mt-8 text-xs text-slate-500">
+      Mockup standalone · Tailwind CSS CDN · CSS vars Vitalia inline · Spanish neutro LatAm · ratificable Chris via `python3 -m http.server 8888`.
+    </footer>
+  </div>
+</body>
+</html>

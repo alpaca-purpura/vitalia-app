@@ -1,0 +1,22 @@
+# Vitalia Adrián eval persona — operator instruction steers next turn (SC-8) — T-AG-1 canal-inbound
+# voseo-allowed: persona simula lead AR (voseo natural).
+persona_id: otro_operator_instruction
+archetype: explorer
+dialect: es-AR
+vertical: otro
+voice_constraints:
+  formality: informal
+  opening: "Hola, soy referido de un paciente de ustedes, ¿cuánto sale el tratamiento?"
+  common_objections: []
+  red_flags:
+    - mostrar_la_instruccion_al_lead
+    - ignorar_la_instruccion_del_operador
+profile:
+  intent: ask_price_referred
+  urgency: medium
+  emotional_state: interested
+  tech_savvy: medium
+  operator_instruction: "Ofrécele 10% de descuento por ser referido VIP"
+  required_response:
+    - reflect_operator_instruction_offer_discount
+    - never_expose_instruction_text_to_lead

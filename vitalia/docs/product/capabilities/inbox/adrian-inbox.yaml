@@ -1,0 +1,415 @@
+---
+capability_id: vitalia-inbox-adrian-inbox
+module: inbox
+slug: adrian-inbox
+status: live
+date_introduced: 2026-06-04
+story_introduced: vitalia-fase2-adrian-inbox
+package_version: 1.0.0
+package_path: vitalia/backend/src/modules/vitalia/inbox
+license: proprietary
+
+# v3 · 4 dimensiones + dev_preview (ADR-vitalia-005)
+tech_module: inbox
+agent_owner: adrian
+functional_area: adrian.inbox
+map_zone: agentes
+user_visible: true
+nature: feature
+ui_paradigm: shell-organism-2-modos   # 2-modos (decide/consulta) + Pausar; shell-organism 3-pane
+
+user_facing_name: "Adrián · Inbox unificado cross-canal (2-modos + pausa + glass-box)"
+user_facing_description: >
+  Bandeja unificada de conversaciones (WhatsApp · Instagram · Email · Web) operada por Adrián.
+  Cada conversación tiene un modo de atención de 2 estados — "Adrián decide" (responde solo) o
+  "Adrián consulta" (redacta y el operador aprueba) — y se puede PAUSAR a Adrián (60 min o
+  permanente) para que el operador escriba a mano desde el composer (siempre montado al pie).
+  El thread es glass-box: el Activity stream muestra cronológicamente lo que hace Adrián
+  (mensajes, herramientas, cambios de modo, pausas). La ficha de contacto muestra el lead
+  (visible por defecto, interim) + servicio de interés + etapa de la venta. El firewall PHI
+  (HIPAA-lite) impide que Adrián discuta datos clínicos por canal no-encriptado.
+
+# ── Bidirectional code map (★ INPUT del architect para regresión · code↔cap) ──
+# Cuando el architect modifica cualquiera de estos archivos, DEBE correr los
+# regression_tests de abajo y/o actualizar este cap. Headers de código:
+#   BE: `# cap: inbox.adrian-inbox`  ·  FE: `// cap: adrian.inbox`
+code_pointers:
+  backend:
+    api: "vitalia/backend/src/modules/vitalia/inbox/api/router.py"   # 9 endpoints + RBAC _assert_phi_access(_INBOX_OPERATOR_ROLES)
+    services:
+      - "vitalia/backend/src/modules/vitalia/inbox/application/services/set_mode_service.py"        # OCC mode
+      - "vitalia/backend/src/modules/vitalia/inbox/application/services/pause_adrian_service.py"    # pausa
+      - "vitalia/backend/src/modules/vitalia/inbox/application/services/send_message_service.py"    # envío + compliance gate
+      - "vitalia/backend/src/modules/vitalia/inbox/application/services/retract_message_service.py" # undo 5min
+      - "vitalia/backend/src/modules/vitalia/inbox/application/services/nudge_service.py"           # empujón 1:1
+      - "vitalia/backend/src/modules/vitalia/inbox/application/services/activity_event_service.py"  # glass-box
+      - "vitalia/backend/src/modules/vitalia/inbox/application/services/proactive_outbound_service.py"
+    policies:
+      - "vitalia/backend/src/modules/vitalia/inbox/application/policies/phi_channel_policy.py"      # firewall PHI
+    persistence: "vitalia/backend/src/modules/vitalia/crm/infrastructure/persistence/conversation_repository.py"  # set_pause_until + update_handler_mode (dual filter)
+    session_lifecycle: "vitalia/backend/src/db.py::get_async_session_committing"   # ★ HB-50: mutaciones DEBEN usar la sesión committing (ver business_rules.inbox-mutation-commits)
+  frontend:
+    main_component: "vitalia/frontend/src/features/adrian/components/inbox/AdrianInboxView.tsx"
+    components:
+      - "vitalia/frontend/src/features/adrian/components/inbox/InboxThread.tsx"
+      - "vitalia/frontend/src/features/adrian/components/inbox/ThreadHeader.tsx"
+      - "vitalia/frontend/src/features/adrian/components/inbox/ModeToggle.tsx"             # 2-modos role=radiogroup
+      - "vitalia/frontend/src/features/adrian/components/inbox/ComposerArea.tsx"           # dock composer
+      - "vitalia/frontend/src/features/adrian/components/inbox/PauseAdrianButton.tsx"
+      - "vitalia/frontend/src/features/adrian/components/inbox/PauseAdrianConfirmModal.tsx" # 2 botones sin reason
+      - "vitalia/frontend/src/features/adrian/components/inbox/ContactSidebar.tsx"         # leads visibles (masked=false)
+      - "vitalia/frontend/src/features/adrian/components/inbox/ActivityStream.tsx"         # glass-box
+      - "vitalia/frontend/src/features/adrian/components/inbox/NudgeButton.tsx"
+      - "vitalia/frontend/src/features/adrian/components/inbox/ConversationListPanel.tsx"
+    hooks:
+      - "vitalia/frontend/src/features/adrian/api/use-set-mode.ts"        # PATCH /mode OCC
+      - "vitalia/frontend/src/features/adrian/api/use-pause-adrian.ts"    # POST /pause
+      - "vitalia/frontend/src/features/adrian/api/use-send-message.ts"    # POST /messages
+      - "vitalia/frontend/src/features/adrian/hooks/use-mode-toggle.ts"   # SEGMENT_TO_API map
+    route: "vitalia/frontend/src/app/[tenantId]/(shell-organism)/adrian/inbox/page.tsx"
+
+dev_preview:
+  route: "/{tenantId}/adrian/inbox"
+  how_to_navigate: "Login (dr.demo@vitalialat.com owner) → ribbon Adrián → sub-tab Inbox → abrir conversación. Toggle 2-modos arriba; Pausar + composer en el dock al pie; ficha de contacto a la derecha."
+  main_component: "vitalia/frontend/src/features/adrian/components/inbox/AdrianInboxView.tsx"
+  api_endpoints:
+    - "GET   /api/v1/vitalia/crm/conversations"                                  # lista
+    - "GET   /api/v1/vitalia/crm/conversations/{id}"                             # detalle compound
+    - "PATCH /api/v1/vitalia/inbox/conversations/{id}/mode"                      # OCC 2-modos
+    - "POST  /api/v1/vitalia/inbox/conversations/{id}/pause"                     # 60min/permanente
+    - "POST  /api/v1/vitalia/inbox/conversations/{id}/messages"                  # envío humano/AI
+    - "POST  /api/v1/vitalia/inbox/conversations/{id}/messages/{msg_id}/revert"  # undo 5min
+    - "POST  /api/v1/vitalia/inbox/conversations/{id}/nudge"                     # empujón 1:1
+    - "GET   /api/v1/vitalia/inbox/conversations/{id}/activity-stream"           # glass-box
+    - "GET   /api/v1/vitalia/inbox/conversations/{id}/tools"                     # tool state
+  e2e_test: "vitalia/frontend/e2e/shell-organism/adrian-inbox-modes.spec.ts"
+  fixtures_required: ["3-clinic-fixture-latam", "scripts/seed_inbox_conversations.sql"]
+  storybook_url: null
+  loom_demo: null
+
+# Capability ledger v2
+created_in_story: vitalia-fase2-adrian-inbox
+created_date: 2026-06-04
+last_modified: 2026-06-04
+parent_cap: null
+derives_capabilities: []
+supersedes: [sales_agent.inbox-handler-mode-occ]   # slice-1 (deprecated) → reconstruido aquí en shell-organism
+
+change_log:
+  - story_id: vitalia-fase2-adrian-inbox
+    date: 2026-06-04
+    type: new
+    summary: >-
+      Inbox shell-organism canónico. Reconstruye + supera el slice-1
+      (sales_agent.inbox-handler-mode-occ, deprecated): modelo 2-modos (decide/consulta;
+      "manual/Yo escribo" → Pausar), composer dock siempre montado, pausa 60/permanente
+      sin reason, RBAC _INBOX_OPERATOR_ROLES (owner+receptionist+clínicos), leads visibles
+      por defecto (interim PiiMaskedSpan.masked), query-keys crm-shared, glass-box ActivityStream,
+      nudge 1:1. ★ Fix sistémico HB-50: las 6 mutaciones del inbox devolvían 200 pero NUNCA
+      commiteaban (get_async_session no-committing) → factories migradas a get_async_session_committing.
+      Golden e2e 7 passed (dev-app, writes DB-verified).
+    merge_sha: null   # /pm-vitalia 07-merge
+    status: done
+
+access:
+  entry_points:
+    - path: "/{tenantId}/adrian/inbox"
+      navigation: "Login → ribbon Adrián → sub-tab Inbox"
+      requires_role: [owner, receptionist, doctor, nurse, admin_clinic]   # _INBOX_OPERATOR_ROLES
+      requires_clinic_scope: true
+      entry_type: ui
+    - path: "/api/v1/vitalia/inbox/conversations/{id}/mode"
+      navigation: "PATCH cambia el modo (decide/consulta) con OCC"
+      requires_role: [owner, receptionist, doctor, nurse, admin_clinic]   # _INBOX_OPERATOR_ROLES — enforcement: router.py::_assert_phi_access
+      requires_clinic_scope: true
+      entry_type: api
+    - path: "/api/v1/vitalia/inbox/conversations/{id}/pause"
+      navigation: "POST pausa a Adrián (60 min / permanente)"
+      requires_role: [owner, receptionist, doctor, nurse, admin_clinic]
+      requires_clinic_scope: true
+      entry_type: api
+    - path: "/api/v1/vitalia/inbox/conversations/{id}/messages"
+      navigation: "POST envía mensaje (operador humano / propuesta aprobada)"
+      requires_role: [owner, receptionist, doctor, nurse, admin_clinic]
+      requires_clinic_scope: true
+      entry_type: api
+    - path: "/api/v1/vitalia/inbox/conversations/{id}/nudge"
+      navigation: "POST empujón de reactivación 1:1"
+      requires_role: [owner, receptionist, doctor, nurse, admin_clinic]
+      requires_clinic_scope: true
+      entry_type: api
+  forbidden_roles: [patient, marketing, sales]   # el inbox es la herramienta del operador
+  authentication: required
+
+scenarios:
+  - id: cambiar-modo-2-modos-persiste
+    name: "Operador cambia el modo (decide/consulta) y persiste"
+    actor: owner
+    status: live
+    given: "Conversación abierta en el inbox (toggle 2-modos)"
+    when: "Operador pulsa el segmento inactivo (Adrián consulta / Adrián decide)"
+    then: "PATCH /mode → 200 (OCC expected_updated_at) + aria-checked refleja + DB handler_mode persiste + audit log"
+    e2e_test: "vitalia/frontend/e2e/shell-organism/adrian-inbox-modes.spec.ts"
+    story_spec_ref: "vitalia/docs/archive/2026/stories/vitalia-fase2-adrian-inbox/01-spec.md"
+    atomic_ref: null
+    edge_cases:
+      - "Re-toggle inmediato → 409 OCC (UI rollback+ring; golden espera refetch entre toggles · FU-6)"
+      - "marketing/sales/patient → 403 (RBAC _INBOX_OPERATOR_ROLES)"
+      - "★ HB-50: pre-fix devolvía 200 sin commitear (write perdido)"
+    added_in_story: vitalia-fase2-adrian-inbox
+    added_date: 2026-06-04
+  - id: pausar-adrian-y-escribir
+    name: "Operador pausa a Adrián (60 min) y escribe a mano"
+    actor: owner
+    status: live
+    given: "Conversación en 'Adrián decide'"
+    when: "Operador pulsa Pausar → modal 2 botones [60 min][permanente] sin reason → elige 60 min"
+    then: "POST /pause → 200 + DB pause_until persiste + barra dock 'Adrián pausado · escribes tú' + composer habilitado + audit log"
+    e2e_test: "vitalia/frontend/e2e/shell-organism/adrian-inbox-modes.spec.ts"
+    story_spec_ref: "vitalia/docs/archive/2026/stories/vitalia-fase2-adrian-inbox/01-spec.md"
+    atomic_ref: null
+    edge_cases:
+      - "Ya pausada → botón disabled ('Pausado'); no hay endpoint resume aún (pausa auto-expira)"
+      - "Permanente = far-future ~100 años (flag indefinido real = FU-3)"
+    added_in_story: vitalia-fase2-adrian-inbox
+    added_date: 2026-06-04
+  - id: composer-dock-envia
+    name: "Composer dock montado; el operador envía y aparece en el thread"
+    actor: owner
+    status: live
+    given: "Conversación abierta"
+    when: "Operador escribe en el dock (textarea siempre montado) y pulsa Enviar"
+    then: "POST /messages → 200 (idempotency key) + mensaje aparece en el thread (optimistic + refetch crm-shared)"
+    e2e_test: "vitalia/frontend/e2e/shell-organism/adrian-inbox-modes.spec.ts"
+    story_spec_ref: "vitalia/docs/archive/2026/stories/vitalia-fase2-adrian-inbox/01-spec.md"
+    atomic_ref: null
+    edge_cases:
+      - "Send write completo (channel adapter) = demo Chris; el golden verifica dock+textarea montado/enabled"
+    added_in_story: vitalia-fase2-adrian-inbox
+    added_date: 2026-06-04
+  - id: lead-visible-interim
+    name: "Ficha de contacto muestra el lead visible (interim) + servicio de interés"
+    actor: owner
+    status: live
+    given: "Conversación con su ficha de contacto abierta"
+    when: "El operador mira la ficha del lead"
+    then: "Nombre/teléfono/correo visibles SIN máscara (PiiMaskedSpan masked=false; data-phi conservado) + 'Servicio de interés' siempre visible + 'Etapa de la venta' única (sin 'Estado')"
+    e2e_test: "vitalia/frontend/e2e/shell-organism/adrian-inbox-modes.spec.ts"
+    story_spec_ref: "vitalia/docs/archive/2026/stories/vitalia-fase2-adrian-inbox/01-spec.md"
+    atomic_ref: null
+    edge_cases:
+      - "Config tenant 'Máxima seguridad' (re-enmascarar) = FU-1 (PHI → /architect)"
+    added_in_story: vitalia-fase2-adrian-inbox
+    added_date: 2026-06-04
+  - id: glassbox-activity-deeplink
+    name: "Glass-box: activity stream montado + deep-link ?conv= sin PHI"
+    actor: owner
+    status: live
+    given: "Conversación abierta vía deep-link ?conv={uuid}"
+    when: "El operador mira el thread"
+    then: "ActivityStream montado (cronológico) + URL ?conv={uuid} sin PHI + sin ícono herramientas en el header (la actividad vive abajo)"
+    e2e_test: "vitalia/frontend/e2e/shell-organism/adrian-inbox-modes.spec.ts"
+    story_spec_ref: "vitalia/docs/archive/2026/stories/vitalia-fase2-adrian-inbox/01-spec.md"
+    atomic_ref: null
+    edge_cases:
+      - "Activity stream servido vía sanitize_payload (sin PHI cruda)"
+    added_in_story: vitalia-fase2-adrian-inbox
+    added_date: 2026-06-04
+  - id: nudge-conv-viva
+    name: "Empujón 1:1 a conversación activa estancada"
+    actor: owner
+    status: live
+    given: "Conversación activa estancada"
+    when: "Operador pulsa 'Dar empujón' y confirma"
+    then: "POST /nudge → re-enganche 1:1 (template) + audit + activity; NO crea conversación nueva ni toca lead frío"
+    e2e_test: "vitalia/frontend/e2e/shell-organism/adrian-inbox-nudge.spec.ts"
+    story_spec_ref: "vitalia/docs/archive/2026/stories/vitalia-fase2-adrian-inbox/01-spec.md"
+    atomic_ref: null
+    edge_cases:
+      - "Conversación no-activa → NudgeNotApplicableError"
+    added_in_story: vitalia-fase2-adrian-inbox
+    added_date: 2026-06-04
+  - id: phi-firewall-canal-no-encriptado
+    name: "PHI firewall: Adrián no discute datos clínicos por canal no-encriptado"
+    actor: doctor
+    status: live
+    given: "Conversación WhatsApp (canal no-encriptado)"
+    when: "Paciente pide su diagnóstico/resultados clínicos"
+    then: "ComplianceService bloquea el outbound PHI + Adrián deriva al portal seguro + audit compliance_block_outbound_phi"
+    e2e_test: "vitalia/frontend/e2e/shell-organism/adrian-inbox-phi-redirect.spec.ts"
+    story_spec_ref: "vitalia/docs/archive/2026/stories/vitalia-fase2-adrian-inbox/01-spec.md"
+    atomic_ref: null
+    edge_cases:
+      - "PhiChannelPolicy.allow/block por canal — cubierto por test_phi_channel_policy.py"
+    added_in_story: vitalia-fase2-adrian-inbox
+    added_date: 2026-06-04
+  - id: cross-tenant-bloqueado
+    name: "Aislamiento: conversación de otro tenant → 404 sin leak"
+    actor: owner
+    status: live
+    given: "Usuario del tenant A"
+    when: "Solicita conv_id del tenant B (deep-link manipulado)"
+    then: "API 404 sin filtrar datos (dual filter tenant_id+clinic_id); la UI muestra el error-state del thread"
+    e2e_test: "vitalia/frontend/e2e/shell-organism/adrian-inbox-tenant.spec.ts"
+    story_spec_ref: "vitalia/docs/archive/2026/stories/vitalia-fase2-adrian-inbox/01-spec.md"
+    atomic_ref: null
+    edge_cases:
+      - "Spanish neutro LatAm en toda la UI (i18n)"
+    added_in_story: vitalia-fase2-adrian-inbox
+    added_date: 2026-06-04
+  - id: estados-empty-error-a11y
+    name: "Estados (empty / error) + accesibilidad por teclado"
+    actor: owner
+    status: live
+    given: "Inbox sin conversaciones / thread con fallo de red / navegación por teclado"
+    when: "Se carga el estado correspondiente"
+    then: "Empty-state explicativo / error-state (conversation-thread-error) + lista usable / tab order + aria + axe wcag2aa"
+    e2e_test: "vitalia/frontend/e2e/shell-organism/adrian-inbox-states.spec.ts"
+    story_spec_ref: "vitalia/docs/archive/2026/stories/vitalia-fase2-adrian-inbox/01-spec.md"
+    atomic_ref: null
+    edge_cases:
+      - "a11y específica → adrian-inbox-a11y.spec.ts"
+    added_in_story: vitalia-fase2-adrian-inbox
+    added_date: 2026-06-04
+  - id: full-canvas-shell-story
+    name: "Modo conversación (full-canvas) colapsa a Valeria"
+    actor: owner
+    status: live
+    given: "Inbox con Valeria en rail"
+    when: "Operador pulsa Modo conversación (full)"
+    then: "Valeria colapsa → inbox 100% → restaura estado previo (VERIFICADO en la story de shell)"
+    e2e_test: "vitalia/frontend/e2e/shell-organism/adrian-inbox-states.spec.ts"   # owner del full-canvas: vitalia-bugfix-shell-nav-scroll-errors (done)
+    story_spec_ref: "vitalia/docs/archive/2026/stories/vitalia-fase2-adrian-inbox/01-spec.md"
+    atomic_ref: null
+    edge_cases:
+      - "RN-11/RN-12/AC-7/AC-12 SPLITeados a vitalia-bugfix-shell-nav-scroll-errors (done)"
+    added_in_story: vitalia-fase2-adrian-inbox
+    added_date: 2026-06-04
+
+business_rules:
+  - id: inbox-mutation-commits
+    rule: >-
+      ★ HB-50: TODA mutación del inbox (mode/pause/send/proactive/nudge/retract) DEBE usar
+      get_async_session_committing en su factory DI — get_async_session NO commitea (delega
+      al caller) y ningún service del inbox commitea → el write se pierde en silencio aunque
+      el endpoint devuelva 200. Regla de regresión: cualquier endpoint de mutación nuevo en
+      el inbox usa la sesión committing + tiene un test de PERSISTENCIA (no solo 200).
+    enforcement:
+      - ".claude/rules/definition-of-done-live-verify.md"
+      - "docs/process/harness-backlog.md (HB-50)"
+    code_ref: "vitalia/backend/src/modules/vitalia/inbox/api/router.py"   # _get_*_service factories
+    severity: critical
+    audit_trail: false
+  - id: inbox-operator-rbac
+    rule: "Las mutaciones del inbox se gatean a _INBOX_OPERATOR_ROLES = _PHI_ROLES ∪ {owner, receptionist}. marketing/sales/patient → 403."
+    enforcement:
+      - "vitalia/.claude/rules/hipaa-lite.md"
+    code_ref: "vitalia/backend/src/modules/vitalia/inbox/api/router.py"   # _assert_phi_access(_INBOX_OPERATOR_ROLES)
+    severity: critical
+    audit_trail: true
+  - id: occ-version-check
+    rule: "PATCH /mode requiere expected_updated_at coincidente; mismatch → 409 con la fila fresca para que el cliente refresque."
+    enforcement:
+      - ".claude/rules/backend-ddd.md"
+    code_ref: "vitalia/backend/src/modules/vitalia/inbox/application/services/set_mode_service.py"
+    severity: high
+    audit_trail: false
+  - id: phi-firewall-outbound
+    rule: "ComplianceService valida cada outbound; PHI por canal no-encriptado → bloqueado + deriva a portal. Adrián opera datos comerciales, nunca clínicos por chat."
+    enforcement:
+      - "vitalia/.claude/rules/hipaa-lite.md"
+    code_ref: "vitalia/backend/src/modules/vitalia/inbox/application/policies/phi_channel_policy.py"
+    severity: critical
+    audit_trail: true
+  - id: tenant-clinic-dual-filter
+    rule: "Toda query del inbox filtra tenant_id AND clinic_id; cross-tenant → 404 sin leak."
+    enforcement:
+      - ".claude/rules/tenant-isolation.md"
+      - "vitalia/.claude/rules/hipaa-lite.md"
+    code_ref: "vitalia/backend/src/modules/vitalia/crm/infrastructure/persistence/conversation_repository.py"
+    severity: critical
+    audit_trail: true
+  - id: action-receipt-5min-ttl
+    rule: "ActionReceipt (undo) expira 5 min post-creación; revert después → 410 Gone."
+    enforcement:
+      - "vitalia/docs/architecture/ADR-vitalia-004.md"
+    code_ref: "vitalia/backend/src/modules/vitalia/inbox/application/services/retract_message_service.py"
+    severity: high
+    audit_trail: false
+
+# ── REGRESSION TESTS (★ el architect corre ESTO al tocar code_pointers) ──
+# Mapeo comportamiento → test REAL (verificado existente 2026-06-04). NO hallucination.
+regression_tests:
+  backend:
+    suite: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/inbox/ -q   # 103 passed"
+    by_behavior:
+      mode_occ:      ["tests/modules/vitalia/inbox/api/test_router_mode.py", "tests/modules/vitalia/inbox/application/test_set_mode_service.py"]
+      pause:         ["tests/modules/vitalia/inbox/api/test_router_pause_adrian.py", "tests/modules/vitalia/inbox/application/test_pause_adrian_service.py"]
+      send:          ["tests/modules/vitalia/inbox/api/test_router_send_message.py", "tests/modules/vitalia/inbox/application/test_send_message_service.py"]
+      retract:       ["tests/modules/vitalia/inbox/api/test_router_revert.py", "tests/modules/vitalia/inbox/application/test_retract_message_service.py"]
+      nudge:         ["tests/modules/vitalia/inbox/api/test_router_nudge.py", "tests/modules/vitalia/inbox/application/test_nudge_service.py"]
+      activity:      ["tests/modules/vitalia/inbox/api/test_router_activity_stream.py", "tests/modules/vitalia/inbox/application/test_activity_event_service.py"]
+      tools:         ["tests/modules/vitalia/inbox/api/test_router_tools.py", "tests/modules/vitalia/inbox/application/test_tools_state_service.py"]
+      proactive:     ["tests/modules/vitalia/inbox/api/test_router_proactive_outbound.py", "tests/modules/vitalia/inbox/application/test_proactive_outbound_service.py"]
+      transcribe:    ["tests/modules/vitalia/inbox/api/test_router_transcribe_audio.py", "tests/modules/vitalia/inbox/application/test_whisper_transcribe_service.py"]
+      phi_firewall:  ["tests/modules/vitalia/inbox/compliance/test_phi_voice_redirect.py", "tests/modules/vitalia/inbox/compliance/test_phi_sanitize_and_compliance_gate.py", "tests/modules/vitalia/inbox/application/test_phi_channel_policy.py"]
+      cross_tenant:  ["tests/modules/vitalia/inbox/api/test_cross_tenant_denied.py"]
+    arch_fitness: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/architecture/ -x -q   # response_model + dual-filter + audit + contract-parity"
+  frontend:
+    unit: "cd vitalia/frontend && npx vitest run src/features/adrian/   # 344 passed"
+    e2e_live: "cd vitalia/frontend && set -a; source ../.env.dev; set +a; E2E_BASE_URL=https://dev-app.vitalialat.com npx playwright test e2e/shell-organism/adrian-inbox-modes.spec.ts --project=smoke --no-deps --workers=1   # 7 passed (golden, base.ts anti-burbuja, writes DB-verified)"
+    e2e_specs:
+      - "vitalia/frontend/e2e/shell-organism/adrian-inbox-modes.spec.ts"      # mode/pause/composer/privacy/glass-box (golden)
+      - "vitalia/frontend/e2e/shell-organism/adrian-inbox-nudge.spec.ts"
+      - "vitalia/frontend/e2e/shell-organism/adrian-inbox-phi-redirect.spec.ts"
+      - "vitalia/frontend/e2e/shell-organism/adrian-inbox-states.spec.ts"
+      - "vitalia/frontend/e2e/shell-organism/adrian-inbox-tenant.spec.ts"
+      - "vitalia/frontend/e2e/shell-organism/adrian-inbox-a11y.spec.ts"
+  db_persistence_proof: >-
+    docker exec luana-dev-luana_postgres_dev-1 psql -U postgres -d vitalia_dev
+    -c "SELECT id, handler_mode, pause_until IS NOT NULL AS paused FROM vitalia_conversations WHERE id IN ('11111111-1111-5111-8111-111111111111','22222222-2222-5222-8222-222222222222');"
+
+related_capabilities:
+  depends_on:
+    - sales_agent.adrian-3-tools-mvp        # runtime LangGraph + tools (engine consume-only)
+    - copilot.inbox-tools-extensions        # tool registry view
+    - compliance.hipaa-lite-defensive-stack
+    - shell-organism.shell-vitalia
+    - auth.clerk-middleware
+  enables:
+    - crm.adrian-embudo                      # los leads del inbox alimentan el embudo
+    - patients.nps-tracking                  # señales voice-of-customer disparan triggers
+  similar: []
+  obsoletes: [sales_agent.inbox-handler-mode-occ]
+map_box: adrian
+
+---
+
+# inbox.adrian-inbox
+
+Inbox unificado cross-canal de Adrián en el shell-organism (2-modos · pausa · composer dock · glass-box · firewall PHI). Cap canónica que **reconstruye + supera** el slice-1 `sales_agent.inbox-handler-mode-occ` (deprecated).
+
+## Por qué existe esta cap (input del architect)
+
+Es el **mapa code↔cap** que el architect consume ANTES de modificar el inbox: `code_pointers` lista los archivos reales (BE + FE), `regression_tests` mapea cada comportamiento a su batería de tests REAL, y `business_rules` cita el `code_ref` exacto. Si el architect toca cualquier `code_pointer`, corre los `regression_tests` correspondientes y/o actualiza esta cap (scenarios + change_log).
+
+## Lección cementada — HB-50 (verificación ≠ 200)
+
+Las 6 mutaciones del inbox devolvían 200 pero **nunca commiteaban** (`get_async_session` no commitea; ningún service commitea) → el write se perdía en silencio y el optimistic-update de React Query lo ocultaba en la UI. Lo cazó el golden e2e (el efecto en DB), no el check de 200. Regla de regresión: toda mutación nueva usa `get_async_session_committing` + tiene un test de **persistencia** (read-back DB / live-verify), no solo status 200. Ver `business_rules.inbox-mutation-commits`.
+
+## Cómo verificar (reproducible)
+
+```bash
+WS=$(git rev-parse --show-toplevel)
+cd ${WS}/vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/inbox/ -q          # 103 passed
+cd ${WS}/vitalia/frontend && npx vitest run src/features/adrian/                              # 344 passed
+set -a; source ../.env.dev; set +a; E2E_BASE_URL=https://dev-app.vitalialat.com \
+  npx playwright test e2e/shell-organism/adrian-inbox-modes.spec.ts --project=smoke --no-deps --workers=1   # 7 passed
+```
+
+## Referencias
+
+- Story: `vitalia/docs/archive/2026/stories/vitalia-fase2-adrian-inbox/` (01-spec § Scope amendment 2-modos · 03-arch § 4b · 06-audit/gherkin-matrix.md 17/17 · 07-merge.md)
+- Slice-1 (deprecated, superseded): [[inbox-handler-mode-occ]]
+- HB-50: `docs/process/harness-backlog.md`
+- Shell full-canvas: `vitalia-bugfix-shell-nav-scroll-errors` (done)

@@ -1,0 +1,249 @@
+<!--
+  Mockup vitalia-fase2-lisa-servicios · sub-tab Servicios → vista Catálogo
+  Shell wrapper VERBATIM de lisa-marca v2.1. Panel-content = catálogo.
+  Chris 2026-06-06: #2 sin landing (toggle único Activo) · #3 buscador + filtros (patrón staff).
+  Chris 2026-06-07 FIRMA-2: #2 saqué chips "seña X%" → solo "💳 cuotas".
+  Round 3: #8 saqué badge de peldaño de las tarjetas (vive en Escalera + Resumen) · sub-tab Doctores→Especialistas · tabs estilo global.
+-->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Servicios · Catálogo — shell</title>
+<link rel="stylesheet" href="_shared.css" />
+<style>
+  /* entity-info-card Opción B (canon §2.3) */
+  .eic { display:flex; flex-direction:column; gap:.5rem; cursor:pointer; position:relative; border-top:4px solid hsl(var(--agent-lisa)); }
+  .eic .eic-media { width:44px; height:44px; border-radius:9999px; background:hsl(var(--muted)); display:flex; align-items:center; justify-content:center; font-size:1.375rem; flex-shrink:0; }
+  .eic .eic-head { display:flex; align-items:flex-start; justify-content:space-between; gap:.5rem; }
+  .eic .eic-title { font-size:.875rem; font-weight:600; }
+  .eic .eic-kebab { flex-shrink:0; color:hsl(var(--muted-foreground)); font-size:1rem; padding:.125rem; border-radius:.25rem; transition:background .15s; }
+  .eic .eic-kebab:hover { background:hsl(var(--muted)); color:hsl(var(--foreground)); }
+  .eic .eic-metrics { display:flex; align-items:center; gap:.75rem; font-size:.75rem; color:hsl(var(--muted-foreground)); flex-wrap:wrap; }
+  .eic .eic-foot { display:flex; align-items:center; justify-content:space-between; gap:.5rem; padding-top:.5rem; margin-top:auto; border-top:1px solid hsl(var(--border)); }
+  .eic-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(250px,1fr)); gap:.875rem; }
+  /* search row */
+  .search-row { display:flex; flex-wrap:wrap; align-items:center; gap:.5rem; margin-bottom:1rem; }
+  .search-box { position:relative; flex:1; min-width:12rem; }
+  .search-box input { padding-left:2rem; }
+  .search-box .ico { position:absolute; left:.625rem; top:.625rem; color:hsl(var(--muted-foreground)); pointer-events:none; }
+</style>
+</head>
+<body>
+<div class="shell-root">
+
+  <header class="topbar">
+    <div class="topbar-left"><div class="topbar-logo"><div class="topbar-logo-mark">V</div><span>Vitalia</span></div><span class="topbar-breadcrumb">› Lisa · Servicios</span></div>
+    <div class="topbar-right">
+      <div class="splitter-control"><button class="splitter-btn" data-state="chat-collapsed">◧</button><button class="splitter-btn" data-state="chat-narrow">◨</button><button class="splitter-btn" data-state="50-50" data-active="true">⬓</button></div>
+      <button class="topbar-icon-btn" id="theme-toggle" title="Tema">🌓</button>
+      <button class="tenant-chip"><span class="tenant-chip-avatar">SP</span><span>Sonrisa Plena</span><span style="color:hsl(var(--muted-foreground));font-size:.625rem;">▾</span></button>
+      <div class="avatar bg-agent-valeria" style="width:28px;height:28px;font-size:.6875rem;">CL</div>
+    </div>
+  </header>
+
+  <div class="shell-body" data-splitter-state="50-50" id="shell-body">
+    <aside class="chat-side">
+      <div class="chat-rail-only"><div class="rail-btn active">💬</div><div class="rail-btn">📜</div><div class="rail-btn">＋</div></div>
+      <div class="chat-content">
+        <header class="chat-header"><div class="chat-avatar-wrap"><div class="chat-avatar">V</div><span class="chat-status-dot"></span></div><div class="chat-meta"><span class="chat-name">Valeria</span><span class="chat-role">En línea · Tu secretaria virtual</span></div><span class="chat-mode-pill">🤖 Modo agente</span></header>
+        <div class="chat-history-strip">📜 Hoy 09:10 · Adrián cerró a Sofía Mendoza · Ayer 18:00 · Confirmación Carlos Ramos</div>
+        <div class="chat-messages">
+          <div class="msg-row" data-role="bot"><div class="msg-bubble">Cuando activas un servicio, <strong>ya lo conozco</strong> y lo ofrezco en las conversaciones. ¿Querés que te sugiera precios de referencia?</div><span class="msg-time">Valeria · 09:11</span></div>
+          <div class="msg-row" data-role="user"><div class="msg-bubble">Ahora no, déjame cargar tranquila</div><span class="msg-time">09:11</span></div>
+        </div>
+        <footer class="chat-composer"><div class="composer-row"><div class="composer-adornos"><button class="composer-adorno-btn">📎</button><button class="composer-adorno-btn">🎙️</button><button class="composer-adorno-btn">⚡</button></div><textarea class="composer-textarea" rows="1" placeholder="Escribe a Valeria…"></textarea><button class="composer-send">Enviar</button></div><p class="composer-hint"><span class="kbd">Cmd</span> + <span class="kbd">K</span> enfoca el composer.</p></footer>
+      </div>
+    </aside>
+
+    <main class="panel-side">
+      <nav class="ribbon" aria-label="Agentes">
+        <button class="ribbon-tab" data-active="true" data-color="lisa"><span class="ribbon-tab-avatar bg-agent-lisa" data-color="lisa">L</span><span>Lisa <span style="font-size:.625rem;color:hsl(var(--muted-foreground));font-weight:400;">· Servicios</span></span></button>
+        <button class="ribbon-tab" data-color="lucas"><span class="ribbon-tab-avatar bg-agent-lucas" data-color="lucas">Lc</span><span>Lucas</span></button>
+        <button class="ribbon-tab" data-color="adrian"><span class="ribbon-tab-avatar bg-agent-adrian" data-color="adrian">A</span><span>Adrián</span></button>
+        <button class="ribbon-tab" data-color="valeria"><span class="ribbon-tab-avatar bg-agent-valeria" data-color="valeria">V</span><span>Valeria</span></button>
+        <button class="ribbon-tab" data-color="camila"><span class="ribbon-tab-avatar bg-agent-camila" data-color="camila">Ca</span><span>Camila</span></button>
+        <button class="ribbon-tab" data-color="config"><span class="ribbon-tab-avatar" data-color="config" style="background:hsl(var(--muted));color:hsl(var(--muted-foreground));">⚙</span><span>Configurar</span></button>
+      </nav>
+      <nav class="subtabs-bar">
+        <button class="subtab-btn" data-color="lisa">Marca</button>
+        <button class="subtab-btn" data-color="lisa">Especialistas</button>
+        <button class="subtab-btn" data-active="true" data-color="lisa">Servicios</button>
+        <button class="subtab-btn" data-color="lisa">Compliance</button>
+      </nav>
+      <nav class="subsubtabs-bar">
+        <button class="subsubtab-btn" data-active="true">🗂️ Catálogo</button>
+        <button class="subsubtab-btn" onclick="location.href='escalera.html'">📈 Escalera de valor</button>
+      </nav>
+
+      <div class="panel-content">
+        <div class="panel-inner">
+          <div class="section-header">
+            <div>
+              <h1 class="section-title">Servicios</h1>
+              <p class="section-subtitle">El catálogo que Adrián vende y Mateo agenda. 7 servicios · 5 activos.</p>
+            </div>
+            <div style="display:flex;gap:.5rem;">
+              <button class="btn btn-primary" onclick="location.href='nuevo-servicio.html'">+ Nuevo servicio</button>
+            </div>
+          </div>
+
+          <!-- buscador + filtros (patrón staff · select canónico §2.5) -->
+          <div class="search-row" data-pane="full">
+            <div class="search-box"><span class="ico">🔍</span><input placeholder="Buscar servicio…" aria-label="Buscar servicio"></div>
+            <span class="select-canon"><select aria-label="Filtrar por especialidad" style="width:auto;min-width:9rem;"><option>Todas las especialidades</option><option>Odontología</option><option>Estética</option></select></span>
+            <span class="select-canon"><select aria-label="Filtrar por peldaño" style="width:auto;min-width:10rem;"><option>Todos los peldaños</option><option>Gancho gratuito</option><option>Primera visita</option><option>Tratamiento principal</option><option>Premium</option><option>Plan / convenio</option></select></span>
+            <span class="select-canon"><select aria-label="Filtrar por estado" style="width:auto;min-width:8rem;"><option>Todos</option><option>Activos</option><option>Borradores</option></select></span>
+          </div>
+
+          <!-- con datos · EntityInfoCard Opción B (canon §2.3) -->
+          <div data-pane="full" class="eic-grid">
+
+            <article class="card eic" onclick="location.href='servicio-workspace.html'">
+              <div class="eic-head">
+                <div class="eic-media">🔎</div>
+                <button class="eic-kebab" onclick="event.stopPropagation()" title="Opciones">⋮</button>
+              </div>
+              <div class="eic-title">Evaluación inicial gratuita</div>
+              <div class="hint" style="margin:0;">Odontología · 30 min</div>
+              <div class="eic-metrics"><span class="text-agent-lisa" style="font-weight:600;">Gratis</span></div>
+              <div class="eic-foot">
+                <div class="avatar-stack"><span class="avatar bg-agent-valeria">CL</span></div>
+                <span class="chip-origen estandar">📚 Estándar</span>
+                <span class="switch-label" style="color:hsl(var(--foreground));"><span class="switch"><input type="checkbox" checked><span class="track"></span></span> Activo</span>
+              </div>
+            </article>
+
+            <article class="card eic" onclick="location.href='servicio-workspace.html'">
+              <div class="eic-head">
+                <div class="eic-media">🦷</div>
+                <button class="eic-kebab" onclick="event.stopPropagation()" title="Opciones">⋮</button>
+              </div>
+              <div class="eic-title">Limpieza dental</div>
+              <div class="hint" style="margin:0;">Odontología · 30 min</div>
+              <div class="eic-metrics"><span style="font-weight:600;">S/ 120</span></div>
+              <div class="eic-foot">
+                <div class="avatar-stack"><span class="avatar bg-agent-valeria">CL</span><span class="avatar bg-agent-adrian">JR</span></div>
+                <span class="chip-origen estandar">📚 Estándar</span>
+                <span class="switch-label" style="color:hsl(var(--foreground));"><span class="switch"><input type="checkbox" checked><span class="track"></span></span> Activo</span>
+              </div>
+            </article>
+
+            <article class="card eic" onclick="location.href='servicio-workspace.html'">
+              <div class="eic-head">
+                <div class="eic-media">✨</div>
+                <button class="eic-kebab" onclick="event.stopPropagation()" title="Opciones">⋮</button>
+              </div>
+              <div class="eic-title">Diseño de sonrisa</div>
+              <div class="hint" style="margin:0;">Odontología · paquete 4 sesiones</div>
+              <div class="eic-metrics"><span style="font-weight:600;">desde S/ 4,500</span><span class="chip" style="font-size:.6875rem;padding:.125rem .4375rem;">💳 6 cuotas</span></div>
+              <div class="eic-foot">
+                <div class="avatar-stack"><span class="avatar bg-agent-valeria">CL</span><span class="avatar bg-agent-adrian">JR</span></div>
+                <span class="chip-origen estandar">📚 Estándar</span>
+                <span class="switch-label" style="color:hsl(var(--foreground));"><span class="switch"><input type="checkbox" checked><span class="track"></span></span> Activo</span>
+              </div>
+            </article>
+
+            <article class="card eic" onclick="location.href='servicio-workspace.html'">
+              <div class="eic-head">
+                <div class="eic-media">🦴</div>
+                <button class="eic-kebab" onclick="event.stopPropagation()" title="Opciones">⋮</button>
+              </div>
+              <div class="eic-title">Implante dental</div>
+              <div class="hint" style="margin:0;">Odontología · 90 min</div>
+              <div class="eic-metrics"><span style="font-weight:600;">desde S/ 2,400</span><span class="chip" style="font-size:.6875rem;padding:.125rem .4375rem;">💳 12 cuotas</span></div>
+              <div class="eic-foot">
+                <div class="avatar-stack"><span class="avatar bg-agent-adrian">JR</span></div>
+                <span class="chip-origen estandar">📚 Estándar</span>
+                <span class="switch-label" style="color:hsl(var(--foreground));"><span class="switch"><input type="checkbox" checked><span class="track"></span></span> Activo</span>
+              </div>
+            </article>
+
+            <article class="card eic" onclick="location.href='servicio-workspace.html'">
+              <div class="eic-head">
+                <div class="eic-media">💎</div>
+                <button class="eic-kebab" onclick="event.stopPropagation()" title="Opciones">⋮</button>
+              </div>
+              <div class="eic-title">Carillas de porcelana</div>
+              <div class="hint" style="margin:0;">Odontología · paquete 3 sesiones</div>
+              <div class="eic-metrics"><span style="font-weight:600;">desde S/ 6,800</span><span class="chip" style="font-size:.6875rem;padding:.125rem .4375rem;">💳 12 cuotas</span></div>
+              <div class="eic-foot">
+                <div class="avatar-stack"><span class="avatar bg-agent-valeria">CL</span></div>
+                <span class="chip-origen estandar">📚 Estándar</span>
+                <span class="switch-label" style="color:hsl(var(--foreground));"><span class="switch"><input type="checkbox" checked><span class="track"></span></span> Activo</span>
+              </div>
+            </article>
+
+            <article class="card eic" onclick="location.href='servicio-workspace.html'">
+              <div class="eic-head">
+                <div class="eic-media">💉</div>
+                <button class="eic-kebab" onclick="event.stopPropagation()" title="Opciones">⋮</button>
+              </div>
+              <div style="display:flex;align-items:center;gap:.375rem;" class="eic-title">Botox facial <span class="rung-badge rung-magnet">↻ recurrente</span></div>
+              <div class="hint" style="margin:0;">Estética · 45 min · cada 4-6 meses</div>
+              <div class="eic-metrics"><span style="font-weight:600;">desde S/ 950</span></div>
+              <div class="eic-foot">
+                <div class="avatar-stack"><span class="avatar bg-agent-camila">AM</span></div>
+                <span class="chip-origen estandar">📚 Estándar</span>
+                <span class="switch-label" style="color:hsl(var(--foreground));"><span class="switch"><input type="checkbox" checked><span class="track"></span></span> Activo</span>
+              </div>
+            </article>
+
+            <article class="card eic" style="opacity:.92" onclick="location.href='servicio-workspace.html'">
+              <div class="eic-head">
+                <div class="eic-media">📋</div>
+                <button class="eic-kebab" onclick="event.stopPropagation()" title="Opciones">⋮</button>
+              </div>
+              <div style="display:flex;align-items:center;gap:.375rem;" class="eic-title">Plan mantenimiento anual <span class="rung-badge rung-magnet">↻ anual</span></div>
+              <div class="hint" style="margin:0;">Odontología · recurrente anual</div>
+              <div class="eic-metrics"><span style="font-weight:600;">S/ 600 / año</span></div>
+              <div class="warn-inline">⚠ Sin especialistas asignados — Adrián no podrá ofrecer un especialista.</div>
+              <div class="eic-foot">
+                <span></span>
+                <span class="chip-origen personalizado">✏️ Personalizado</span>
+                <span class="switch-label"><span class="switch"><input type="checkbox"><span class="track"></span></span> Activo (borrador)</span>
+              </div>
+            </article>
+
+            <button class="card eic" style="border-style:dashed;align-items:center;justify-content:center;color:hsl(var(--muted-foreground));min-height:180px;border-top-color:hsl(var(--border));" onclick="location.href='nuevo-servicio.html'">
+              <div style="font-size:1.75rem;">+</div><div>Nuevo servicio</div>
+            </button>
+          </div>
+
+          <!-- empty-state (ref. biblioteca · RN-25) -->
+          <div data-pane="empty" class="hidden" style="text-align:center;padding:2.5rem 0;">
+            <div style="font-size:3rem;">🏥</div>
+            <h2 style="font-weight:600;margin-top:.5rem;">Aún no tienes servicios</h2>
+            <p class="hint" style="max-width:30rem;margin:.25rem auto 0;">Elige un servicio de la biblioteca estándar (ya tiene ficha clínica completa: cómo se hace, riesgos, FAQ) o crea uno personalizado. Lisa redacta las descripciones en la voz de tu marca.</p>
+            <div class="eic-grid" style="max-width:40rem;margin:1.5rem auto 0;text-align:left;">
+              <article class="card eic" style="cursor:pointer;" onclick="location.href='nuevo-servicio.html'">
+                <div class="eic-head"><div class="eic-media">🦷</div></div>
+                <div class="eic-title">Servicios de odontología</div>
+                <div class="hint" style="margin:0;">De la biblioteca: Evaluación inicial · Limpieza dental · Diseño de sonrisa · Implante · Carillas — la escalera completa ya documentada.</div>
+                <button class="btn btn-primary" style="margin-top:.5rem;">Elegir de la biblioteca</button>
+              </article>
+              <article class="card eic" style="cursor:pointer;" onclick="location.href='nuevo-servicio.html'">
+                <div class="eic-head"><div class="eic-media">💉</div></div>
+                <div class="eic-title">Servicios de estética</div>
+                <div class="hint" style="margin:0;">De la biblioteca: Valoración estética · Peeling facial · Botox y rellenos · Paquete facial · Mantenimiento trimestral.</div>
+                <button class="btn btn-primary" style="margin-top:.5rem;">Elegir de la biblioteca</button>
+              </article>
+            </div>
+            <button class="btn btn-ghost" style="margin-top:1rem;" onclick="location.href='nuevo-servicio.html'">Crear servicio personalizado</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer-meta"><span>💾 Catálogo sincronizado · Adrián conoce 5 servicios activos</span><span>Última edición: <strong>Dra. Camila Llerena</strong></span></div>
+    </main>
+  </div>
+</div>
+
+<script>
+  const shellBody = document.getElementById('shell-body');
+  document.querySelectorAll('.splitter-btn').forEach(btn => btn.addEventListener('click', () => { document.querySelectorAll('.splitter-btn').forEach(b => b.removeAttribute('data-active')); btn.setAttribute('data-active','true'); shellBody.setAttribute('data-splitter-state', btn.dataset.state); }));
+  document.getElementById('theme-toggle').addEventListener('click', () => document.documentElement.classList.toggle('dark'));
+</script>
+</body>
+</html>

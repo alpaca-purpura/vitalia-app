@@ -1,0 +1,473 @@
+---
+capability_id: vitalia.scheduling.mateo-agenda
+module: scheduling
+slug: mateo-agenda
+status: live
+date_introduced: 2026-05-27
+story_introduced: vitalia-fase2-valeria-agenda
+package_version: vitalia-fase2-v1.0.0
+package_path: vitalia/backend/src/modules/vitalia/scheduling/
+license: brand-local
+
+# v3 cement 2026-05-27 · 4 dimensiones + dev_preview (ADR-vitalia-005)
+tech_module: scheduling
+agent_owner: mateo
+functional_area: mateo.agenda
+user_visible: true
+nature: feature
+ui_paradigm: shell-organism  # T-3 reconcile 2026-05-29
+
+user_facing_name: "Agenda semanal de Mateo"
+user_facing_description: >
+  Vista calendario semanal con celdas de slot coloreadas por estado de pago
+  (pagado, depósito, sin pago, no-show) y por origen (presencial, teléfono,
+  proactivo Adrián, paciente existente). Al hacer clic en un slot se abre un
+  drawer lateral con los datos del paciente enmascarados y el subformulario
+  para cobrar saldo e imprimir comprobante fiscal sin salir del flujo.
+
+dev_preview:
+  route: "/mateo/agenda"
+  how_to_navigate: "Login → ribbon clic en avatar Mateo → sub-tab Agenda."
+  main_component: "vitalia/frontend/src/features/mateo/components/agenda/MateoAgendaView.tsx"
+  api_endpoints:
+    - "GET /api/v1/scheduling/appointments?week={iso}"
+    - "POST /api/v1/scheduling/appointments"
+    - "PATCH /api/v1/scheduling/appointments/{id}/status"
+  e2e_test: null
+  fixtures_required: ["3-clinic-fixture-latam"]
+  storybook_url: null
+  loom_demo: null
+
+hipaa_lite_overlay: true
+architecture_pattern: ADR-vitalia-004
+
+# Capability ledger v2 (cement 2026-05-27)
+created_in_story: vitalia-fase2-valeria-agenda   # v2 cement · mirror of story_introduced
+created_date: 2026-05-27   # v2 cement · mirror of date_introduced
+last_modified: 2026-06-15   # bugfix-agenda-actor-headers-422 (fix)
+parent_cap: null   # v2 cement · mirror of extends_capability
+derives_capabilities: []   # v2 cement · initial empty list
+
+# Capability ledger v2 (cement 2026-05-27)
+
+# Capability change log v2 (cement 2026-05-27)
+change_log:
+  - story_id: vitalia-fase2-valeria-agenda
+    date: 2026-05-27
+    type: new
+    summary: "Implementación inicial · migración legacy a schema v2"
+    merge_sha: null
+    status: done
+  - story_id: vitalia-fase2-valeria-agenda
+    date: 2026-05-28
+    type: extend
+    summary: "backfill scenarios desde spec archivado"
+    scenarios_added:
+      - cobro-falla-gateway-503
+      - cambio-tenant-con-drawer-abierto
+      - cobro-concurrente-mismo-slot
+      - actualizacion-concurrente-polling
+      - fallo-red-al-cargar-agenda
+      - dia-sin-citas-empty-state
+      - agenda-gran-volumen-virtualizada
+      - navegacion-teclado-y-lector-pantalla
+      - cobro-multi-moneda-override
+      - cobro-en-mobile-bottom-sheet
+    merge_sha: null
+    status: done
+  - story_id: vitalia-bugfix-agenda-actor-headers-422
+    date: 2026-06-15
+    type: fix
+    summary: >-
+      Agenda cargaba vacía + 422: el FE no mandaba X-Clinic-ID/X-User-ID/X-User-Role (lift a
+      useActorHeaders compartido). BE: +owner en SCHEDULING_PHI_ROLES (rbac.py SSoT), repo SQLA-2.0
+      TextClause fix, audit-persist (get_async_session_committing). chris_verify SATISFIED +
+      verificado live (owner→200 + audit persistido). Commits 729613aa + b7ccc360.
+    scenarios_added: []
+    merge_sha: null
+    status: done
+
+access:
+  entry_points:
+    - path: "/mateo/agenda"
+      navigation: "Login → ribbon clic en avatar Mateo → sub-tab Agenda"
+      requires_role: [doctor, admin_clinic, nurse]
+      requires_clinic_scope: true
+      entry_type: ui
+    - path: "/api/v1/scheduling/appointments"
+      navigation: "API directa con JWT Clerk + X-Tenant-ID + X-Clinic-ID headers"
+      requires_role: [doctor, admin_clinic, nurse]
+      requires_clinic_scope: true
+      entry_type: api
+  forbidden_roles: [marketing, patient]
+  authentication: required
+
+scenarios:
+  - id: ver-agenda-semanal
+    name: "Doctor visualiza la agenda semanal con slots coloreados"
+    actor: doctor
+    status: live
+    given: "Doctor autenticado con clinic_scope y citas cargadas en la semana actual"
+    when: "Navega a /mateo/agenda"
+    then: "Ve calendario semanal con celdas de slot coloreadas por estado de pago (pagado/depósito/sin-pago/no-show) y origen (presencial/teléfono/proactivo/paciente existente)"
+    e2e_test: null
+    story_spec_ref: "vitalia/docs/archive/2026/stories/vitalia-fase2-valeria-agenda/01-spec.md"
+    atomic_ref: null
+    edge_cases:
+      - "Semana sin citas → empty state con mensaje de bienvenida contextual"
+      - "Cita con status no-show → slot color rojo con badge NP"
+      - "Carga initial SSR: datos de la semana actual disponibles sin spinner"
+    added_in_story: vitalia-fase2-valeria-agenda
+    added_date: 2026-05-27
+  - id: cobrar-saldo-inline
+    name: "Recepcionista cobra el saldo pendiente de una cita desde el drawer"
+    actor: nurse
+    status: live
+    given: "Cita con estado 'depósito' abierta en el drawer lateral"
+    when: "Recepcionista completa el subformulario CobrarSaldo con monto + método + clic en Cobrar"
+    then: "Saga charge + fiscal emit ejecuta inline · status de la cita actualiza a 'pagado' · comprobante fiscal disponible para imprimir · sin salir del drawer"
+    e2e_test: "vitalia/frontend/e2e/regression/vitalia-fase2-valeria-agenda/valeria-agenda-cobro.spec.ts"
+    story_spec_ref: "vitalia/docs/archive/2026/stories/vitalia-fase2-valeria-agenda/01-spec.md"
+    atomic_ref: null
+    edge_cases:
+      - "Error 503 gateway de pago → retry banner con opción reintentar"
+      - "Conflicto 409 (cita modificada por otro operador) → saga compensation + mensaje de error"
+      - "Comprobante fiscal no disponible en country sin emisor configurado → botón deshabilitado con tooltip"
+    added_in_story: vitalia-fase2-valeria-agenda
+    added_date: 2026-05-27
+  - id: crear-cita-desde-agenda
+    name: "Recepcionista crea una nueva cita desde el calendario"
+    actor: receptionist
+    status: live
+    given: "Agenda semanal cargada con slot disponible visible"
+    when: "Click en slot vacío → completa CrearCitaForm con PatientAutocomplete (solo patient_id) y datos de turno"
+    then: "Cita creada con status 'sin pago' · slot aparece en calendario con color correspondiente al origen"
+    e2e_test: null
+    story_spec_ref: "vitalia/docs/archive/2026/stories/vitalia-fase2-valeria-agenda/01-spec.md"
+    atomic_ref: null
+    edge_cases:
+      - "PatientAutocomplete devuelve solo patient_id (no PHI en form state — HIPAA)"
+      - "Slot ya ocupado por otro operador concurrente → error de conflicto 409"
+    added_in_story: vitalia-fase2-valeria-agenda
+    added_date: 2026-05-27
+  - id: cobro-falla-gateway-503
+    name: "El cobro falla por gateway de pago caído y se ofrece reintentar"
+    actor: nurse
+    status: live
+    given: "Drawer abierto con saldo pendiente y gateway de pago retornando 503"
+    when: "Recepcionista completa el subformulario y hace clic en Cobrar"
+    then: "Alert destructivo 'No pudimos procesar el cobro. Intentalo de nuevo en unos segundos.' · botón Reintentar disponible · NO se emite comprobante fiscal (saga abortada) · slot no cambia de estado"
+    e2e_test: "vitalia/frontend/e2e/regression/vitalia-fase2-valeria-agenda/valeria-agenda-cobro.spec.ts"
+    story_spec_ref: "vitalia/docs/archive/2026/stories/vitalia-fase2-valeria-agenda/01-spec.md"
+    atomic_ref: null
+    edge_cases:
+      - "Sentry captura error_code PAYMENT_ADAPTER_503 sin PHI (sin DNI ni nombre)"
+    added_in_story: vitalia-fase2-valeria-agenda
+    added_date: 2026-05-27
+  - id: cambio-tenant-con-drawer-abierto
+    name: "Cambiar de clínica cierra el drawer e invalida el cache sin fugas"
+    actor: receptionist
+    status: live
+    given: "Drawer abierto para una cita del tenant A con el subformulario parcialmente lleno"
+    when: "Usuario usa el TenantSwitcher y selecciona el tenant B"
+    then: "Hard redirect a /{tenant-B}/mateo/agenda · drawer se cierra · React Query cache invalidado · agenda re-fetchea con currency y timezone del tenant B · sin fugas de datos del tenant A"
+    e2e_test: "vitalia/frontend/e2e/regression/vitalia-fase2-valeria-agenda/valeria-agenda-tenant-switch.spec.ts"
+    story_spec_ref: "vitalia/docs/archive/2026/stories/vitalia-fase2-valeria-agenda/01-spec.md"
+    atomic_ref: null
+    edge_cases:
+      - "Form data del subformulario no persiste cross-tenant (store local feature reset)"
+    added_in_story: vitalia-fase2-valeria-agenda
+    added_date: 2026-05-27
+  - id: cobro-concurrente-mismo-slot
+    name: "Dos operadores cobran el mismo saldo y el segundo recibe conflicto"
+    actor: nurse
+    status: live
+    given: "Dos operadores de la misma clínica con el mismo slot (saldo pendiente) abierto"
+    when: "Ambos envían el cobro casi simultáneamente"
+    then: "El primer request gana (200) · el segundo recibe 409 'Este saldo ya fue cobrado por otro usuario' + auto-invalidate de la agenda · sin doble cobro al cliente (idempotencia backend)"
+    e2e_test: "vitalia/frontend/e2e/regression/vitalia-fase2-valeria-agenda/valeria-agenda-conflict-409.spec.ts"
+    story_spec_ref: "vitalia/docs/archive/2026/stories/vitalia-fase2-valeria-agenda/01-spec.md"
+    atomic_ref: null
+    edge_cases:
+      - "Optimistic lock sobre appointment.balance_version vía with_for_update()"
+      - "Audit log solo del operador que ejecutó el cobro"
+    added_in_story: vitalia-fase2-valeria-agenda
+    added_date: 2026-05-27
+  - id: actualizacion-concurrente-polling
+    name: "Cambios de otro operador se reflejan vía polling cada 30 segundos"
+    actor: doctor
+    status: live
+    given: "Operador viendo la agenda semanal con polling activo mientras otro cancela una cita"
+    when: "Transcurren al menos 30 segundos (próximo tick de polling)"
+    then: "El slot cancelado se re-renderiza con estado Cancelado · indicador 'Actualizado hace 0s' se resetea · si el drawer de ese slot estaba abierto, muestra banner 'Este turno fue actualizado por otro usuario' con botón Recargar"
+    e2e_test: "vitalia/frontend/e2e/regression/vitalia-fase2-valeria-agenda/valeria-agenda-concurrent-users.spec.ts"
+    story_spec_ref: "vitalia/docs/archive/2026/stories/vitalia-fase2-valeria-agenda/01-spec.md"
+    atomic_ref: null
+    edge_cases:
+      - "Sin interrupción operativa: el operador puede seguir viendo otros slots"
+    added_in_story: vitalia-fase2-valeria-agenda
+    added_date: 2026-05-27
+  - id: fallo-red-al-cargar-agenda
+    name: "Fallo de red al cargar la agenda muestra estado de error con reintento"
+    actor: doctor
+    status: live
+    given: "El endpoint de grid de agenda no responde (timeout) mientras el usuario abre la semana"
+    when: "El montaje de la página y los reintentos de React Query (3) fallan"
+    then: "Skeleton inicial · luego empty state de error 'No pudimos cargar tu agenda. Verificá tu conexión.' + botón Reintentar manual · sin pantalla en blanco · Sentry captura el error sin PHI"
+    e2e_test: "vitalia/frontend/e2e/regression/vitalia-fase2-valeria-agenda/valeria-agenda-network.spec.ts"
+    story_spec_ref: "vitalia/docs/archive/2026/stories/vitalia-fase2-valeria-agenda/01-spec.md"
+    atomic_ref: null
+    edge_cases: []
+    added_in_story: vitalia-fase2-valeria-agenda
+    added_date: 2026-05-27
+  - id: dia-sin-citas-empty-state
+    name: "Un día sin citas muestra el estado vacío con invitación a crear cita"
+    actor: receptionist
+    status: live
+    given: "Vista día sobre una fecha sin citas (clínica cerrada)"
+    when: "Usuario navega a la vista día"
+    then: "Grid horario completo pero vacío · overlay empty state 'No hay turnos este día' con CTA '+ Crear cita' · chips de filtro siguen activos · sin error ni loading infinito"
+    e2e_test: "vitalia/frontend/e2e/regression/vitalia-fase2-valeria-agenda/valeria-agenda-empty.spec.ts"
+    story_spec_ref: "vitalia/docs/archive/2026/stories/vitalia-fase2-valeria-agenda/01-spec.md"
+    atomic_ref: null
+    edge_cases: []
+    added_in_story: vitalia-fase2-valeria-agenda
+    added_date: 2026-05-27
+  - id: agenda-gran-volumen-virtualizada
+    name: "Una clínica con cientos de slots renderiza fluido por virtualización"
+    actor: doctor
+    status: live
+    given: "Clínica con 200+ citas en un único día"
+    when: "Usuario navega a la vista día"
+    then: "DayCalendar virtualizado con react-window · render inicial rápido (solo slots visibles) · scroll fluido · la vista mes consume endpoint agregado (no bulk load de miles de slots)"
+    e2e_test: "vitalia/frontend/e2e/regression/vitalia-fase2-valeria-agenda/valeria-agenda-large-dataset.spec.ts"
+    story_spec_ref: "vitalia/docs/archive/2026/stories/vitalia-fase2-valeria-agenda/01-spec.md"
+    atomic_ref: null
+    edge_cases:
+      - "Click en día del MonthCalendar navega a DayCalendar con params de URL"
+    added_in_story: vitalia-fase2-valeria-agenda
+    added_date: 2026-05-27
+  - id: navegacion-teclado-y-lector-pantalla
+    name: "La agenda es navegable por teclado y accesible con lector de pantalla"
+    actor: doctor
+    status: live
+    given: "Foco en el primer slot del día en la vista semana"
+    when: "Usuario navega con Tab entre slots, Enter para abrir drawer, Esc para cerrar y Shift+Tab hacia + Crear cita"
+    then: "Cada slot recibe focus visible · slot con ARIA role button + aria-label con datos enmascarados (sin DNI completo) · drawer con role dialog + aria-modal + focus trap · contrast ratio WCAG 2.1 AA"
+    e2e_test: "vitalia/frontend/e2e/regression/vitalia-fase2-valeria-agenda/valeria-agenda-keyboard.spec.ts"
+    story_spec_ref: "vitalia/docs/archive/2026/stories/vitalia-fase2-valeria-agenda/01-spec.md"
+    atomic_ref: null
+    edge_cases: []
+    added_in_story: vitalia-fase2-valeria-agenda
+    added_date: 2026-05-27
+  - id: cobro-multi-moneda-override
+    name: "El cobro respeta la moneda del tenant y el override por transacción"
+    actor: nurse
+    status: live
+    given: "Tenant con moneda por defecto y una cita con currency_override para paciente turista"
+    when: "Operador abre el subformulario de cobro de cada cita"
+    then: "El subformulario muestra el monto en la moneda correcta (default tenant o override) con formato y separadores del locale · el POST de cobro incluye el campo currency explícito · la emisión fiscal aplica reglas de impuesto por país · labels en español neutro"
+    e2e_test: "vitalia/frontend/e2e/regression/vitalia-fase2-valeria-agenda/valeria-agenda-i18n.spec.ts"
+    story_spec_ref: "vitalia/docs/archive/2026/stories/vitalia-fase2-valeria-agenda/01-spec.md"
+    atomic_ref: null
+    edge_cases:
+      - "Audit log registra payload_redacted.currency"
+    added_in_story: vitalia-fase2-valeria-agenda
+    added_date: 2026-05-27
+  - id: cobro-en-mobile-bottom-sheet
+    name: "En mobile el drawer se abre como bottom sheet y permite cobrar"
+    actor: nurse
+    status: live
+    given: "Usuario en viewport mobile con la agenda cargada"
+    when: "Hace clic en un slot con saldo pendiente"
+    then: "El drawer se abre como bottom sheet (side bottom) con las mismas secciones y subformulario de cobro · interacción táctil usable"
+    e2e_test: "vitalia/frontend/e2e/regression/vitalia-fase2-valeria-agenda/valeria-agenda-mobile.spec.ts"
+    story_spec_ref: "vitalia/docs/archive/2026/stories/vitalia-fase2-valeria-agenda/01-spec.md"
+    atomic_ref: null
+    edge_cases: []
+    added_in_story: vitalia-fase2-valeria-agenda
+    added_date: 2026-05-27
+
+business_rules:
+  - id: dual-tenant-clinic-filter
+    rule: "Toda query PHI de agenda requiere dual filter tenant_id + clinic_id · sin clinic_id la query no se ejecuta"
+    enforcement:
+      - "vitalia/.claude/rules/hipaa-lite.md"
+      - ".claude/rules/tenant-isolation.md"
+    code_ref: "vitalia/backend/src/modules/vitalia/scheduling/infrastructure/repositories/"
+    severity: critical
+    audit_trail: true
+  - id: audit-log-sync-write
+    rule: "Audit log row se escribe de forma sincrónica antes de retornar la respuesta en todos los endpoints PHI de la agenda"
+    enforcement:
+      - "vitalia/.claude/rules/hipaa-lite.md"
+    code_ref: "vitalia/backend/src/modules/vitalia/scheduling/api/"
+    severity: critical
+    audit_trail: true
+  - id: phi-masking-server-side
+    rule: "El nombre del paciente se enmascara server-side (P. Hernández) y el DNI se enmascara (12.***.***) · nunca PHI raw en response ni URL params"
+    enforcement:
+      - "vitalia/.claude/rules/hipaa-lite.md"
+    code_ref: "vitalia/backend/src/modules/vitalia/_shared/phi_masking.py"
+    severity: critical
+    audit_trail: false
+
+related_capabilities:
+  depends_on:
+    - shell-organism.shell-vitalia
+    - auth.clerk-middleware
+    - iam.luana-core-adoption
+    - compliance.hipaa-lite-defensive-stack
+  enables:
+    - booking.prepaid-booking-advisory-locks
+    - patients.nps-tracking
+  similar: []
+  obsoletes: []
+map_box: mateo
+
+---
+
+# Capability — Mateo Agenda (scheduling)
+
+> Brand: vitalia
+> Vertical: Salud + Bienestar (clínicas con reservas prepagadas + cobro inline)
+> Owner agente: Mateo (Operar — operativa scheduling)
+> Status: live (post F2-S1 merge 2026-05-27)
+> Pattern: ADR-vitalia-004 shell-feature-architecture (source story)
+
+## Goal
+
+Sub-tab Agenda de Mateo operativa. Calendario día/semana/mes con celdas-slot por estado de pago (pagado · depósito · sin-pago · no-show) y por origen (walk-in · teléfono · proactivo Adrián · existing patient). Click slot → Drawer derecho inline con datos paciente PHI-masked + turno + subform "Cobrar saldo" que emite comprobante fiscal sin salir del flujo.
+
+## Surfaces
+
+### Config
+- `vitalia/config/brand.yaml` — `compliance_level: hipaa_lite`, `auto_emit_invoice` per tenant
+- `vitalia/.claude/rules/hipaa-lite.md` (overlay)
+
+### Backend (Inside-Out DDD)
+- `vitalia/backend/src/modules/vitalia/scheduling/domain/` — enums + dataclasses (AgendaSlot, AppointmentPayment, AppointmentOrigin, etc.)
+- `vitalia/backend/src/modules/vitalia/scheduling/infrastructure/repositories/` — AgendaGridRepository + AppointmentPaymentRepository (optimistic lock + idempotency)
+- `vitalia/backend/src/modules/vitalia/scheduling/application/services/` — agenda_grid_service + appointment_detail_service + create_appointment_service + appointment_status_service + notify_service + charge_orchestrator (saga compensation)
+- `vitalia/backend/src/modules/vitalia/scheduling/application/ports/` — payment_charge_port + fiscal_emit_port (ABC interfaces)
+- `vitalia/backend/src/modules/vitalia/scheduling/api/` — agenda_router (5 endpoints) + notify_router
+- `vitalia/backend/src/modules/vitalia/payments/` — payment_charge_port_impl + stubs (service-blocker Option A) + charge_router
+- `vitalia/backend/src/modules/vitalia/fiscal/` — fiscal_emit_port_impl + stubs (PE boleta/AR factura/MX factura) + emit_router
+- `vitalia/backend/src/modules/vitalia/_shared/phi_masking.py` — mask_name + mask_dni + mask_phone + mask_email
+- `vitalia/backend/src/modules/vitalia/_shared/telemetry/` — growth_studio_emitter + amount_bucket
+- `vitalia/backend/alembic/versions/032_f2_s1_vitalia_agenda.py` — migration idempotent (4 tables: vitalia_appointment_payments + vitalia_fiscal_documents + vitalia_appointment_clinic_map + vitalia_growth_studio_event)
+
+### Frontend (FSD-Lite, Server-First)
+- `vitalia/frontend/src/app/[tenantId]/(shell-organism)/mateo/agenda/page.tsx` — Server Component SSR initial state
+- `vitalia/frontend/src/app/[tenantId]/(shell-organism)/mateo/agenda/error.tsx` — route-level error boundary
+- `vitalia/frontend/src/features/mateo/components/agenda/MateoAgendaView.tsx` — Client root (composición 6 hijos)
+- `vitalia/frontend/src/features/mateo/components/agenda/AgendaCalendar.tsx` + DayCalendar + WeekCalendar + MonthCalendar (react-window virtualization mes)
+- `vitalia/frontend/src/features/mateo/components/agenda/AgendaSlot.tsx` — border-status + origin badge + PHI-mask title
+- `vitalia/frontend/src/features/mateo/components/agenda/AppointmentDrawer.tsx` — Sheet Shadcn responsive (side="bottom" mobile, side="right" desktop con useMediaQuery + resize 440-640px localStorage)
+- 5 secciones drawer: Header + Turno + Pago + Notas + AccionesAvanzadas (acordeones colapsables)
+- `vitalia/frontend/src/features/mateo/components/agenda/CobrarSaldoSubform.tsx` — ★ corazón valor (RHF + Zod discriminated union + saga 503/409 handling + audit log integration)
+- `vitalia/frontend/src/features/mateo/components/agenda/AgendaPresetFilters.tsx` — 5 chips single-select
+- `vitalia/frontend/src/features/mateo/components/agenda/CrearCitaButton.tsx` + CrearCitaForm + PatientAutocomplete (HIPAA-compliant patient_id only)
+- `vitalia/frontend/src/features/mateo/components/agenda/MobileBottomSheet.tsx`
+- `vitalia/frontend/src/features/mateo/components/agenda/FreshnessIndicator.tsx` (polling 30s + manual refresh)
+- `vitalia/frontend/src/features/mateo/api/` — React Query hooks (useAgendaGrid + useChargeAppointment + useEmitFiscalDoc + useSendReminder + useCreateAppointment + usePatchAppointmentStatus)
+- `vitalia/frontend/src/features/mateo/store/` — zustand UI state (agenda-store + agenda-filters-store)
+- `vitalia/frontend/src/features/mateo/types/` — agenda.types.ts + agenda-schema.ts (Zod)
+- `vitalia/frontend/src/features/mateo/lib/telemetry.ts` — 7 critical events sanitized
+- `vitalia/frontend/src/hooks/useMediaQuery.ts` — NEW SSR-safe responsive hook
+
+### Tests
+- BE pytest: 181 tests (scheduling + payments + fiscal modules)
+- BE arch fitness NEW: test_scheduling_module_ddd + test_no_phi_in_url_params + test_audit_log_row_per_phi_endpoint
+- FE vitest: 271 tests (features/mateo/)
+- FE Playwright E2E: 83 specs (11 Gherkin scenarios)
+- FE a11y axe WCAG 2.1 AA: 7 specs
+- FE visual goldens: 15 snapshots (3 views × 2 themes + drawer + subform states + mobile + filters + crear-cita + empty-state)
+
+### Docs
+- 01-spec.md — 30 AC + 11 Gherkin scenarios + 41 paths Deliverables
+- 03-arch.md — 2056 LOC (BE + FE + Test Construction Plan v4.1)
+- 04-validators.yaml — 54 validators (5 categorías)
+- 05-guidelines.md — must_load_skills enforceable
+- 06-tickets.yaml — 19 tickets DAG
+- 10 mockups HTML ratificados por Chris
+
+## Dependencies cross-package
+
+- Consume `core/luana-core-scheduling` (Appointment + AppointmentRepository — read-only via dual-filter wrapper)
+- Consume `core/luana-core-compliance` (ComplianceService.validate_outbound_message)
+- Consume `core/luana-core-observability` (sanitize_payload hipaa_lite + base classes)
+- Consume `core/luana-core-platform` (BasePhiRepository pattern reuse)
+- Consume `vitalia.crm.patient` (Patient model + PHI masking server-side)
+- Consume `vitalia.audit.audit_writer` (AsyncAuditWriter transactional sync)
+- Plus service-blockers (stubs Option A pending real adapters):
+  - `vitalia-payment-adapter-mvp` (state: refined, pending developed)
+  - `vitalia-fiscal-emission-pe` (state: refining, pending developed)
+
+## HIPAA-lite compliance (overlay)
+
+- ✅ Dual filter `tenant_id + clinic_id` en TODA query PHI (PhiRepositoryBase pattern)
+- ✅ Audit log row sync write antes response en TODOS PHI endpoints (8 endpoints)
+- ✅ PHI masking server-side: name → "P. Hernández", DNI → "12.***.***"
+- ✅ sanitize_payload(compliance_level='hipaa_lite') en logs + traces + telemetry
+- ✅ RBAC @require_phi_access roles=["valeria_assistant","doctor","nurse","admin_clinic"]
+- ✅ NO PHI en URL params (whitelist ALLOWED_GRID_PARAMS: view, date, filters, page, page_size, status)
+- ✅ NO PHI en localStorage (zustand persist solo drawerWidth numérico)
+- ✅ NO PHI en telemetría (PHI_BLOCKED_KEYS enforces sanitize, 24 keys cubiertos)
+- ✅ ComplianceService channel guard en notify_router (WhatsApp template-only)
+- ✅ PatientAutocomplete returns ONLY patient_id (no PHI form state)
+- ✅ Cross-clinic 404 substrate (no 403, no leak)
+
+## Test coverage
+
+```yaml
+test_coverage:
+  be_unit_arch:
+    - vitalia/backend/tests/modules/vitalia/scheduling/test_agenda_grid_repository.py
+    - vitalia/backend/tests/modules/vitalia/scheduling/test_appointment_payment_repository.py
+    - vitalia/backend/tests/modules/vitalia/scheduling/test_appointment_aggregates_repository.py
+    - vitalia/backend/tests/modules/vitalia/scheduling/test_agenda_grid_service.py
+    - vitalia/backend/tests/modules/vitalia/scheduling/test_appointment_detail_service.py
+    - vitalia/backend/tests/modules/vitalia/scheduling/test_appointment_status_service.py
+    - vitalia/backend/tests/modules/vitalia/scheduling/test_create_appointment_service.py
+    - vitalia/backend/tests/modules/vitalia/scheduling/test_notify_service.py
+    - vitalia/backend/tests/modules/vitalia/scheduling/test_charge_orchestrator.py
+    - vitalia/backend/tests/modules/vitalia/scheduling/test_phi_url_protection.py
+    - vitalia/backend/tests/modules/vitalia/scheduling/test_dual_filter_clinic_isolation.py
+    - vitalia/backend/tests/modules/vitalia/scheduling/test_audit_log_drawer.py
+    - vitalia/backend/tests/modules/vitalia/scheduling/test_create_appointment_router.py
+    - vitalia/backend/tests/modules/vitalia/scheduling/test_patch_status_router.py
+    - vitalia/backend/tests/modules/vitalia/payments/test_charge_router.py
+    - vitalia/backend/tests/modules/vitalia/fiscal/test_emit_router.py
+    - vitalia/backend/tests/modules/vitalia/scheduling/test_notify_router.py
+    - vitalia/backend/tests/modules/vitalia/fiscal/test_fiscal_document_repository.py
+    - vitalia/backend/tests/architecture/test_scheduling_module_ddd.py
+    - vitalia/backend/tests/architecture/test_no_phi_in_url_params.py
+    - vitalia/backend/tests/architecture/test_audit_log_row_per_phi_endpoint.py
+    - vitalia/backend/tests/architecture/test_phi_dual_filter.py
+  fe_unit:
+    - vitalia/frontend/src/features/mateo/components/agenda/__tests__/*.test.tsx (16 components)
+    - vitalia/frontend/src/features/mateo/api/__tests__/agenda.test.ts
+    - vitalia/frontend/src/features/mateo/store/__tests__/*.test.ts
+    - vitalia/frontend/src/features/mateo/lib/__tests__/telemetry.test.ts
+    - vitalia/frontend/src/hooks/useMediaQuery.test.ts
+  fe_e2e_specs:
+    - vitalia/frontend/e2e/regression/vitalia-fase2-valeria-agenda/*.spec.ts (11 scenarios, runtime pending W2)
+  fe_a11y:
+    - vitalia/frontend/e2e/a11y/vitalia-fase2-valeria-agenda.spec.ts (7 axe specs WCAG 2.1 AA)
+  fe_visual:
+    - vitalia/frontend/e2e/visual/vitalia-fase2-valeria-agenda.spec.ts (15 goldens, runtime pending W2)
+```
+
+## KPIs targets (post-launch)
+
+- Click-to-cobro success rate ≥ 95% (charge + fiscal emit happy path)
+- Drawer open latency p95 < 200ms
+- Subform submit latency p95 < 2s (charge + fiscal saga inline)
+- PHI mask coverage 100% (no raw PHI en API responses)
+- Audit log coverage 100% en PHI endpoints
+- Mobile drawer UX usable ≥ 4/5 staff satisfaction
+
+## Promotion candidate notes
+
+ADR-vitalia-004 shell-feature-architecture es source pattern de esta story. Brands futuras con sub-tabs en shell-organism agéntico pueden adoptar el patrón si construyen shell agéntico similar. `/pm-luana` evalúa lift candidate.

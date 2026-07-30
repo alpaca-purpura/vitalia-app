@@ -1,0 +1,691 @@
+# vitalia-slice-1-inbox — Tickets (atómicos · DAG · blockers)
+#
+# Per .claude/skills/architect/SKILL.md + docs/specs/templates/06-tickets-template.yaml.
+# Each ticket has gherkin_coverage field MANDATORY post 2026-05-18 (story-closure-gate.md).
+# owner_eligibility per R23: agentic production_code=true → Opus 4.7 only; tests/docs about agentic → Sonnet OK.
+#
+# DAG layers:
+#   T-inbox-be-{1..6} — Backend (DDD layers + connections + migrations)
+#   T-inbox-agentic-1 — Sales_agent tool retract_last_message (R23 Opus production)
+#   T-inbox-fe-{1..7} — Frontend (FSD-Lite + components + hooks + copy + storybook)
+#   T-inbox-integ-{1..2} — Integration + E2E + a11y
+
+story_id: vitalia-slice-1-inbox
+brand: vitalia
+ola: 1
+estimated_dev_weeks: 2-3
+
+# ============================================================
+# BACKEND tickets (DDD Inside-Out · domain → infrastructure → application → api)
+# ============================================================
+tickets:
+  - id: T-inbox-be-1
+    title: "Backend domain — Conversation + Message + ActivityEvent + ActionReceipt entities + events"
+    state: ready
+    surface: backend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: false  # domain layer dataclasses, no LLM/agent logic
+    estimated_loc: 600
+    scope: |
+      Add 4 PHI domain entities + 6 domain events to vitalia/backend/src/modules/vitalia/crm/domain/.
+      - conversation.py · message.py · activity_event.py · action_receipt.py
+      - events.py: ConversationStarted, MessageSent, MessageRetracted, ModeChanged, AdrianPaused, ProactiveOutboundSent
+      Pydantic v2 ConfigDict. Frozen dataclass. No ORM imports. Enums via Literal.
+    files_in_scope:
+      - vitalia/backend/src/modules/vitalia/crm/domain/conversation.py
+      - vitalia/backend/src/modules/vitalia/crm/domain/message.py
+      - vitalia/backend/src/modules/vitalia/crm/domain/activity_event.py
+      - vitalia/backend/src/modules/vitalia/crm/domain/action_receipt.py
+      - vitalia/backend/src/modules/vitalia/crm/domain/events.py
+      - vitalia/backend/tests/modules/vitalia/crm/domain/test_conversation.py
+      - vitalia/backend/tests/modules/vitalia/crm/domain/test_message.py
+      - vitalia/backend/tests/modules/vitalia/crm/domain/test_activity_event.py
+      - vitalia/backend/tests/modules/vitalia/crm/domain/test_action_receipt.py
+    acceptance:
+      validator_ids: [be_lint_ruff_check, be_format_ruff_check, be_test_inbox]
+    gherkin_coverage:
+      - scenario: SC-01 happy path (entities valid in modo Adrián decide flow)
+        tests:
+          - vitalia/backend/tests/modules/vitalia/crm/domain/test_conversation.py
+          - vitalia/backend/tests/modules/vitalia/crm/domain/test_message.py
+          - vitalia/backend/tests/modules/vitalia/crm/domain/test_action_receipt.py
+      - scenario: SC-03 edge (concurrent edit · OCC updated_at tracked in entity)
+        tests:
+          - vitalia/backend/tests/modules/vitalia/crm/domain/test_conversation.py::test_occ_updated_at_present
+    blocked_by: []  # foundation ticket
+
+  - id: T-inbox-be-2
+    title: "Backend infrastructure — Conversation/Message/ActivityEvent/ActionReceipt repos + models + migration 024"
+    state: ready
+    surface: backend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: false
+    estimated_loc: 900
+    scope: |
+      SQLAlchemy 2.0 mapped_column models + 4 repositories heredan engine CompoundScopeRepositoryBase scope_field="clinic_id".
+      Migration 024_inbox_tables.py: idempotent raw SQL IF NOT EXISTS for vitalia_conversations, vitalia_messages, vitalia_activity_events, vitalia_action_receipts + composite indexes.
+    files_in_scope:
+      - vitalia/backend/src/modules/vitalia/crm/infrastructure/persistence/models/conversation_model.py
+      - vitalia/backend/src/modules/vitalia/crm/infrastructure/persistence/models/message_model.py
+      - vitalia/backend/src/modules/vitalia/crm/infrastructure/persistence/models/activity_event_model.py
+      - vitalia/backend/src/modules/vitalia/crm/infrastructure/persistence/models/action_receipt_model.py
+      - vitalia/backend/src/modules/vitalia/crm/infrastructure/persistence/conversation_repository.py
+      - vitalia/backend/src/modules/vitalia/crm/infrastructure/persistence/message_repository.py
+      - vitalia/backend/src/modules/vitalia/crm/infrastructure/persistence/activity_event_repository.py
+      - vitalia/backend/src/modules/vitalia/crm/infrastructure/persistence/action_receipt_repository.py
+      - vitalia/backend/src/modules/vitalia/persistence/migrations/024_inbox_tables.py
+      - vitalia/backend/tests/modules/vitalia/crm/infrastructure/test_conversation_repository.py
+      - vitalia/backend/tests/modules/vitalia/crm/infrastructure/test_message_repository.py
+      - vitalia/backend/tests/modules/vitalia/crm/infrastructure/test_activity_event_repository.py
+      - vitalia/backend/tests/modules/vitalia/crm/infrastructure/test_action_receipt_repository.py
+    acceptance:
+      validator_ids: [be_lint_ruff_check, be_arch_fitness_brand, be_test_inbox]
+    gherkin_coverage:
+      - scenario: SC-04 adversarial cross-tenant (dual-filter enforced in get_by_id + list)
+        tests:
+          - vitalia/backend/tests/modules/vitalia/crm/infrastructure/test_conversation_repository.py::test_dual_filter_get_by_id
+          - vitalia/backend/tests/modules/vitalia/crm/infrastructure/test_conversation_repository.py::test_dual_filter_list_for_inbox
+          - vitalia/backend/tests/modules/vitalia/crm/infrastructure/test_message_repository.py::test_dual_filter_get_by_id
+      - scenario: SC-03 edge OCC (update_handler_mode raises stale on outdated updated_at)
+        tests:
+          - vitalia/backend/tests/modules/vitalia/crm/infrastructure/test_conversation_repository.py::test_update_handler_mode_occ_conflict
+    blocked_by: [T-inbox-be-1]
+
+  - id: T-inbox-be-3
+    title: "Backend application — Inbox services (Send + Retract + SetMode + Pause + ProactiveOutbound + Whisper + ActivityEvent + ToolsState)"
+    state: ready
+    surface: backend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: false  # services orchestrate engine + repos, no LLM calls directly
+    estimated_loc: 1400
+    scope: |
+      8 services + DTOs in vitalia/backend/src/modules/vitalia/inbox/application/:
+      - SendMessageService (idempotency · ai-path enqueue Adrián engine · human-path direct channel send · audit log sync)
+      - RetractMessageService (5min window · patient-replied 409 · adapter retract w/ fallback "marcar erróneo" · audit log + event)
+      - SetModeService (OCC If-Match · ModeChanged event · Redis invalidate)
+      - PauseAdrianService (60min Redis lock + DB pause_until · auto-resume · event)
+      - ProactiveOutboundService (5 HSM templates hardcoded · ComplianceService gate · marketing opt-in · 7d throttle)
+      - WhisperTranscribeService (wraps connections.whisper.adapter · timeout 30s · graceful-degradation fallback)
+      - ActivityEventService (consume engine copilot_trace_event filter by conv_id · sanitize_payload · description_es derivation)
+      - ToolsStateService (read-only from offer.tools_enabled mapping · last_used join)
+    files_in_scope:
+      - vitalia/backend/src/modules/vitalia/inbox/application/services/inbox_orchestrator.py
+      - vitalia/backend/src/modules/vitalia/inbox/application/services/send_message_service.py
+      - vitalia/backend/src/modules/vitalia/inbox/application/services/retract_message_service.py
+      - vitalia/backend/src/modules/vitalia/inbox/application/services/set_mode_service.py
+      - vitalia/backend/src/modules/vitalia/inbox/application/services/pause_adrian_service.py
+      - vitalia/backend/src/modules/vitalia/inbox/application/services/proactive_outbound_service.py
+      - vitalia/backend/src/modules/vitalia/inbox/application/services/whisper_transcribe_service.py
+      - vitalia/backend/src/modules/vitalia/inbox/application/services/activity_event_service.py
+      - vitalia/backend/src/modules/vitalia/inbox/application/services/tools_state_service.py
+      - vitalia/backend/src/modules/vitalia/inbox/application/services/_templates.py
+      - vitalia/backend/src/modules/vitalia/inbox/application/dto/conversation_list_dto.py
+      - vitalia/backend/src/modules/vitalia/inbox/application/dto/send_message_dto.py
+      - vitalia/backend/src/modules/vitalia/inbox/application/dto/retract_message_dto.py
+      - vitalia/backend/src/modules/vitalia/inbox/application/dto/set_mode_dto.py
+      - vitalia/backend/src/modules/vitalia/inbox/application/dto/proactive_outbound_dto.py
+      - vitalia/backend/src/modules/vitalia/inbox/application/dto/tools_state_dto.py
+      - vitalia/backend/src/modules/vitalia/inbox/application/dto/activity_event_dto.py
+      - vitalia/backend/tests/modules/vitalia/inbox/application/test_send_message_service.py
+      - vitalia/backend/tests/modules/vitalia/inbox/application/test_retract_message_service.py
+      - vitalia/backend/tests/modules/vitalia/inbox/application/test_set_mode_service.py
+      - vitalia/backend/tests/modules/vitalia/inbox/application/test_pause_adrian_service.py
+      - vitalia/backend/tests/modules/vitalia/inbox/application/test_proactive_outbound_service.py
+      - vitalia/backend/tests/modules/vitalia/inbox/application/test_whisper_transcribe_service.py
+      - vitalia/backend/tests/modules/vitalia/inbox/application/test_activity_event_service.py
+      - vitalia/backend/tests/modules/vitalia/inbox/application/test_tools_state_service.py
+    acceptance:
+      validator_ids: [be_lint_ruff_check, be_arch_fitness_brand, be_test_inbox, be_test_compliance_inbox]
+    gherkin_coverage:
+      - scenario: SC-01 happy path (send ai msg + ActionReceipt 5min)
+        tests:
+          - vitalia/backend/tests/modules/vitalia/inbox/application/test_send_message_service.py::test_ai_message_creates_action_receipt
+      - scenario: SC-02 negative (Whisper low confidence → fallback + auto-switch human)
+        tests:
+          - vitalia/backend/tests/modules/vitalia/inbox/application/test_whisper_transcribe_service.py::test_low_confidence_triggers_fallback
+          - vitalia/backend/tests/modules/vitalia/inbox/application/test_send_message_service.py::test_audio_fallback_switches_to_human
+      - scenario: SC-03 edge (OCC 409 + retract 409 patient-replied)
+        tests:
+          - vitalia/backend/tests/modules/vitalia/inbox/application/test_set_mode_service.py::test_occ_conflict_returns_409
+          - vitalia/backend/tests/modules/vitalia/inbox/application/test_retract_message_service.py::test_patient_replied_409
+      - scenario: SC-04 adversarial (PHI sanitize + compliance gate)
+        tests:
+          - vitalia/backend/tests/modules/vitalia/inbox/application/test_proactive_outbound_service.py::test_marketing_opt_in_required
+          - vitalia/backend/tests/modules/vitalia/inbox/application/test_activity_event_service.py::test_payload_sanitized
+    blocked_by: [T-inbox-be-2]
+
+  - id: T-inbox-be-4
+    title: "Backend connections — Whisper adapter + WhatsApp/IG retract_message_id extensions"
+    state: ready
+    surface: backend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: false
+    estimated_loc: 500
+    scope: |
+      NEW Whisper adapter wrapping OpenAI STT (timeout 30s · graceful-degradation).
+      EXTEND existing WhatsApp + Instagram + Email adapters with retract_message_id(external_id) method.
+      Email retract → unsupported; raises ChannelRetractUnsupportedError captured by RetractMessageService fallback.
+    files_in_scope:
+      - vitalia/backend/src/modules/vitalia/connections/whisper/__init__.py
+      - vitalia/backend/src/modules/vitalia/connections/whisper/adapter.py
+      - vitalia/backend/src/modules/vitalia/connections/whatsapp/adapter.py  # EXTEND
+      - vitalia/backend/src/modules/vitalia/connections/instagram/adapter.py  # EXTEND
+      - vitalia/backend/src/modules/vitalia/connections/email/adapter.py  # EXTEND
+      - vitalia/backend/tests/modules/vitalia/connections/test_whisper_adapter.py
+      - vitalia/backend/tests/modules/vitalia/connections/test_whatsapp_retract.py
+      - vitalia/backend/tests/modules/vitalia/connections/test_instagram_retract.py
+      - vitalia/backend/tests/modules/vitalia/connections/test_email_retract_unsupported.py
+    acceptance:
+      validator_ids: [be_lint_ruff_check, be_arch_fitness_brand, be_test_inbox]
+    gherkin_coverage:
+      - scenario: SC-02 negative (Whisper transcription failure)
+        tests:
+          - vitalia/backend/tests/modules/vitalia/connections/test_whisper_adapter.py::test_timeout_returns_none
+          - vitalia/backend/tests/modules/vitalia/connections/test_whisper_adapter.py::test_low_confidence_returned
+      - scenario: SC-01 happy (retract within 5min via WA Cloud API)
+        tests:
+          - vitalia/backend/tests/modules/vitalia/connections/test_whatsapp_retract.py::test_retract_within_5min_succeeds
+      - scenario: SC-03 edge (channel unsupported retract → fallback)
+        tests:
+          - vitalia/backend/tests/modules/vitalia/connections/test_email_retract_unsupported.py
+    blocked_by: [T-inbox-be-1]  # parallel-safe with be-2/be-3
+
+  - id: T-inbox-be-5
+    title: "Backend API — 8 inbox endpoints + 4 crm endpoints (router thin)"
+    state: ready
+    surface: backend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: false
+    estimated_loc: 800
+    scope: |
+      8 inbox endpoints in vitalia/backend/src/modules/vitalia/inbox/api/router.py (Send · Retract · SetMode · Pause · ActivityStream · Tools · Transcribe · ProactiveOutbound).
+      4 crm endpoints EXTEND in vitalia/backend/src/modules/vitalia/crm/api/router.py (list leads · get lead extended · list conversations · get conversation detail).
+      response_model + Bearer + X-Tenant-ID + X-Clinic-ID + Idempotency-Key + If-Match. Exception handlers for 401/403/404/409/410. PII allowlist on response_model.
+    files_in_scope:
+      - vitalia/backend/src/modules/vitalia/inbox/__init__.py
+      - vitalia/backend/src/modules/vitalia/inbox/api/__init__.py
+      - vitalia/backend/src/modules/vitalia/inbox/api/router.py
+      - vitalia/backend/src/modules/vitalia/crm/api/router.py  # EXTEND
+      - vitalia/backend/src/modules/vitalia/crm/application/dto/lead_dto.py  # EXTEND (LeadFilterRequest + LeadListResponse + last_conversation_id field)
+      - vitalia/backend/src/modules/vitalia/crm/application/services/lead_service.py  # EXTEND (list_for_inbox method)
+      - vitalia/backend/src/main.py  # EXTEND if new router needs mounting
+      - vitalia/backend/tests/modules/vitalia/inbox/api/test_router_send_message.py
+      - vitalia/backend/tests/modules/vitalia/inbox/api/test_router_revert.py
+      - vitalia/backend/tests/modules/vitalia/inbox/api/test_router_mode.py
+      - vitalia/backend/tests/modules/vitalia/inbox/api/test_router_pause_adrian.py
+      - vitalia/backend/tests/modules/vitalia/inbox/api/test_router_activity_stream.py
+      - vitalia/backend/tests/modules/vitalia/inbox/api/test_router_tools.py
+      - vitalia/backend/tests/modules/vitalia/inbox/api/test_router_transcribe_audio.py
+      - vitalia/backend/tests/modules/vitalia/inbox/api/test_router_proactive_outbound.py
+      - vitalia/backend/tests/modules/vitalia/inbox/api/test_cross_tenant_denied.py
+      - vitalia/backend/tests/modules/vitalia/crm/api/test_router_leads_list.py
+      - vitalia/backend/tests/modules/vitalia/crm/api/test_router_conversations_list.py
+      - vitalia/backend/tests/modules/vitalia/crm/api/test_router_conversation_detail.py
+    acceptance:
+      validator_ids: [be_lint_ruff_check, be_arch_fitness_brand, be_test_inbox]
+    gherkin_coverage:
+      - scenario: SC-01 happy
+        tests:
+          - vitalia/backend/tests/modules/vitalia/inbox/api/test_router_send_message.py::test_send_ai_message_201
+      - scenario: SC-02 negative
+        tests:
+          - vitalia/backend/tests/modules/vitalia/inbox/api/test_router_transcribe_audio.py::test_low_confidence_fallback
+      - scenario: SC-03 edge
+        tests:
+          - vitalia/backend/tests/modules/vitalia/inbox/api/test_router_mode.py::test_occ_409
+          - vitalia/backend/tests/modules/vitalia/inbox/api/test_router_revert.py::test_410_gone_after_5min
+      - scenario: SC-04 adversarial
+        tests:
+          - vitalia/backend/tests/modules/vitalia/inbox/api/test_cross_tenant_denied.py
+          - vitalia/backend/tests/modules/vitalia/inbox/api/test_router_send_message.py::test_marketing_role_403
+    blocked_by: [T-inbox-be-3, T-inbox-be-4]
+
+  - id: T-inbox-be-6
+    title: "Backend extensions.py register retract_last_message tool + arch fitness gate test_no_hardcoded_strings_inbox"
+    state: ready
+    surface: backend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: false  # extensions wiring · arch test scaffolding
+    estimated_loc: 200
+    scope: |
+      Extend vitalia/backend/src/modules/vitalia/extensions.py to register retract_last_message tool via EP-3.
+      (Frontend arch test test_no_hardcoded_strings_inbox.test.ts handled by T-inbox-fe-7.)
+    files_in_scope:
+      - vitalia/backend/src/modules/vitalia/extensions.py  # EXTEND
+      - vitalia/backend/tests/modules/vitalia/test_extensions_inbox_registration.py
+    acceptance:
+      validator_ids: [be_lint_ruff_check, be_arch_fitness_brand]
+    gherkin_coverage:
+      - scenario: extension registration coverage (no Gherkin scenario maps directly — covered by tool tests in T-inbox-agentic-1)
+        tests:
+          - vitalia/backend/tests/modules/vitalia/test_extensions_inbox_registration.py
+    blocked_by: [T-inbox-agentic-1]
+
+# ============================================================
+# AGENTIC ticket (R23 Opus production · single tool)
+# ============================================================
+  - id: T-inbox-agentic-1
+    title: "Sales_agent tool retract_last_message + 1 reinforcement golden dental"
+    state: ready
+    surface: agentic
+    owner_eligibility: [claude-opus-4-7]  # R23 production_code=true → Opus mandatory
+    production_code: true
+    estimated_loc: 350
+    scope: |
+      NEW Adrián tool retract_last_message wraps RetractMessageService.
+      Pydantic input schema with tenant_id+clinic_id+conv_id+msg_id+reason MANDATORY.
+      Graceful-degradation per tessl skill (timeout 5s · fallback).
+      1 reinforcement golden (dental) where Adrián invokes tool after ComplianceService flag (overpromise medical claim).
+      NEVER mirror engine observability — consume SalesAgentObservabilityContext shipped.
+    files_in_scope:
+      - vitalia/backend/src/modules/vitalia/sales_agent/tools/retract_last_message.py
+      - vitalia/backend/tests/modules/vitalia/sales_agent/tools/test_retract_last_message.py
+      - vitalia/backend/tests/agentic_evals/sales_agent/goldens/dental/T-inbox-retract-1.yaml
+    acceptance:
+      validator_ids: [be_lint_ruff_check, be_arch_fitness_brand, be_test_inbox, agentic_pass_k_adrian_goldens, agentic_voice_fidelity_adrian]
+    gherkin_coverage:
+      - scenario: SC-01 happy (Adrián retract action receipt within 5min)
+        tests:
+          - vitalia/backend/tests/modules/vitalia/sales_agent/tools/test_retract_last_message.py::test_happy_5min_window
+      - scenario: SC-03 edge (5min expired · patient replied · channel unsupported)
+        tests:
+          - vitalia/backend/tests/modules/vitalia/sales_agent/tools/test_retract_last_message.py::test_expired
+          - vitalia/backend/tests/modules/vitalia/sales_agent/tools/test_retract_last_message.py::test_patient_replied
+          - vitalia/backend/tests/modules/vitalia/sales_agent/tools/test_retract_last_message.py::test_channel_unsupported
+      - scenario: voice fidelity + compliance integration
+        tests:
+          - vitalia/backend/tests/agentic_evals/sales_agent/goldens/dental/T-inbox-retract-1.yaml
+    blocked_by: [T-inbox-be-3, T-inbox-be-4]  # depends on RetractMessageService + adapter retract methods
+
+# ============================================================
+# FRONTEND tickets (FSD-Lite · feature scaffold + components + hooks + storybook)
+# ============================================================
+  - id: T-inbox-fe-1
+    title: "Frontend feature scaffold — crm-shared types + zod schemas + inbox FSD-Lite scaffold + URL state nuqs"
+    state: ready
+    surface: frontend
+    owner_eligibility: [claude-sonnet]
+    production_code: false
+    estimated_loc: 700
+    scope: |
+      Create features/crm-shared/{types.ts, api/, index.ts} (producer Ola 1).
+      Create features/inbox/{api/, components/, hooks/, store/, types/, url-state.ts, copy.ts, index.ts} scaffold.
+      Create lib/zod-schemas/{lead.ts, conversation.ts, index.ts}.
+      Wire app/(app)/inbox/page.tsx (RSC entry) + InboxPageClient ("use client" wrapper).
+      INBOX_URL_SCHEMA + useInboxUrlState hook.
+      INBOX_COPY object cementado (verbatim from spec § 10 · LatAm neutro).
+    files_in_scope:
+      - vitalia/frontend/src/app/(app)/inbox/page.tsx
+      - vitalia/frontend/src/features/inbox/index.ts
+      - vitalia/frontend/src/features/inbox/url-state.ts
+      - vitalia/frontend/src/features/inbox/copy.ts
+      - vitalia/frontend/src/features/inbox/types/{message,conversation-detail,activity-event,action-receipt,tools-state}.ts
+      - vitalia/frontend/src/features/inbox/store/inbox-store.ts
+      - vitalia/frontend/src/features/inbox/components/InboxLayout.tsx
+      - vitalia/frontend/src/features/inbox/components/InboxPageClient.tsx
+      - vitalia/frontend/src/features/crm-shared/types.ts
+      - vitalia/frontend/src/features/crm-shared/index.ts
+      - vitalia/frontend/src/lib/zod-schemas/lead.ts
+      - vitalia/frontend/src/lib/zod-schemas/conversation.ts
+      - vitalia/frontend/src/lib/zod-schemas/index.ts
+      - vitalia/frontend/src/lib/copy.ts  # formatCopy helper
+      - vitalia/frontend/src/features/inbox/__tests__/url-state.test.ts
+      - vitalia/frontend/src/features/inbox/__tests__/copy.test.ts
+      - vitalia/frontend/src/lib/zod-schemas/__tests__/lead.test.ts
+      - vitalia/frontend/src/lib/zod-schemas/__tests__/conversation.test.ts
+    acceptance:
+      validator_ids: [fe_typecheck_tsc, fe_lint_eslint, fe_arch_fitness, fe_test_inbox, spanish_neutro_voseo_check]
+    gherkin_coverage:
+      - scenario: cross-story type contracts produced (HANDOFF § 3)
+        tests:
+          - vitalia/frontend/src/lib/zod-schemas/__tests__/lead.test.ts
+          - vitalia/frontend/src/lib/zod-schemas/__tests__/conversation.test.ts
+      - scenario: SC-01 URL state parsing
+        tests:
+          - vitalia/frontend/src/features/inbox/__tests__/url-state.test.ts
+    blocked_by: [T-inbox-be-5]  # backend endpoints must exist (or be mocked) before FE hooks
+
+  - id: T-inbox-fe-2
+    title: "Frontend React Query hooks (9 hooks) + optimistic updates + OCC rollback"
+    state: ready
+    surface: frontend
+    owner_eligibility: [claude-sonnet]
+    production_code: false
+    estimated_loc: 800
+    scope: |
+      9 React Query hooks in vitalia/frontend/src/features/inbox/api/:
+      use-conversations · use-conversation-detail · use-send-message · use-retract-message · use-set-mode ·
+      use-pause-adrian · use-activity-stream · use-tools-state · use-transcribe-audio · use-proactive-outbound · use-attach-media
+      Optimistic update + rollback for SetMode (SC-03 OCC 409). Idempotency-Key generation for Send.
+      Polling 5s for ActivityStream when expanded.
+    files_in_scope:
+      - vitalia/frontend/src/features/inbox/api/_keys.ts
+      - vitalia/frontend/src/features/inbox/api/use-conversations.ts
+      - vitalia/frontend/src/features/inbox/api/use-conversation-detail.ts
+      - vitalia/frontend/src/features/inbox/api/use-send-message.ts
+      - vitalia/frontend/src/features/inbox/api/use-retract-message.ts
+      - vitalia/frontend/src/features/inbox/api/use-set-mode.ts
+      - vitalia/frontend/src/features/inbox/api/use-pause-adrian.ts
+      - vitalia/frontend/src/features/inbox/api/use-activity-stream.ts
+      - vitalia/frontend/src/features/inbox/api/use-tools-state.ts
+      - vitalia/frontend/src/features/inbox/api/use-transcribe-audio.ts
+      - vitalia/frontend/src/features/inbox/api/use-proactive-outbound.ts
+      - vitalia/frontend/src/features/inbox/api/use-attach-media.ts
+      - vitalia/frontend/src/features/inbox/hooks/use-mode-toggle.ts
+      - vitalia/frontend/src/features/inbox/hooks/use-action-receipt-timer.ts
+      - vitalia/frontend/src/features/inbox/hooks/use-conversation-filters.ts
+      - vitalia/frontend/src/features/inbox/hooks/use-activity-stream-poll.ts
+      - vitalia/frontend/src/features/inbox/api/__tests__/use-send-message.test.ts
+      - vitalia/frontend/src/features/inbox/api/__tests__/use-retract-message.test.ts
+      - vitalia/frontend/src/features/inbox/api/__tests__/use-set-mode.test.ts
+      - vitalia/frontend/src/features/inbox/api/__tests__/use-activity-stream.test.ts
+      - vitalia/frontend/src/features/inbox/api/__tests__/use-pause-adrian.test.ts
+      - vitalia/frontend/src/features/inbox/api/__tests__/use-proactive-outbound.test.ts
+    acceptance:
+      validator_ids: [fe_typecheck_tsc, fe_lint_eslint, fe_test_inbox]
+    gherkin_coverage:
+      - scenario: SC-01 happy send + ActionReceipt
+        tests:
+          - vitalia/frontend/src/features/inbox/api/__tests__/use-send-message.test.ts::test_ai_message_creates_action_receipt
+      - scenario: SC-02 transcribe fallback
+        tests:
+          - vitalia/frontend/src/features/inbox/api/__tests__/use-send-message.test.ts::test_audio_low_confidence_fallback
+      - scenario: SC-03 OCC 409 rollback
+        tests:
+          - vitalia/frontend/src/features/inbox/api/__tests__/use-set-mode.test.ts::test_occ_conflict_rolls_back_optimistic
+          - vitalia/frontend/src/features/inbox/api/__tests__/use-retract-message.test.ts::test_5min_expired_410
+    blocked_by: [T-inbox-fe-1]
+
+  - id: T-inbox-fe-3
+    title: "Frontend conversation list panel + filters venta consultiva ética (SegmentedControl3Modes adjacent)"
+    state: ready
+    surface: frontend
+    owner_eligibility: [claude-sonnet]
+    production_code: false
+    estimated_loc: 800
+    scope: |
+      ConversationListPanel + ConversationList (REUSE adapter Nicolify closer-studio) + ConversationItem + SearchInput (debounce 300ms) +
+      FilterChips (4 primarios + 4 status + 2 destacados + collapsible "Más ▼" para Stage/Modo/Período).
+      4 empty state variants (noConversations / noHelpNeeded / noMediaUnread / noResultsFilter).
+      Single-active filter per dimension. ✕ Todas reset.
+    files_in_scope:
+      - vitalia/frontend/src/features/inbox/components/ConversationListPanel.tsx
+      - vitalia/frontend/src/features/inbox/components/ConversationList.tsx  # REUSE adapter
+      - vitalia/frontend/src/features/inbox/components/ConversationItem.tsx  # REUSE adapter
+      - vitalia/frontend/src/features/inbox/components/SearchInput.tsx
+      - vitalia/frontend/src/features/inbox/components/FilterChips.tsx
+      - vitalia/frontend/src/features/inbox/components/ListEmptyState.tsx
+      - vitalia/frontend/src/features/inbox/components/__tests__/ConversationList.test.tsx
+      - vitalia/frontend/src/features/inbox/components/__tests__/FilterChips.test.tsx
+      - vitalia/frontend/src/features/inbox/components/__tests__/SearchInput.test.tsx
+      - vitalia/frontend/src/features/inbox/components/__tests__/ListEmptyState.test.tsx
+    acceptance:
+      validator_ids: [fe_typecheck_tsc, fe_lint_eslint, fe_arch_fitness, fe_test_inbox, spanish_neutro_voseo_check]
+    gherkin_coverage:
+      - scenario: SC-01 list rendering + filters
+        tests:
+          - vitalia/frontend/src/features/inbox/components/__tests__/ConversationList.test.tsx::test_render_with_help_needed_badge
+          - vitalia/frontend/src/features/inbox/components/__tests__/FilterChips.test.tsx::test_single_active_per_dimension
+    blocked_by: [T-inbox-fe-2]
+
+  - id: T-inbox-fe-4
+    title: "Frontend conversation thread + SegmentedControl3Modes + VoiceStyleChip + PauseAdrianButton + ThreadHeader"
+    state: ready
+    surface: frontend
+    owner_eligibility: [claude-sonnet]
+    production_code: false
+    estimated_loc: 700
+    scope: |
+      ConversationThread (REUSE adapter Nicolify · retoken violeta→purpura · header replaced by SegmentedControl3Modes).
+      SegmentedControl3Modes (Shadcn ToggleGroup variant=outline 3-state · onChange → use-set-mode mutation).
+      VoiceStyleChip (read-only · consume brand_personality state · CTA "Configurar" link wizard P2).
+      PauseAdrianButton + PauseAdrianConfirmModal (60min).
+      ThreadHeader assembly with [⏸][🛠][👤] buttons.
+    files_in_scope:
+      - vitalia/frontend/src/features/inbox/components/ConversationThread.tsx  # REUSE adapter
+      - vitalia/frontend/src/features/inbox/components/ThreadHeader.tsx
+      - vitalia/frontend/src/features/inbox/components/SegmentedControl3Modes.tsx
+      - vitalia/frontend/src/features/inbox/components/VoiceStyleChip.tsx
+      - vitalia/frontend/src/features/inbox/components/PauseAdrianButton.tsx
+      - vitalia/frontend/src/features/inbox/components/PauseAdrianConfirmModal.tsx
+      - vitalia/frontend/src/features/inbox/components/ToolsSheetTrigger.tsx
+      - vitalia/frontend/src/features/inbox/components/ContactSidebarToggle.tsx
+      - vitalia/frontend/src/features/inbox/components/__tests__/SegmentedControl3Modes.test.tsx
+      - vitalia/frontend/src/features/inbox/components/__tests__/VoiceStyleChip.test.tsx
+      - vitalia/frontend/src/features/inbox/components/__tests__/PauseAdrianButton.test.tsx
+      - vitalia/frontend/src/features/inbox/components/__tests__/ThreadHeader.test.tsx
+    acceptance:
+      validator_ids: [fe_typecheck_tsc, fe_lint_eslint, fe_arch_fitness, fe_test_inbox]
+    gherkin_coverage:
+      - scenario: SC-01 segmented control 3-state
+        tests:
+          - vitalia/frontend/src/features/inbox/components/__tests__/SegmentedControl3Modes.test.tsx::test_3_states_aria_radiogroup
+          - vitalia/frontend/src/features/inbox/components/__tests__/SegmentedControl3Modes.test.tsx::test_onchange_dispatches_set_mode
+      - scenario: SC-03 concurrent SetMode (UI rollback on 409)
+        tests:
+          - vitalia/frontend/src/features/inbox/components/__tests__/SegmentedControl3Modes.test.tsx::test_optimistic_rollback_on_409
+    blocked_by: [T-inbox-fe-3]
+
+  - id: T-inbox-fe-5
+    title: "Frontend MessageBubble + VoiceMessagePlayer + ImageAnalysisCard + ActionReceiptUndoChip + Composer attach/voice"
+    state: ready
+    surface: frontend
+    owner_eligibility: [claude-sonnet]
+    production_code: false
+    estimated_loc: 1000
+    scope: |
+      MessageBubble (REUSE adapter · audio + image stub render · ActionReceiptUndoChip inline · Adrián avatar gradient_adrian).
+      VoiceMessagePlayer (HTML5 audio + scrubber + speed control + transcript collapsible · fallback "no se entendió").
+      ImageAnalysisCard (stub Slice 1 · placeholder análisis Adrián mock).
+      ActionReceiptUndoChip (countdown 5min · click → confirm modal → use-retract-message dispatch).
+      ComposerArea + MessageInput (REUSE adapter · placeholder dinámico per-modo) + ComposerAttachButton (📎 filesystem) + ComposerVoiceButton (🎤 MediaRecorder · REUSE direct VoiceOverlay copilot Nicolify · retoken).
+    files_in_scope:
+      - vitalia/frontend/src/features/inbox/components/MessageBubble.tsx  # REUSE adapter
+      - vitalia/frontend/src/features/inbox/components/VoiceMessagePlayer.tsx
+      - vitalia/frontend/src/features/inbox/components/ImageAnalysisCard.tsx
+      - vitalia/frontend/src/features/inbox/components/ActionReceiptUndoChip.tsx
+      - vitalia/frontend/src/features/inbox/components/ComposerArea.tsx
+      - vitalia/frontend/src/features/inbox/components/MessageInput.tsx  # REUSE adapter
+      - vitalia/frontend/src/features/inbox/components/ComposerAttachButton.tsx
+      - vitalia/frontend/src/features/inbox/components/ComposerVoiceButton.tsx  # REUSE direct
+      - vitalia/frontend/src/features/inbox/components/SendButton.tsx
+      - vitalia/frontend/src/features/inbox/components/ProposalCardBanner.tsx
+      - vitalia/frontend/src/features/inbox/components/__tests__/MessageBubble.test.tsx
+      - vitalia/frontend/src/features/inbox/components/__tests__/VoiceMessagePlayer.test.tsx
+      - vitalia/frontend/src/features/inbox/components/__tests__/ImageAnalysisCard.test.tsx
+      - vitalia/frontend/src/features/inbox/components/__tests__/ActionReceiptUndoChip.test.tsx
+      - vitalia/frontend/src/features/inbox/components/__tests__/ComposerArea.test.tsx
+    acceptance:
+      validator_ids: [fe_typecheck_tsc, fe_lint_eslint, fe_arch_fitness, fe_test_inbox]
+    gherkin_coverage:
+      - scenario: SC-01 ai message + ActionReceipt 5min countdown
+        tests:
+          - vitalia/frontend/src/features/inbox/components/__tests__/ActionReceiptUndoChip.test.tsx::test_5min_countdown
+          - vitalia/frontend/src/features/inbox/components/__tests__/MessageBubble.test.tsx::test_renders_action_receipt_inline
+      - scenario: SC-02 audio fallback (no transcription)
+        tests:
+          - vitalia/frontend/src/features/inbox/components/__tests__/VoiceMessagePlayer.test.tsx::test_no_transcription_fallback_text
+      - scenario: SC-04 XSS escaping in message body
+        tests:
+          - vitalia/frontend/src/features/inbox/components/__tests__/MessageBubble.test.tsx::test_xss_escaped_as_literal
+    blocked_by: [T-inbox-fe-4]
+
+  - id: T-inbox-fe-6
+    title: "Frontend AdrianToolsSheet + AgentActivityStream + ContactSidebar (PHI wrappers) + ProactiveOutboundModal"
+    state: ready
+    surface: frontend
+    owner_eligibility: [claude-sonnet]
+    production_code: false
+    estimated_loc: 1100
+    scope: |
+      AdrianToolsSheet (Shadcn Sheet right 420px · read-only · derived from offer.tools_enabled · disabled tools with didactic explanation · link /offer-studio Slice 2).
+      AgentActivityStream (sticky 32px collapsed · expand 240px scrollable · 8 last events from use-activity-stream · poll 5s when expanded).
+      ContactSidebar (REUSE adapter Nicolify · wrap PHI fields with <PiiMaskedSpan>/<RequireRole>/<AuditedSection> Story 11 shared).
+      ProactiveOutboundModal (Shadcn Dialog · contact picker + template picker (5 HSM) + variables auto-fill + preview WA · cross-link agenda+pipeline+marketing entry points).
+    files_in_scope:
+      - vitalia/frontend/src/features/inbox/components/AdrianToolsSheet.tsx
+      - vitalia/frontend/src/features/inbox/components/AgentActivityStream.tsx
+      - vitalia/frontend/src/features/inbox/components/ContactSidebar.tsx  # REUSE adapter + PHI wrappers
+      - vitalia/frontend/src/features/inbox/components/ProactiveOutboundModal.tsx
+      - vitalia/frontend/src/features/inbox/components/__tests__/AdrianToolsSheet.test.tsx
+      - vitalia/frontend/src/features/inbox/components/__tests__/AgentActivityStream.test.tsx
+      - vitalia/frontend/src/features/inbox/components/__tests__/ContactSidebar.test.tsx
+      - vitalia/frontend/src/features/inbox/components/__tests__/ProactiveOutboundModal.test.tsx
+    acceptance:
+      validator_ids: [fe_typecheck_tsc, fe_lint_eslint, fe_arch_fitness, fe_test_inbox]
+    gherkin_coverage:
+      - scenario: SC-01 Tools Sheet read-only + Activity Stream events
+        tests:
+          - vitalia/frontend/src/features/inbox/components/__tests__/AdrianToolsSheet.test.tsx::test_read_only_with_disabled_explanation
+          - vitalia/frontend/src/features/inbox/components/__tests__/AgentActivityStream.test.tsx::test_8_last_events_scrollable
+      - scenario: SC-04 PHI mask + RBAC + audit log on reveal
+        tests:
+          - vitalia/frontend/src/features/inbox/components/__tests__/ContactSidebar.test.tsx::test_phi_masked_default
+          - vitalia/frontend/src/features/inbox/components/__tests__/ContactSidebar.test.tsx::test_marketing_role_hides_nps_history
+          - vitalia/frontend/src/features/inbox/components/__tests__/ContactSidebar.test.tsx::test_phi_reveal_triggers_audit_log
+      - scenario: ProactiveOutbound compliance gate
+        tests:
+          - vitalia/frontend/src/features/inbox/components/__tests__/ProactiveOutboundModal.test.tsx::test_marketing_template_requires_opt_in
+    blocked_by: [T-inbox-fe-4]  # parallel-safe with fe-5
+
+  - id: T-inbox-fe-7
+    title: "Frontend Storybook stories per component NEW Slice 1 + arch fitness test_no_hardcoded_strings_inbox"
+    state: ready
+    surface: frontend
+    owner_eligibility: [claude-sonnet]
+    production_code: false  # Storybook = docs sobre agentic (R23 production_code=false)
+    estimated_loc: 600
+    scope: |
+      .stories.tsx per NEW Slice 1 component (SegmentedControl3Modes · FilterChips · VoiceMessagePlayer · ImageAnalysisCard · AdrianToolsSheet · AgentActivityStream · ActionReceiptUndoChip · ProactiveOutboundModal · ContactSidebar · PauseAdrianConfirmModal).
+      NEW arch fitness test: test_no_hardcoded_strings_inbox.test.ts (grep features/inbox/*.tsx por strings hardcoded > 3 chars).
+    files_in_scope:
+      - vitalia/frontend/src/features/inbox/components/SegmentedControl3Modes.stories.tsx
+      - vitalia/frontend/src/features/inbox/components/FilterChips.stories.tsx
+      - vitalia/frontend/src/features/inbox/components/VoiceMessagePlayer.stories.tsx
+      - vitalia/frontend/src/features/inbox/components/ImageAnalysisCard.stories.tsx
+      - vitalia/frontend/src/features/inbox/components/AdrianToolsSheet.stories.tsx
+      - vitalia/frontend/src/features/inbox/components/AgentActivityStream.stories.tsx
+      - vitalia/frontend/src/features/inbox/components/ActionReceiptUndoChip.stories.tsx
+      - vitalia/frontend/src/features/inbox/components/ProactiveOutboundModal.stories.tsx
+      - vitalia/frontend/src/features/inbox/components/ContactSidebar.stories.tsx
+      - vitalia/frontend/src/features/inbox/components/PauseAdrianConfirmModal.stories.tsx
+      - vitalia/frontend/src/__tests__/architecture/test_no_hardcoded_strings_inbox.test.ts
+    acceptance:
+      validator_ids: [fe_typecheck_tsc, fe_lint_eslint, fe_arch_fitness, fe_test_storybook_smoke]
+    gherkin_coverage:
+      - scenario: Storybook builds + visual variants per component
+        tests:
+          - vitalia/frontend/src/features/inbox/components/SegmentedControl3Modes.stories.tsx
+          - vitalia/frontend/src/features/inbox/components/AdrianToolsSheet.stories.tsx
+      - scenario: arch fitness no hardcoded strings in inbox
+        tests:
+          - vitalia/frontend/src/__tests__/architecture/test_no_hardcoded_strings_inbox.test.ts
+    blocked_by: [T-inbox-fe-5, T-inbox-fe-6]
+
+# ============================================================
+# INTEGRATION + E2E tickets
+# ============================================================
+  - id: T-inbox-integ-1
+    title: "E2E Playwright smoke /inbox + POM inbox.page.ts (SC-01 happy + SC-02 audio fallback)"
+    state: ready
+    surface: frontend
+    owner_eligibility: [claude-sonnet]
+    production_code: false
+    estimated_loc: 400
+    scope: |
+      Playwright spec smoke /inbox path. Tests:
+      - shell renders + conv list visible + thread placeholder
+      - segmented control 3-modes toggles handler_mode
+      - voice style chip visible + chip text per brand voice config
+      - audio fallback flow (mock Whisper 0 confidence → handler_mode=human + help_needed=true)
+      POM inbox.page.ts (locators by data-testid).
+    files_in_scope:
+      - vitalia/frontend/e2e/specs/smoke/inbox.smoke.spec.ts
+      - vitalia/frontend/e2e/pages/inbox.page.ts
+    acceptance:
+      validator_ids: [e2e_smoke_inbox_local, e2e_smoke_inbox_live]
+    gherkin_coverage:
+      - scenario: SC-01 happy
+        tests:
+          - vitalia/frontend/e2e/specs/smoke/inbox.smoke.spec.ts::test_shell_renders
+          - vitalia/frontend/e2e/specs/smoke/inbox.smoke.spec.ts::test_segmented_control_toggles
+      - scenario: SC-02 audio fallback
+        tests:
+          - vitalia/frontend/e2e/specs/smoke/inbox.smoke.spec.ts::test_audio_low_confidence_fallback
+    blocked_by: [T-inbox-fe-7]
+
+  - id: T-inbox-integ-2
+    title: "Backend integration tests + E2E adversarial (cross-tenant SC-04) + a11y axe"
+    state: ready
+    surface: backend  # primary surface BE integ; secondary FE a11y
+    owner_eligibility: [claude-sonnet]
+    production_code: false
+    estimated_loc: 500
+    scope: |
+      Backend integration:
+      - test_inbox_send_retract_audit_log.py (end-to-end send → action receipt → revert → audit + event)
+      - test_inbox_whisper_fallback.py (audio low confidence → handler_mode=human + help_needed=true)
+      Frontend E2E adversarial:
+      - inbox.adversarial.spec.ts (cross-tenant URL manipulation → 404 + audit log row · XSS escaped · marketing role 403)
+      a11y axe:
+      - inbox.a11y.spec.ts (critical + serious violations = 0)
+    files_in_scope:
+      - vitalia/backend/tests/integration/test_inbox_send_retract_audit_log.py
+      - vitalia/backend/tests/integration/test_inbox_whisper_fallback.py
+      - vitalia/frontend/e2e/specs/regression/inbox.adversarial.spec.ts
+      - vitalia/frontend/e2e/specs/a11y/inbox.a11y.spec.ts
+    acceptance:
+      validator_ids: [be_test_integration_inbox, a11y_axe_inbox]
+    gherkin_coverage:
+      - scenario: SC-04 adversarial (cross-tenant + XSS + RBAC)
+        tests:
+          - vitalia/frontend/e2e/specs/regression/inbox.adversarial.spec.ts::test_cross_tenant_404
+          - vitalia/frontend/e2e/specs/regression/inbox.adversarial.spec.ts::test_xss_escaped
+          - vitalia/frontend/e2e/specs/regression/inbox.adversarial.spec.ts::test_marketing_role_403
+      - scenario: end-to-end audit + event flow
+        tests:
+          - vitalia/backend/tests/integration/test_inbox_send_retract_audit_log.py
+          - vitalia/backend/tests/integration/test_inbox_whisper_fallback.py
+      - scenario: a11y WCAG 2.1 AA
+        tests:
+          - vitalia/frontend/e2e/specs/a11y/inbox.a11y.spec.ts
+    blocked_by: [T-inbox-be-5, T-inbox-fe-7]
+
+# ============================================================
+# DAG visualization (text)
+# ============================================================
+# T-inbox-be-1 (domain) ──┬─→ T-inbox-be-2 (infra + migration)
+#                         │
+#                         ├─→ T-inbox-be-4 (connections Whisper + retract adapters · parallel-safe)
+#                         │
+# T-inbox-be-2 ───────────┴─→ T-inbox-be-3 (application services)
+#                                 │
+#                                 ├─→ T-inbox-be-5 (API routes)
+#                                 │     │
+#                                 │     ├─→ T-inbox-fe-1 (FE scaffold)
+#                                 │     │     │
+#                                 │     │     └─→ T-inbox-fe-2 (hooks)
+#                                 │     │           │
+#                                 │     │           └─→ T-inbox-fe-3 (list + filters)
+#                                 │     │                 │
+#                                 │     │                 └─→ T-inbox-fe-4 (thread + segmented + chips)
+#                                 │     │                       │
+#                                 │     │                       ├─→ T-inbox-fe-5 (composer + media + ActionReceipt)
+#                                 │     │                       │
+#                                 │     │                       └─→ T-inbox-fe-6 (Sheet + ActivityStream + ContactSidebar + ProactiveOutbound)
+#                                 │     │                             │
+#                                 │     │                             └─→ T-inbox-fe-7 (Storybook + arch fitness FE)
+#                                 │     │                                   │
+#                                 │     │                                   └─→ T-inbox-integ-1 (E2E smoke)
+#                                 │     │
+#                                 │     └─→ T-inbox-integ-2 (BE integ + adversarial E2E + a11y · parallel-safe with integ-1)
+#                                 │
+#                                 └─→ T-inbox-agentic-1 (retract_last_message tool · R23 Opus)
+#                                       │
+#                                       └─→ T-inbox-be-6 (extensions.py register tool · arch test)
+#
+# Critical path: be-1 → be-2 → be-3 → be-5 → fe-1 → fe-2 → fe-3 → fe-4 → fe-{5,6} → fe-7 → integ-1
+# Parallel branches:
+#   - be-4 parallel with be-2
+#   - be-6 + agentic-1 parallel with be-5 (depends only on be-3 + be-4 for agentic-1)
+#   - integ-2 parallel with integ-1

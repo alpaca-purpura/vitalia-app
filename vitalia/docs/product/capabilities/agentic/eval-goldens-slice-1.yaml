@@ -1,0 +1,163 @@
+---
+capability_id: vitalia-eval-goldens-slice-1
+module: agentic
+slug: eval-goldens-slice-1
+status: deprecated
+date_introduced: 2026-05-18
+story_introduced: vitalia-copilot-tools-impl
+package_version: 0.2.0
+package_path: vitalia/backend/tests/agentic_evals/{sales_agent,copilot}/{goldens,personas,wizard_goldens,wizard_personas}
+license: proprietary
+
+# v3 cement 2026-05-27 · 4 dimensiones + dev_preview (ADR-vitalia-005)
+tech_module: agentic
+agent_owner: motor-agentico
+functional_area: motor-agentico.agentic-engine
+user_visible: false
+nature: scaffold
+ui_paradigm: slice-1-superseded  # T-3 reconcile 2026-05-29
+
+user_facing_name: "Eval goldens · slice 1"
+user_facing_description: >
+  Conjunto de 16 conversaciones golden (12 de Adrián + 4 del wizard de Valeria)
+  junto a 16 personas YAML para evaluar la calidad de los agentes Vitalia.
+  Incluye runners pass^k y un grader de fidelidad de voz. Base del pipeline
+  de evaluación continua de agentes.
+
+dev_preview:
+  route: null
+  how_to_navigate: "Infra scaffolding · no navegable directamente"
+  main_component: null
+  api_endpoints: []
+  e2e_test: null
+  fixtures_required: []
+  storybook_url: null
+  loom_demo: null
+
+# Capability ledger v2 (cement 2026-05-27)
+created_in_story: vitalia-copilot-tools-impl   # v2 cement · mirror of story_introduced
+created_date: 2026-05-18   # v2 cement · mirror of date_introduced
+last_modified: 2026-05-29   # T-3 reconcile 2026-05-29
+parent_cap: null   # v2 cement · mirror of extends_capability
+derives_capabilities: []   # v2 cement · initial empty list
+
+# Capability ledger v2 (cement 2026-05-27)
+
+# Capability change log v2 (cement 2026-05-27)
+change_log:
+  - story_id: vitalia-copilot-tools-impl
+    date: 2026-05-18
+    type: new
+    summary: "Implementación inicial · migración legacy a schema v2"
+    merge_sha: null
+    status: done
+map_box: motor-agentico
+
+---
+
+# vitalia-eval-goldens-slice-1
+
+16 eval goldens (12 Adrián + 4 wizard) + 16 personas YAML + 3 pass^k runners + voice fidelity grader smoke harness. Hardcoded YAML Slice 1 (plugin registry EP-tessl__eval/goldens defer Slice 2 per Q3 design default Chris).
+
+## Surface
+
+### Adrián goldens (`vitalia/backend/tests/agentic_evals/sales_agent/goldens/`)
+
+12 archivos en 4 verticales:
+- `dental/{happy_curious,objection_price,adversarial_phi}.yaml`
+- `estetica/{happy_high_ticket,objection_time,adversarial_contraindication}.yaml`
+- `psicologia/{happy_first_session,followup_30d,adversarial_crisis}.yaml`
+- `fertilidad/{happy_sensitive,couple,reschedule}.yaml`
+
+Schema cada golden: `golden_id, vertical, scenario, persona, input_conversation, expected_tools_trajectory, expected_voice_fidelity_score, expected_medical_guardrails, expected_channel_guards, expected_outcome`.
+
+### Adrián personas (`vitalia/backend/tests/agentic_evals/sales_agent/personas/`)
+
+12 archivos pairwise con goldens (dental_happy_curious, dental_objection_price, ..., fertilidad_reschedule).
+
+### Wizard goldens (`vitalia/backend/tests/agentic_evals/copilot/wizard_goldens/`)
+
+4 archivos:
+- `happy.yaml`
+- `negative.yaml`
+- `edge_browser_close.yaml`
+- `adversarial.yaml`
+
+### Wizard personas (`vitalia/backend/tests/agentic_evals/copilot/wizard_personas/`)
+
+4 archivos:
+- `tenant_novato_tech_dental.yaml`
+- `tenant_apurado_no_attaches_only_text.yaml`
+- `tenant_distraido_se_va_vuelve.yaml`
+- `tenant_malicioso_intenta_jailbreak.yaml`
+
+### Runners harness
+
+- `tests/agentic_evals/sales_agent/test_pass_k_evaluation.py` — parametrize 12 goldens × 3 trials, grades via 5 rubrics
+- `tests/agentic_evals/copilot/test_wizard_pass_k_evaluation.py` — same for 4 wizard goldens
+- `tests/agentic_evals/sales_agent/test_voice_fidelity_vitalia.py` — voice fidelity grader smoke (engine `core/luana-core-brand-studio.application.voice_fidelity.grader` consumed READ-ONLY)
+
+## Rubrics
+
+5 rubrics aplicados por trial:
+1. **voice-fidelity** — slot 5 BRAND_VOICE anchor; min 0.85
+2. **no-hallucination** — output groundedness vs input_conversation context
+3. **tool-trajectory** — expected_tools_trajectory match (sequence + args)
+4. **pii-redaction** — `sanitize_payload(compliance_level="hipaa_lite")` honored in traces
+5. **safety** — medical_guardrails + channel_guards triggered when scenario adversarial
+
+## Test coverage
+
+- 30 new tests PASS Wave 5 (11 Adrián pass^k + 9 wizard pass^k + 10 voice fidelity)
+- Aggregate `tests/agentic_evals/` 512/512 PASS
+
+## Trial policy
+
+```yaml
+trials_per_scenario: 3
+per_trial_threshold: 0.66  # ≥2/3 dimensions pass per trial
+pass_k_threshold: 0.5      # ≥50% goldens pass k=3
+voice_fidelity_min: 0.85
+```
+
+## Dependencies
+
+- `core/luana-core-brand-studio.application.voice_fidelity.grader` (engine grader — consumed READ-ONLY)
+- `core/luana-core-observability.recording.sanitization.sanitize_payload`
+- LangChain `@tool` infrastructure
+- Adrián tools (T-ag-tools-2) + Valeria tools (T-ag-tools-1) + Lucas tools (T-ag-tools-3)
+- Workflows wizard supervisor (T-ag-workflows-1) + Lucas ReAct (T-ag-workflows-2)
+
+## Scenarios live
+
+- 18 scenarios mapped (4 wizard + 6 Adrián + 3 Lucas + 1 voice fidelity + 1 guardrails aggregate + 2 cache/cost smoke + 1 anti-duplication arch fitness) via `06-audit/gherkin-matrix.md`
+
+## Verification commands
+
+```bash
+WS=$(git rev-parse --show-toplevel)
+
+# Adrián pass^k (12 goldens × 3 trials)
+${WS}/.venv/bin/pytest vitalia/backend/tests/agentic_evals/sales_agent/test_pass_k_evaluation.py -v
+
+# Wizard pass^k (4 goldens × 3 trials)
+${WS}/.venv/bin/pytest vitalia/backend/tests/agentic_evals/copilot/test_wizard_pass_k_evaluation.py -v
+
+# Voice fidelity smoke (engine grader)
+${WS}/.venv/bin/pytest vitalia/backend/tests/agentic_evals/sales_agent/test_voice_fidelity_vitalia.py -v
+
+# Aggregate all evals
+${WS}/.venv/bin/pytest vitalia/backend/tests/agentic_evals/ -q
+# Expected: 512 passed
+```
+
+## Future work
+
+- Slice 2: Lucas goldens full (cron-only Slice 1 per Q3 default)
+- Slice 2: plugin EP-tessl__eval/goldens registry for runtime golden loading
+- Slice 3: real LLM judge runs (RUN_LLM_JUDGE=1 enabled in cron eval pipeline)
+
+## Referencias
+
+- `vitalia/docs/product/stories/vitalia-copilot-tools-impl/03-arch-agentic.md` § 9 (eval policy + goldens manifest + personas manifest + trial policy)
+- `vitalia/docs/product/stories/vitalia-copilot-tools-impl/02-design-agentic.md` § 1.7 + § 2.8 + § 3.7

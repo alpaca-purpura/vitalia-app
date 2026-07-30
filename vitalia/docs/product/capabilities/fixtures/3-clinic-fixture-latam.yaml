@@ -1,0 +1,100 @@
+---
+capability_id: vitalia-3-clinic-fixture-latam
+module: fixtures
+slug: 3-clinic-fixture-latam
+status: planned   # nota: forward-declared (status planned · sin código aún)
+date_introduced: 2026-05-15
+story_introduced: luana-vitalia-bootstrap
+package_version: 0.1.0
+package_path: vitalia/frontend/e2e/fixtures
+license: proprietary
+
+# v3 cement 2026-05-27 · 4 dimensiones + dev_preview (ADR-vitalia-005)
+tech_module: fixtures
+agent_owner: seguridad-cumplimiento
+functional_area: seguridad-cumplimiento.scaffolding
+user_visible: false
+nature: scaffold
+
+user_facing_name: "Fixture · 3 clínicas LatAm"
+user_facing_description: >
+  Fixture cementado de tres clínicas LatAm (Aurora Dental Buenos Aires,
+  Mindful Psicología Santiago, Sanaré Wellness Ciudad de México) con doctores,
+  pacientes, tratamientos, métodos de pago y KB packs correspondientes.
+  Utilizado como seed de desarrollo y base de los tests E2E de Vitalia.
+
+dev_preview:
+  route: null
+  how_to_navigate: "Infra scaffolding · no navegable directamente"
+  main_component: null
+  api_endpoints: []
+  e2e_test: null
+  fixtures_required: []
+  storybook_url: null
+  loom_demo: null
+
+# Capability ledger v2 (cement 2026-05-27)
+created_in_story: luana-vitalia-bootstrap   # v2 cement · mirror of story_introduced
+created_date: 2026-05-15   # v2 cement · mirror of date_introduced
+last_modified: 2026-05-29   # T-3 reconcile 2026-05-29
+parent_cap: null   # v2 cement · mirror of extends_capability
+derives_capabilities: []   # v2 cement · initial empty list
+
+# Capability ledger v2 (cement 2026-05-27)
+
+# Capability change log v2 (cement 2026-05-27)
+change_log:
+  - story_id: vitalia-bootstrap-inventory-2026-05-15
+    date: 2026-05-15
+    type: new
+    summary: "Implementación inicial · migración legacy a schema v2"
+    merge_sha: null
+    status: done
+map_box: seguridad-cumplimiento
+
+---
+
+# vitalia-3-clinic-fixture-latam
+
+3 fixtures research-driven LATAM para pilot tenants y E2E tests: dental Argentina + psicología Chile + wellness México. Cubre brand identity + offer ladder + payment configs + KB packs + doctor profiles + sample appointments.
+
+## Surface
+
+### E2E fixtures (`vitalia/frontend/e2e/fixtures/`)
+
+- **`aurora-dental-ar.fixture.ts`** — Aurora Dental, Buenos Aires (AR · ARS · MercadoPago · FDI dental notation · KB dental)
+- **`mindful-psych-cl.fixture.ts`** — Mindful Psicología, Santiago (CL · CLP · Stripe Connect · crisis boundary · KB psychology)
+- **`sanare-latam-mx.fixture.ts`** — Sanaré Wellness, Ciudad de México (MX · MXN · MercadoPago + tokenized recurring · subscription wellness)
+
+### Backend seeder
+
+- (Pendiente migración del seeder `seed_fixture_clinics.py` post-reorg — actualmente fixtures viven solo FE-side para E2E)
+
+## Test coverage
+
+Las fixtures son consumidas por la mayoría de E2E smoke specs:
+
+- `onboarding-dental-aurora.smoke.spec.ts`, `onboarding-psych-mindful.smoke.spec.ts`, `onboarding-psych-sanare.smoke.spec.ts`
+- `booking-deposit-aurora.smoke.spec.ts`, `booking-prepaid-sanare.smoke.spec.ts`, `booking-full-prepay-mindful.smoke.spec.ts`
+- `brand-studio-dental.smoke.spec.ts`, `brand-studio-psych.smoke.spec.ts`, `brand-studio-sanare.smoke.spec.ts`
+- `treatment-followup-aurora.smoke.spec.ts`, `treatment-followup-mindful.smoke.spec.ts`, `treatment-followup-sanare.smoke.spec.ts`
+- `offer-wizard-implant.smoke.spec.ts`, `offer-wizard-packages.smoke.spec.ts`, `offer-wizard-individual-session.smoke.spec.ts`
+- `consent-flow-implant.smoke.spec.ts`, `cross-tenant-isolation.smoke.spec.ts`
+
+## Dependencies
+
+- `vitalia.application.services.*` (Onboarding + Booking + PrepaidPayment + TreatmentFollowup)
+- `vitalia.copilot.kb.*` (3 KB packs)
+- `core/luana-core-iam` (tenant provisioning)
+
+## Scenarios live
+
+- Aurora Dental demo: paciente reserva → MercadoPago → consult dental KB
+- Mindful Psicología demo: sesión psico → patrón de crisis detectado → safe redirect
+- Sanaré Wellness demo: suscripción wellness program → tokenized recurring + secuencia follow-up
+- Spanish neutro respetado en fixtures (no voseo en chrome UI)
+- Cada fixture cubre vertical distinto (dental, mental health, wellness)
+
+## Referencias
+
+- Archive: `docs/archive/2026/snapshot-pre-multibrand-pm-redesign/capabilities/vitalia/3-clinic-fixture-latam.yaml`

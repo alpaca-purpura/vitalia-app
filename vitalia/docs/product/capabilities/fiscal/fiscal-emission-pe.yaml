@@ -1,0 +1,110 @@
+---
+# Capability YAML · schema v3.2 (cement 2026-05-28)
+# SSoT: docs/process/capability-protocol.md § Sec 7-13
+# ADR: vitalia/docs/architecture/ADR-vitalia-005-capability-model-4-dimensions.md
+
+# ----------------------------------------------------------------------------
+# IDENTIDAD
+# ----------------------------------------------------------------------------
+capability_id: vitalia.fiscal.fiscal-emission-pe
+slug: fiscal-emission-pe
+status: planned                                 # code exists, no passing e2e / not verified-live (computes to wip)
+license: brand-local
+
+# ----------------------------------------------------------------------------
+# DIMENSIÓN 1 · TÉCNICA
+# ----------------------------------------------------------------------------
+tech_module: fiscal
+module: fiscal
+
+# ----------------------------------------------------------------------------
+# DIMENSIÓN 2 · USER-FACING
+# ----------------------------------------------------------------------------
+agent_owner: configuracion
+functional_area: configuracion.fiscal
+
+# ----------------------------------------------------------------------------
+# DIMENSIÓN 3 · VISIBILIDAD
+# ----------------------------------------------------------------------------
+user_visible: true
+
+# ----------------------------------------------------------------------------
+# DIMENSIÓN 4 · NATURALEZA
+# ----------------------------------------------------------------------------
+nature: feature
+
+user_facing_name: "Emisión fiscal (boleta/factura) Perú"
+user_facing_description: >
+  Emite el comprobante fiscal (boleta o factura) asociado a un cobro de la
+  clínica. Cuando el cobro se concreta pero la emisión fiscal falla, el
+  documento queda en estado "fallido" y se puede reintentar la emisión sin
+  volver a cobrar. Diseñado inicialmente para el régimen fiscal de Perú,
+  con patrón de compensación tipo saga e idempotencia ante reintentos de red.
+
+dev_preview:
+  route: null
+  how_to_navigate: "BE-only. Endpoint de reintento de emisión consumido por el botón 'Reintentar emisión' del FE de cobros."
+  main_component: null
+  api_endpoints:
+    - "POST /api/v1/fiscal/emit"
+  e2e_test: null
+  fixtures_required: ["3-clinic-fixture-latam"]
+  storybook_url: null
+  loom_demo: null
+
+# ----------------------------------------------------------------------------
+# LEDGER v2
+# ----------------------------------------------------------------------------
+created_in_story: vitalia-fiscal-emission-pe
+created_date: 2026-05-28
+last_modified: 2026-05-29   # T-3 reconcile 2026-05-29
+package_version: vitalia-fase2-v1.0.0
+package_path: vitalia/backend/src/modules/vitalia/fiscal/
+
+architecture_pattern: null
+hipaa_lite_overlay: true
+
+parent_cap: null
+derives_capabilities: []
+superseded_by: null
+
+change_log:
+  - story_id: vitalia-fiscal-emission-pe
+    date: 2026-05-28
+    type: new
+    summary: "Emisión fiscal brand-local (boleta/factura PE): documento fiscal, puerto de emisión con stub, reintento idempotente con saga compensation."
+    scenarios_added: []
+    merge_sha: null
+    status: in-progress
+map_box: configuracion
+
+---
+
+# Emisión fiscal (boleta/factura) Perú
+
+Capacidad brand-local de Vitalia para emitir comprobantes fiscales asociados a
+cobros de la clínica. Sigue DDD Inside-Out: `FiscalDocument` (domain), modelo +
+repositorio (infrastructure), puerto de emisión con stub (application), router de
+reintento (api). Idempotencia ante reintentos de red + patrón saga compensation
+(cobro OK / emisión fallida → estado `failed` → reintento standalone sin re-cobrar).
+
+## Surface
+
+### Backend
+- `vitalia/backend/src/modules/vitalia/fiscal/domain/fiscal_document.py`
+- `vitalia/backend/src/modules/vitalia/fiscal/infrastructure/models/fiscal_document_model.py`
+- `vitalia/backend/src/modules/vitalia/fiscal/infrastructure/repositories/fiscal_document_repository.py`
+- `vitalia/backend/src/modules/vitalia/fiscal/application/fiscal_emit_port_impl.py`
+- `vitalia/backend/src/modules/vitalia/fiscal/application/stubs/stub_fiscal_emit_port.py`
+- `vitalia/backend/src/modules/vitalia/fiscal/api/emit_router.py`
+- `vitalia/backend/src/modules/vitalia/fiscal/api/dtos/emit_dtos.py`
+
+## Estado
+
+`wip` — código presente, sin e2e verde ni verificación live. Escenarios + access
++ business_rules a poblar cuando la story `vitalia-fiscal-emission-pe` cierre merge.
+
+## Referencias
+
+- Story: `vitalia/docs/product/stories/vitalia-fiscal-emission-pe/`
+- HIPAA-lite: `vitalia/.claude/rules/hipaa-lite.md`

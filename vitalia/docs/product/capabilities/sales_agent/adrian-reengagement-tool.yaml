@@ -1,0 +1,147 @@
+---
+capability_id: vitalia-adrian-reengagement-tool
+module: sales_agent
+slug: adrian-reengagement-tool
+status: deprecated
+date_introduced: 2026-05-20
+story_introduced: vitalia-slice-1-fidelizacion
+package_version: 0.1.0
+package_path: vitalia/backend/src/modules/vitalia/sales_agent/tools/send_proactive_reengagement.py
+license: proprietary
+
+# v3 cement 2026-05-27 · 4 dimensiones + dev_preview (ADR-vitalia-005)
+tech_module: sales_agent
+agent_owner: adrian
+functional_area: adrian.reactivacion
+user_visible: true
+nature: feature
+ui_paradigm: slice-1-superseded  # T-3 reconcile 2026-05-29
+replaced_by_story: vitalia-fase2-camila-reactivar  # T-3: story F2 que reconstruye esta cap
+
+user_facing_name: "Adrián · reactivación de pacientes dormidos"
+user_facing_description: >
+  Herramienta con la que Adrián identifica pacientes que llevan tiempo sin
+  volver y les envía un mensaje personalizado de reactivación por WhatsApp.
+  Distingue entre plantillas de marketing (que requieren consentimiento previo
+  del paciente) y recordatorios de utilidad como controles o seguimientos del
+  doctor (que no requieren opt-in). Respeta las regulaciones LatAm de consentimiento.
+
+dev_preview:
+  route: "/adrian/reactivacion"
+  how_to_navigate: "Login → ribbon clic en avatar Adrián → sub-tab Reactivación para ver campañas de reactivación enviadas."
+  main_component: null
+  api_endpoints:
+    - "POST /api/v1/inbox/conversations/{id}/proactive-outbound"
+  e2e_test: null
+  fixtures_required: ["3-clinic-fixture-latam"]
+  storybook_url: null
+  loom_demo: null
+
+# Capability ledger v2 (cement 2026-05-27)
+created_in_story: vitalia-slice-1-fidelizacion   # v2 cement · mirror of story_introduced
+created_date: 2026-05-20   # v2 cement · mirror of date_introduced
+last_modified: 2026-05-29   # T-3 reconcile 2026-05-29
+parent_cap: null   # v2 cement · mirror of extends_capability
+derives_capabilities: []   # v2 cement · initial empty list
+
+# Capability ledger v2 (cement 2026-05-27)
+
+# Capability change log v2 (cement 2026-05-27)
+change_log:
+  - story_id: vitalia-slice-1-fidelizacion
+    date: 2026-05-20
+    type: new
+    summary: "Implementación inicial · migración legacy a schema v2"
+    merge_sha: null
+    status: done
+map_box: adrian
+
+---
+
+# vitalia-adrian-reengagement-tool
+
+`send_proactive_reengagement` — agentic tool LangChain `@tool` async (Adrián) que dispara mensaje WhatsApp HSM proactivo de re-engagement (paciente con tratamiento incompleto, ausencia prolongada, mantenimiento vencido, follow-up doctor). Hereda HIPAA-lite + compliance gate UTILITY vs MARKETING gating per consent. T-9 de Ola 1 fidelización.
+
+**Fix iter 3 (post BE audit):** consume `WHATSAPP_TEMPLATE_REGISTRY.requires_marketing_opt_in` ([[whatsapp-template-registry]]) en lugar de hardcodear lista MARKETING — UTILITY templates pasan sin opt-in (recordatorios appointment, follow-up doctor, NPS); MARKETING templates (re-engagement absence, invitación mantenimiento) gated por opt-in marketing del paciente.
+
+## Surface
+
+### Agentic tool (`vitalia/backend/src/modules/vitalia/sales_agent/tools/`)
+- **`send_proactive_reengagement.py`** — `@tool` async. Inputs (Pydantic args_schema): `tenant_id`, `clinic_id`, `patient_id`, `template_slug`, `template_params` (dict para `{{N}}` placeholders), `pattern` (multi_session|follow_up|maintenance|absence|nps). Outputs: `{status: sent|blocked, reason, message_id}`.
+
+### Application service (`vitalia/backend/src/modules/vitalia/fidelizacion/application/services/`)
+- **`proactive_outbound_service.py`** — `ProactiveOutboundService.send()`:
+  - Step 1: dual filter tenant + clinic load Patient.
+  - Step 2: lookup `WHATSAPP_TEMPLATE_REGISTRY[template_slug]` → template def.
+  - Step 3: ★ ITER 2 F1 FIX ★ if `template.requires_marketing_opt_in and not patient.marketing_opt_in: raise 403 (or return blocked status)`. UTILITY templates skip esta verificación.
+  - Step 4: WhatsApp Business adapter dispatch + persist message + ActivityEvent + ActionReceipt (5min undo via [[inbox-handler-mode-occ]]).
+  - Step 5: sync audit log row.
+
+### Persistence — re-engagement event tracking (`vitalia/backend/src/modules/vitalia/fidelizacion/`)
+- `domain/entities/re_engagement_event.py` — entity audit
+- `infrastructure/repositories/re_engagement_event_repository.py` — dual filter
+- `domain/value_objects/re_engagement_pattern.py` — Enum 5 patrones
+- `domain/value_objects/re_engagement_outcome.py` — Enum outcomes (sent|delivered|read|replied|opted_out)
+
+## Test coverage
+
+- Unit tool (`vitalia/backend/tests/modules/vitalia/sales_agent/tools/test_send_proactive_reengagement.py` — se incluye en `tools/` suite).
+- Application service unit (`vitalia/backend/tests/modules/vitalia/fidelizacion/application/test_proactive_outbound_service.py`):
+  - `test_utility_template_passes_without_optin` ★ added iter 2 F1 fix ★
+  - `test_marketing_template_blocked_no_optin`
+  - `test_unknown_template_blocked`
+  - `test_audit_log_written_sync`
+  - `test_cross_tenant_404`
+- Repositorios: `tests/modules/vitalia/fidelizacion/infrastructure/test_re_engagement_event_repository.py`
+- Cron sweep tests: `tests/modules/vitalia/fidelizacion/workers/test_cron_sweeps.py`
+- Agentic eval goldens (`vitalia/backend/tests/agentic_evals/sales_agent/goldens/reengagement/`):
+  - `happy_multi_session.yaml`
+  - `happy_follow_up.yaml`
+  - `happy_maintenance.yaml`
+  - `absence_optin_guard.yaml` ★ adversarial — confirma opt-in compliance gate ★
+- Voice fidelity (`tests/agentic_evals/sales_agent/test_voice_fidelity_reengagement.py`).
+
+## Dependencies
+
+- `vitalia/backend/src/modules/vitalia/connections/whatsapp/` — WHATSAPP_TEMPLATE_REGISTRY + WhatsAppBusinessAdapter ([[whatsapp-template-registry]])
+- `vitalia/backend/src/modules/vitalia/crm/` — Patient + PatientConsentService.set_marketing_opt_in ([[crm-consent-optout]])
+- `vitalia/backend/src/modules/vitalia/compliance/` — ComplianceServiceAdapter + AuditLogRepository
+- `vitalia/backend/src/modules/vitalia/sales_agent/observability/` — callback handler emite trace event sin PHI
+- `core/luana-core-sales-agent` — engine state base
+- `core/luana-core-observability` — sanitize_payload + cost recorder
+- `core/luana-core-extension-sdk` — EP-3 ToolDef registration
+
+## Scenarios live
+
+- SC-01 happy multi-session — paciente con tratamiento incompleto recibe sugerencia → operador acepta → tool envía → mensaje delivered.
+- SC-02 absence sin opt-in — paciente con ausencia prolongada pero sin marketing_opt_in → tool block (golden `absence_optin_guard.yaml` cubre).
+- SC-03 follow-up doctor vencido — UTILITY template `recordatorio_control_doctor` → pasa sin opt-in marketing (iter 2 F1 fix).
+- Voice fidelity per Slot 5 BRAND_VOICE ≥ 0.85.
+- SC-04 adversarial cross-tenant — request con `tenant_A` + `patient_id` de tenant_B → 404 sin leak.
+
+## KPIs
+
+- Pass^k threshold: ≥ 0.5 (goldens reengagement/)
+- Per-trial threshold: ≥ 0.66
+- Voice fidelity min: 0.85
+- Daily re-engagement quota per tenant: configured in `vitalia/config/brand.yaml` (default 50)
+- Audit log sync write success rate: 100% (no fire-forget)
+
+## Verification commands
+
+```bash
+WS=$(git rev-parse --show-toplevel)
+cd ${WS}/vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/fidelizacion/application/test_proactive_outbound_service.py -v
+cd ${WS}/vitalia/backend && ${WS}/.venv/bin/pytest tests/agentic_evals/sales_agent/test_voice_fidelity_reengagement.py -v
+cd ${WS}/vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/fidelizacion/infrastructure/ -v
+```
+
+## Referencias
+
+- Spec: `vitalia/docs/archive/2026/stories/vitalia-slice-1-fidelizacion/01-spec-extract.md` § T-9
+- Arch agentic: `vitalia/docs/archive/2026/stories/vitalia-slice-1-fidelizacion/03-arch-agentic.md` § send_proactive_reengagement
+- Audit fix iter 2 BE: `vitalia/docs/archive/2026/stories/vitalia-slice-1-fidelizacion/AUDIT-FIX-ITER-2-BE-result.md` § F1 UTILITY/MARKETING gate
+- Merge artifact: `vitalia/docs/archive/2026/stories/vitalia-slice-1-fidelizacion/07-merge.md` § 3
+- HIPAA-lite: `vitalia/.claude/rules/hipaa-lite.md`
+- Brand voice: `.claude/rules/sales-agent-brand-voice.md`
+- Sister caps: [[whatsapp-template-registry]] · [[crm-consent-optout]] · [[lucas-recommendation-tool]] · [[adrian-3-tools-mvp]] · [[nps-tracking]]

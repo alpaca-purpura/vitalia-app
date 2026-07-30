@@ -1,0 +1,24 @@
+# harness-pointer-baseline — refs workspace-rooted ROTOS conocidos (anti-rot, HB 2026-06-08).
+# Baseline-ratchet SHRINK-ONLY: drená un ref (arreglá el puntero) → quitalo de acá.
+# NO agregués líneas a mano salvo que ratifiques un ref muerto deliberado.
+# Regen: python3 scripts/scan_harness_pointers.py --update-baseline
+.claude/agents/auditor-agentic.md :: core/luana-core-platform/src/luana_core_platform/config.py
+.claude/agents/auditor-backend.md :: core/luana-core-platform/src/luana_core_platform/config.py
+.claude/agents/auditor-backend.md :: docs/etl/extraction-contract.md
+.claude/agents/builder-agentic.md :: core/luana-core-platform/src/luana_core_platform/config.py
+.claude/agents/builder-backend.md :: core/luana-core-platform/src/luana_core_platform/config.py
+.claude/rules/backend-migrations.md :: docs/domains/migrations.md
+.claude/skills/backend-expert/SKILL.md :: docs/etl/extraction-contract.md
+.claude/skills/brand-expert/SKILL.md :: docs/domains/brand/INDEX.md
+.claude/skills/data-storyteller/SKILL.md :: references/data-viz-conventions.md
+.claude/skills/nicolify-design-system/SKILL.md :: nicolify/docs/architecture/design-system.md
+.claude/skills/nicolify-design-system/SKILL.md :: nicolify/frontend/src/lib/shell-routes.ts
+.claude/skills/nicolify-design-system/SKILL.md :: nicolify/frontend/tailwind.config.ts
+.claude/skills/nicolify-design-system/SKILL.md :: vitalia/.claude/skills/vitalia-design-system/SKILL.md
+.claude/skills/offer-expert/SKILL.md :: docs/domains/offer/INDEX.md
+.claude/skills/playwright-expert/SKILL.md :: .github/workflows/e2e-tests.yml
+.claude/skills/pm-luana/SKILL.md :: docs/product/outcomes/voice-cloning-platform.md
+.claude/skills/pm-luana/SKILL.md :: scripts/generate_core_modules.py
+.claude/skills/po-ux/SKILL.md :: docs/learnings/2026-04-15-tanstack-query-cache-invalidation.md
+.claude/skills/po-ux/SKILL.md :: nicolify/docs/learnings/2026-03-22-agenda-overbooking-edge-case.md
+.claude/skills/po-ux/SKILL.md :: nicolify/frontend/src/features/scheduling/components/SlotPicker.tsx

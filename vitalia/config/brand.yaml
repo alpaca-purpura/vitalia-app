@@ -1,0 +1,143 @@
+# vitalia/config/brand.yaml
+# BrandConfig declarative — Story 11 luana-vitalia-bootstrap T-config-1
+# Decisions honored: D7 (hipaa_lite), D8 (voice_cloning=false), D9 (spanish neutro tuteo),
+#                    D12 (wellness_deep defer 11.bis), D13 (multi_site defer 11.bis), D14 (insurance defer 11.bis)
+# Source: 03-arch-be.md § 10 — canonical schema reference
+
+brand_slug: vitalia
+brand_name: "Vitalia"
+brand_description: "Vertical-medical brand app for LatAm clinics (dental + psychology + psychiatry + wellness)"
+brand_segment: medical_vertical
+compliance_level: hipaa_lite                # D7 — Q6=B ratified spec § 17: NOT hipaa_full
+voice_cloning_enabled: false                # D8 — 00-story.md ratified
+multi_language_ui: false                    # Spanish neutro LatAm only (D9)
+
+features:
+  brand_studio_simplified: true
+  offer_studio_medical: true
+  booking_prepaid: true
+  sales_agent_vertical_medical: true
+  copilot_medical_extractors: true
+  treatment_followup_workflow: true
+  medical_compliance_audit_log: true
+  multi_site_ui: false                      # D13 — Q2=B ratified — UI defer Story 11.bis
+  insurance_integration: false              # D14 — Q3=B ratified — defer Story 11.bis
+  wellness_deep_coverage: false             # D12 — Q7=B ratified — UI enabled, deep defer
+  voice_cloning: false                      # D8 — 00-story.md ratified
+
+brand_studio:
+  enabled_sections:
+    - identity
+    - contact
+    - team
+    - testimonials
+  disabled_sections:
+    - story
+    - strategy
+    - positioning
+    - narrative
+    - personality
+    - communication
+    - authority_vault
+
+offer_studio:
+  preset_pack: medical_services_v1
+  default_offer_type: medical_services
+
+booking:
+  requires_consent_when_offer_marks: true
+  default_deposit_percent: 30
+  default_currency_per_country:
+    AR: ARS
+    CL: CLP
+    MX: MXN
+    CO: COP
+    PE: PEN
+    BR: BRL
+    US: USD
+
+payment_gateways:
+  - mercadopago                              # Q6=B — primary LatAm
+  - stripe_connect                           # Q6=B — fallback US/EU
+  - tokenized_recurring                      # paquetes + treatment installments
+# stripe_healthcare NOT enabled per Q6=B ratified (D7: hipaa_lite not hipaa_full)
+
+medical_kb_packs:
+  - medical_kb_dental_v1
+  - medical_kb_psychology_v1
+  - medical_kb_psychiatry_v1
+
+agentic_tools:
+  - prepaid_payment_check
+  - treatment_followup_check
+  - medical_consent_request
+  - appointment_reschedule_with_doctor
+
+extractors:
+  - MedicalKBExtractor
+  - DentalHistoryExtractor
+
+workflows:
+  - TreatmentFollowupWorkflow
+
+guardrails:
+  - medical_safety_no_diagnosis
+  - medical_safety_no_prescription
+  - medical_disclaimer_required
+  - prompt_injection_block
+
+plan_tiers:
+  solo_doctor:
+    price_usd_monthly: 49
+    max_doctors: 1
+    features:
+      - brand_studio_simplified
+      - offer_studio_medical
+      - booking_prepaid
+      - sales_agent_vertical_medical
+  clinic:
+    price_usd_monthly: 199
+    max_doctors: 10
+    features:
+      - brand_studio_simplified
+      - offer_studio_medical
+      - booking_prepaid
+      - sales_agent_vertical_medical
+      - copilot_medical_extractors
+      - treatment_followup_workflow
+  multi_site:
+    price_usd_monthly: 599
+    max_doctors: 50
+    features:
+      - all_clinic_features
+      - multi_site_backend                   # backend supports; UI defer Q2=B (D13)
+      - multi_currency
+
+sales_agent:
+  default_personality_archetype: warm_close  # Aurora default; tenant-overrideable
+  voice_per_tenant: true                     # personality_profiles.system_instruction SSoT
+  channels:
+    - whatsapp_business
+    - manychat_instagram
+    - email_async
+    - web_chat
+
+# S-DOCKER-DEV-MULTIBRAND T-3 — 2026-05-15
+# SSoT infra metadata por entorno. Auto-indexado en docs/portfolio/INFRA-MATRIX.md via make infra-matrix.
+# Decision D6: puertos cementados (vitalia=8002/3002)
+infra:
+  dev:
+    backend_port: 8002
+    frontend_port: 3002
+    database_name: vitalia_dev
+    redis_db: 1
+    qdrant_collection_prefix: vitalia_
+    domain: vitalia-dev.nicolify.com
+    cloudflared_tunnel: vitalia-dev
+  staging:
+    domain: vitalia-test.nicolify.com
+    server: tbd-staging-cluster
+  prod:
+    domain: app.vitalialat.com
+    server: tbd
+    cloudflared_tunnel: vitalia-prod

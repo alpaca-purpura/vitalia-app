@@ -1,0 +1,1 @@
+../../core-harness/process/harness-lifecycle.md

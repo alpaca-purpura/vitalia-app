@@ -1,0 +1,1 @@
+../../core-harness/rules/pm-skill-chaining.md

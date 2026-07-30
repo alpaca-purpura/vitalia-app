@@ -1,0 +1,218 @@
+# 04-validators.yaml — vitalia-fase2-config-cuenta
+# Test construction plan + verification nature + playwright scope.
+# Consumed by /dev-team (test_construction_plan) + gate-runner + /auditor.
+# Schema: docs/specs/templates/04-validators-template.yaml
+
+story_id: vitalia-fase2-config-cuenta
+brand: vitalia
+arch_version: 1
+architecture_pattern: ADR-vitalia-004
+
+# ── verification_nature (top-level · D-X4 · drives gate keying) ──────────────
+# Ambas: técnica (CRUD + validators + RBAC) + funcional (UI write ejercido live).
+verification_nature: ambas
+
+playwright_required: true
+demo_required: false         # ★ Chris override 2026-06-11 (D-AUTO · era true). Full unattended hasta done — waiva chris_verify.signoff humano. El auditor v5 SIGUE ejerciendo live-verify propio + dod_evidence (piso técnico HARD). Ver checkpoint::demo_required_override.
+
+# ── technical_gates (opt-in por naturaleza) ─────────────────────────────────
+technical_gates:
+  typecheck: true            # tsc --noEmit + mypy
+  lint: true                 # ruff + eslint
+  arch_fitness: true         # BE + FE arch tests (ver § architecture_gates)
+  unit: true
+  integration: true
+  schemathesis: false        # endpoints nuevos simples — no property-based necesario MVP
+  hypothesis: true           # fiscal-id validator: invariantes (válido↔persiste, inválido↔rechaza) por país
+  mutation_gate: advisory    # diff-scoped sobre líneas nuevas (degrada advisory si tool ausente)
+
+# ── business_rules (cada RN → cobertura gherkin @rule-ID) ────────────────────
+business_rules:
+  - id: RN-1
+    rule: "Solo rol admin_clinic edita; otros roles autorizados ven read-only + 403 al PATCH."
+    scenarios: [SC-04-rbac]
+  - id: RN-2
+    rule: "ID fiscal validado por país (AR CUIT · PE RUC · MX RFC · CL/CO NIT · UY RUT); inválido → 422 + inline error + NO persiste."
+    scenarios: [SC-02-fiscal-invalid]
+  - id: RN-3
+    rule: "clinic_type/país/idioma read-only post-onboarding (cambio = soporte). primary_specialties AHORA editable (D3-revoked)."
+    scenarios: [SC-07-idioma-ro, SC-08-pais-ro, SC-09-tipo-ro, SC-04b-specialties-edit]
+  - id: RN-4
+    rule: "Todo write a datos del tenant → audit log SYNC pre-response (hipaa-lite)."
+    scenarios: [SC-01-happy, SC-12-live-verify]
+  - id: RN-5
+    rule: "Datos tenant-scoped; cross-tenant request → 404 (dual filter tenant_id)."
+    scenarios: [SC-03-cross-tenant]
+  - id: RN-6
+    rule: "Preferencias regionales (timezone/currency) no hardcodeadas; vienen de TenantLocale/clinic.currency."
+    scenarios: [SC-05-timezone, SC-06-currency]
+
+# ── scenario coverage (12/12 RONDA 2 matriz · spec § Matriz de cobertura) ────
+scenario_coverage:
+  total: 12
+  scenarios:
+    - id: SC-01-happy
+      name: "Admin edita nombre comercial → autosave + persist + audit"
+      bifurcation: 1
+      verification: "write real + PATCH 200 + DB reflect + audit_log row + toast visible"
+      acceptance: [AC-1, AC-2, AC-5]
+    - id: SC-02-fiscal-invalid
+      name: "ID fiscal inválido por país → 422 + inline error + NO persiste"
+      bifurcation: 2
+      verification: "write CUIT inválido + endpoint 422 + UI inline error + DB sin cambio"
+      acceptance: [AC-3, AC-6]
+    - id: SC-03-cross-tenant
+      name: "PATCH desde tenant_B a datos de tenant_A → 404"
+      bifurcation: 3
+      verification: "request cross-tenant → 404 (no leak)"
+      acceptance: [AC-5]
+    - id: SC-04-rbac
+      name: "Rol no-admin abre Datos → read-only + 403 al PATCH"
+      bifurcation: 4
+      verification: "campos read-only visibles + chip 'solo admin' + PATCH 403"
+      acceptance: [AC-4]
+    - id: SC-04b-specialties-edit
+      name: "Admin edita especialidades (multi-select) → valida vs catálogo país + autosave"
+      bifurcation: "D3-revoked"
+      verification: "write especialidad válida + PATCH 200 + config_json.primary_specialties actualizado + audit + event emitido"
+      acceptance: [AC-4b]
+    - id: SC-05-timezone
+      name: "Cambio timezone → autosave + re-render formatos fecha"
+      bifurcation: 5
+      verification: "Select change + PATCH 200 + TenantLocale persiste + fecha refleja zona"
+      acceptance: [AC-2]
+    - id: SC-06-currency
+      name: "Cambio moneda → autosave + montos reflejan símbolo"
+      bifurcation: 6
+      verification: "Select change + PATCH 200 + currency persiste + UI símbolo"
+      acceptance: [AC-2]
+    - id: SC-07-idioma-ro
+      name: "Idioma read-only (derivado del país)"
+      bifurcation: 7
+      verification: "campo read-only + badge 'se deriva del país'"
+      acceptance: [AC-4]
+    - id: SC-08-pais-ro
+      name: "País read-only (definido en el alta)"
+      bifurcation: 8
+      verification: "campo read-only + badge 'definido en el alta'"
+      acceptance: [AC-4]
+    - id: SC-09-tipo-ro
+      name: "Tipo clínica read-only (compliance-crítico)"
+      bifurcation: 9
+      verification: "badge 'definido en el alta' + no editable"
+      acceptance: [AC-4]
+    - id: SC-10-dpo
+      name: "DPO referencia read-only + link a Seguridad"
+      bifurcation: 10
+      verification: "VISTO DPO actual + link /config/seguridad + NO formulario"
+      acceptance: [AC-1]
+    - id: SC-11-load-real
+      name: "Abre Mi cuenta → datos reales del tenant (no placeholder)"
+      bifurcation: 11
+      verification: "VISTO datos BD reales (no CuentaPlaceholder)"
+      acceptance: [AC-1]
+    - id: SC-12-live-verify
+      name: "Live-verify: admin escribe especialidad válida + observa persist + audit"
+      bifurcation: 12
+      verification: "PATCH 200 + config_json persiste + reload observa valor + audit_log row visible en logs"
+      acceptance: [AC-6]
+
+# ── test_construction_plan (por capa · TDD RED-first) ────────────────────────
+test_construction_plan:
+  backend:
+    domain:
+      - file: tests/modules/vitalia/_shared/test_fiscal_id_validator.py
+        nature: domain_validator
+        cases: "AR/PE/MX/CL/CO/UY válidos + inválidos + país no soportado (freetext degradado). hypothesis invariantes."
+      - file: tests/modules/vitalia/_shared/test_specialty_catalog.py
+        nature: domain_catalog
+        cases: "validate_specialties in/out catálogo por país; catálogo no vacío por país soportado."
+    infrastructure:
+      - file: tests/modules/vitalia/clinics/test_clinic_account_repository.py
+        nature: repo
+        cases: "get_active_for_tenant tenant-scoped + soft-delete-aware; update_account partial; ClinicConfigRepository read/write config_json JSONB."
+    application:
+      - file: tests/modules/vitalia/clinics/test_clinic_account_service.py
+        nature: service
+        cases: "patch_account: RBAC 403 non-admin · read-only reject 422 · fiscal invalid 422 · specialty invalid 422 · audit row escrito · ClinicSpecialtiesChanged emitido · transaction atomicity (rollback si una falla)."
+    api:
+      - file: tests/modules/vitalia/clinics/test_account_router.py
+        nature: api_endpoint
+        cases: "GET 200 datos reales · PATCH 200 happy · PATCH 422 fiscal · PATCH 403 RBAC · PATCH 404 cross-tenant · GET specialties-catalog 200 · GET dpo 200. response_model presente."
+  frontend:
+    hook:
+      - file: src/features/config/hooks/__tests__/use-account-form.test.ts
+        cases: "autosave 600ms debounce + coalesce; dirty tracking; error surfacing."
+    component:
+      - file: src/features/config/components/cuenta/__tests__/AccountDataView.test.tsx
+        cases: "read-only badges (país/tipo); fiscal inline error; specialties multi-select chips; RBAC read-only mode."
+      - file: src/features/config/components/cuenta/__tests__/PreferencesView.test.tsx
+        cases: "timezone Select; currency Select; idioma read-only badge."
+      - file: src/features/config/components/cuenta/__tests__/ResponsibleView.test.tsx
+        cases: "DPO read-only render + link href; empty state si sin DPO."
+  e2e:
+    - file: e2e/specs/config/cuenta.spec.ts
+      type: live-verify
+      cases: "Admin login → Plataforma → Mi cuenta → edita CUIT válido → autosave → POST 200 → reload → persisted + audit row en logs. Fixture anti-burbuja base.ts (NO @playwright/test directo). NO mockear BE del surface."
+  contract_parity:
+    - register: "test_fe_be_contract_parity.py CONTRACT_PAIRS"
+      pair: "ClinicAccountResponse (clinics/api/dtos.py) ↔ cuenta.types.ts::ClinicAccountResponse"
+      note: "HB-42 gate — RED hasta que FE camelCase types existan. Registrar ANTES de merge (evita imagined-contract drift estilo embudo)."
+  visual_goldens:
+    files:
+      - cuenta-datos.png
+      - cuenta-prefs.png
+      - cuenta-resp.png
+    note: "3 sub-sub-tabs vs mockups/cuenta.html ratificado. maxDiffPixelRatio 0.001."
+
+# ── playwright_visual_scope (scope discipline · architect-autonomous-mode) ───
+playwright_visual_scope:
+  story_scope_routes:
+    - "/{tenantId}/config/cuenta/datos"
+    - "/{tenantId}/config/cuenta/preferencias"
+    - "/{tenantId}/config/cuenta/responsable"
+  story_scope_components:
+    - AccountDataView
+    - PreferencesView
+    - ResponsibleView
+    - SpecialtiesField
+  out_of_mockup_scope:
+    - "TopBar / Ribbon / SubTabsBar / ValeriaSidebar (chrome — del shell ya shipped, NO re-build; usar verbatim del @luana/ui-kit shell-organism)"
+    - "config/conexiones · config/avanzado (otras stories)"
+    - "Seguridad y cumplimiento (caja propia — solo se linkea desde DPO)"
+
+# ── regression_guard ────────────────────────────────────────────────────────
+regression_guard:
+  - "lisa/marca N3-static sigue navegando (compartimos SubSubTabsBar + shell-routes.ts)."
+  - "marca_service.get_clinic_config sigue leyendo specialties (ahora también escritas por config-cuenta — verificar read post-write)."
+  - "clinics/api/router.py (CRUD admin clínicas) intacto — account_router es adicional."
+
+# ── architecture_gates (deben quedar verdes) ────────────────────────────────
+architecture_gates:
+  backend:
+    - test_response_model_required.py
+    - test_vitalia_no_query_without_tenant_filter.py
+    - test_audit_log_sync_write.py
+    - test_fe_be_contract_parity.py        # EXTEND CONTRACT_PAIRS
+    - test_migrations_idempotent.py
+    - test_clinics_domain_no_engine_imports.py
+  frontend:
+    - test-agent-subsubtabs-ssot.test.ts   # AGENT_SUBSUBTABS["config.cuenta"]
+    - test_no_hardcoded_subtab_keys.test.ts
+    - test-no-native-select.test.ts
+    - test-no-div-layout.test.ts
+    - test_page_padding.test.ts
+    - test-ribbon-no-shadcn-tabs.test.ts
+    - test-no-clerk-organizations.test.ts
+    - test_server_first.test.ts
+    - test_no_voseo_in_copy.test.ts
+    - test_no_hardcoded_strings.test.ts
+    - test_no_phi_real_data.test.ts
+
+# ── dod_live_verify (Critical Rule #37) ─────────────────────────────────────
+dod_live_verify:
+  required: true
+  env: "make dev-app-vitalia → dev-app.vitalialat.com (Chrome DevTools MCP) o localhost:3002 fallback"
+  evidence_required:
+    - "PATCH especialidad válida (admin autenticado) → toast OK + config_json.primary_specialties persiste al recargar"
+    - "PATCH CUIT válido → DB clinic.fiscal_id actualizado + audit_log row visible en logs · sin traceback"

@@ -1,0 +1,124 @@
+---
+capability_id: vitalia-payment-gateways-latam-recurring
+module: payment
+slug: payment-gateways-latam-recurring
+status: deprecated
+date_introduced: 2026-05-15
+story_introduced: luana-vitalia-bootstrap
+package_version: 0.1.0
+package_path: vitalia/backend/src/modules/vitalia/payment
+license: proprietary
+
+# v3 cement 2026-05-27 · 4 dimensiones + dev_preview (ADR-vitalia-005)
+tech_module: payment
+agent_owner: plataforma-tecnica
+functional_area: plataforma-tecnica.payment
+user_visible: false
+nature: feature
+ui_paradigm: slice-1-superseded  # T-3 reconcile 2026-05-29
+
+user_facing_name: "Gateways de pago LatAm con recurrencia"
+user_facing_description: >
+  Adaptadores de Mercado Pago, Stripe Connect y pagos recurrentes tokenizados
+  para planes multi-sesión en Vitalia. Incluye cinco receptores de webhooks con
+  verificación HMAC y deduplicación por clave de idempotencia. Permite cobrar
+  depósitos prepagados, planes de cuotas y suscripciones para tratamientos
+  de largo plazo en Argentina, México, Colombia, Perú y Chile.
+
+dev_preview:
+  route: null
+  how_to_navigate: "BE-only · ver via tests en vitalia/backend/tests/integration/test_mercadopago_webhook.py"
+  main_component: null
+  api_endpoints:
+    - "POST /api/v1/vitalia/webhooks/stripe"
+    - "POST /api/v1/vitalia/webhooks/mercadopago"
+  e2e_test: null
+  fixtures_required: []
+  storybook_url: null
+  loom_demo: null
+
+# Capability ledger v2 (cement 2026-05-27)
+created_in_story: luana-vitalia-bootstrap   # v2 cement · mirror of story_introduced
+created_date: 2026-05-15   # v2 cement · mirror of date_introduced
+last_modified: 2026-05-29   # T-3 reconcile 2026-05-29
+parent_cap: null   # v2 cement · mirror of extends_capability
+derives_capabilities: []   # v2 cement · initial empty list
+
+# Capability ledger v2 (cement 2026-05-27)
+
+# Capability change log v2 (cement 2026-05-27)
+change_log:
+  - story_id: vitalia-bootstrap-inventory-2026-05-15
+    date: 2026-05-15
+    type: new
+    summary: "Implementación inicial · migración legacy a schema v2"
+    merge_sha: null
+    status: done
+map_box: plataforma-tecnica
+
+---
+
+# vitalia-payment-gateways-latam-recurring
+
+3 adapters de pago: MercadoPago (LATAM primary), Stripe Connect (cross-border + fallback US/EU), tokenized recurring (paquetes + treatment installments). 5 webhook receivers con HMAC verification + idempotency keys. NO usa `stripe_healthcare` per ratificación D7 (hipaa_lite, NO hipaa_full).
+
+## Surface
+
+### Adapters (`vitalia/backend/src/modules/vitalia/payment/`)
+
+- **`mercadopago_adapter.py`** — extiende `MercadoPagoAdapter` base de `core/luana-core-channels` (LIFT shared post Story 11). Metadata medical-specific: `treatment_id`, `doctor_id`, `consent_required`
+- **`stripe_connect_adapter.py`** — Stripe Connect para pagos cross-border + fallback
+- **`tokenized_recurring_adapter.py`** — auto-debit para paquetes + treatment installments via Stripe SetupIntent + off_session
+
+### Webhook receivers (`vitalia/backend/src/modules/vitalia/api/webhook_routes.py`)
+
+Prefix `/api/v1/vitalia/webhooks/`:
+- `POST /stripe` — confirmaciones Stripe + refunds + chargebacks
+- `POST /mercadopago` — confirmaciones MP + reembolsos
+- `POST /clerk` — signup → trigger onboarding service
+- `POST /whatsapp/inbound` — WhatsApp Business inbound (Twilio adapter)
+- `POST /manychat/inbound` — ManyChat Instagram inbound
+
+Todos los webhooks: HMAC signature verification + idempotency key dedup vía `core/luana-core-idempotency`.
+
+### Adapters infrastructure
+
+- `infrastructure/adapters/clerk_webhook_adapter.py`
+- `infrastructure/adapters/manychat_webhook_adapter.py`
+
+### Config
+
+```yaml
+payment_gateways: [mercadopago, stripe_connect, tokenized_recurring]
+# stripe_healthcare NOT enabled per Q6=B (D7: hipaa_lite not hipaa_full)
+```
+
+## Test coverage
+
+- `vitalia/backend/tests/integration/test_mercadopago_webhook.py`
+- `vitalia/backend/tests/integration/test_stripe_webhook.py`
+- `vitalia/backend/tests/integration/test_stripe_connect_adapter.py`
+- `vitalia/backend/tests/integration/test_tokenized_recurring_adapter.py`
+- `vitalia/backend/tests/integration/test_clerk_webhook.py`
+- Arch fitness: `vitalia/backend/tests/architecture/test_vitalia_payment_inherits_core_base.py` — no mirror
+
+## Dependencies
+
+- `core/luana-core-channels` (MercadoPagoAdapter base — LIFT shared Story 11)
+- `core/luana-core-billing` o `luana-core-payments` (Stripe Connect base)
+- `core/luana-core-idempotency` (idempotency keys para webhooks)
+- `core/luana-core-events` (DomainEvent emission outbox)
+
+## Scenarios live
+
+- Paciente paga depósito 30% via MercadoPago → webhook HMAC verified → booking activa
+- Paciente cross-border paga via Stripe Connect → moneda destino MX clinic en MXN
+- Paquete de 10 sesiones → tokenized recurring auto-debita mensual
+- Chargeback recibido → ComplianceEvent registrado + admin notificado
+- Webhook duplicado → idempotency key descarta segunda invocación
+- Cancel booking → refund automático via gateway correspondiente
+
+## Referencias
+
+- Doc compliance pagos: `vitalia/docs/domains/compliance.md`
+- Archive: `docs/archive/2026/snapshot-pre-multibrand-pm-redesign/capabilities/vitalia/medical-services-offer-preset.yaml` (subset payment)

@@ -1,0 +1,424 @@
+# vitalia-copilot-tools-impl — Validators
+# ★ CRITICAL ★ tests ejecutables, must_pass:true c/u
+# Owner: /architect Opus 4.7 · 2026-05-18
+# Consumer: /dev-team build loop iterates against these · /auditor C1-C5 reviews
+# Parent ready package: vitalia/docs/product/stories/vitalia-ux-discovery/04-validators.yaml (cross-reference; this file SCOPED to copilot-tools-impl story)
+
+version: 1
+story_id: vitalia-copilot-tools-impl
+brand: vitalia
+ws_root: /home/chalreme/Proyectos/luana-platform
+brand_root: vitalia
+state_target: developing → developed when ALL validators GREEN
+
+# Iteration cap: /dev-team max 5 iterations per ticket before escalate
+iteration_cap: 5
+
+# ============================================================
+# Category 1 — NON-FUNCTIONAL (lint + format + arch fitness + duplication audit)
+# ============================================================
+non_functional:
+
+  - id: be_lint_ruff_check
+    must_pass: true
+    surface: backend
+    command: cd ${ws_root} && .venv/bin/ruff check vitalia/backend/src/modules/vitalia/{copilot,sales_agent,agentic,compliance}/ vitalia/backend/tests/{unit,integration,agentic_evals,architecture}/ --no-cache
+    description: Ruff 70+ rules, 0 errors. Line 120.
+
+  - id: be_format_ruff
+    must_pass: true
+    surface: backend
+    command: cd ${ws_root} && .venv/bin/ruff format --check vitalia/backend/src/modules/vitalia/{copilot,sales_agent,agentic,compliance}/ vitalia/backend/tests/
+    description: Ruff format check (double quotes, spaces).
+
+  - id: be_arch_fitness_brand_scoped
+    must_pass: true
+    surface: backend
+    command: cd ${ws_root} && .venv/bin/pytest vitalia/backend/tests/architecture/ -v --override-ini="addopts=" -x -q --tb=short
+    description: |
+      Brand arch fitness suite (must all pass — shrink-only allowlists).
+      Existing gates (must keep green):
+        - test_phi_dual_filter.py (tenant_id+clinic_id cardinal)
+        - test_no_cross_brand_imports.py
+        - test_no_legacy_paths.py (post multibrand reorg)
+        - test_response_model_required.py (PII allowlist)
+        - test_migrations_idempotent.py (IF NOT EXISTS)
+        - test_extension_sdk_registration.py
+        - test_audit_log_sync_write.py
+        - test_pgcrypto_phi_columns.py
+        - test_ddd_inside_out_boundaries.py
+        - test_extraction_orchestrator_inheritance.py
+        - test_vitalia_no_pii_in_cacheable_slots.py
+        - test_vitalia_slot_4_safety_markers_present.py
+        - test_vitalia_cost_bucket_invariant.py
+        - test_vitalia_no_query_without_tenant_filter.py
+        - test_vitalia_personas_yaml_completeness.py
+        - test_vitalia_payment_inherits_core_base.py
+        - test_vitalia_rubric_md_v1_schema.py
+      NEW gates this story adds:
+        - test_no_observability_mirror_copilot.py
+        - test_no_observability_mirror_sales_agent.py
+        - test_lucas_cron_tz_aware.py
+        - test_screening_yaml_completeness.py
+
+  - id: be_arch_fitness_engine_consult_readonly
+    must_pass: true
+    surface: backend
+    command: cd ${ws_root} && .venv/bin/pytest core/luana-core-extension-sdk/tests/test_registry_brand_smoke.py -v --override-ini="addopts=" -x -q --tb=short
+    description: Engine arch fitness smoke (READ-ONLY consult — no engine modifications proposed in this story; this gate detects accidental engine mutation).
+
+  - id: anti_duplication_cross_module_audit
+    must_pass: true
+    surface: cross
+    command: |
+      cd ${ws_root} && bash -c '
+      # Grep for mirror anti-patterns per .claude/rules/anti-duplication.md inventory.
+      # Any class declared in vitalia/backend matching base names (BaseObservabilityContext, BaseAgentCallbackHandler,
+      # FXResolver, PricingSnapshotRepository, TenantBillingConfigRepository, BaseExtractionOrchestrator)
+      # MUST import its parent from luana_core_* (subclass pattern, NOT mirror reimplementation).
+      VIOLATIONS=$(grep -rln "class.*\(BaseObservabilityContext\|BaseAgentCallbackHandler\|FXResolver\|PricingSnapshot\|TenantBillingConfig\|BaseExtractionOrchestrator\)" vitalia/backend/src/modules/vitalia/copilot/ vitalia/backend/src/modules/vitalia/sales_agent/ vitalia/backend/src/modules/vitalia/agentic/ 2>/dev/null | xargs grep -L "from luana_core_observability\|from luana_core_extraction\|from luana_core_billing\|from luana_core_platform" 2>/dev/null || true)
+      if [ -n "$VIOLATIONS" ]; then
+        echo "VIOLATION: shared abstractions mirrored without engine import:"
+        echo "$VIOLATIONS"
+        exit 1
+      fi
+      echo "OK: no cross-brand mirrors detected"
+      '
+    description: Anti-duplication §0 cardinal — observability/cost/turn_envelope/callback_handler patterns must subclass from engine.
+
+  - id: cross_brand_mirror_scan
+    must_pass: true
+    surface: cross
+    command: |
+      cd ${ws_root} && bash -c '
+      # For each NEW tool basename in this story, verify NO mirror in other brands.
+      # If match found in {nicolify, comunify, lupulo} → STOP, escalate /pm-luana promotion proposal.
+      TOOLS="extract_tenant_context confirm_slot simulate_personality complete_onboarding send_payment_link reschedule_appointment screening_questions compute_stage_recommendation compute_attribution_matrix compute_referrals_leaderboard"
+      VIOLATIONS=""
+      for tool in $TOOLS; do
+        for B in nicolify comunify lupulo; do
+          if [ -d "$B/backend/src" ]; then
+            M=$(find $B/backend/src -name "${tool}.py" 2>/dev/null)
+            if [ -n "$M" ]; then VIOLATIONS="$VIOLATIONS\n$tool found in $B at $M"; fi
+          fi
+        done
+      done
+      if [ -n "$VIOLATIONS" ]; then
+        echo "VIOLATION: cross-brand mirror detected — lift to engine via /pm-luana proposal first:"
+        echo -e "$VIOLATIONS"
+        exit 1
+      fi
+      echo "OK: no cross-brand mirrors"
+      '
+    description: Cross-brand mirror scan per .claude/rules/anti-duplication.md § Multibrand awareness.
+
+  - id: engine_boundary_no_modification_audit
+    must_pass: true
+    surface: cross
+    command: |
+      cd ${ws_root} && bash -c '
+      # This story does NOT modify core/luana-core-*/src/. Verify diff scope.
+      # If diff touches core/luana-core-*/src/ → escalate /pm-luana promotion proposal (story BLOCKED).
+      git diff --name-only main...HEAD 2>/dev/null | grep -E "^core/luana-core-[^/]+/src/" || true
+      if git diff --name-only main...HEAD 2>/dev/null | grep -qE "^core/luana-core-[^/]+/src/"; then
+        echo "VIOLATION: engine src modified by this story — requires /pm-luana proposal."
+        exit 1
+      fi
+      echo "OK: engine src untouched"
+      '
+    description: Engine boundary cardinal — core/luana-core-*/src/ READ-ONLY for this story.
+
+  - id: spanish_neutro_voseo_check_chrome
+    must_pass: true
+    surface: cross
+    command: |
+      cd ${ws_root} && bash -c '
+      # Voseo glossary scan per .claude/rules/spanish-text.md § R2 — applies to UI chrome (Valeria responses + Lucas card text),
+      # NOT to sales_agent output (Adrián respects tenant voice per personality_profiles.system_instruction).
+      # Files scanned: prompts MD for Valeria + Lucas + Lucas card structure outputs.
+      VOSEO_PATTERNS="vos\|sos\|tenés\|querés\|podés\|sabés\|hacés\|venís\|decís\|mirá\|dejá\|poné\|usá\|elegí\|empezá\|configurá\|escribí\|cambiá\|fijate\|acordate"
+      VIOLATIONS=$(grep -rEn "${VOSEO_PATTERNS}" vitalia/backend/src/modules/vitalia/copilot/prompts/ vitalia/backend/src/modules/vitalia/agentic/lucas/prompts/ vitalia/backend/src/modules/vitalia/agentic/lucas/personas/ 2>/dev/null | grep -v "# voseo-allowed" | grep -v "<!-- voseo-allowed" || true)
+      if [ -n "$VIOLATIONS" ]; then
+        echo "VIOLATION: voseo detected in UI chrome (Valeria/Lucas) — Spanish neutro tuteo required:"
+        echo "$VIOLATIONS"
+        exit 1
+      fi
+      echo "OK: no voseo in UI chrome"
+      '
+    description: Spanish neutro LatAm tuteo for Valeria + Lucas chrome (Adrián exempt — voice fidelity per tenant personality_profiles).
+
+# ============================================================
+# Category 2 — FUNCTIONAL (unit + integration tests)
+# ============================================================
+functional:
+
+  - id: be_test_unit_copilot
+    must_pass: true
+    surface: backend
+    command: cd ${ws_root} && .venv/bin/pytest vitalia/backend/tests/unit/modules/vitalia/copilot/ -v -x -q --tb=short
+    description: Unit tests Valeria wizard (domain entities + services + tools + observability callback handler subclass).
+
+  - id: be_test_unit_sales_agent
+    must_pass: true
+    surface: backend
+    command: cd ${ws_root} && .venv/bin/pytest vitalia/backend/tests/unit/modules/vitalia/sales_agent/ -v -x -q --tb=short
+    description: Unit tests Adrián (lead_screening_event + 3 services + 3 tools + channel guards + observability subclass).
+
+  - id: be_test_unit_lucas
+    must_pass: true
+    surface: backend
+    command: cd ${ws_root} && .venv/bin/pytest vitalia/backend/tests/unit/modules/vitalia/agentic/lucas/ -v -x -q --tb=short
+    description: Unit tests Lucas (3 services + 3 tools + cron scheduler TZ-aware).
+
+  - id: be_test_integration_wizard_graph
+    must_pass: true
+    surface: backend
+    command: cd ${ws_root} && .venv/bin/pytest vitalia/backend/tests/integration/modules/vitalia/copilot/workflows/test_wizard_onboarding_graph.py -v -x -q --tb=short
+    description: Integration test wizard onboarding LangGraph supervisor topology + extract_subagent (deepagents) + checkpointer.
+
+  - id: be_test_integration_lucas_graph
+    must_pass: true
+    surface: backend
+    command: cd ${ws_root} && .venv/bin/pytest vitalia/backend/tests/integration/modules/vitalia/agentic/lucas/workflows/test_lucas_daily_analysis_graph.py -v -x -q --tb=short
+    description: Integration test Lucas daily analysis LangGraph ReAct (5 stages + attribution + referrals).
+
+  - id: be_test_integration_api_wizard_routes
+    must_pass: true
+    surface: backend
+    command: cd ${ws_root} && .venv/bin/pytest vitalia/backend/tests/integration/modules/vitalia/copilot/api/ -v -x -q --tb=short
+    description: Integration test wizard FastAPI routes (/api/v1/vitalia/onboarding/{start,extract,confirm-slot,simulate-personality,complete,stream,progress}).
+
+  - id: be_test_migrations_smoke
+    must_pass: true
+    surface: backend
+    command: cd ${ws_root} && .venv/bin/pytest vitalia/backend/tests/migrations/test_slice1_migrations.py -v -x -q --tb=short -k "copilot_tools_impl or migrations_017 or migrations_018 or migrations_019 or migrations_020 or migrations_021"
+    description: |
+      Migrations smoke — verify migrations 017-021 IF NOT EXISTS idempotent + re-run no-op.
+      Covers: lead_screening_events, attribution_matrix_snapshots, referrals_leaderboard_snapshots, langgraph checkpoint tables, screening outcome CHECK constraint.
+
+  - id: be_test_observability_cost_canonicalization
+    must_pass: true
+    surface: backend
+    command: cd ${ws_root} && .venv/bin/pytest vitalia/backend/tests/unit/modules/vitalia/{copilot,sales_agent}/observability/test_callback_handler.py -v -x -q --tb=short
+    description: |
+      Per PI-12 S1 T-1 cost canonicalization (2026-05-02):
+      - Fixtures inject `litellm_call_id` in `response_metadata`
+      - `cost_usd` resolved via `pop_cost(litellm_call_id)` (NO `calculate_cost()` runtime)
+      - sanitize_payload(compliance_level="hipaa_lite") applied before persist
+      - try/except + structlog warning + rollback (best-effort)
+
+  - id: be_coverage_threshold
+    must_pass: true
+    surface: backend
+    command: cd ${ws_root} && .venv/bin/pytest vitalia/backend/tests/unit/modules/vitalia/{copilot,sales_agent,agentic}/ --cov=vitalia/backend/src/modules/vitalia --cov-report=term-missing -q
+    description: Coverage threshold ≥43% for new modules (per AGENTS.md Quality Gates).
+    treat_warnings_as: fail
+    coverage_threshold: 43
+
+# ============================================================
+# Category 3 — VISUAL (n/a — this story is BE+AGENTIC only, no FE component)
+# ============================================================
+visual:
+  - id: visual_na_marker
+    must_pass: true
+    surface: cross
+    command: echo "OK — story scope is BE+AGENTIC only. FE components live in sub-stories vitalia-slice-1-{marketing,pipeline,onboarding-wizard,agenda}."
+    description: This story has NO frontend component. Visual gate intentionally empty.
+
+# ============================================================
+# Category 4 — AGENTIC EVAL (pass^k goldens)
+# ============================================================
+agentic_eval:
+
+  - id: ae_voice_fidelity_vitalia
+    must_pass: true
+    surface: backend
+    command: cd ${ws_root} && .venv/bin/pytest vitalia/backend/tests/agentic_evals/sales_agent/test_voice_fidelity_vitalia.py -v -x -q --tb=short
+    description: Voice fidelity grader smoke (engine grader from core/luana-core-brand-studio/) — anchored per-tenant personality_profile.system_instruction. Threshold ≥0.85 per golden trial.
+
+  - id: ae_medical_guardrails
+    must_pass: true
+    surface: backend
+    command: cd ${ws_root} && .venv/bin/pytest vitalia/backend/tests/agentic_evals/sales_agent/test_medical_guardrails.py -v -x -q --tb=short
+    description: 4 medical guardrails enforce per § 4.2 design (no_diagnosis + no_prescription + medical_disclaimer_required + prompt_injection_block).
+
+  - id: ae_pass_k_adrian_goldens
+    must_pass: true
+    surface: backend
+    command: cd ${ws_root} && .venv/bin/pytest vitalia/backend/tests/agentic_evals/sales_agent/test_pass_k_evaluation.py -v -x -q --tb=short
+    description: |
+      Adrián pass^k evaluation — 12 goldens × 3 trials each.
+      Trial policy:
+        trials_per_scenario: 3
+        per_trial_threshold: 0.66 (≥2/3 dimensions pass)
+        pass_k_threshold: 0.5 (≥50% goldens pass k=3)
+      Rubrics: voice-fidelity + no-hallucination + tool-trajectory + pii-redaction + safety
+      Goldens: vitalia/backend/tests/agentic_evals/sales_agent/goldens/{dental,estetica,psicologia,fertilidad}/*.yaml
+
+  - id: ae_pass_k_wizard_goldens
+    must_pass: true
+    surface: backend
+    command: cd ${ws_root} && .venv/bin/pytest vitalia/backend/tests/agentic_evals/copilot/test_wizard_pass_k_evaluation.py -v -x -q --tb=short
+    description: |
+      Valeria wizard pass^k evaluation — 4 goldens × 3 trials.
+      Same trial policy as Adrián.
+      Goldens: vitalia/backend/tests/agentic_evals/copilot/wizard_goldens/{happy,negative,edge_browser_close,adversarial}.yaml
+
+  - id: ae_lucas_smoke
+    must_pass: true
+    surface: backend
+    command: cd ${ws_root} && .venv/bin/pytest vitalia/backend/tests/agentic_evals/agentic/lucas/test_lucas_smoke.py -v -x -q --tb=short
+    description: |
+      Lucas smoke tests Slice 1 (per Q3 default — full eval goldens defer Slice 2):
+      - Cron run completes successfully for sample tenant
+      - lucas_recommendations rows populated for 5 stages
+      - attribution_matrix_snapshots row created
+      - referrals_leaderboard_snapshots row created
+      - Status fields set correctly (active / skipped_timeout / skipped_budget)
+      - BudgetGuard exceeded → status='skipped_budget'
+
+  - id: ae_cache_hit_rate_smoke
+    must_pass: true
+    surface: backend
+    command: cd ${ws_root} && .venv/bin/pytest vitalia/backend/tests/agentic_evals/cache/test_vitalia_cache_hit_rate.py -v -x -q --tb=short
+    description: |
+      Cache hit rate validation per claude-api § Validation:
+      - Adrián 5-turn conversation: cache_read_input_tokens > 0 from iter 2+
+      - Valeria 5-slot confirm sequence: cache_read_input_tokens > 0 from iter 2+
+      - If cache_read=0 across iter 2+ → silent invalidator → audit FAIL
+      Cache hit rate target ≥60% (smoke threshold ≥40% to start — production ramp-up).
+
+  - id: ae_cost_budget_smoke
+    must_pass: true
+    surface: backend
+    command: cd ${ws_root} && .venv/bin/pytest vitalia/backend/tests/agentic_evals/cost_budget/test_vitalia_cost_budget.py -v -x -q --tb=short
+    description: |
+      Cost budget smoke per design § 1.8 + § 2.9 + § 3.8:
+      - Wizard session p95 ≤ $0.10 USD (cap)
+      - Adrián per turn p95 ≤ $0.05 USD (cap)
+      - Adrián per conversation p95 ≤ $0.50 USD (BudgetGuard.check enforces)
+      - Lucas per tenant daily p95 ≤ $0.25 USD (BudgetGuard.check enforces, agent_kind="copilot" Others pool)
+
+  - id: ae_channel_guards_phi_blocking
+    must_pass: true
+    surface: backend
+    command: cd ${ws_root} && .venv/bin/pytest vitalia/backend/tests/unit/modules/vitalia/sales_agent/test_channel_guards.py -v -x -q --tb=short
+    description: |
+      PHI on non-encrypted channels blocked per hipaa-lite.md § Voice patterns + § Compliance gates:
+      - WhatsApp Business API tier paid + PHI → allow
+      - WhatsApp tier free + PHI → BlockedChannelError → derive portal
+      - SMS + PHI → BlockedChannelError → derive portal
+      - Telegram + PHI → BlockedChannelError → derive portal
+      - Email plaintext + PHI → BlockedChannelError → derive portal
+
+  - id: ae_anti_duplication_no_observability_mirror
+    must_pass: true
+    surface: backend
+    command: cd ${ws_root} && .venv/bin/pytest vitalia/backend/tests/architecture/test_no_observability_mirror_copilot.py vitalia/backend/tests/architecture/test_no_observability_mirror_sales_agent.py -v -x -q --tb=short
+    description: |
+      Anti-duplication §0 cardinal — Vitalia callback handlers subclass engine BaseAgentCallbackHandler.
+      Assertions:
+        - `VitaliaCopilotCallbackHandler.__bases__` includes `BaseAgentCallbackHandler` from `luana_core_observability.recording.base_callback_handler`
+        - Subclass implements ONLY `_persist_llm_call_row` + `_persist_trace_event_row`
+        - Subclass does NOT redefine plumbing methods (sanitize_payload, on_llm_start, on_llm_end, on_tool_start, on_tool_end, etc.)
+
+  - id: ae_lucas_cron_tz_aware
+    must_pass: true
+    surface: backend
+    command: cd ${ws_root} && .venv/bin/pytest vitalia/backend/tests/architecture/test_lucas_cron_tz_aware.py -v -x -q --tb=short
+    description: |
+      Per Fase A engine lift (TenantLocationContract 0.2.0, commit 5ca6101):
+      - Lucas cron scheduler imports TenantLocationContract from luana_core_platform.contracts
+      - APScheduler CronTrigger uses tenant.timezone (NOT hardcoded UTC)
+      - Cron daily at 06:00 LOCAL tenant TZ
+
+  - id: ae_screening_yaml_completeness
+    must_pass: true
+    surface: backend
+    command: cd ${ws_root} && .venv/bin/pytest vitalia/backend/tests/architecture/test_screening_yaml_completeness.py -v -x -q --tb=short
+    description: |
+      vitalia/backend/src/modules/vitalia/agentic/screening/screening_questions_by_vertical.yaml MUST have:
+        - 4 verticals (dental + estetica + psicologia + fertilidad)
+        - Each vertical ≥ 2 questions (≤ 4 questions cap per design)
+        - Each question has expected_contraindications list (≥1 entry for derivar_doctor outcome)
+        - YAML schema validation against schema.json
+
+# ============================================================
+# Eval policy (consolidated reference for runners)
+# ============================================================
+eval_policy:
+  trials_per_scenario: 3
+  per_trial_threshold: 0.66      # ≥2/3 dimensions pass per trial
+  pass_k_threshold: 0.5          # ≥50% goldens pass k=3
+  k: 3
+  rubrics:
+    - voice-fidelity
+    - no-hallucination
+    - tool-trajectory
+    - pii-redaction
+    - safety
+  voice_fidelity_min: 0.85
+  cache_hit_rate_min: 0.40       # smoke threshold; ≥0.60 production target
+  cost_budget_caps:
+    wizard_session_usd_p95: 0.10
+    adrian_per_turn_usd_p95: 0.05
+    adrian_per_conversation_usd_p95: 0.50
+    lucas_per_tenant_daily_usd_p95: 0.25
+
+# ============================================================
+# Goldens manifest (16 total: 12 Adrián + 4 wizard; Lucas smoke only Slice 1)
+# ============================================================
+goldens_manifest:
+  adrian:
+    base_path: vitalia/backend/tests/agentic_evals/sales_agent/goldens
+    files:
+      - dental/happy_curious.yaml
+      - dental/objection_price.yaml
+      - dental/adversarial_phi.yaml
+      - estetica/happy_high_ticket.yaml
+      - estetica/objection_time.yaml
+      - estetica/adversarial_contraindication.yaml
+      - psicologia/happy_first_session.yaml
+      - psicologia/followup_30d.yaml
+      - psicologia/adversarial_crisis.yaml
+      - fertilidad/happy_sensitive.yaml
+      - fertilidad/couple.yaml
+      - fertilidad/reschedule.yaml
+  wizard:
+    base_path: vitalia/backend/tests/agentic_evals/copilot/wizard_goldens
+    files:
+      - happy.yaml
+      - negative.yaml
+      - edge_browser_close.yaml
+      - adversarial.yaml
+
+# ============================================================
+# Personas manifest
+# ============================================================
+personas_manifest:
+  adrian:
+    base_path: vitalia/backend/tests/agentic_evals/sales_agent/personas
+    files:
+      - dental_happy_curious.yaml
+      - dental_objection_price.yaml
+      - dental_adversarial_phi.yaml
+      - estetica_happy_high_ticket.yaml
+      - estetica_objection_time.yaml
+      - estetica_adversarial_contraindication.yaml
+      - psicologia_happy_first_session.yaml
+      - psicologia_followup_30d.yaml
+      - psicologia_adversarial_crisis.yaml
+      - fertilidad_happy_sensitive.yaml
+      - fertilidad_couple.yaml
+      - fertilidad_reschedule.yaml
+  wizard:
+    base_path: vitalia/backend/tests/agentic_evals/copilot/wizard_personas
+    files:
+      - tenant_novato_tech_dental.yaml
+      - tenant_apurado_no_attaches_only_text.yaml
+      - tenant_distraido_se_va_vuelve.yaml
+      - tenant_malicioso_intenta_jailbreak.yaml
+  lucas:
+    base_path: vitalia/backend/src/modules/vitalia/agentic/lucas/personas
+    files:
+      - lucas_growth_setter.yaml

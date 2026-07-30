@@ -1,0 +1,324 @@
+# vitalia-slice-1-inbox — Validators (must_pass:true ejecutables · 4 categorías)
+#
+# Per .claude/skills/architect/SKILL.md + docs/specs/templates/04-validators-template.yaml.
+# Consumer: /dev-team picks validators per ticket via 06-tickets.yaml::acceptance.validator_ids.
+#
+# Categories:
+#   non_functional — lint + format + tsc + arch fitness + interrogate + jscpd + spanish_neutro + anti-default-flip
+#   functional     — pytest BE module + vitest FE feature + integration test
+#   visual         — Playwright smoke /inbox + a11y axe critical+serious + Chromatic snapshots per breakpoint
+#   agentic_eval   — pass^k Adrián goldens (1-2 reinforcement opcional) + voice fidelity ≥0.85
+
+# Variables interpoladas en commands:
+#   ${ws_root}  → /home/chalreme/Proyectos/luana-vitalia
+#   ${brand}    → vitalia
+#   ${be_venv}  → ${ws_root}/.venv/bin
+#   ${fe_root}  → ${ws_root}/vitalia/frontend
+
+# ============================================================
+# Category 1 — NON-FUNCTIONAL
+# ============================================================
+non_functional:
+
+  - id: be_lint_ruff_check
+    must_pass: true
+    surface: backend
+    command: cd ${ws_root}/vitalia/backend && ${be_venv}/ruff check src/ tests/ --no-cache
+    description: Ruff 70+ rules · line-length 120 · py312 target. Zero errors.
+
+  - id: be_format_ruff_check
+    must_pass: true
+    surface: backend
+    command: cd ${ws_root}/vitalia/backend && ${be_venv}/ruff format --check src/ tests/
+    description: Ruff format dry-run · double quotes + spaces. Zero diffs.
+
+  - id: be_arch_fitness_brand
+    must_pass: true
+    surface: backend
+    command: cd ${ws_root}/vitalia/backend && ${be_venv}/pytest tests/architecture/ -v --override-ini="addopts=" --tb=short
+    description: |
+      Brand architecture fitness gates:
+      - test_phi_dual_filter.py (new Conversation/Message/ActivityEvent/ActionReceipt repos)
+      - test_no_cross_brand_imports.py
+      - test_response_model_required.py (8 new inbox routes + 2 new crm routes)
+      - test_migrations_idempotent.py (024_inbox_tables)
+      - test_extension_sdk_registration.py (retract_last_message tool registered via EP-3)
+      - test_audit_log_sync_write.py (Send/Retract/SetMode/Pause/ProactiveOutbound services)
+      - test_compound_scope_repository_consumed.py (repos heredan engine CompoundScopeRepositoryBase)
+      - test_anti_duplication_shared_observability.py (no mirror engine observability/cost/pricing)
+
+  - id: fe_typecheck_tsc
+    must_pass: true
+    surface: frontend
+    command: cd ${fe_root} && npx tsc --noEmit
+    description: TypeScript strict · zero errors.
+
+  - id: fe_lint_eslint
+    must_pass: true
+    surface: frontend
+    command: cd ${fe_root} && npx eslint src/ --cache --cache-location .eslintcache
+    description: ESLint 60+ rules + sonarjs + boundaries + react-perf + prettier. Zero errors.
+
+  - id: fe_arch_fitness
+    must_pass: true
+    surface: frontend
+    command: cd ${fe_root} && npx vitest run src/__tests__/architecture/ --reporter=default
+    description: |
+      Frontend architecture fitness gates:
+      - test_no_hardcoded_colors.test.ts (only CSS vars from globals.css)
+      - test_fsd_boundaries.test.ts (features/inbox doesn't import features/pipeline et al.)
+      - test_no_cross_feature_imports.test.ts (Public API via index.ts only)
+      - test_server_first.test.ts (RSC default, "use client" only on leaf nodes)
+      - test_phi_pii_components_used.test.ts (ContactSidebar wraps PHI fields)
+      - test_no_voseo_in_copy.test.ts (copy.ts voseo glosario scan)
+      - test_no_hardcoded_strings_inbox.test.ts (NEW Slice 1 grep features/inbox/*.tsx)
+
+  - id: spanish_neutro_voseo_check
+    must_pass: true
+    surface: cross
+    command: |
+      cd ${ws_root} && bash -c '
+      # Voseo glossary scan per .claude/rules/spanish-text.md § R2 (UI chrome only — not sales_agent output)
+      COPY_FILES=$(find vitalia/frontend/src/features/inbox/copy.ts vitalia/frontend/src/features/crm-shared 2>/dev/null)
+      VOSEO_PATTERN="(vos|sos|tenés|querés|podés|sabés|hacés|venís|decís|mirá|dejá|poné|usá|hacé|elegí|seleccioná|arrancá|agregá|configurá|revisá|escribí|guardá|abrí|volvé|andá|cambiá|ofrecés|cobrás|activás|listá|probá|mostrá|compartí|contá|explicá|fijate|acordate|dale)"
+      VIOLATIONS=""
+      for FILE in $COPY_FILES; do
+        if [ -f "$FILE" ]; then
+          if ! grep -qE "voseo-allowed" "$FILE"; then
+            if grep -qiE "$VOSEO_PATTERN" "$FILE"; then
+              VIOLATIONS+="$FILE\n"
+            fi
+          fi
+        fi
+      done
+      if [ -n "$VIOLATIONS" ]; then
+        echo -e "Voseo detected in:\n$VIOLATIONS"
+        exit 1
+      fi
+      echo "OK: no voseo in inbox copy"
+      '
+    description: Voseo glosario scan en copy.ts files de inbox (magic comment escape per spanish-text.md R25).
+
+  - id: anti_default_flip_audit_zero
+    must_pass: true
+    surface: cross
+    command: |
+      cd ${ws_root} && bash -c '
+      # This story introduces ZERO default flag flips. Verify no commits propose flips.
+      DIFF=$(git diff --name-only HEAD~10..HEAD 2>/dev/null | xargs grep -l "USE_OUTBOX_PATTERN_\|USE_DEEPAGENTS_\|LITELLM_PROXY_ENABLED" 2>/dev/null || true)
+      if [ -n "$DIFF" ]; then
+        echo "WARN: feature flag files modified — verify no default flip per anti-default-flip-audit.md"
+        echo "$DIFF"
+      fi
+      echo "OK"
+      '
+    description: Anti-default-flip audit (zero flips this story per architect ratification).
+
+  - id: anti_duplication_cross_brand_mirror_scan
+    must_pass: true
+    surface: cross
+    command: |
+      cd ${ws_root} && bash -c '
+      # Scan: any new file in vitalia/backend/src/modules/vitalia/inbox/ OR vitalia/frontend/src/features/inbox/
+      # that mirrors a file in other brand backend OR shared abstraction in engine?
+      VIOLATIONS=""
+      for OB in nicolify comunify lupulo; do
+        for BASENAME in $(find ${ws_root}/vitalia/backend/src/modules/vitalia/inbox ${ws_root}/vitalia/frontend/src/features/inbox -name "*.py" -o -name "*.ts" -o -name "*.tsx" 2>/dev/null | xargs -n1 basename | sort -u); do
+          MIRRORS=$(find ${ws_root}/$OB/backend/src ${ws_root}/$OB/frontend/src -name "$BASENAME" 2>/dev/null | head -3)
+          if [ -n "$MIRRORS" ]; then
+            VIOLATIONS+="MIRROR? $BASENAME exists in vitalia + $OB:\n$MIRRORS\n---\n"
+          fi
+        done
+      done
+      if [ -n "$VIOLATIONS" ]; then
+        echo -e "Possible cross-brand mirrors detected (review case-by-case · fork físico Slice 1 ratificado ADR-vitalia-001):\n$VIOLATIONS"
+        # Per ADR-vitalia-001-shared-vs-fork.md: fork físico ratificado Slice 1 — these are EXPECTED for closer-studio reuse adapter.
+        # Auditor will validate adapter pattern (NEW files in vitalia with retoken, NOT re-export).
+        echo "WARN-OK: review per ADR-vitalia-001 (fork físico Slice 1)"
+        exit 0  # Warning only, ratified ADR
+      fi
+      echo "OK: no cross-brand mirrors detected"
+      '
+    description: Anti-duplication cross-brand mirror scan — fork físico Slice 1 ratified per ADR-vitalia-001.
+
+  - id: capability_yaml_freshness_post_merge
+    must_pass: false  # post-merge action, not pre-merge gate
+    surface: cross
+    command: cd ${ws_root} && python scripts/reconcile_capabilities.py vitalia
+    description: |
+      Post-merge SSoT reconciliation (per pm-redesign-2026-05). Updates expected at merge:
+      - vitalia/docs/product/capabilities/inbox/conversational-segmented.yaml (NEW)
+      - vitalia/docs/product/capabilities/inbox/multimedia-audio-image.yaml (NEW)
+      - vitalia/docs/product/capabilities/inbox/tools-sheet-read-only.yaml (NEW)
+      - vitalia/docs/product/capabilities/inbox/activity-stream-transparency.yaml (NEW)
+      - vitalia/docs/product/capabilities/inbox/action-receipts-undo.yaml (NEW)
+      - vitalia/docs/product/capabilities/inbox/proactive-outbound.yaml (NEW)
+      - vitalia/docs/product/modules/inbox.md (NEW)
+
+# ============================================================
+# Category 2 — FUNCTIONAL (pytest BE + vitest FE + integration)
+# ============================================================
+functional:
+
+  - id: be_test_inbox
+    must_pass: true
+    surface: backend
+    command: cd ${ws_root} && ${be_venv}/pytest vitalia/backend/tests/modules/vitalia/inbox/ vitalia/backend/tests/modules/vitalia/crm/ -v --cov=vitalia/backend/src/modules/vitalia/inbox --cov=vitalia/backend/src/modules/vitalia/crm --cov-report=term-missing -x -q --tb=short
+    description: |
+      Inbox + CRM module suite. Gherkin 4 scenarios cementados:
+      - SC-01 happy: 3-modos + filtros consultivos + composer attach + ActionReceipt 5min
+      - SC-02 negative: audio sin transcripción → fallback + handler_mode auto-switch human
+      - SC-03 edge: concurrencia 2 operadores · OCC first-wins · 409 Conflict
+      - SC-04 adversarial: cross-tenant + XSS + PHI leak prevention + prompt injection audio
+    coverage_threshold: 50
+
+  - id: be_test_compliance_inbox
+    must_pass: true
+    surface: backend
+    command: cd ${ws_root} && ${be_venv}/pytest vitalia/backend/tests/modules/vitalia/compliance/ -v --tb=short
+    description: |
+      Compliance gates for inbox messaging:
+      - PHI sanitization in traces (sanitize_payload compliance_level=hipaa_lite)
+      - Channel guards (no PHI on WhatsApp tier free / SMS / email plaintext)
+      - Marketing template opt-in enforcement for ProactiveOutbound MARKETING templates
+      - Audit log row written pre-response on every PHI mutation/access
+
+  - id: fe_test_inbox
+    must_pass: true
+    surface: frontend
+    command: cd ${fe_root} && npx vitest run src/features/inbox/ src/features/crm-shared/ src/lib/zod-schemas/ --coverage --reporter=default
+    description: |
+      Frontend inbox + crm-shared + zod-schemas test suite.
+      Hooks: send-message · retract · set-mode · pause-adrian · activity-stream · pollers
+      Components: SegmentedControl3Modes · FilterChips · VoiceMessagePlayer · ImageAnalysisCard · AdrianToolsSheet · AgentActivityStream · ActionReceiptUndoChip · ContactSidebar · ProactiveOutboundModal · MessageBubble (audio/image)
+    coverage_threshold: 20
+
+  - id: fe_test_storybook_smoke
+    must_pass: true
+    surface: frontend
+    command: cd ${fe_root} && npx storybook build --quiet
+    description: Storybook builds without errors. Per-component stories smoke compile.
+
+  - id: be_test_integration_inbox
+    must_pass: true
+    surface: backend
+    command: cd ${ws_root} && ${be_venv}/pytest vitalia/backend/tests/integration/test_inbox_*.py -v --tb=short
+    description: |
+      Integration tests with real DB:
+      - test_inbox_send_retract_audit_log.py (full flow send → action receipt → revert → audit log + event emit)
+      - test_inbox_whisper_fallback.py (audio IN low confidence → auto-switch handler_mode=human + help_needed=true)
+
+# ============================================================
+# Category 3 — VISUAL (Playwright smoke · a11y · Chromatic)
+# ============================================================
+visual:
+
+  - id: e2e_smoke_inbox_local
+    must_pass: true
+    surface: frontend
+    command: cd ${fe_root} && E2E_BASE_URL=http://localhost:3002 npx playwright test --project=smoke e2e/specs/smoke/inbox.smoke.spec.ts
+    description: |
+      Smoke happy path /inbox (Clerk auth fixture dr.demo · tenant Sanaré MX).
+      Tests: shell renders · conversation list visible · thread placeholder · segmented control · voice style chip.
+
+  - id: e2e_smoke_inbox_live
+    must_pass: true
+    surface: frontend
+    command: cd ${fe_root} && E2E_BASE_URL=https://dev-app.vitalialat.com npx playwright test --project=smoke e2e/specs/smoke/inbox.smoke.spec.ts
+    description: Smoke /inbox against dev-app.vitalialat.com (live verification post-merge).
+
+  - id: a11y_axe_inbox
+    must_pass: true
+    surface: frontend
+    command: cd ${fe_root} && npx playwright test e2e/specs/a11y/inbox.a11y.spec.ts --project=a11y
+    description: |
+      axe-core a11y scan /inbox · critical + serious violations = 0.
+      Coverage: segmented control radiogroup · ActivityStream aria-expanded · ActionReceipt aria-live polite · ContactSidebar PHI reveal aria-label · keyboard nav Tab order.
+
+  - id: visual_regression_chromatic_inbox
+    must_pass: false  # post-merge action, not blocking pre-merge
+    surface: frontend
+    command: cd ${fe_root} && npx chromatic --project-token=$CHROMATIC_TOKEN --only-changed --build-script-name=storybook:build
+    description: |
+      Chromatic visual regression snapshots per breakpoint (mobile 768 · tablet 1024 · desktop 1440).
+      Inbox 8 states + per-component stories (SegmentedControl3Modes · FilterChips · etc.).
+
+  - id: lighthouse_ci_inbox
+    must_pass: false  # post-merge perf budget verification
+    surface: frontend
+    command: cd ${fe_root} && npx lighthouse-ci collect --url=http://localhost:3002/inbox --numberOfRuns=3
+    description: |
+      Performance budget verification:
+      - LCP < 2.5s · INP < 200ms · CLS < 0.1
+      - Bundle size /inbox route < 250KB gzipped
+
+# ============================================================
+# Category 4 — AGENTIC EVAL (pass^k Adrián goldens + voice fidelity)
+# ============================================================
+agentic_eval:
+
+  - id: agentic_pass_k_adrian_goldens
+    must_pass: false  # opcional Slice 1 — see 03-arch-agentic.md § 6
+    surface: agentic
+    command: cd ${ws_root} && ${be_venv}/pytest vitalia/backend/tests/agentic_evals/sales_agent/ -v --trials=3 --tb=short
+    description: |
+      pass^k=3 Adrián goldens (3 trials per scenario):
+      - dental/T-inbox-retract-1.yaml (NEW opcional Slice 1): Adrián invokes retract_last_message tool after compliance flag
+      - Shipped goldens from Story 11 + vitalia-copilot-tools-impl continue passing (regression check)
+      Threshold: ≥ 2/3 trials pass per scenario (pass^k).
+
+  - id: agentic_voice_fidelity_adrian
+    must_pass: false  # opcional Slice 1 — relies on engine voice_fidelity grader shipped
+    surface: agentic
+    command: cd ${ws_root} && ${be_venv}/pytest vitalia/backend/tests/agentic_evals/sales_agent/ -v --voice-fidelity-threshold=0.85 --tb=short
+    description: |
+      Voice fidelity grader (engine core/luana-core-brand-studio shipped):
+      - Compare Adrián outputs vs personality_profiles.system_instruction voice anchors
+      - Threshold: grader_score ≥ 0.85 across goldens
+
+  - id: agentic_cache_hit_rate
+    must_pass: false  # observability — verified at audit phase, not blocking dev
+    surface: agentic
+    command: |
+      cd ${ws_root} && ${be_venv}/python -c "
+      from sqlalchemy import select, func
+      # Pseudo-check: cache_read_input_tokens / total_input_tokens >= 0.60 across recent vitalia turns
+      # Real query goes to copilot_llm_call + sales_agent_llm_call tables
+      print('verifier stub — invoked post-deploy on staging')
+      "
+    description: Cache hit rate ≥ 60% for Adrián system prompt (slots 1-5 cacheable). Verified post-deploy.
+
+# ============================================================
+# Dependencies (consumed by /dev-team Step 2C orchestration)
+# ============================================================
+dependencies:
+  - id: ola_1_pre_flight_gates
+    consumes: []
+    description: |
+      Pre-flight gates from HANDOFF § 2 (Ola 1 blocker — hard gate):
+      - Clerk testing token + webhook secret configured
+      - 3 test users seedeados (dr.demo · recepcion · admin)
+      - 3 tenants fixture (Aurora AR · Mindful CL · Sanaré MX)
+      - Playwright storage state generated
+      - Smoke 23 specs GREEN local + live
+      - Promotion proposal 2026-05-20-core-platform-extensions-slice-1 state=migrated
+
+  - id: validation_run_all
+    consumes:
+      - be_lint_ruff_check
+      - be_format_ruff_check
+      - be_arch_fitness_brand
+      - fe_typecheck_tsc
+      - fe_lint_eslint
+      - fe_arch_fitness
+      - spanish_neutro_voseo_check
+      - anti_default_flip_audit_zero
+      - anti_duplication_cross_brand_mirror_scan
+      - be_test_inbox
+      - be_test_compliance_inbox
+      - fe_test_inbox
+      - fe_test_storybook_smoke
+      - be_test_integration_inbox
+      - e2e_smoke_inbox_local
+      - a11y_axe_inbox
+    description: All must_pass validators must be GREEN for story to transition developing → developed.

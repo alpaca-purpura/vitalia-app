@@ -1,0 +1,146 @@
+# 04-validators.yaml (lite · bugfix) — arreglar-guardado-voz-y-tono
+# Paths relativos al workspace root. ${WS} = git rev-parse --show-toplevel. venv AT ROOT (${WS}/.venv).
+
+validators:
+  # ─── NON-FUNCTIONAL ───────────────────────────────────────────────────────
+  - id: be_lint
+    category: non_functional
+    type: shell
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/ruff check src/modules/vitalia/audit/ src/modules/vitalia/_shared/telemetry/ src/modules/vitalia/brand_studio/api/dtos/ tests/modules/vitalia/audit/ tests/modules/vitalia/brand_studio/ && ${WS}/.venv/bin/ruff format --check src/modules/vitalia/audit/ src/modules/vitalia/_shared/telemetry/ src/modules/vitalia/brand_studio/api/dtos/"
+    must_pass: true
+    timeout_sec: 30
+
+  - id: be_arch_fitness
+    category: non_functional
+    type: pytest
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/architecture/ -x -q"
+    must_pass: true
+    timeout_sec: 180
+
+  - id: fe_typecheck
+    category: non_functional
+    type: shell
+    cmd: "cd vitalia/frontend && npx tsc --noEmit"
+    must_pass: true
+    timeout_sec: 120
+
+  # ─── FUNCTIONAL — BE regression (root cause + contract) ───────────────────
+  - id: be_regression_audit_sanitize
+    category: functional
+    type: pytest
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/audit/test_audit_writer_sanitize.py -v --tb=short"
+    must_pass: true
+    timeout_sec: 90
+    description: "RED reproduce TypeError sanitize_payload(compliance_level=...) en AsyncAuditWriter.write + write_audit_log_sync → GREEN tras BE-1. Incluye test_phi_redacted (PHI fields REDACTED)."
+
+  - id: be_patch_personality
+    category: functional
+    type: pytest
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/brand_studio/test_patch_personality_audit.py -v --tb=short"
+    must_pass: true
+    timeout_sec: 90
+    description: "PATCH /personality: archetype válido → 200 (no 500); camelCase voice block aceptado (no 422); enum inválido → 422; cross-tenant → 403/404."
+
+  # ─── FUNCTIONAL — E2E voz-y-tono autosave (backend REAL, sin mock del API) ─
+  - id: e2e_voz_arquetipo_autosave
+    category: functional
+    type: playwright
+    cmd: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/arreglar-guardado-voz-y-tono/voz-arquetipo-autosave.spec.ts"
+    must_pass: true
+    timeout_sec: 240
+    description: "Cambia arquetipo → badge saving→saved (no error) · persiste al recargar. Backend real."
+
+  - id: e2e_voz_bloque_autosave
+    category: functional
+    type: playwright
+    cmd: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/arreglar-guardado-voz-y-tono/voz-bloque-autosave.spec.ts"
+    must_pass: true
+    timeout_sec: 240
+    description: "Edita bloque 'Así hablo' → badge saved (no 422) · persiste. Backend real."
+
+  - id: e2e_voz_autosave_error
+    category: functional
+    type: playwright
+    cmd: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/arreglar-guardado-voz-y-tono/voz-autosave-error.spec.ts"
+    must_pass: true
+    timeout_sec: 180
+    description: "Mock route 5xx en PATCH → badge 'error' · UI no crashea · reintento posible."
+
+  # ─── VISUAL / A11Y ────────────────────────────────────────────────────────
+  - id: a11y_autosave_badge
+    category: visual
+    type: playwright
+    cmd: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/a11y/arreglar-guardado-voz-y-tono.spec.ts"
+    must_pass: true
+    timeout_sec: 120
+    description: "axe wcag2aa sobre voz-y-tono + estado autosave anunciado vía aria-live."
+
+  # ─── ARCHITECTURAL VALIDATION ─────────────────────────────────────────────
+  - id: arch_no_dead_compliance_kwarg
+    category: architectural_validation
+    type: shell
+    cmd: "! grep -rn 'sanitize_payload(' vitalia/backend/src/modules/vitalia/ --include='*.py' | grep -v 'def sanitize' | grep 'compliance_level'"
+    must_pass: true
+    timeout_sec: 10
+    description: "Ningún call site de sanitize_payload() pasa compliance_level (kwarg muerto). Docstrings re-redactados a sanitize_phi_payload."
+
+  - id: arch_tenant_isolation_personality
+    category: architectural_validation
+    type: shell
+    cmd: "cd vitalia/backend && ${WS}/.venv/bin/pytest tests/architecture/test_phi_dual_filter.py tests/architecture/test_audit_log_sync_write.py -q"
+    must_pass: true
+    timeout_sec: 60
+    description: "PHI dual-filter + audit sync write siguen verdes (no regresión)."
+
+scenario_coverage:
+  - { scenario_id: voz-arquetipo-autosave-persiste, validators: [be_patch_personality, e2e_voz_arquetipo_autosave] }
+  - { scenario_id: audit-write-no-typeerror,        validators: [be_regression_audit_sanitize] }
+  - { scenario_id: audit-personality-sin-phi,       validators: [be_regression_audit_sanitize, arch_tenant_isolation_personality] }
+  - { scenario_id: voz-bloque-edita-no-422,         validators: [be_patch_personality, e2e_voz_bloque_autosave] }
+  - { scenario_id: arquetipo-invalido-validacion,   validators: [be_patch_personality] }
+  - { scenario_id: autosave-error-muestra-badge,    validators: [e2e_voz_autosave_error] }
+  - { scenario_id: cross-tenant-personality-bloqueado, validators: [be_patch_personality] }
+  - { scenario_id: autosave-badge-aria-live,        validators: [a11y_autosave_badge] }
+
+test_construction_plan:
+  playwright_required: true
+  base_path: "vitalia/frontend/e2e/regression/arreglar-guardado-voz-y-tono/"
+  creation_order:
+    - { step: 1, file: "vitalia/backend/tests/modules/vitalia/audit/test_audit_writer_sanitize.py", content: "RED: AsyncAuditWriter.write + write_audit_log_sync no lanzan TypeError; test_phi_redacted verifica PHI fields REDACTED", depends_on: [] }
+    - { step: 2, file: "vitalia/backend/tests/modules/vitalia/brand_studio/test_patch_personality_audit.py", content: "RED: PATCH personality archetype 200; camelCase voice block aceptado; enum inválido 422; cross-tenant 403/404", depends_on: [] }
+    - { step: 3, file: "vitalia/frontend/e2e/regression/arreglar-guardado-voz-y-tono/poms/voz-tono-section.pom.ts", content: "POM: goto(), selectArchetype(name), editVoiceBlock(block,text), getAutosaveStatus()", depends_on: [] }
+    - { step: 4, file: "vitalia/frontend/e2e/regression/arreglar-guardado-voz-y-tono/voz-arquetipo-autosave.spec.ts", content: "happy: cambio arquetipo → saved + persiste reload", depends_on: [3] }
+    - { step: 5, file: "vitalia/frontend/e2e/regression/arreglar-guardado-voz-y-tono/voz-bloque-autosave.spec.ts", content: "regresión 422: edita bloque → saved + persiste", depends_on: [3] }
+    - { step: 6, file: "vitalia/frontend/e2e/regression/arreglar-guardado-voz-y-tono/voz-autosave-error.spec.ts", content: "network_failure: mock 5xx → badge error", depends_on: [3] }
+    - { step: 7, file: "vitalia/frontend/e2e/a11y/arreglar-guardado-voz-y-tono.spec.ts", content: "axe wcag2aa + aria-live badge", depends_on: [4] }
+  scenario_to_test:
+    - { gherkin_scenario: voz-arquetipo-autosave-persiste, test_file: "...voz-arquetipo-autosave.spec.ts", assertions: ["badge saving→saved (no 'error')", "PATCH 200", "reload → arquetipo persiste", "DB: 1 row vitalia_audit_log action='brand_personality_updated'"] }
+    - { gherkin_scenario: voz-bloque-edita-no-422, test_file: "...voz-bloque-autosave.spec.ts", assertions: ["edit 'Así hablo' → badge saved", "PATCH 200 (no 422 extra_forbidden)", "reload → texto persiste"] }
+    - { gherkin_scenario: autosave-error-muestra-badge, test_file: "...voz-autosave-error.spec.ts", assertions: ["mock route 5xx → badge 'error'", "no crash", "próximo cambio re-dispara"] }
+  poms_required:
+    - { file: "voz-tono-section.pom.ts", methods: ["goto()", "selectArchetype(name)", "editVoiceBlock(block, text)", "getAutosaveStatus() → 'idle'|'saving'|'saved'|'error'", "reload()"] }
+  fixtures_required:
+    - { name: "authedAsOwner()", content: "Clerk storage state owner + tenant vitalia con personality seed" }
+    - { name: "networkFailure('PATCH /api/v1/lisa/marca/personality')", content: "page.route mock 503 para el scenario de error" }
+
+# Esta story NO modifica nada visual — E2E es funcional. Sin snapshots de página.
+playwright_visual_scope:
+  story_scope_routes: ["/[tenantId]/lisa/marca/voz-y-tono"]
+  story_scope_components:
+    - "vitalia/frontend/src/features/lisa/components/marca/voz-y-tono/VozTonoView.tsx"
+  forbidden_visual_changes:
+    paths:
+      - "vitalia/frontend/src/components/ui/"
+      - "vitalia/frontend/src/components/shared/"
+      - "vitalia/frontend/src/app/[tenantId]/(shell-organism)/layout.tsx"
+    reasons:
+      - "Bugfix de guardado: NO se toca presentación. Cambios visuales fuera de alcance."
+  if_visual_change_needed_outside_scope:
+    action: "STOP. Documentar en T-{n}-impl-log.md. Escalate /pm-vitalia."
+  non_egoismo_clause: "Bug visible fuera scope → reportar en T-{n}-impl-log § Cross-story observed bugs. NO arreglar inline."
+
+iteration:
+  max_iterations: 8
+  on_fail: "fix targeted file based on test output, re-run failing validator only"
+  on_all_pass: "set state=developing→developed, append iteration_log a T-{n}-impl-log.md"
+  on_cap_reached: "set state=developing→blocked, escalate Chris con último trace"

@@ -1,0 +1,668 @@
+# docs/product/BACKLOG.yaml — auto-generated SSoT machine-readable
+# DO NOT EDIT MANUALLY — modify source artifacts instead.
+# Regenerate: python scripts/generate_backlog.py
+# Generated at: 2026-05-14T23:27:22+00:00
+
+generated_at: '2026-05-14T23:27:22+00:00'
+caps:
+  refining_max: 3
+  refined_max: 5
+  ready_max: 5
+  developing_max: 3
+  developed_max: 10
+  reviewing_max: 2
+  idea_stale_days: 90
+  refining_stale_days: 60
+  refined_stale_days: 30
+  done_rolling_days: 90
+warnings: []
+stale_ideas: []
+stale_refining: []
+stale_refined: []
+buckets:
+  idea:
+  - id: calendario-comercial
+    kind: idea
+    state: idea
+    title: Calendario comercial por país (fechas importantes para vender) — admin Streamlit + tenant-extensible
+    tags:
+    - module:commercial-calendar
+    - effort:M
+    - value:business-feature
+    - source:chris
+    last_touched: 2026-04-15
+    extra:
+      promoted_to_outcome: null
+      ost: null
+  - id: metricas-atraccion
+    kind: idea
+    state: idea
+    title: Attraction stage metrics expansion (analytics module)
+    tags:
+    - module:analytics
+    - effort:S
+    - value:user-feedback
+    - source:chris
+    last_touched: 2026-04-20
+    extra:
+      promoted_to_outcome: null
+      ost: null
+  - id: live-selling-whatsapp-assistant
+    kind: idea
+    state: idea
+    title: Asistente AI por WhatsApp ephemeral para acompañar TikTok Live de microempresarios LATAM (screenshot→producto→pago→notificación
+      al vendedor, sin memoria post-sesión)
+    tags:
+    - module:sales-agent
+    - module:connections
+    - effort:L
+    - value:business-model
+    - source:chris
+    - channel:whatsapp
+    last_touched: 2026-05-01
+    extra:
+      promoted_to_outcome: null
+      ost: null
+  - id: solo-mode-chat-first-layout
+    kind: idea
+    state: idea
+    title: 'SOLO Mode — toggle UI top-bar invierte layout: copilot chat principal centro/izq, contenido secundario derecha
+      (estilo Claude Desktop / Cowork)'
+    tags:
+    - module:copilot
+    - module:shared
+    - type:layout-paradigm-shift
+    - effort:L
+    - value:product-direction
+    - source:chris
+    last_touched: 2026-05-06
+    extra:
+      promoted_to_outcome: null
+      ost: null
+  - id: sales-inbox-responsive-collapse
+    kind: idea
+    state: idea
+    title: Sales Studio inbox 3-col (lista/detalle/conversación) inner layout responsive — colapsa a 2 o 1 col cuando viewport+chrome
+      restringen ancho
+    tags:
+    - module:sales-agent
+    - module:crm
+    - type:responsive-ui
+    - effort:M
+    - value:user-experience
+    - source:chris-via-live-repro
+    last_touched: 2026-05-07
+    extra:
+      promoted_to_outcome: null
+      ost: null
+  - id: sales-agent-qualification-toolkit
+    kind: idea
+    state: idea
+    title: BE tools `qualify_lead` + `tag_lead_status` for sales_agent runtime — unblocks Story C T-6/T-7 SKIP transitions
+    tags:
+    - module:sales-agent
+    - type:agentic-runtime
+    - effort:S
+    - value:eval-unblock
+    - source:story-c-escalation
+    last_touched: 2026-05-08
+    extra:
+      promoted_to_outcome: null
+      ost: null
+  - id: fix-reconcile-capabilities-script-v4-paradigm
+    kind: idea
+    state: idea
+    title: fix-reconcile-capabilities-script-v4-paradigm
+    tags:
+    - tooling:scripts
+    - paradigm:v4
+    - bug
+    last_touched: 2026-05-11
+    extra:
+      promoted_to_outcome: null
+      ost: null
+  - id: sales-agent-dialect-configuration
+    kind: story
+    state: idea
+    title: sales-agent-dialect-configuration
+    tags:
+    - legacy:exempt
+    last_touched: 2026-05-06 20:50:00+00:00
+    extra:
+      outcome: pi-12-sales-agent-eval-foundation
+      phase: PLACEHOLDER
+      next_action: 'Espera trigger Chris (''/pm — refinemos sales-agent-dialect-configuration'') para que /po o /po-ux redacte
+        01-spec.md. Pre-requisito: ninguno hard.'
+      blocked_by: null
+      priority_override: null
+      audit_iterations: 0
+  refining:
+  - id: pi-12-sales-agent-eval-foundation
+    kind: outcome
+    state: refining
+    title: Sales Agent — eval foundation (synthetic-first eval architecture pre-launch)
+    tags:
+    - module:sales-agent
+    - type:agentic-eval-foundation
+    - paradigm:synthetic-first
+    - reframe:2026-05-06
+    last_touched: 2026-05-08
+    extra:
+      story_ids:
+      - sales-agent-eval-runner-foundation
+      - sales-agent-litellm-canonicalization
+      - sales-agent-dialect-configuration
+      - sales-agent-personas-instrumented-runtime
+      - sales-agent-goldens-3-tenants-dataset
+      - sales-agent-voice-fidelity-grader-runtime
+      - sales-agent-eval-pass-k-tracking
+      - sales-agent-voice-fidelity-ci-gate
+      - sales-agent-eval-cost-budget-cap
+      - sales-agent-adversarial-jailbreak-suite
+      why_now: 'Sales_agent NO está en producción + NO hay conversaciones reales (no podemos
+
+        lanzar algo que funcione a medias — una venta perdida = cliente perdido).
+
+        Necesitamos validar el agente PRE-LAUNCH con synthetic-first eval (dual-LLM
+
+        simulator pattern, state-of-the-art mayo 2026). State-of-the-art (Anthropic
+
+        Bloom + AWS Strands Evals + τ-Bench + PersonaGym): empezar con tenants seed
+
+        realistas + personas como simulators + 20-30 goldens curados manualmente +
+
+        pass^k all-trials threshold. CI gate bloquea regressions. Cuando salgamos
+
+        a prod con clientes reales, layer "production-replay" se agrega encima sin
+
+        tirar nada.
+
+        '
+      why_next: null
+      target_end: null
+      priority: 1
+      success_metrics:
+      - 3 tenants seed con data realística completa (brand+offer+personality+pricing+buyer_personas) checked-in y consumibles
+        por sales_agent runtime sin mocks
+      - client_simulator/ homologado a backend/tests/agentic_evals/sales_agent/simulator/ con dual-LLM pattern (1 LLM=user
+        persona, 1 LLM=sales_agent real)
+      - 20-30 goldens generados desde simulación + curados manualmente por Chris, checked-in
+      - pass^k=3 trials all-pass threshold enforced en CI (Bloom 4-stage Understanding/Ideation/Rollout/Judgment)
+      - Voice fidelity grader MAJ-EVAL multi-judge debate >= 0.7 promedio. Falla → PR bloqueado
+      - Cost <= $0.50/session p95, 0% trials cost_usd=0
+      - 'PersonaGym 5-axis coverage: Action Justification, Expected Action, Linguistic Habits, Persona Consistency, Toxicity
+        Control'
+  - id: pi-3-sales-agent-improvement
+    kind: outcome
+    state: refining
+    title: Mejorar Sales Agent post redesign 2026-04
+    tags: []
+    last_touched: 2026-05-05
+    extra:
+      story_ids: []
+      why_now: 'Redesign 2026-04 dejó base sólida (voz marca, tools, observabilidad). Próxima
+
+        etapa es profundizar en cierre real (vs solo conversar bien) y completar
+
+        multi-canal (WhatsApp pendiente).
+
+        '
+      why_next: null
+      target_end: null
+      priority: 2
+      success_metrics:
+      - Cuantitativo TBD (% leads → cita, % citas → cliente)
+      - 'Cualitativo: ''el agente cierra solo, ya no necesito tomar las riendas'''
+  refined: []
+  ready:
+  - id: sales-agent-adversarial-jailbreak-suite
+    kind: story
+    state: ready
+    title: sales-agent-adversarial-jailbreak-suite
+    tags:
+    - legacy:pi-12
+    last_touched: 2026-05-08 17:30:00+00:00
+    extra:
+      outcome: pi-12-sales-agent-eval-foundation
+      phase: ARCHITECT_DELIVERED
+      next_action: /dev-team build (HARD blocked by Stories C+D+E build done; SOFT blocked F/G/H mockable). T-1+T-2+T-3 parallel-safe
+        declarative; T-3+T-5 require Story E developed; T-4 requires T-2 + Story D done (✓ developed); T-6 requires T-1+T-2+T-3+T-5
+        + Stories C+D+E developed; T-7 Chris manual curation post-build; T-8 /pm post-merge.
+      blocked_by: null
+      priority_override: null
+      audit_iterations: 0
+  - id: sales-agent-eval-cost-budget-cap
+    kind: story
+    state: ready
+    title: sales-agent-eval-cost-budget-cap
+    tags:
+    - legacy:pi-12
+    last_touched: 2026-05-08 12:00:00+00:00
+    extra:
+      outcome: pi-12-sales-agent-eval-foundation
+      phase: READY_PACKAGE_DELIVERED
+      next_action: '/dev-team build (BLOCKED on Stories B+E build done — hard blocker: Story E `eval_simulator_grade.cost_usd_total`
+        column required for guard SQL sum query; Story B `eval_simulator_llm_call` already done). T-1+T-2+T-5 can build with
+        synthetic fixtures BEFORE Story E build; T-3+T-4+T-6 require Story E build COMPLETE for integration scenarios.'
+      blocked_by: null
+      priority_override: null
+      audit_iterations: 0
+  - id: sales-agent-eval-pass-k-tracking
+    kind: story
+    state: ready
+    title: sales-agent-eval-pass-k-tracking
+    tags:
+    - legacy:pi-12
+    last_touched: 2026-05-08 11:00:00+00:00
+    extra:
+      outcome: pi-12-sales-agent-eval-foundation
+      phase: READY_PACKAGE_DELIVERED
+      next_action: /dev-team build (BLOCKED on Stories C+D+E build done — hard blocker per spec § Build order ack). T-1 through
+        T-4 + T-7 + T-8 can build BEFORE Stories C+D+E if synthetic test fixtures used (decouple data dependency); T-5 (aggregator
+        integration) + T-6 (CLI) require Stories E+B real data → BLOCKED on Stories C+D+E build done. PM/dev-team decides
+        parallelization at build trigger. All 8 tickets owner_eligibility=builder-backend Sonnet OK per R23 + Chris autonomy
+        mandate (service-story BE-only, deterministic read-only aggregator). Escalation paths declared on T-4 bloom_scorer
+        + T-7 pre-commit hook if iteration cap reached → Opus override puntual.
+      blocked_by: null
+      priority_override: null
+      audit_iterations: 0
+  - id: sales-agent-voice-fidelity-ci-gate
+    kind: story
+    state: ready
+    title: sales-agent-voice-fidelity-ci-gate
+    tags:
+    - legacy:pi-12
+    last_touched: 2026-05-08 13:00:00+00:00
+    extra:
+      outcome: pi-12-sales-agent-eval-foundation
+      phase: READY_PACKAGE_DELIVERED
+      next_action: '/dev-team build (BLOCKED on Stories B+C+D+E+F+H build done — hard blocker per spec § Build order ack:
+        Story G es LAST en sub-épica eval-foundation). Critical path: T-1 → T-2 → (T-3 parallel-safe) → T-4 → T-5 → T-6. ~13h
+        sequential, ~11h with concurrency. All 6 tickets owner_eligibility=builder-backend Sonnet OK per R23 + Chris autonomy
+        mandate (service-story BE-only, deterministic CI orchestrator). Escalation paths declared on T-4 (subprocess error
+        handling) + T-5 (required check semantics + PR comment idempotent edit) if iteration cap reached → Opus override puntual.
+        Decoupled build option: T-1+T-2+T-3+T-6 can build with synthetic fixtures BEFORE Stories C/D/E/F/H land; T-4+T-5 require
+        real upstream artifacts. PM/dev-team decides parallelization at build trigger.'
+      blocked_by: null
+      priority_override: null
+      audit_iterations: 0
+  developing:
+  - id: luana-platform-migration
+    kind: outcome
+    state: developing
+    title: luana-platform-migration
+    tags: []
+    last_touched: 2026-05-14
+    extra:
+      story_ids: []
+      why_now: null
+      why_next: null
+      target_end: null
+      priority: P0
+      success_metrics:
+      - Luana core v0.1.0 published to GitHub Packages with 22+ versioned packages and 5 critical extension points
+      - Nicolify migrated to consume Luana with zero functional regression (all current tests pass)
+      - 3 new brand apps (Vitalia, Comunify, Lupulo) bootstrapped with vertical-specific extensions registered
+      - Each brand deployed to isolated K8s cluster + Postgres + Qdrant with own Clerk app
+      - Operating cost stays within $1100-1400/mo budget
+      - Zero core code branches conditional on brand identity (arch fitness enforced)
+  developed: []
+  reviewing: []
+  done:
+  - id: growth-copilot-layout-unification
+    kind: outcome
+    state: done
+    title: Growth Studio + Copilot — unificación arquitectural y de layout (paridad cross-studio)
+    tags:
+    - module:analytics
+    - module:copilot
+    - module:shared
+    - type:refactor-fe
+    - type:layout-fix
+    - type:cross-cutting
+    last_touched: 2026-05-08
+    extra:
+      story_ids:
+      - app-shell-sidebar-copilot-decoupling
+      - growth-studio-folder-parity
+      - growth-studio-actions-schemas-real
+      - growth-studio-visual-coherence-pass
+      why_now: "Dos pains convergentes hoy bloquean escalabilidad y degradan experiencia\ncross-app:\n\n1. **Shell layout\
+        \ starvation + mutex absence cross-app** (diagnosis\n   corregida 2026-05-07 vía live repro chrome-devtools-verify):\
+        \ el\n   symptom user-reported \"sidebar se superpone con copilot\" NO es\n   z-index overlap (live repro confirma\
+        \ overlap=0px en TODAS las\n   combinaciones medidas). Real root cause = (a) `main` element es\n   `flex-1 min-w-0`\
+        \ sin floor → CopilotSidebar consume content space\n   hasta degradar main. Worst case: viewport 768 × sidebar expandido\
+        \ ×\n   copilot open = main 52px (catastrofico). (b) AppSidebar.isCollapsed\n   y CopilotStore.isOpen independientes\
+        \ — sin mutex policy auto-collapse.\n   (c) `useCopilotOffset` hook miente por 80-220px vs CopilotSidebar\n   grid\
+        \ widths reales — todos modals/sheets mis-centered. (d) Mobile\n   <768: AppSidebar carece left drawer (solo topbar\
+        \ 40px sin aria-label),\n   no FAB para reabrir copilot. Cross-studio (offer/brand/growth/sales/\n   settings/connections/scheduling).\
+        \ User explícito: \"afecta otras\n   funcionalidades más, es un tema arquitectural\" (2026-05-06) —\n   ratificado\
+        \ pero scope real expandido por evidence.\n\n2. **Growth Studio FE quedó fuera del refactor de hace ~1 mes** que\n\
+        \   homologó Brand Studio + Offer Studio (folders `pages/` + `actions/` +\n   `schemas/`, dispatchers SSoT, arch fitness\
+        \ `test-studio-structure-parity`).\n   Growth tiene `config/` + `context/` + `__mocks__/` legacy y NO tiene\n   `pages/`\
+        \ ni `actions/` ni `schemas/`. Roadmap exige agregar canales\n   sin refactor cada vez.\n\nBowtie superior + métricas\
+        \ dashboard NO se tocan — visualmente están bien\ny son invariante de negocio (Chris, 2026-05-06).\n"
+      why_next: null
+      target_end: null
+      priority: 1
+      success_metrics:
+      - main content width ≥720px en TODO studio @ viewport ≥1024px (read-comfort floor garantizado por DashboardShell + mutex
+        policy)
+      - 'Mobile <768px: AppSidebar y Copilot drawers mutuamente exclusivos; FAB copilot persistente para reabrir; aria-labels
+        descriptivos hamburger + FAB'
+      - useCopilotOffset hook y CopilotSidebar grid widths consumen mismas constantes SSoT (`copilot-shell-widths.ts`); dialogs/sheets
+        centered correctamente (drift 0px vs ±80-220px pre-fix)
+      - Z-index ladder centralizado en `lib/tokens/z-index.ts` + arch test enforza tokens en shell + copilot shell
+      - Agregar canal ficticio 'test-channel-x' a Growth Studio requiere ≤3 archivos nuevos (registry + dashboard + schema)
+        + ZERO modificación a StageDispatcher/ChannelDispatcher
+      - Arch fitness test_studio_structure_parity verde para growth-studio (modo factory adaptado)
+      - Bowtie superior + métricas dashboard intactos pixel-perfect post-refactor (screenshot regression)
+  - id: pi-11-backend-quality-guardrails
+    kind: outcome
+    state: done
+    title: Backend quality guardrails — anti-default-flip + test integrity
+    tags:
+    - type:hardening
+    - type:transversal
+    - blocking:deploy
+    last_touched: 2026-05-06
+    extra:
+      story_ids: []
+      why_now: 'Failed /pase-produccion 2026-05-04 detectó 25 BE failures + 2 FE failures
+
+        + polluter no identificable post 3h investigación. Causa raíz: default flip
+
+        USE_OUTBOX_PATTERN_* sin auditar tests path viejo. Sin guardrails, cada
+
+        futuro deploy replica un % de este costo (~500k tokens, ~3h sesión).
+
+        '
+      why_next: null
+      target_end: 2026-05-06
+      priority: 1
+      success_metrics:
+      - 0 BE failures, 0 FE failures con pytest+vitest sin flags especiales
+      - Polluter snapshot test fixed at source (sin band-aid @flaky permanente)
+      - Singletons class-level documentados + reseteados (autouse fixture exhaustivo)
+      - Tests legacy EventBus mocks 100% migrados a adapter_bus / outbox table inspection
+      - Arch fitness test_no_legacy_eventbus_mock_when_outbox_on bloqueador
+  - id: pi-4-brand-evolutive-maintenance
+    kind: outcome
+    state: done
+    title: Mantenimiento evolutivo Brand Studio (rolling)
+    tags:
+    - module:brand
+    - type:rolling-maintenance
+    last_touched: 2026-05-06
+    extra:
+      story_ids: []
+      why_now: 'Track rolling para responder feedback usuario sobre schema/UX Brand Studio
+
+        sin pelear cap Now con feature PIs. Permite eliminar/fusionar/renombrar
+
+        fields existentes en days, no weeks.
+
+        '
+      why_next: null
+      target_end: 2026-04-29
+      priority: 3
+      success_metrics:
+      - Completion rate buyer persona post-cleanup
+      - 'Cualitativo: ''los formularios no me piden cosas que no necesito'''
+      - Tiempo desde feedback → ship < 5 días
+  - id: pi-5-copilot-multicanal-telegram
+    kind: outcome
+    state: done
+    title: Copilot multicanal — Telegram MVP (V1 only)
+    tags:
+    - module:copilot
+    - type:feature
+    - channel:telegram
+    - scope:v1-only
+    last_touched: 2026-05-06
+    extra:
+      story_ids:
+      - copilot-telegram-magic-link
+      - copilot-telegram-orchestrator-respond
+      why_now: 'Dueño usa más Telegram que web fuera de horario laboral. Mobile-first
+
+        consulta del copilot = ganancia productividad real. HITL Telegram baja
+
+        churn de leads alto ticket (hoy se enfrían cuando dueño tarda en responder
+
+        edge case sales_agent).
+
+        '
+      why_next: null
+      target_end: 2026-05-01
+      priority: 1
+      success_metrics:
+      - Bot global @nicolify_copilot_bot vinculado vía magic link 15min single-use HMAC funcional end-to-end
+      - Orchestrator real responde DMs Telegram con channel format MarkdownV2 + tool subset filter + memory cost-aware
+      - 'Tests passing: 86 copilot telegram tests + 9 arch fitness telegram_separation tests'
+      - Latencia <3s p95 turn no-streaming (objetivo S2 — verificable post-deploy con observability S5 deferred)
+  parked:
+  - id: growth-studio-visual-coherence-pass
+    kind: story
+    state: parked
+    title: growth-studio-visual-coherence-pass
+    tags: []
+    last_touched: 2026-05-06 22:54:54+00:00
+    extra:
+      outcome: growth-copilot-layout-unification
+      phase: PM_DRAFT
+      next_action: 'Esperar shipping de stories 1 (sidebar-copilot-decoupling) + 2 (growth-architectural-parity). Si post-shipping
+        queda inconsistencia visual detectable cross-studio → unparkear → /po-ux refina. Probable que NO se ejecute (Chris
+        2026-05-06: ''visualmente si se ve bien'').'
+      blocked_by: null
+      priority_override: null
+      audit_iterations: 0
+  - id: luana-lupulo-bootstrap
+    kind: story
+    state: parked
+    title: luana-lupulo-bootstrap
+    tags: []
+    last_touched: 2026-05-09
+    extra:
+      outcome: luana-platform-migration
+      phase: null
+      next_action: /po-ux opens 01-spec.md after Story 10 done. Parallel-safe with stories 11, 12, 14
+      blocked_by:
+      - luana-nicolify-migration
+      priority_override: null
+      audit_iterations: 0
+  dropped:
+  - id: agent-bridge-session-injection-fix
+    kind: idea
+    state: dropped
+    title: Fix agent_bridge._resolve_session_for_simulation T-8 stub — currently returns None even with session injected,
+      causing SessionUnavailable in eval-foundation smokes
+    tags:
+    - module:sales-agent
+    - type:agentic-runtime
+    - effort:S
+    - value:eval-unblock-CRITICAL
+    - source:story-d-runevals-smoke
+    last_touched: 2026-05-08
+    extra:
+      promoted_to_outcome: null
+      ost: null
+  - id: goldens-archetype-slug-propagation
+    kind: idea
+    state: dropped
+    title: Fix promote_golden e2e flow — archetype_slug not propagated from tenant context, causing 'Unknown archetype_slug'
+      error in TestE2ESmoke
+    tags:
+    - module:sales-agent
+    - type:tooling
+    - effort:S
+    - value:eval-completion
+    - source:story-d-runevals-smoke
+    last_touched: 2026-05-08
+    extra:
+      promoted_to_outcome: null
+      ost: null
+  - id: pi-10-growth-studio-ux-homologation
+    kind: outcome
+    state: dropped
+    title: Growth Studio — UX visual homologada cross-studio
+    tags:
+    - module:analytics
+    - type:ux-redesign
+    last_touched: 2026-05-06
+    extra:
+      story_ids: []
+      why_now: 'Usuario nuevo navega Brand Studio + Offer Studio + Growth Studio y siente
+
+        "pertenecen a apps distintas". Coherencia visual + interacción cross-studio
+
+        necesaria post Growth Studio architecture refactor (PI-9).
+
+        '
+      why_next: null
+      target_end: null
+      priority: 3
+      success_metrics:
+      - Usuario nuevo navega Brand+Offer+Growth Studio sin sentir 'apps distintas' (visual + interaction coherentes)
+      - Decisión drawer-vs-nested-route consolidada en una sola UX
+  - id: pi-9-growth-studio-architecture
+    kind: outcome
+    state: dropped
+    title: Growth Studio — refactor estructural FE escalable
+    tags:
+    - module:analytics
+    - type:refactor-fe
+    last_touched: 2026-05-06
+    extra:
+      story_ids: []
+      why_now: 'Cientos de clientes proyectados 1 mes → arquitectura FE escalable mandatoria.
+
+        Roadmap exige agregar canales/editar dashboards/modificar stages sin refactor
+
+        cada vez. Growth Studio FE NO sigue patrón post-refactor brand/offer (falta
+
+        pages/, actions/, schemas/, hardcoded "5 stages").
+
+        '
+      why_next: null
+      target_end: null
+      priority: 2
+      success_metrics:
+      - Agregar canal ficticio 'test-channel-x' requiere ≤3 archivos nuevos (registry + dashboard + schema) + ZERO modificación
+        a StageDispatcher/ChannelDispatcher
+      - Arch fitness test_studio_structure_parity verde para growth-studio en modo factory
+capabilities:
+- module: advertising
+  live: 3
+  in_progress: 0
+  planned: 0
+  deprecated: 0
+  total: 3
+- module: analytics
+  live: 5
+  in_progress: 0
+  planned: 0
+  deprecated: 0
+  total: 5
+- module: assets
+  live: 3
+  in_progress: 1
+  planned: 0
+  deprecated: 0
+  total: 4
+- module: brand
+  live: 5
+  in_progress: 0
+  planned: 0
+  deprecated: 0
+  total: 5
+- module: campaigns
+  live: 4
+  in_progress: 0
+  planned: 0
+  deprecated: 0
+  total: 4
+- module: commercial-calendar
+  live: 1
+  in_progress: 0
+  planned: 0
+  deprecated: 0
+  total: 1
+- module: comunify
+  live: 10
+  in_progress: 0
+  planned: 0
+  deprecated: 0
+  total: 10
+- module: connections
+  live: 3
+  in_progress: 1
+  planned: 0
+  deprecated: 0
+  total: 4
+- module: copilot
+  live: 4
+  in_progress: 0
+  planned: 0
+  deprecated: 0
+  total: 4
+- module: crm
+  live: 2
+  in_progress: 0
+  planned: 0
+  deprecated: 0
+  total: 2
+- module: iam
+  live: 2
+  in_progress: 0
+  planned: 0
+  deprecated: 0
+  total: 2
+- module: landing
+  live: 3
+  in_progress: 0
+  planned: 0
+  deprecated: 0
+  total: 3
+- module: luana-core
+  live: 7
+  in_progress: 0
+  planned: 0
+  deprecated: 0
+  total: 7
+- module: offer
+  live: 5
+  in_progress: 0
+  planned: 0
+  deprecated: 0
+  total: 5
+- module: sales-agent
+  live: 4
+  in_progress: 1
+  planned: 1
+  deprecated: 0
+  total: 6
+- module: scheduling
+  live: 3
+  in_progress: 0
+  planned: 0
+  deprecated: 0
+  total: 3
+- module: social-media
+  live: 2
+  in_progress: 0
+  planned: 0
+  deprecated: 0
+  total: 2
+- module: tenant-domains
+  live: 1
+  in_progress: 0
+  planned: 0
+  deprecated: 0
+  total: 1
+- module: vitalia
+  live: 8
+  in_progress: 0
+  planned: 0
+  deprecated: 0
+  total: 8

@@ -1,0 +1,57 @@
+# Vitalia Valeria wizard golden — negative (incomplete text, Valeria pregunta)
+golden_id: wizard_negative_v1
+flow: wizard_onboarding
+scenario: negative
+persona: tenant_apurado_no_attaches_only_text.yaml
+input_conversation:
+  - role: tenant
+    content: "Hola"
+  - role: assistant
+    content: "Hola, soy Valeria. Te voy a acompañar para dejar tu cuenta lista en pocos minutos. ¿Te parece si empezamos con el nombre de tu clínica?"
+  - role: tenant
+    content: "Centro Estética"
+  - role: assistant
+    content: "Bien. ¿'Centro Estética' es el nombre completo, o tiene algún apellido (por ejemplo, 'Centro Estética Andina')? ¿Y en qué ciudad o país estás ubicado?"
+  - role: tenant
+    content: "Centro Estética Sur, en Bogotá"
+  - role: assistant
+    content: "Anoté 'Centro Estética Sur' en Bogotá. ¿Está bien así? Para seguir, ¿podés pasarme algún link de la clínica (web/Instagram/Google Maps)?"
+  - role: tenant
+    content: "No tengo link, paso datos a mano"
+  - role: assistant
+    content: "Sin problema. ¿Cuál es la especialidad principal de la clínica? Por ejemplo: depilación definitiva, tratamientos faciales, todo lo estético en general."
+  - role: tenant
+    content: "Depilación y facial principalmente"
+  - role: assistant
+    content: "Bien, anoté 'depilación + tratamientos faciales' como especialidad principal. Última pregunta antes de pasar al preview: ¿tono inicial preferís más cercano informal o más profesional formal?"
+  - role: tenant
+    content: "Cercano"
+  - role: assistant
+    content: "Perfecto. Genero un preview. Si te gusta, confirmamos la configuración."
+expected_tools_trajectory:
+  - tool: confirm_slot
+    args:
+      slot_id: tenant.name
+      value: "Centro Estética Sur"
+  - tool: confirm_slot
+    args:
+      slot_id: tenant.location
+      value: "Bogotá, Colombia"
+  - tool: confirm_slot
+    args:
+      slot_id: tenant.vertical
+      value: estetica
+  - tool: simulate_personality
+    args: {}
+expected_voice_fidelity_score: 0.85
+expected_voice_constraints:
+  uses_tuteo: true
+  no_voseo: true
+  no_ai_reveal: true
+expected_outcome:
+  status: in_progress
+  draft_state: partial_confirmed
+  slots_confirmed: 3
+notes: |
+  Negative — sin URL adjunta, Valeria pregunta y completa text-only.
+  Voice: paciencia + claridad + no apresurar.

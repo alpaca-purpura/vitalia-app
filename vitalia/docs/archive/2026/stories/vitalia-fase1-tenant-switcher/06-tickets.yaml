@@ -1,0 +1,426 @@
+# F1-S3 vitalia-fase1-tenant-switcher — work units atómicos
+#
+# 10 tickets · ZERO Opus (FE no-agentic puro · production_code=true pero Sonnet/opencode OK)
+# Cada ticket cita validator_ids + gherkin_coverage explícito
+# Sequence: hojas (palette → badge → option) → state (store → hook) → modal → organismo → integration → e2e
+#
+# Builders: builder-frontend (Sonnet/opencode)
+# Auditor: auditor-frontend (Opus)
+
+story_id: vitalia-fase1-tenant-switcher
+brand: vitalia
+phase: fase-1
+last_modified: 2026-05-22
+architect_iter: 1
+total_tickets: 10
+parallelizable: false   # secuencial por imports DAG (palette → badge → option → store → hook → modal → switcher → integration → e2e)
+opus_tickets: 0          # ZERO Opus
+sonnet_tickets: 10
+
+tickets:
+
+  # ──────────────────────────────────────────────────────────────
+  # T-1 — tenant-palette.ts (PALETTE const + pickPaletteColor hash)
+  # ──────────────────────────────────────────────────────────────
+  - id: T-1
+    title: "tenant-palette: PALETTE const + pickPaletteColor hash determinístico"
+    state: ready
+    surface: frontend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: true
+    estimated_loc: 50
+    files:
+      new:
+        - vitalia/frontend/src/lib/tenant-palette.ts
+        - vitalia/frontend/src/lib/__tests__/tenant-palette.test.ts
+      modify: []
+      delete: []
+    acceptance:
+      validator_ids: [val-fe-tsc, val-fe-lint, val-fe-vitest-unit]
+    gherkin_coverage:
+      - scenario: "AC-14 TenantBadge hash determinístico predecible cross-session"
+        tests:
+          - "vitalia/frontend/src/lib/__tests__/tenant-palette.test.ts::pickPaletteColor returns same color for same id"
+          - "vitalia/frontend/src/lib/__tests__/tenant-palette.test.ts::pickPaletteColor handles empty string fallback"
+          - "vitalia/frontend/src/lib/__tests__/tenant-palette.test.ts::PALETTE contains 6 entries with bg + text classes"
+          - "vitalia/frontend/src/lib/__tests__/tenant-palette.test.ts::amber and lime entries have dark text for contrast AA"
+    spec_anchor: "01-spec.md § 11 contrast fix forward + 03-arch § 2.9 + § 8"
+
+  # ──────────────────────────────────────────────────────────────
+  # T-2 — TenantBadge átomo + test
+  # ──────────────────────────────────────────────────────────────
+  - id: T-2
+    title: "TenantBadge átomo Server Component (initials 2-char + palette pick)"
+    state: ready
+    surface: frontend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: true
+    estimated_loc: 40
+    files:
+      new:
+        - vitalia/frontend/src/components/shared/shell-organism/TenantBadge.tsx
+        - vitalia/frontend/src/components/shared/shell-organism/__tests__/TenantBadge.test.tsx
+      modify: []
+      delete: []
+    depends_on: [T-1]
+    acceptance:
+      validator_ids: [val-fe-tsc, val-fe-lint, val-fe-vitest-unit]
+    gherkin_coverage:
+      - scenario: "AC-3 + Scenario 1 — TenantBadge renderiza initials correctos + palette color"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/__tests__/TenantBadge.test.tsx::renders 2-char uppercase initials from name"
+          - "vitalia/frontend/src/components/shared/shell-organism/__tests__/TenantBadge.test.tsx::Sonrisa Plena → SP, Dermalia MX → DM, ClíniCare Bogotá → CB"
+          - "vitalia/frontend/src/components/shared/shell-organism/__tests__/TenantBadge.test.tsx::has aria-hidden true (decorative)"
+          - "vitalia/frontend/src/components/shared/shell-organism/__tests__/TenantBadge.test.tsx::applies bg + text class from pickPaletteColor"
+    spec_anchor: "01-spec.md § 6.2 + 03-arch § 2.3"
+
+  # ──────────────────────────────────────────────────────────────
+  # T-3 — TenantOption molécula + test
+  # ──────────────────────────────────────────────────────────────
+  - id: T-3
+    title: "TenantOption molécula Server Component (Badge + name + city + Check)"
+    state: ready
+    surface: frontend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: true
+    estimated_loc: 60
+    files:
+      new:
+        - vitalia/frontend/src/components/shared/shell-organism/TenantOption.tsx
+        - vitalia/frontend/src/components/shared/shell-organism/__tests__/TenantOption.test.tsx
+      modify: []
+      delete: []
+    depends_on: [T-2]
+    acceptance:
+      validator_ids: [val-fe-tsc, val-fe-lint, val-fe-vitest-unit, val-arch-spanish-neutro]
+    gherkin_coverage:
+      - scenario: "AC-3 + Scenario 1 — active marker check + bg-accent/40"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/__tests__/TenantOption.test.tsx::renders TenantBadge + name + city subtitle"
+          - "vitalia/frontend/src/components/shared/shell-organism/__tests__/TenantOption.test.tsx::active=true renders Check icon + sr-only 'Clínica activa'"
+          - "vitalia/frontend/src/components/shared/shell-organism/__tests__/TenantOption.test.tsx::active=false does NOT render Check icon"
+          - "vitalia/frontend/src/components/shared/shell-organism/__tests__/TenantOption.test.tsx::active row has bg-accent/40 class"
+          - "vitalia/frontend/src/components/shared/shell-organism/__tests__/TenantOption.test.tsx::inactive row has hover:bg-muted class"
+          - "vitalia/frontend/src/components/shared/shell-organism/__tests__/TenantOption.test.tsx::data-testid format tenant-option-{tenantId}"
+    spec_anchor: "01-spec.md § 6.3 + 03-arch § 2.4"
+
+  # ──────────────────────────────────────────────────────────────
+  # T-4 — tenantStore Zustand persist + onSignOut cleanup hook
+  # ──────────────────────────────────────────────────────────────
+  - id: T-4
+    title: "tenant-store Zustand persist (partialize activeTenant) + useSignOutCleanup hook"
+    state: ready
+    surface: frontend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: true
+    estimated_loc: 130
+    files:
+      new:
+        - vitalia/frontend/src/stores/tenant-store.ts
+        - vitalia/frontend/src/stores/__tests__/tenant-store.test.ts
+        - vitalia/frontend/src/hooks/useSignOutCleanup.ts
+      modify: []
+      delete: []
+    depends_on: []
+    acceptance:
+      validator_ids: [val-fe-tsc, val-fe-lint, val-fe-vitest-unit]
+    gherkin_coverage:
+      - scenario: "Scenario 2 — negative tenant inexistente, store unchanged"
+        tests:
+          - "vitalia/frontend/src/stores/__tests__/tenant-store.test.ts::switchTenant(unknown-id) returns null + activeTenant unchanged"
+      - scenario: "Scenario 5 — race localStorage multi-tab last-write-wins natural"
+        tests:
+          - "vitalia/frontend/src/stores/__tests__/tenant-store.test.ts::persist writes only activeTenant via partialize"
+          - "vitalia/frontend/src/stores/__tests__/tenant-store.test.ts::storage key is vitalia-tenant-state"
+      - scenario: "AC-5 LocalStorage vitalia-tenant-state persiste activeTenant"
+        tests:
+          - "vitalia/frontend/src/stores/__tests__/tenant-store.test.ts::setActiveTenant writes to localStorage via persist"
+      - scenario: "Auto-pick first tenant cuando activeTenant === null"
+        tests:
+          - "vitalia/frontend/src/stores/__tests__/tenant-store.test.ts::setAvailableTenants auto-picks first if active is null"
+          - "vitalia/frontend/src/stores/__tests__/tenant-store.test.ts::setAvailableTenants does NOT override existing active"
+      - scenario: "Scenario 6 — clearStore reset (signOut cleanup)"
+        tests:
+          - "vitalia/frontend/src/stores/__tests__/tenant-store.test.ts::clearStore resets activeTenant + availableTenants"
+    spec_anchor: "01-spec.md § 8.4 + 03-arch § 2.7 + § 6"
+
+  # ──────────────────────────────────────────────────────────────
+  # T-5 — useTenants React Query hook + hidratación store
+  # ──────────────────────────────────────────────────────────────
+  - id: T-5
+    title: "useTenants React Query hook (5min staleTime + hidratación store via useEffect)"
+    state: ready
+    surface: frontend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: true
+    estimated_loc: 60
+    files:
+      new:
+        - vitalia/frontend/src/hooks/useTenants.ts
+      modify: []
+      delete: []
+    depends_on: [T-4]
+    acceptance:
+      validator_ids: [val-fe-tsc, val-fe-lint, val-fe-vitest-unit]
+    gherkin_coverage:
+      - scenario: "AC-12 Loading state: API pending → Skeleton inline dropdown"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/__tests__/TenantSwitcher.test.tsx::isLoading=true renders 3 Skeleton rows + sr-only 'Cargando clínicas…'"
+      - scenario: "AC-13 Error state: API 500 → Alert destructive + Reintentar"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/__tests__/TenantSwitcher.test.tsx::isError=true renders Alert + Reintentar button → refetch on click"
+      - scenario: "useEffect hidrata store via setAvailableTenants on query.data ready"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/__tests__/TenantSwitcher.test.tsx::query.data hidrata store via useEffect (NOT deprecated onSuccess)"
+    spec_anchor: "01-spec.md § 8.1-§ 8.2-§ 8.4 + 03-arch § 2.8 + § 5"
+
+  # ──────────────────────────────────────────────────────────────
+  # T-6 — AddClinicPlaceholderModal (Dialog Shadcn)
+  # ──────────────────────────────────────────────────────────────
+  - id: T-6
+    title: "AddClinicPlaceholderModal Dialog Shadcn (open/close + copy verbatim)"
+    state: ready
+    surface: frontend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: true
+    estimated_loc: 35
+    files:
+      new:
+        - vitalia/frontend/src/components/shared/shell-organism/AddClinicPlaceholderModal.tsx
+      modify: []
+      delete: []
+    depends_on: []
+    acceptance:
+      validator_ids: [val-fe-tsc, val-fe-lint, val-arch-spanish-neutro]
+    gherkin_coverage:
+      - scenario: "AC-6 'Agregar clínica' click → modal placeholder 'Próximamente'"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/__tests__/TenantSwitcher.test.tsx::clicking 'Agregar clínica' opens modal with title 'Próximamente'"
+          - "vitalia/frontend/src/components/shared/shell-organism/__tests__/TenantSwitcher.test.tsx::modal body shows 'Próximamente: agregar nueva clínica desde Configurar → Mi cuenta'"
+          - "vitalia/frontend/src/components/shared/shell-organism/__tests__/TenantSwitcher.test.tsx::clicking 'Entendido' closes modal"
+    spec_anchor: "01-spec.md § 6.4 + § 9 microcopy + 03-arch § 2.6"
+
+  # ──────────────────────────────────────────────────────────────
+  # T-7 — TenantSwitcher organismo (loading/error/empty/success + path preservation)
+  # ──────────────────────────────────────────────────────────────
+  - id: T-7
+    title: "TenantSwitcher organismo Client Component (4 states + path preservation + a11y)"
+    state: ready
+    surface: frontend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: true
+    estimated_loc: 200
+    files:
+      new:
+        - vitalia/frontend/src/components/shared/shell-organism/TenantSwitcher.tsx
+        - vitalia/frontend/src/components/shared/shell-organism/__tests__/TenantSwitcher.test.tsx
+      modify: []
+      delete: []
+    depends_on: [T-1, T-2, T-3, T-4, T-5, T-6]
+    acceptance:
+      validator_ids: [val-fe-tsc, val-fe-lint, val-fe-vitest-unit, val-arch-spanish-neutro, val-arch-no-clerk-orgs, val-arch-no-phi-leak]
+    gherkin_coverage:
+      - scenario: "Scenario 1 — happy switch + hard redirect path preservation"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/__tests__/TenantSwitcher.test.tsx::click TenantOption triggers switchTenant + window.location.href redirect"
+          - "vitalia/frontend/src/components/shared/shell-organism/__tests__/TenantSwitcher.test.tsx::buildRedirectPath preserves /{old}/(shell)/lisa/marca → /{new}/(shell)/lisa/marca"
+          - "vitalia/frontend/src/components/shared/shell-organism/__tests__/TenantSwitcher.test.tsx::buildRedirectPath fallback /{newId} for / path"
+      - scenario: "AC-2 + AC-3 — dropdown open + active marker"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/__tests__/TenantSwitcher.test.tsx::click trigger opens dropdown with role=menu"
+          - "vitalia/frontend/src/components/shared/shell-organism/__tests__/TenantSwitcher.test.tsx::active tenant renders Check + bg-accent/40"
+      - scenario: "Scenario 8 — empty state graceful degrade"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/__tests__/TenantSwitcher.test.tsx::availableTenants.length === 0 → returns null (no trigger render)"
+      - scenario: "Scenario 12 — single tenant edge no-op same active"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/__tests__/TenantSwitcher.test.tsx::click on already-active tenant does NOT redirect"
+      - scenario: "AC-7 'Administrar cuenta' link"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/__tests__/TenantSwitcher.test.tsx::Administrar cuenta link href = /{activeTenant.id}/config/cuenta"
+      - scenario: "Scenario 10 — a11y aria-label + role=menu"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/__tests__/TenantSwitcher.test.tsx::trigger has aria-label='Cambiar clínica'"
+          - "vitalia/frontend/src/components/shared/shell-organism/__tests__/TenantSwitcher.test.tsx::trigger has title attribute = activeTenant.name"
+    spec_anchor: "01-spec.md § 4.1 Scenario 1 + § 6.1 + § 8.5 path preservation + 03-arch § 2.5 + § 7"
+
+  # ──────────────────────────────────────────────────────────────
+  # T-8 — TopBarGlobal replace + TenantSwitcherSlot DELETE + layout.tsx bootstrap mount
+  # ──────────────────────────────────────────────────────────────
+  - id: T-8
+    title: "Integration: TopBarGlobal replace placeholder + DELETE slot + mount Bootstrap en layout"
+    state: ready
+    surface: frontend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: true
+    estimated_loc: 30
+    files:
+      new:
+        - vitalia/frontend/src/components/shared/shell-organism/TenantStoreBootstrap.tsx
+      modify:
+        - vitalia/frontend/src/components/shared/shell-organism/TopBarGlobal.tsx
+        - vitalia/frontend/src/app/layout.tsx
+      delete:
+        - vitalia/frontend/src/components/shared/shell-organism/TenantSwitcherSlot.tsx
+    depends_on: [T-7]
+    acceptance:
+      validator_ids: [val-fe-tsc, val-fe-lint, val-fe-vitest-unit, val-arch-fsd]
+    gherkin_coverage:
+      - scenario: "AC-1 TenantSwitcher visible TopBar derecha tras F1-S2 placeholder replace"
+        tests:
+          - "vitalia/frontend/src/__tests__/architecture/test-fsd-boundaries.test.ts::shell-organism allows internal imports"
+          - "vitalia/frontend/src/__tests__/architecture/test-fsd-boundaries.test.ts::TenantSwitcherSlot does NOT exist post-delete"
+      - scenario: "TenantStoreBootstrap mounted in root layout triggers useTenants + useSignOutCleanup"
+        tests:
+          - "manual verification via E2E (cubierto T-9 happy-switch.spec.ts mounts page → store hidratado)"
+    spec_anchor: "01-spec.md § 16 deliverables + 03-arch § 1 + § 2.10 + § 2.12"
+
+  # ──────────────────────────────────────────────────────────────
+  # T-9 — Playwright E2E specs (11) + POM + fixtures
+  # ──────────────────────────────────────────────────────────────
+  - id: T-9
+    title: "E2E Playwright: 11 specs (Scenarios 1, 3-12) + POM + fixtures"
+    state: ready
+    surface: frontend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: true
+    estimated_loc: 600
+    files:
+      new:
+        - vitalia/frontend/e2e/poms/tenant-switcher.pom.ts
+        - vitalia/frontend/e2e/fixtures/tenants.fixture.ts
+        - vitalia/frontend/e2e/regression/vitalia-fase1-tenant-switcher/happy-switch.spec.ts
+        - vitalia/frontend/e2e/regression/vitalia-fase1-tenant-switcher/concurrent-clicks.spec.ts
+        - vitalia/frontend/e2e/regression/vitalia-fase1-tenant-switcher/adversarial-cross-tenant.spec.ts
+        - vitalia/frontend/e2e/regression/vitalia-fase1-tenant-switcher/race-multi-tab.spec.ts
+        - vitalia/frontend/e2e/regression/vitalia-fase1-tenant-switcher/concurrent-users.spec.ts
+        - vitalia/frontend/e2e/regression/vitalia-fase1-tenant-switcher/network-failure.spec.ts
+        - vitalia/frontend/e2e/regression/vitalia-fase1-tenant-switcher/empty-state.spec.ts
+        - vitalia/frontend/e2e/regression/vitalia-fase1-tenant-switcher/large-dataset.spec.ts
+        - vitalia/frontend/e2e/regression/vitalia-fase1-tenant-switcher/a11y-keyboard.spec.ts
+        - vitalia/frontend/e2e/regression/vitalia-fase1-tenant-switcher/i18n-spanish-neutro.spec.ts
+        - vitalia/frontend/e2e/regression/vitalia-fase1-tenant-switcher/single-tenant.spec.ts
+      modify: []
+      delete: []
+    depends_on: [T-8]
+    acceptance:
+      validator_ids:
+        - val-fe-e2e-happy
+        - val-fe-e2e-concurrent-clicks
+        - val-fe-e2e-adversarial
+        - val-fe-e2e-race-multi-tab
+        - val-fe-e2e-concurrent-users
+        - val-fe-e2e-network-failure
+        - val-fe-e2e-empty-state
+        - val-fe-e2e-large-dataset
+        - val-fe-e2e-a11y-keyboard
+        - val-fe-e2e-i18n-spanish-neutro
+        - val-fe-e2e-single-tenant
+    gherkin_coverage:
+      - scenario: "Scenario 1 happy switch"
+        tests: ["vitalia/frontend/e2e/regression/vitalia-fase1-tenant-switcher/happy-switch.spec.ts"]
+      - scenario: "Scenario 3 concurrent clicks race"
+        tests: ["vitalia/frontend/e2e/regression/vitalia-fase1-tenant-switcher/concurrent-clicks.spec.ts"]
+      - scenario: "Scenario 4 adversarial cross-tenant URL"
+        tests: ["vitalia/frontend/e2e/regression/vitalia-fase1-tenant-switcher/adversarial-cross-tenant.spec.ts"]
+      - scenario: "Scenario 5 race multi-tab localStorage"
+        tests: ["vitalia/frontend/e2e/regression/vitalia-fase1-tenant-switcher/race-multi-tab.spec.ts"]
+      - scenario: "Scenario 6 concurrent users signOut isolation"
+        tests: ["vitalia/frontend/e2e/regression/vitalia-fase1-tenant-switcher/concurrent-users.spec.ts"]
+      - scenario: "Scenario 7 network failure API timeout"
+        tests: ["vitalia/frontend/e2e/regression/vitalia-fase1-tenant-switcher/network-failure.spec.ts"]
+      - scenario: "Scenario 8 empty state 0 tenants"
+        tests: ["vitalia/frontend/e2e/regression/vitalia-fase1-tenant-switcher/empty-state.spec.ts"]
+      - scenario: "Scenario 9 large dataset 12 tenants"
+        tests: ["vitalia/frontend/e2e/regression/vitalia-fase1-tenant-switcher/large-dataset.spec.ts"]
+      - scenario: "Scenario 10 a11y WCAG AA keyboard"
+        tests: ["vitalia/frontend/e2e/regression/vitalia-fase1-tenant-switcher/a11y-keyboard.spec.ts"]
+      - scenario: "Scenario 11 i18n spanish neutro"
+        tests: ["vitalia/frontend/e2e/regression/vitalia-fase1-tenant-switcher/i18n-spanish-neutro.spec.ts"]
+      - scenario: "Scenario 12 single tenant edge"
+        tests: ["vitalia/frontend/e2e/regression/vitalia-fase1-tenant-switcher/single-tenant.spec.ts"]
+    spec_anchor: "01-spec.md § 4.1 + § 4.2 todos los scenarios + 03-arch § 3.2 + § 3.3 + § 3.4"
+    notes: |
+      Builder T-9 MUST cargar `playwright-expert` skill ANTES de empezar.
+      Auth fixture Clerk + POM pattern + fixtures mocked /api/tenants response.
+      Port vitalia frontend = 3002 (per docker-dev-multibrand). Stack levantado vía `make dev-vitalia`.
+
+  # ──────────────────────────────────────────────────────────────
+  # T-10 — Visual goldens (8 snapshots) + arch test no-clerk-orgs
+  # ──────────────────────────────────────────────────────────────
+  - id: T-10
+    title: "Visual goldens 8 snapshots + new arch test no-clerk-organizations"
+    state: ready
+    surface: frontend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: true
+    estimated_loc: 180
+    files:
+      new:
+        - vitalia/frontend/src/__tests__/architecture/test-no-clerk-organizations.test.ts
+        - vitalia/frontend/e2e/regression/vitalia-fase1-tenant-switcher/visual-closed-light.spec.ts
+        - vitalia/frontend/e2e/regression/vitalia-fase1-tenant-switcher/visual-closed-dark.spec.ts
+        - vitalia/frontend/e2e/regression/vitalia-fase1-tenant-switcher/visual-open-light.spec.ts
+        - vitalia/frontend/e2e/regression/vitalia-fase1-tenant-switcher/visual-open-dark.spec.ts
+        - vitalia/frontend/e2e/regression/vitalia-fase1-tenant-switcher/visual-open-loading.spec.ts
+        - vitalia/frontend/e2e/regression/vitalia-fase1-tenant-switcher/visual-open-error.spec.ts
+        - vitalia/frontend/e2e/regression/vitalia-fase1-tenant-switcher/visual-open-single-tenant.spec.ts
+        - vitalia/frontend/e2e/regression/vitalia-fase1-tenant-switcher/visual-open-12-tenants.spec.ts
+      modify: []
+      delete: []
+    depends_on: [T-9]
+    acceptance:
+      validator_ids:
+        - val-visual-closed-light
+        - val-visual-closed-dark
+        - val-visual-open-light
+        - val-visual-open-dark
+        - val-visual-open-loading
+        - val-visual-open-error
+        - val-visual-open-single
+        - val-visual-open-12
+        - val-arch-no-clerk-orgs
+        - val-arch-fsd
+    gherkin_coverage:
+      - scenario: "AC-9 Visual goldens: closed + open snapshots light + dark"
+        tests:
+          - "vitalia/frontend/e2e/__screenshots__/shell/tenant-switcher-closed-{light,dark}.png"
+          - "vitalia/frontend/e2e/__screenshots__/shell/tenant-switcher-open-{light,dark}.png"
+          - "vitalia/frontend/e2e/__screenshots__/shell/tenant-switcher-open-loading-light.png"
+          - "vitalia/frontend/e2e/__screenshots__/shell/tenant-switcher-open-error-light.png"
+          - "vitalia/frontend/e2e/__screenshots__/shell/tenant-switcher-open-single-tenant-light.png"
+          - "vitalia/frontend/e2e/__screenshots__/shell/tenant-switcher-open-12-tenants-light.png"
+      - scenario: "Arch fitness: enforce MEMORY no-clerk-organizations 2026-05-20"
+        tests:
+          - "vitalia/frontend/src/__tests__/architecture/test-no-clerk-organizations.test.ts::no useOrganization/orgId/OrganizationSwitcher references in src/"
+    spec_anchor: "01-spec.md § 5.7 mockups HTML + 03-arch § 3.6 visual goldens + 05-guidelines § 4 forbidden Clerk Orgs"
+    notes: |
+      Visual goldens iniciales generadas con `--update-snapshots=missing` en primer run.
+      Post-ratificación (Chris) → ratchet shrink-only (cualquier diff requiere re-ratify explícito).
+      Tolerance maxDiffPixelRatio=0.001 per shell-mockup-per-component.md.
+      Mockups HTML SSoT visual:
+        - vitalia/docs/product/stories/vitalia-fase1-tenant-switcher/mockups/tenant-switcher-closed.html
+        - vitalia/docs/product/stories/vitalia-fase1-tenant-switcher/mockups/tenant-switcher-open.html
+
+# ──────────────────────────────────────────────────────────────────
+# Build sequence summary (DAG)
+# ──────────────────────────────────────────────────────────────────
+# T-1 (palette pure) ─┐
+# T-2 (TenantBadge)   ├─→ T-3 (TenantOption) ─┐
+# T-4 (store + hook signOut) ──────┐          │
+# T-5 (useTenants) ←── depends T-4 │          ├─→ T-7 (TenantSwitcher organismo)
+# T-6 (modal Dialog) ──────────────┴──────────┘       │
+#                                                     ↓
+#                                            T-8 (TopBarGlobal replace + layout mount + DELETE slot)
+#                                                     │
+#                                                     ↓
+#                                            T-9 (E2E specs + POM + fixtures)
+#                                                     │
+#                                                     ↓
+#                                            T-10 (Visual goldens + arch no-clerk-orgs)
+#                                                     │
+#                                                     ↓
+#                                            state: developed → AUTO-HANDOFF /auditor
+#
+# Total estimated LOC: ~1285 (production + tests + e2e + visual)
+# Estimated dev_days: 1-2 (Sonnet/opencode autonomous build)

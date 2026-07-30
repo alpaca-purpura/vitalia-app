@@ -1,0 +1,67 @@
+{
+  "schema_version": "1.0",
+  "command": "cd ${WS}/vitalia/backend && ${WS}/.venv/bin/pytest tests/ -v && ${WS}/.venv/bin/ruff check src/ tests/ --no-cache && ${WS}/.venv/bin/ruff format --check src/ tests/ && ${WS}/.venv/bin/mypy src/ && cd ${WS}/vitalia/frontend && npx tsc --noEmit && npx eslint . && npx vitest run",
+  "command_alias": "test-vitalia",
+  "iter": 1,
+  "started_at": "2026-05-18T23:55:04Z",
+  "finished_at": "2026-05-18T23:56:15Z",
+  "duration_ms": 71000,
+  "exit_code": 0,
+  "raw_log_path": "/home/chalreme/Proyectos/luana-vitalia/vitalia/docs/product/stories/vitalia-slice-1-onboarding-wizard/gate-logs/iter-audit-1-test-vitalia-20260518_235504.log",
+  "gates": [
+    {
+      "name": "ruff (lint)",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": []
+    },
+    {
+      "name": "ruff (format)",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": []
+    },
+    {
+      "name": "pytest (arch fitness)",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": []
+    },
+    {
+      "name": "pytest (unit tests)",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": []
+    },
+    {
+      "name": "pytest (coverage)",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": []
+    },
+    {
+      "name": "tsc (type-check)",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": []
+    },
+    {
+      "name": "eslint",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": []
+    },
+    {
+      "name": "vitest (unit + arch)",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": []
+    }
+  ],
+  "overall": {
+    "any_fail": false,
+    "fail_gate_names": [],
+    "summary": "All 8 gates PASS (ruff lint/format, pytest arch/unit/coverage, tsc, eslint, vitest). Coverage 26.46%. Test Files 43 passed, Tests 299 passed."
+  },
+  "notes": "Full vitalia quality suite native Linux execution. Backend: 5 gates all PASS (ruff, arch-fitness 245 tests, unit tests, coverage). Frontend: 3 gates all PASS (tsc no-emit, eslint, vitest 299 tests across 43 files). No violations."
+}

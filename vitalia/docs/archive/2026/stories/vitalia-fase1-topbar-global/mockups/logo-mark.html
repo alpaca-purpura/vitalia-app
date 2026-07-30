@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>F1-S2 · LogoMark mockup — 6 combinations</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: ['class', '[data-theme="dark"]'],
+    }
+  </script>
+  <style>
+    :root {
+      --background: 0 0% 100%;
+      --foreground: 240 10% 4%;
+      --card: 0 0% 100%;
+      --card-foreground: 240 10% 4%;
+      --muted: 240 5% 96%;
+      --muted-foreground: 240 4% 46%;
+      --border: 240 6% 90%;
+      --primary: 198 99% 49%;
+      --primary-foreground: 0 0% 100%;
+      --accent: 287 53% 37%;
+      --radius: 0.5rem;
+    }
+    [data-theme="dark"] {
+      --background: 240 10% 4%;
+      --foreground: 0 0% 98%;
+      --card: 240 8% 8%;
+      --card-foreground: 0 0% 98%;
+      --muted: 240 6% 14%;
+      --muted-foreground: 240 4% 60%;
+      --border: 240 6% 18%;
+      --primary: 198 99% 49%;
+      --primary-foreground: 240 10% 4%;
+      --accent: 287 53% 60%;
+    }
+    body {
+      background: hsl(var(--background));
+      color: hsl(var(--foreground));
+      font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+      transition: background-color 200ms;
+    }
+    .cell {
+      background: hsl(var(--card));
+      border: 1px solid hsl(var(--border));
+      border-radius: var(--radius);
+      padding: 1.5rem 1rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 140px;
+      gap: 1rem;
+    }
+    .label {
+      font-size: 0.75rem;
+      color: hsl(var(--muted-foreground));
+      font-family: ui-monospace, monospace;
+    }
+    /* Asset swap light/dark */
+    [data-theme="dark"] .light-asset { display: none !important; }
+    [data-theme="dark"] .dark-asset { display: block !important; }
+    [data-theme="light"] .dark-asset { display: none !important; }
+  </style>
+</head>
+<body class="min-h-screen">
+
+  <!-- ─── Header ─────────────────────────────────────────── -->
+  <header class="border-b" style="border-color: hsl(var(--border));">
+    <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div>
+        <h1 class="text-lg font-semibold">F1-S2 · LogoMark mockup</h1>
+        <p class="text-sm" style="color: hsl(var(--muted-foreground));">
+          6 combinations · 3 sizes × 2 variants · assets reales brand Vitalia
+        </p>
+      </div>
+      <div class="flex items-center gap-3">
+        <span class="text-xs" style="color: hsl(var(--muted-foreground));">v1.1 (assets reales)</span>
+        <button
+          id="theme-toggle"
+          type="button"
+          aria-label="Cambiar tema"
+          class="inline-flex items-center gap-2 px-3 py-1.5 rounded-md border text-sm"
+          style="border-color: hsl(var(--border)); color: hsl(var(--foreground));"
+          onclick="toggleTheme()"
+        >
+          <span id="theme-icon">🌙</span>
+          <span id="theme-label">Dark mode</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ─── Main ───────────────────────────────────────────── -->
+  <main class="max-w-6xl mx-auto px-6 py-12">
+
+    <!-- Section: variant='full' grid (libélula + wordmark) -->
+    <section class="mb-12">
+      <h2 class="text-base font-semibold mb-1">variant='full' (libélula + wordmark "VITALIA")</h2>
+      <p class="text-sm mb-6" style="color: hsl(var(--muted-foreground));">
+        Asset light: <code class="font-mono">/brand/vitalia-logo.png</code> · Asset dark: <code class="font-mono">/brand/vitalia-logo-dark.png</code> (D6 pending entrega Chris)
+      </p>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+        <!-- sm full -->
+        <div class="cell">
+          <img
+            src="assets/vitalia-logo.png"
+            alt="Vitalia"
+            style="height: 24px; width: auto;"
+            class="light-asset"
+          />
+          <img
+            src="assets/vitalia-logo-dark.png"
+            alt="Vitalia"
+            style="height: 24px; width: auto;"
+            class="dark-asset hidden"
+          />
+          <div class="text-center">
+            <div class="text-xs font-semibold">size='sm' · variant='full'</div>
+            <div class="label mt-1">h=24px · w=auto</div>
+          </div>
+        </div>
+
+        <!-- md full (default) -->
+        <div class="cell" style="border-color: hsl(var(--primary) / 0.4); border-width: 2px;">
+          <img
+            src="assets/vitalia-logo.png"
+            alt="Vitalia"
+            style="height: 32px; width: auto;"
+            class="light-asset"
+          />
+          <img
+            src="assets/vitalia-logo-dark.png"
+            alt="Vitalia"
+            style="height: 32px; width: auto;"
+            class="dark-asset hidden"
+          />
+          <div class="text-center">
+            <div class="text-xs font-semibold">size='md' (default) · variant='full' (default)</div>
+            <div class="label mt-1">h=32px · w=auto</div>
+            <div class="label mt-0.5" style="color: hsl(var(--primary));">★ DEFAULT</div>
+          </div>
+        </div>
+
+        <!-- lg full -->
+        <div class="cell">
+          <img
+            src="assets/vitalia-logo.png"
+            alt="Vitalia"
+            style="height: 40px; width: auto;"
+            class="light-asset"
+          />
+          <img
+            src="assets/vitalia-logo-dark.png"
+            alt="Vitalia"
+            style="height: 40px; width: auto;"
+            class="dark-asset hidden"
+          />
+          <div class="text-center">
+            <div class="text-xs font-semibold">size='lg' · variant='full'</div>
+            <div class="label mt-1">h=40px · w=auto</div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Section: variant='mark' grid (solo libélula) -->
+    <section class="mb-12">
+      <h2 class="text-base font-semibold mb-1">variant='mark' (solo libélula multicolor)</h2>
+      <p class="text-sm mb-6" style="color: hsl(var(--muted-foreground));">
+        Asset (ambos modes): <code class="font-mono">/brand/vitalia-ico.png</code> — libélula multicolor funciona light + dark sin variant
+      </p>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+        <!-- sm mark -->
+        <div class="cell">
+          <img
+            src="assets/vitalia-ico.png"
+            alt="Vitalia"
+            style="height: 24px; width: 24px;"
+          />
+          <div class="text-center">
+            <div class="text-xs font-semibold">size='sm' · variant='mark'</div>
+            <div class="label mt-1">24×24px (1:1)</div>
+          </div>
+        </div>
+
+        <!-- md mark -->
+        <div class="cell">
+          <img
+            src="assets/vitalia-ico.png"
+            alt="Vitalia"
+            style="height: 32px; width: 32px;"
+          />
+          <div class="text-center">
+            <div class="text-xs font-semibold">size='md' · variant='mark'</div>
+            <div class="label mt-1">32×32px (1:1)</div>
+          </div>
+        </div>
+
+        <!-- lg mark -->
+        <div class="cell">
+          <img
+            src="assets/vitalia-ico.png"
+            alt="Vitalia"
+            style="height: 40px; width: 40px;"
+          />
+          <div class="text-center">
+            <div class="text-xs font-semibold">size='lg' · variant='mark'</div>
+            <div class="label mt-1">40×40px (1:1)</div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Section: spec details -->
+    <section class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-12">
+
+      <!-- Contrato técnico -->
+      <div class="cell" style="align-items: stretch; min-height: auto;">
+        <h3 class="text-sm font-semibold w-full">Contrato técnico</h3>
+        <dl class="space-y-2 text-sm w-full">
+          <div class="flex gap-2">
+            <dt class="font-medium" style="min-width: 7rem;">Component:</dt>
+            <dd class="font-mono text-xs" style="color: hsl(var(--muted-foreground));">LogoMark.tsx</dd>
+          </div>
+          <div class="flex gap-2">
+            <dt class="font-medium" style="min-width: 7rem;">Path:</dt>
+            <dd class="font-mono text-xs" style="color: hsl(var(--muted-foreground));">components/shared/shell-organism/</dd>
+          </div>
+          <div class="flex gap-2">
+            <dt class="font-medium" style="min-width: 7rem;">Props:</dt>
+            <dd class="font-mono text-xs" style="color: hsl(var(--muted-foreground));">size · variant · href · className</dd>
+          </div>
+          <div class="flex gap-2">
+            <dt class="font-medium" style="min-width: 7rem;">Defaults:</dt>
+            <dd class="font-mono text-xs" style="color: hsl(var(--muted-foreground));">size='md' · variant='full' · href='/'</dd>
+          </div>
+          <div class="flex gap-2">
+            <dt class="font-medium" style="min-width: 7rem;">Renderer:</dt>
+            <dd class="font-mono text-xs" style="color: hsl(var(--muted-foreground));">Next.js Image (auto WebP/AVIF)</dd>
+          </div>
+          <div class="flex gap-2">
+            <dt class="font-medium" style="min-width: 7rem;">Wrap:</dt>
+            <dd class="font-mono text-xs" style="color: hsl(var(--muted-foreground));">&lt;a href href aria-label="Vitalia inicio"&gt;</dd>
+          </div>
+          <div class="flex gap-2">
+            <dt class="font-medium" style="min-width: 7rem;">Server cmp:</dt>
+            <dd class="font-mono text-xs" style="color: hsl(var(--muted-foreground));">yes (sin 'use client')</dd>
+          </div>
+        </dl>
+      </div>
+
+      <!-- Assets + dark mode -->
+      <div class="cell" style="align-items: stretch; min-height: auto;">
+        <h3 class="text-sm font-semibold w-full">Assets + dark mode (D5 + D6)</h3>
+        <ul class="space-y-2 text-sm w-full">
+          <li class="flex gap-2">
+            <span class="font-medium" style="min-width: 7rem;">vitalia-ico.png:</span>
+            <span class="text-xs" style="color: hsl(var(--muted-foreground));">libélula multicolor — works both modes</span>
+          </li>
+          <li class="flex gap-2">
+            <span class="font-medium" style="min-width: 7rem;">vitalia-logo.png:</span>
+            <span class="text-xs" style="color: hsl(var(--muted-foreground));">libélula + wordmark VITALIA navy — light mode</span>
+          </li>
+          <li class="flex gap-2">
+            <span class="font-medium" style="min-width: 7rem;">vitalia-logo-dark.png:</span>
+            <span class="text-xs font-semibold" style="color: hsl(var(--primary));">PENDING Chris entrega · wordmark white/cyan</span>
+          </li>
+          <li class="flex gap-2">
+            <span class="font-medium" style="min-width: 7rem;">Public path:</span>
+            <span class="font-mono text-xs" style="color: hsl(var(--muted-foreground));">vitalia/frontend/public/brand/</span>
+          </li>
+          <li class="flex gap-2">
+            <span class="font-medium" style="min-width: 7rem;">Format:</span>
+            <span class="text-xs" style="color: hsl(var(--muted-foreground));">PNG ahora · SVG roadmap (D5)</span>
+          </li>
+          <li class="flex gap-2">
+            <span class="font-medium" style="min-width: 7rem;">Aspect mark:</span>
+            <span class="font-mono text-xs" style="color: hsl(var(--muted-foreground));">~1:1 (cuadrado)</span>
+          </li>
+          <li class="flex gap-2">
+            <span class="font-medium" style="min-width: 7rem;">Aspect full:</span>
+            <span class="font-mono text-xs" style="color: hsl(var(--muted-foreground));">~3:1 (libélula + wordmark)</span>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Section: footer notes -->
+    <section class="cell" style="background: hsl(var(--muted)); align-items: stretch; min-height: auto;">
+      <h3 class="text-sm font-semibold">Notas mockup</h3>
+      <ul class="text-sm space-y-1 list-disc list-inside" style="color: hsl(var(--muted-foreground));">
+        <li>Mockup usa los assets PNG REALES copiados a <code class="font-mono">mockups/assets/</code> (mismo binary que va a <code class="font-mono">public/brand/</code> en frontend)</li>
+        <li>Implementación real usa <code class="font-mono">&lt;Image&gt;</code> de Next.js con <code class="font-mono">priority</code> (TopBar siempre visible above-fold)</li>
+        <li>Width <code class="font-mono">auto</code> preserva aspect ratio del asset original; height fija per size</li>
+        <li>Dark mode swap: doble <code class="font-mono">&lt;Image&gt;</code> con CSS <code class="font-mono">block dark:hidden</code> / <code class="font-mono">hidden dark:block</code></li>
+        <li>D6 wordmark dark pendiente entrega Chris (interim fallback: forzar variant='mark' en dark si asset no llega)</li>
+        <li>variant='mark' (libélula sola): mismo asset light + dark (libélula multicolor visible ambos modes)</li>
+      </ul>
+    </section>
+
+  </main>
+
+  <!-- ─── Footer ─────────────────────────────────────────── -->
+  <footer class="border-t mt-12" style="border-color: hsl(var(--border));">
+    <div class="max-w-6xl mx-auto px-6 py-4 text-xs" style="color: hsl(var(--muted-foreground));">
+      Mockup per <code class="font-mono">vitalia/.claude/rules/shell-mockup-per-component.md</code> ·
+      story <code class="font-mono">vitalia-fase1-topbar-global</code> · v1.1 (assets reales)
+    </div>
+  </footer>
+
+  <script>
+    document.documentElement.setAttribute('data-theme', 'light')
+    function toggleTheme() {
+      const root = document.documentElement
+      const isDark = root.getAttribute('data-theme') === 'dark'
+      root.setAttribute('data-theme', isDark ? 'light' : 'dark')
+      document.getElementById('theme-icon').textContent = isDark ? '🌙' : '☀️'
+      document.getElementById('theme-label').textContent = isDark ? 'Dark mode' : 'Light mode'
+    }
+  </script>
+</body>
+</html>

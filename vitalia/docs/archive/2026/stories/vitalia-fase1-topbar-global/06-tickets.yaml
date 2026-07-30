@@ -1,0 +1,508 @@
+# vitalia/docs/product/stories/vitalia-fase1-topbar-global/06-tickets.yaml
+# Schema: v4.1 cement 2026-05-19
+# Story: F1-S2 vitalia-fase1-topbar-global
+# Total: 8 tickets · 7h estimado · ZERO Opus (FE no-agentic)
+
+story_id: vitalia-fase1-topbar-global
+brand: vitalia
+sprint: F1-S2
+generated_at: 2026-05-22T20:30:00-05:00
+generated_by: /architect (directo en /pm-vitalia post sub-agent flaky)
+schema_version: v4.1
+total_tickets: 8
+estimated_total_hours: 7
+
+summary:
+  # owner_eligibility: [qwen-opencode, claude-sonnet] for ALL — story FE no-agentic, ZERO Opus
+  rationale_no_opus: "Story FE-only no-agentic. ZERO agentic production_code:true. Sonnet/opencode ejecuta T-1..T-8 contra validators."
+  opus_tickets: 0
+  ticket_order_dag: "T-1 → T-{2,3} → T-4 → T-{5,6} → T-7 → T-8"
+
+  - id: T-1
+    title: "fe-brand-assets-verify — Verify 3 PNG present in public/brand/"
+    surface: frontend
+    owner_pool: [qwen-opencode, claude-sonnet]
+    state: ready
+    blocks: [T-2, T-3]
+    depends_on: []
+
+  - id: T-2
+    title: "fe-logo-mark-component — LogoMark.tsx átomo + test (6 combinations)"
+    surface: frontend
+    owner_pool: [qwen-opencode, claude-sonnet]
+    state: ready
+    blocks: [T-4, T-6]
+    depends_on: [T-1]
+
+  - id: T-3
+    title: "fe-tenant-switcher-slot — TenantSwitcherSlot.tsx placeholder (returns null)"
+    surface: frontend
+    owner_pool: [qwen-opencode, claude-sonnet]
+    state: ready
+    blocks: [T-4]
+    depends_on: [T-1]
+
+  - id: T-4
+    title: "fe-topbar-global-component — TopBarGlobal.tsx organismo + test (compose children)"
+    surface: frontend
+    owner_pool: [qwen-opencode, claude-sonnet]
+    state: ready
+    blocks: [T-5, T-6, T-7]
+    depends_on: [T-2, T-3]
+
+  - id: T-5
+    title: "fe-layout-skip-link — MODIFY layout.tsx (skip link + main#main-content)"
+    surface: frontend
+    owner_pool: [qwen-opencode, claude-sonnet]
+    state: ready
+    blocks: [T-7]
+    depends_on: [T-4]
+
+  - id: T-6
+    title: "fe-test-pages — topbar-showcase.tsx + logo-mark-showcase.tsx"
+    surface: frontend
+    owner_pool: [qwen-opencode, claude-sonnet]
+    state: ready
+    blocks: [T-7]
+    depends_on: [T-2, T-4]
+
+  - id: T-7
+    title: "fe-playwright-specs-3 — regression + visual baseline (6 goldens) + a11y"
+    surface: frontend
+    owner_pool: [qwen-opencode, claude-sonnet]
+    state: ready
+    blocks: [T-8]
+    depends_on: [T-5, T-6]
+
+  - id: T-8
+    title: "verify-regression-build — Production build + regression F1-S0 + F1-S1 goldens"
+    surface: frontend
+    owner_pool: [qwen-opencode, claude-sonnet]
+    state: ready
+    blocks: []
+    depends_on: [T-1, T-2, T-3, T-4, T-5, T-6, T-7]
+
+# ── Detalle por ticket ─────────────────
+
+tickets:
+
+  - id: T-1
+    title: "fe-brand-assets-verify — Verify 3 PNG present in public/brand/"
+    state: ready
+    surface: frontend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    claude_opus_required: false
+    production_code: true  # assets committed pre-implementation
+    estimated_hours: 0.25
+    depends_on: []
+    blocks: [T-2, T-3]
+    acceptance:
+      validator_ids: [fe_brand_assets_present]
+    gherkin_coverage:
+      - scenario: "AC-2b assets committed pre-implementation"
+        tests: [fe_brand_assets_present]
+    description: |
+      Pre-step verification — los 3 PNG brand assets DEBEN existir en
+      `vitalia/frontend/public/brand/` antes de implementar componentes:
+        - vitalia-ico.png (~156KB, libélula multicolor)
+        - vitalia-logo.png (~107KB, libélula + wordmark VITALIA navy)
+        - vitalia-logo-dark.png (~93KB, libélula + wordmark VITALIA white)
+      Assets ya fueron copiados durante /po-ux F1-S2 refining 2026-05-22.
+      Si missing → STOP escalate Chris (NO copiar de nuevo desde
+      ~/Trabajo/Vitalia/ — el copy debe quedar versionado en repo).
+    notes_for_downstream: |
+      Validator fe_brand_assets_present hace test -f sobre los 3 paths.
+      Si falla → asumir que los assets se perdieron en algún git operation
+      desde refining — verificar git log + restore desde refining commit.
+
+  - id: T-2
+    title: "fe-logo-mark-component — LogoMark.tsx átomo (6 combinations)"
+    state: ready
+    surface: frontend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    claude_opus_required: false
+    production_code: true
+    estimated_hours: 1.5
+    depends_on: [T-1]
+    blocks: [T-4, T-6]
+    acceptance:
+      validator_ids:
+        - fe_typecheck
+        - fe_lint
+        - fe_logo_mark_next_image_grep
+        - fe_no_default_exports_grep
+        - fe_no_any_typescript_grep
+        - fe_vitest_existing_regression
+    gherkin_coverage:
+      - scenario: "Scenario 4 — logo-mark variants grid"
+        tests: [fe_vitest_existing_regression, fe_logo_mark_next_image_grep]
+    files_in_scope:
+      - vitalia/frontend/src/components/shared/shell-organism/LogoMark.tsx (NEW)
+      - vitalia/frontend/src/components/shared/shell-organism/LogoMark.test.tsx (NEW)
+    description: |
+      Crear LogoMark átomo per 03-arch.md § 2.2 verbatim pattern:
+        - Server component (NO 'use client')
+        - import Image from 'next/image'
+        - import { cn } from '@/lib/utils'
+        - 6 combinations (3 sizes × 2 variants)
+        - heights = { sm: 24, md: 32, lg: 40 }
+        - aspectRatios = { full: 3, mark: 1 }
+        - assetSrc map { full: {light, dark}, mark: {light, dark} }
+        - Doble <Image> con className "block dark:hidden" / "hidden dark:block"
+        - priority prop (above-fold)
+        - Wrap <a href={href} aria-label="Vitalia inicio">
+        - Default props: size='md', variant='full', href='/'
+        - Named export `export function LogoMark()`
+      Vitest unit LogoMark.test.tsx:
+        - Render cada combination
+        - Assert dimensions (heights × aspectRatios computado)
+        - Assert aria-label "Vitalia inicio"
+        - Assert href default `/`
+        - Assert Image src correcto por variant
+    notes_for_downstream: |
+      TopBarGlobal (T-4) reusa este componente con responsive CSS swap
+      (2 instancias: hidden md:inline-flex / inline-flex md:hidden).
+      F1-S5+ (Valeria rail) puede reusar con variant='mark' size='sm'.
+
+  - id: T-3
+    title: "fe-tenant-switcher-slot — TenantSwitcherSlot.tsx placeholder"
+    state: ready
+    surface: frontend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    claude_opus_required: false
+    production_code: true
+    estimated_hours: 0.25
+    depends_on: [T-1]
+    blocks: [T-4]
+    acceptance:
+      validator_ids: [fe_typecheck, fe_lint, fe_no_default_exports_grep]
+    gherkin_coverage:
+      - scenario: "Cross-cutting — F1-S3 drop-in compatible"
+        tests: [fe_typecheck]
+    files_in_scope:
+      - vitalia/frontend/src/components/shared/shell-organism/TenantSwitcherSlot.tsx (NEW)
+      - vitalia/frontend/src/components/shared/shell-organism/TenantSwitcherSlot.test.tsx (NEW · vitest unit assert returns null)
+    description: |
+      Crear placeholder per 03-arch.md § 2.4:
+        - Server component (NO 'use client')
+        - return null
+        - TODO comment apunta F1-S3 vitalia-fase1-tenant-switcher
+        - Named export `export function TenantSwitcherSlot()`
+      Vitest unit assert componente returns null (no DOM element).
+    notes_for_downstream: |
+      F1-S3 reemplaza el body con <TenantSwitcher /> sin tocar
+      TopBarGlobal.tsx (drop-in pattern). Esta línea import + JSX en
+      TopBarGlobal queda lista para el swap.
+
+  - id: T-4
+    title: "fe-topbar-global-component — TopBarGlobal.tsx organismo"
+    state: ready
+    surface: frontend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    claude_opus_required: false
+    production_code: true
+    estimated_hours: 1
+    depends_on: [T-2, T-3]
+    blocks: [T-5, T-6, T-7]
+    acceptance:
+      validator_ids:
+        - fe_typecheck
+        - fe_lint
+        - fe_format
+        - fe_topbar_role_banner_grep
+        - fe_no_default_exports_grep
+        - fe_vitest_existing_regression
+    gherkin_coverage:
+      - scenario: "Scenario 1 — happy render desktop"
+        tests: [fe_topbar_role_banner_grep, fe_vitest_existing_regression]
+      - scenario: "Scenario 2 — happy responsive mobile"
+        tests: [fe_vitest_existing_regression]
+    files_in_scope:
+      - vitalia/frontend/src/components/shared/shell-organism/TopBarGlobal.tsx (NEW)
+      - vitalia/frontend/src/components/shared/shell-organism/TopBarGlobal.test.tsx (NEW)
+    description: |
+      Crear organismo per 03-arch.md § 2.3 verbatim pattern:
+        - Server component
+        - <header role="banner" data-testid="topbar-global">
+        - className "h-12 border-b border-border bg-background flex items-center justify-between px-5 relative z-50"
+        - Izquierda: 2 LogoMark instances responsive
+          * variant="full" className="hidden md:inline-flex"
+          * variant="mark" className="inline-flex md:hidden"
+        - Derecha: <div className="flex items-center gap-2">
+          * <ThemeToggle /> (import desde F1-S1 path)
+          * <TenantSwitcherSlot />
+        - Named export `export function TopBarGlobal()`
+      Vitest unit:
+        - Assert role="banner" present
+        - Assert data-testid="topbar-global"
+        - Assert composición children (2 LogoMark + ThemeToggle + TenantSwitcherSlot)
+        - Assert classes Tailwind correctas (h-12, border-b, bg-background, etc.)
+    notes_for_downstream: |
+      NO modificar ThemeToggle.tsx (F1-S1 — solo import + reuse).
+      LogoMark responsive via 2 instancias CSS swap (SSR-safe), NO
+      conditional render JS basado en viewport detection.
+
+  - id: T-5
+    title: "fe-layout-skip-link — MODIFY layout.tsx (skip link a11y)"
+    state: ready
+    surface: frontend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    claude_opus_required: false
+    production_code: true
+    estimated_hours: 0.5
+    depends_on: [T-4]
+    blocks: [T-7]
+    acceptance:
+      validator_ids:
+        - fe_typecheck
+        - fe_lint
+        - fe_skip_link_present_grep
+        - fe_main_content_id_present_grep
+        - fe_build_production
+    gherkin_coverage:
+      - scenario: "Scenario 5 — accessibility skip link"
+        tests: [fe_skip_link_present_grep, fe_main_content_id_present_grep]
+    files_in_scope:
+      - vitalia/frontend/src/app/layout.tsx (MODIFY)
+      - vitalia/frontend/src/app/[tenantId]/(shell-organism)/layout.tsx (MODIFY si existe, o crear main#main-content wrapper)
+    description: |
+      MODIFY layout.tsx para agregar skip link ANTES de {children}:
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:absolute focus:top-0 focus:left-0 focus:z-[200] focus:p-2 focus:bg-primary focus:text-primary-foreground"
+        >
+          Saltar al contenido
+        </a>
+      Verificar que el main wrapper tiene id="main-content". Si no existe:
+        - Si (shell-organism)/layout.tsx existe → agregar id allí
+        - Si NO existe → crear main wrapper en root layout
+        <main id="main-content">{children}</main>
+      Constraints:
+        - NO romper ThemeProvider wrap de F1-S1
+        - NO romper suppressHydrationWarning en <html>
+        - Skip link styling consume bg-primary text-primary-foreground (F1-S1 vars)
+    notes_for_downstream: |
+      Skip link Tab nav verifica con a11y_skip_link_keyboard (T-7).
+      Si layout.tsx tiene complejidad cross-cutting (locale switching,
+      Clerk wrap, etc.) — preservar wraps + agregar skip link sin breaking.
+
+  - id: T-6
+    title: "fe-test-pages — topbar-showcase.tsx + logo-mark-showcase.tsx"
+    state: ready
+    surface: frontend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    claude_opus_required: false
+    production_code: true  # touches e2e runtime fixtures
+    estimated_hours: 0.75
+    depends_on: [T-2, T-4]
+    blocks: [T-7]
+    acceptance:
+      validator_ids: [fe_typecheck, fe_lint]
+    gherkin_coverage:
+      - scenario: "Cross-cutting — Playwright fixtures preparados para goldens"
+        tests: [fe_typecheck]
+    files_in_scope:
+      - vitalia/frontend/e2e/__test-pages__/topbar-global/topbar-showcase.tsx (NEW)
+      - vitalia/frontend/e2e/__test-pages__/topbar-global/logo-mark-showcase.tsx (NEW)
+    description: |
+      Crear 2 test pages Playwright fixtures:
+
+      topbar-showcase.tsx:
+        - Renderiza <TopBarGlobal /> en página full
+        - Dummy main content con id="main-content"
+        - Text placeholder "F1-S2 mockup main"
+
+      logo-mark-showcase.tsx:
+        - Grid 3×2 (6 LogoMark combinations)
+        - Card centrada con padding controlado
+        - Cada cell label inferior "sm · full", "md · full" (default), etc.
+
+      Ambos consumed por Playwright @project=visual (T-7) para goldens.
+    notes_for_downstream: |
+      Routing: estos test pages NO son rutas Next.js prod. Playwright los
+      monta via page.goto con file:// o test server local.
+      Pattern heredado de F1-S0 e2e/__test-pages__/stack-stability/.
+
+  - id: T-7
+    title: "fe-playwright-specs-3 — regression + visual baseline + a11y"
+    state: ready
+    surface: frontend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    claude_opus_required: false
+    production_code: true  # touches e2e + commits __screenshots__/ PNGs
+    estimated_hours: 2
+    depends_on: [T-5, T-6]
+    blocks: [T-8]
+    acceptance:
+      validator_ids:
+        - fe_e2e_topbar_interaction
+        - visual_topbar_light_desktop
+        - visual_topbar_dark_desktop
+        - visual_topbar_light_mobile
+        - visual_topbar_dark_mobile
+        - visual_logo_mark_grid_light
+        - visual_logo_mark_grid_dark
+        - a11y_topbar_axe
+        - a11y_skip_link_keyboard
+        - a11y_logo_mark_aria_label
+        - a11y_banner_landmark
+    gherkin_coverage:
+      - scenario: "Scenario 1 — happy render desktop"
+        tests: [visual_topbar_light_desktop, fe_e2e_topbar_interaction]
+      - scenario: "Scenario 2 — happy mobile responsive"
+        tests: [visual_topbar_light_mobile, visual_topbar_dark_mobile]
+      - scenario: "Scenario 3 — theme switch"
+        tests: [visual_topbar_dark_desktop, fe_e2e_topbar_interaction]
+      - scenario: "Scenario 4 — logo-mark grid"
+        tests: [visual_logo_mark_grid_light, visual_logo_mark_grid_dark]
+      - scenario: "Scenario 5 — a11y skip link"
+        tests: [a11y_skip_link_keyboard, a11y_topbar_axe]
+      - scenario: "Scenario 6 — a11y banner landmark"
+        tests: [a11y_banner_landmark, a11y_topbar_axe]
+      - scenario: "Scenario 7 — i18n microcopy"
+        tests: [a11y_logo_mark_aria_label, fe_e2e_topbar_interaction]
+    files_in_scope:
+      - vitalia/frontend/e2e/regression/topbar-global/topbar-interaction.spec.ts (NEW)
+      - vitalia/frontend/e2e/visual/topbar-global/topbar.spec.ts (NEW)
+      - vitalia/frontend/e2e/visual/topbar-global/logo-mark.spec.ts (NEW)
+      - vitalia/frontend/e2e/a11y/topbar-global/topbar.spec.ts (NEW)
+      - vitalia/frontend/e2e/__screenshots__/topbar-global/*.png (NEW 6 goldens)
+    description: |
+      3 Playwright specs + 6 visual goldens:
+
+      regression/topbar-global/topbar-interaction.spec.ts:
+        - Tab nav skip link visible + Enter jump a #main-content
+        - ThemeToggle click integration (theme swap + LogoMark asset swap)
+        - Viewport resize 375 vs 1440 (responsive LogoMark variant switch)
+        - aria-label "Vitalia inicio" assertion
+        - aria-label "Saltar al contenido" assertion
+
+      visual/topbar-global/topbar.spec.ts (@project=visual):
+        - 4 goldens TopBar (light/dark × desktop/mobile)
+        - maxDiffPixelRatio 0.001 (heredado F1-S0 config)
+        - animations disabled · caret hide
+
+      visual/topbar-global/logo-mark.spec.ts (@project=visual):
+        - 2 goldens LogoMark grid (light/dark × 6 combinations)
+
+      a11y/topbar-global/topbar.spec.ts:
+        - @axe-core/playwright WCAG 2.1 AA scan
+        - Keyboard nav (Tab/Enter/Shift+Tab)
+        - Banner landmark assertion
+        - LogoMark aria-label assertion
+
+      Goldens generation:
+        npx playwright test --project=visual --grep "topbar-global" --update-snapshots
+        # Chris ratify visual diff humano ANTES commit goldens
+    notes_for_downstream: |
+      Goldens commit PNG binary — verify peso razonable (<200KB each).
+      Si flaky: aumentar maxDiffPixelRatio solo para hover/focus snapshots
+      (no para idle states).
+      A11y axe scan strict ruleset — si violations: documentar + fix
+      antes T-8 build verify.
+
+  - id: T-8
+    title: "verify-regression-build — Production build + regression F1-S0+F1-S1"
+    state: ready
+    surface: frontend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    claude_opus_required: false
+    production_code: false  # verify-only no code changes
+    estimated_hours: 0.75
+    depends_on: [T-1, T-2, T-3, T-4, T-5, T-6, T-7]
+    blocks: []
+    acceptance:
+      validator_ids:
+        - fe_build_production
+        - fe_vitest_existing_regression
+        - fe_typecheck
+        - fe_lint
+        - fe_format
+        - visual_regression_f1s0_dashboard_light
+        - visual_regression_f1s0_dashboard_dark
+        - visual_regression_f1s1_theme_toggle_light
+        - visual_regression_f1s1_theme_toggle_dark
+        - visual_regression_f1s1_agent_tokens_swatch_light
+        - visual_regression_f1s1_agent_tokens_swatch_dark
+        - fe_no_vt_classes_in_new_features
+        - fe_no_cross_brand_imports_grep
+        - fe_no_default_exports_grep
+        - fe_no_any_typescript_grep
+        - fe_fsd_boundaries
+    gherkin_coverage:
+      - scenario: "Cross-cutting — F1-S2 additive sin romper visuales shipped"
+        tests:
+          - visual_regression_f1s0_dashboard_light
+          - visual_regression_f1s1_theme_toggle_light
+          - visual_regression_f1s1_agent_tokens_swatch_light
+    files_in_scope: []  # verify-only, no code
+    description: |
+      Final verification que F1-S2 es ADDITIVE — no rompe nada shipped:
+
+      1. npm run build exit 0 (catchea CSS vars faltantes / FOUC / imports)
+      2. Vitest existing regression GREEN (tests F1-S0 + F1-S1 + nuevos F1-S2)
+      3. tsc --noEmit 0 errors
+      4. eslint --max-warnings 0
+      5. prettier --check pass
+      6. Visual regression goldens:
+         - F1-S0: dashboard-legacy-light + dashboard-legacy-dark
+         - F1-S1: theme-toggle-light + theme-toggle-dark
+         - F1-S1: agent-tokens-swatch-light + agent-tokens-swatch-dark
+         TODOS deben seguir GREEN < 0.1% diff
+      7. Arch fitness:
+         - test-no-vt-classes-in-new-features GREEN
+         - FSD-Lite boundaries GREEN
+         - No cross-brand imports
+         - No default exports en files NEW
+         - No any TypeScript en files NEW
+      8. Browser visual: make dev-vitalia + http://localhost:3002
+         Confirmar TopBar renderiza correctamente light + dark
+    notes_for_downstream: |
+      Si regression goldens fallan → indica que F1-S2 changes
+      colateralmente afectaron (dashboard)/ legacy o componentes F1-S1.
+      Common causes:
+        - layout.tsx skip link aplicó CSS que afecta otros components
+        - main wrapper #main-content cambió DOM structure que afecta selectors
+        - ThemeProvider props modificados accidentalmente
+      Diagnose: git diff F1-S2 changes + manually compare visual.
+      F1-S2 closure gate: AUTO-HANDOFF /auditor cuando TODOS validators GREEN.
+
+# ── DAG verification ────────────────────
+
+dag_topological_order:
+  - T-1
+  - [T-2, T-3]      # parallel
+  - T-4
+  - [T-5, T-6]      # parallel
+  - T-7
+  - T-8
+
+dag_acyclic: true
+critical_path: "T-1 → T-2 → T-4 → T-7 → T-8 (5.5h sequential)"
+
+# ── Owner mix ───────────────────────────
+
+owner_mix:
+  sonnet_qwen_tickets: 8        # ALL — story FE no-agentic
+  opus_tickets: 0
+  rationale: "Story FE no-agentic. ZERO agentic production_code:true. R23 NO aplica. Sonnet/opencode ejecuta T-1..T-8."
+
+# ── Estimated hours summary ─────────────
+
+estimated_hours_breakdown:
+  T-1: 0.25  # assets verify
+  T-2: 1.5   # LogoMark component
+  T-3: 0.25  # TenantSwitcherSlot placeholder
+  T-4: 1     # TopBarGlobal organism
+  T-5: 0.5   # layout.tsx skip link
+  T-6: 0.75  # test pages
+  T-7: 2     # 3 Playwright specs + 6 goldens
+  T-8: 0.75  # verify build + regression
+  total: 7
+
+# ── Story closure gate ────────────────
+
+closure_gate:
+  state_transition_developed_to_reviewing: "AUTO-HANDOFF /auditor (default, post 2026-05-18 rule story-closure-gate)"
+  state_transition_reviewing_to_done: "AUTO-HANDOFF /pm-vitalia merge (post APPROVED + CHECKPOINTS C1-C5)"
+  defer_audit_allowed: false  # F1-S2 critical blocker hard F1-S4 — no defer

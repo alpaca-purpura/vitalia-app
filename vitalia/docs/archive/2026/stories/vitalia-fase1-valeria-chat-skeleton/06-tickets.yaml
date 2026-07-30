@@ -1,0 +1,639 @@
+# F1-S6 vitalia-fase1-valeria-chat-skeleton — work units atómicos
+#
+# 9 tickets · ZERO Opus (FE no-agentic puro). R23 production_code true T-1..T-6, false T-7..T-9 (tests/POM/fixtures only).
+# Cada ticket cita validator_ids + gherkin_coverage explícito (★ v4.1 mandatory post 2026-05-18).
+# Sequence: catalog+token foundation → store+mock → átomos/moléculas low-level → composer → organism+messages → integration MODIFY+cleanup → Playwright POM+fixtures → behavior specs → visual+a11y+i18n.
+#
+# Builders: builder-frontend (Sonnet/opencode/qwen).
+# Auditor: auditor-frontend (Opus).
+# R23 NO aplica (no AGENTIC).
+
+story_id: vitalia-fase1-valeria-chat-skeleton
+brand: vitalia
+phase: fase-1
+last_modified: 2026-05-24
+architect_iter: 1
+total_tickets: 9
+parallelizable: true   # T-3 + T-4 paralelo (no comparten files); T-1 + T-2 paralelo (data layer independent)
+opus_tickets: 0        # ZERO Opus (FE no-agentic puro)
+sonnet_tickets: 9      # opencode/sonnet/qwen permitidos
+
+tickets:
+
+  # ──────────────────────────────────────────────────────────────
+  # T-1 — agent-catalog + globals.css token gap + typing-dot keyframes
+  # ──────────────────────────────────────────────────────────────
+  - id: T-1
+    title: "agent-catalog.ts SSoT 6 agentes + globals.css MODIFY (--agent-mateo-soft light+dark + .typing-dot keyframes)"
+    state: audit-passed
+    push_commit_sha: c2ba2b89
+    transitions:
+      - from: ready
+        to: pushed
+        at: "2026-05-24T19:54:00-05:00"
+        by: builder-frontend (claude-sonnet-4-6)
+      - from: pushed
+        to: audit-passed
+        at: "2026-05-25T02:40:00-05:00"
+        by: auditor-frontend (story-level consolidated APPROVED)
+    surface: frontend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: true
+    estimated_loc: 120
+    estimated_hours: 1.5
+    files:
+      new:
+        - vitalia/frontend/src/lib/agent-catalog.ts
+        - vitalia/frontend/src/lib/__tests__/agent-catalog.test.ts
+      modify:
+        - vitalia/frontend/src/app/globals.css
+        - vitalia/frontend/tailwind.config.ts   # solo si entries mateo + mateo-soft faltan (verify primero)
+      delete: []
+    depends_on: []
+    acceptance:
+      validator_ids: [val-fe-tsc, val-fe-lint, val-fe-prettier, val-fe-vitest-unit, val-fe-arch-fsd, val-fe-arch-no-hex]
+    gherkin_coverage:
+      - scenario: "SC-1 happy · ChatHeader visible con avatar Valeria (foundation catalog)"
+        tests:
+          - "vitalia/frontend/src/lib/__tests__/agent-catalog.test.ts::AGENT_CATALOG contains 6 agentes (lisa, valeria, adrian, lucas, camila, mateo)"
+          - "vitalia/frontend/src/lib/__tests__/agent-catalog.test.ts::DEFAULT_CHAT_AGENT equals 'valeria'"
+          - "vitalia/frontend/src/lib/__tests__/agent-catalog.test.ts::each agent shape complete (slug/name/role/colorToken/colorSoftToken/hex/thumbnail/transparent/initial)"
+          - "vitalia/frontend/src/lib/__tests__/agent-catalog.test.ts::AGENT_SLUGS array has 6 entries matching catalog keys"
+          - "vitalia/frontend/src/lib/__tests__/agent-catalog.test.ts::valeria.hex equals '#7b2d91' (metadata only — not consumed by Tailwind)"
+          - "vitalia/frontend/src/lib/__tests__/agent-catalog.test.ts::thumbnail paths match /agents/{slug}/thumbnail.png"
+          - "vitalia/frontend/src/lib/__tests__/agent-catalog.test.ts::adrian.transparent ends with .jpeg (source originals — verbatim spec § 5.2)"
+      - scenario: "(infrastructure) CSS tokens completos 6 agentes"
+        tests:
+          - "manual verify via grep: globals.css contains --agent-mateo-soft light + dark"
+          - "manual verify via grep: globals.css contains @keyframes typing-dot + .typing-dot rule + nth-child delays"
+    spec_anchor: "01-spec.md § 0 D9 + § 5.1 Agent catalog · 03-arch.md § 2.4 + § 2.7 globals.css MODIFY"
+
+  # ──────────────────────────────────────────────────────────────
+  # T-2 — chat-store + _mock-messages (depende T-1 type AgentSlug)
+  # ──────────────────────────────────────────────────────────────
+  - id: T-2
+    title: "chat-store.ts zustand + _mock-messages.ts: 6 MOCK_MESSAGES + 4 MOCK_RESPONSES Valeria canned"
+    state: audit-passed
+    push_commit_sha: 76eaa919
+    transitions:
+      - from: ready
+        to: pushed
+        at: "2026-05-25T20:07:28-05:00"
+        by: builder-frontend (claude-sonnet-4-6)
+      - from: pushed
+        to: audit-passed
+        at: "2026-05-25T02:40:00-05:00"
+        by: auditor-frontend (story-level consolidated APPROVED)
+    surface: frontend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: true
+    estimated_loc: 180
+    estimated_hours: 2
+    files:
+      new:
+        - vitalia/frontend/src/stores/chat-store.ts
+        - vitalia/frontend/src/stores/__tests__/chat-store.test.ts
+        - vitalia/frontend/src/components/shared/shell-organism/_mock-messages.ts
+      modify: []
+      delete: []
+    depends_on: [T-1]
+    acceptance:
+      validator_ids: [val-fe-tsc, val-fe-lint, val-fe-prettier, val-fe-vitest-unit, val-fe-arch-fsd, val-fe-arch-no-voseo]
+    gherkin_coverage:
+      - scenario: "SC-1 happy · 6 mensajes mock orden correcto (foundation state)"
+        tests:
+          - "vitalia/frontend/src/stores/__tests__/chat-store.test.ts::initial state messages=MOCK_MESSAGES (6 items) + activeAgent='valeria' + status='idle'"
+          - "vitalia/frontend/src/stores/__tests__/chat-store.test.ts::MOCK_MESSAGES order: bot(valeria) → user → delegate → bot(camila) → user → thinking(camila)"
+          - "vitalia/frontend/src/stores/__tests__/chat-store.test.ts::MOCK_MESSAGES IDs stable '1'..'6' (deterministic for snapshots)"
+      - scenario: "SC-2 happy · send mock message flow (user + 800ms thinking + canned bot)"
+        tests:
+          - "vitalia/frontend/src/stores/__tests__/chat-store.test.ts::sendMessage('test') pushes user message + thinking message + sets status='thinking'"
+          - "vitalia/frontend/src/stores/__tests__/chat-store.test.ts::after 800ms (vi.advanceTimersByTime) thinking removed + bot canned reply added + status='idle'"
+          - "vitalia/frontend/src/stores/__tests__/chat-store.test.ts::MOCK_RESPONSES rotativo deterministic (count % len) per activeAgent"
+          - "vitalia/frontend/src/stores/__tests__/chat-store.test.ts::time format 'HH:MM' via toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })"
+      - scenario: "(idempotency) status='thinking' guard bloquea concurrent sends"
+        tests:
+          - "vitalia/frontend/src/stores/__tests__/chat-store.test.ts::sendMessage while status='thinking' no-op (idempotency)"
+          - "vitalia/frontend/src/stores/__tests__/chat-store.test.ts::sendMessage(empty string) no-op"
+          - "vitalia/frontend/src/stores/__tests__/chat-store.test.ts::sendMessage('   ') (whitespace) trimmed → no-op"
+      - scenario: "SC-5 empty_state · clearMessages resets"
+        tests:
+          - "vitalia/frontend/src/stores/__tests__/chat-store.test.ts::clearMessages sets messages=[] + status='idle'"
+      - scenario: "(future-prep) setActiveAgent API expuesto sin UI consumer F1-S6"
+        tests:
+          - "vitalia/frontend/src/stores/__tests__/chat-store.test.ts::setActiveAgent('camila') updates activeAgent (verified store API contract for future selector sub-story)"
+      - scenario: "SC-7 i18n · MOCK_MESSAGES + MOCK_RESPONSES Spanish neutro tuteo"
+        tests:
+          - "vitalia/frontend/src/stores/__tests__/chat-store.test.ts::MOCK_MESSAGES verbatim spec § 6 (tuteo: Tienes, abro, ábrela)"
+          - "vitalia/frontend/src/stores/__tests__/chat-store.test.ts::MOCK_RESPONSES verbatim spec § 8 (no voseo)"
+    spec_anchor: "01-spec.md § 0 D2+D6 + § 5.3 chatStore shape + § 5.4 sendMessage flow + § 5 MOCK_MESSAGES + § 8 MOCK_RESPONSES · 03-arch.md § 2.3 + § 2.6"
+
+  # ──────────────────────────────────────────────────────────────
+  # T-3 — Átomos+moléculas low-level: MessageBubble + ChatHeader + TypingIndicator + DelegateMarker
+  # ──────────────────────────────────────────────────────────────
+  - id: T-3
+    title: "MessageBubble + ChatHeader + TypingIndicator + DelegateMarker — átomos/moléculas low-level"
+    state: audit-passed
+    push_commit_sha: 76eaa919
+    transitions:
+      - from: ready
+        to: pushed
+        at: "2026-05-24T20:06:00-05:00"
+        by: builder-frontend (claude-sonnet-4-6)
+      - from: pushed
+        to: audit-passed
+        at: "2026-05-25T02:40:00-05:00"
+        by: auditor-frontend (story-level consolidated APPROVED)
+    surface: frontend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: true
+    estimated_loc: 280
+    estimated_hours: 3
+    files:
+      new:
+        - vitalia/frontend/src/components/shared/shell-organism/MessageBubble.tsx
+        - vitalia/frontend/src/components/shared/shell-organism/MessageBubble.test.tsx
+        - vitalia/frontend/src/components/shared/shell-organism/ChatHeader.tsx
+        - vitalia/frontend/src/components/shared/shell-organism/ChatHeader.test.tsx
+        - vitalia/frontend/src/components/shared/shell-organism/TypingIndicator.tsx
+        - vitalia/frontend/src/components/shared/shell-organism/DelegateMarker.tsx
+      modify: []
+      delete: []
+    depends_on: [T-1]   # consume AGENT_CATALOG + AgentSlug
+    acceptance:
+      validator_ids: [val-fe-tsc, val-fe-lint, val-fe-prettier, val-fe-vitest-unit, val-fe-arch-fsd, val-fe-arch-no-hex, val-fe-arch-no-voseo, val-fe-arch-no-vt, val-fe-arch-server-first]
+    gherkin_coverage:
+      - scenario: "SC-1 happy · ChatHeader visible con avatar + name + status + Mode Pill"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/ChatHeader.test.tsx::renders avatar img with thumbnail valeria + name 'Valeria' + status text 'En línea · Tu secretaria virtual'"
+          - "vitalia/frontend/src/components/shared/shell-organism/ChatHeader.test.tsx::Mode Pill data-testid='chat-mode-pill' renders '🤖 Modo agente'"
+          - "vitalia/frontend/src/components/shared/shell-organism/ChatHeader.test.tsx::status dot bg-vitalia-success aria-hidden='true' (decorative)"
+          - "vitalia/frontend/src/components/shared/shell-organism/ChatHeader.test.tsx::avatar div aria-hidden='true' (decorative)"
+          - "vitalia/frontend/src/components/shared/shell-organism/ChatHeader.test.tsx::custom agent prop renders catalog entry (e.g., agent='camila' shows Camila + role)"
+      - scenario: "SC-4 adversarial · avatar onError fallback initial letter"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/ChatHeader.test.tsx::onError triggered → renders initial letter 'V' in bg-agent-valeria circle (fallback)"
+      - scenario: "SC-1 happy · MessageBubble bot/user variants render correct"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/MessageBubble.test.tsx::bot bubble bg-card border-border + rounded-bl-sm + self-start + max-w-80%"
+          - "vitalia/frontend/src/components/shared/shell-organism/MessageBubble.test.tsx::user bubble bg-agent-valeria text-white + rounded-br-sm + self-end + max-w-80%"
+          - "vitalia/frontend/src/components/shared/shell-organism/MessageBubble.test.tsx::data-testid='msg-bubble' + data-role='bot'|'user' attrs"
+          - "vitalia/frontend/src/components/shared/shell-organism/MessageBubble.test.tsx::timestamp footer Valeria · 09:01 (bot) y solo time 09:02 (user)"
+          - "vitalia/frontend/src/components/shared/shell-organism/MessageBubble.test.tsx::Camila via Valeria footer 'Camila (via Valeria) · HH:MM' con thumbnail Camila"
+          - "vitalia/frontend/src/components/shared/shell-organism/MessageBubble.test.tsx::whitespace-pre-wrap preserva \\n en content (Shift+Enter newlines visibles)"
+      - scenario: "SC-4 adversarial · XSS guard JSX text-children auto-escape"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/MessageBubble.test.tsx::content with <script>alert('xss')</script> renders as escaped text literal (no actual <script> in DOM)"
+          - "vitalia/frontend/src/components/shared/shell-organism/MessageBubble.test.tsx::no dangerouslySetInnerHTML usage (grep verifies)"
+      - scenario: "(infrastructure) TypingIndicator + DelegateMarker shape verified via integration ValeriaChat.test.tsx (T-5)"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaChat.test.tsx::TypingIndicator renders bubble with text + 3 typing-dot spans"
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaChat.test.tsx::DelegateMarker renders 'delegando a Camila (modo Mantener)' italic centered"
+        note: "TypingIndicator + DelegateMarker átomos puros — covered en T-5 integration tests. tsc + ESLint smoke validation suffices."
+    spec_anchor: "01-spec.md § 0 D1+D5+D7 + § 2-3 ChatHeader/MessageBubble + § 6 microcopy + § 9 a11y · 03-arch.md § 2.5 sub-component contracts"
+
+  # ──────────────────────────────────────────────────────────────
+  # T-4 — ChatComposer (composer interactivo con sendMessage hook)
+  # ──────────────────────────────────────────────────────────────
+  - id: T-4
+    title: "ChatComposer molécula: Textarea auto-resize + 3 IconButton stubs + Send button + IME guard + Enter/Shift+Enter"
+    state: audit-passed
+    push_commit_sha: ef879cd1
+    transitions:
+      - from: ready
+        to: pushed
+        at: "2026-05-24T20:15:00-05:00"
+        by: builder-frontend (claude-sonnet-4-6)
+      - from: pushed
+        to: audit-passed
+        at: "2026-05-25T02:40:00-05:00"
+        by: auditor-frontend (story-level consolidated APPROVED)
+    surface: frontend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: true
+    estimated_loc: 180
+    estimated_hours: 2.5
+    files:
+      new:
+        - vitalia/frontend/src/components/shared/shell-organism/ChatComposer.tsx
+        - vitalia/frontend/src/components/shared/shell-organism/ChatComposer.test.tsx
+      modify: []
+      delete: []
+    depends_on: [T-2]   # consume useChatStore.sendMessage
+    acceptance:
+      validator_ids: [val-fe-tsc, val-fe-lint, val-fe-prettier, val-fe-vitest-unit, val-fe-arch-fsd, val-fe-arch-no-hex, val-fe-arch-no-voseo, val-fe-arch-no-vt, val-fe-arch-server-first]
+    gherkin_coverage:
+      - scenario: "SC-2 happy · Enter (no Shift) dispatches sendMessage + clears composer"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/ChatComposer.test.tsx::press Enter no Shift → sendMessage called with trimmed value + clears localValue"
+          - "vitalia/frontend/src/components/shared/shell-organism/ChatComposer.test.tsx::press Send button → identical behavior to Enter"
+          - "vitalia/frontend/src/components/shared/shell-organism/ChatComposer.test.tsx::Send button text 'Enviar' (Spanish neutro)"
+      - scenario: "SC-3 edge · Shift+Enter inserts newline (NO send)"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/ChatComposer.test.tsx::press Shift+Enter → newline inserted, sendMessage NOT called, value contains \\n"
+      - scenario: "(infrastructure) IME composition guard"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/ChatComposer.test.tsx::e.isComposing=true → press Enter skip handler (no send)"
+      - scenario: "(idempotency) status='thinking' bloquea second send"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/ChatComposer.test.tsx::sendMessage idempotent — Enter while status='thinking' no-op"
+      - scenario: "SC-1 happy · 3 IconButton stubs render con title 'próximamente' (NO disabled)"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/ChatComposer.test.tsx::renders 📎 button aria-label='Adjuntar archivo' title='Adjuntar (próximamente)' (no disabled)"
+          - "vitalia/frontend/src/components/shared/shell-organism/ChatComposer.test.tsx::renders 🎙️ button aria-label='Mensaje de voz' title='Voz (próximamente)'"
+          - "vitalia/frontend/src/components/shared/shell-organism/ChatComposer.test.tsx::renders ⚡ button aria-label='Comandos rápidos' title='Comandos (próximamente)'"
+          - "vitalia/frontend/src/components/shared/shell-organism/ChatComposer.test.tsx::emoji wrapped in <span aria-hidden='true'> to avoid SR redundant read"
+      - scenario: "SC-6 a11y · textarea label sr-only + id matches Cmd+K target"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/ChatComposer.test.tsx::label className='sr-only' htmlFor='valeria-composer' visible to SR"
+          - "vitalia/frontend/src/components/shared/shell-organism/ChatComposer.test.tsx::textarea id='valeria-composer' (matches F1-S5 Cmd+K focus target)"
+          - "vitalia/frontend/src/components/shared/shell-organism/ChatComposer.test.tsx::textarea data-testid='composer-input'"
+          - "vitalia/frontend/src/components/shared/shell-organism/ChatComposer.test.tsx::placeholder 'Escribe a Valeria… (Enter envía · Shift+Enter salto de línea)'"
+      - scenario: "(visual) auto-resize textarea max-h-100px"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/ChatComposer.test.tsx::useEffect [localValue] adjusts style.height = Math.min(scrollHeight, 100)px"
+          - "vitalia/frontend/src/components/shared/shell-organism/ChatComposer.test.tsx::kbd hint 'Cmd+K enfoca el composer desde cualquier parte del shell.' (Spanish neutro)"
+    spec_anchor: "01-spec.md § 0 D3 + § 4 ChatComposer + § 6 microcopy · 03-arch.md § 2.5 ChatComposer"
+
+  # ──────────────────────────────────────────────────────────────
+  # T-5 — ValeriaChat organism + ChatMessages branch logic
+  # ──────────────────────────────────────────────────────────────
+  - id: T-5
+    title: "ValeriaChat organism (root) + ChatMessages branch logic (populated/empty) + auto-scroll sentinel"
+    state: audit-passed
+    push_commit_sha: 81061d28
+    transitions:
+      - from: ready
+        to: pushed
+        at: "2026-05-24T20:30:00-05:00"
+        by: builder-frontend (claude-sonnet-4-6)
+      - from: pushed
+        to: audit-passed
+        at: "2026-05-25T02:40:00-05:00"
+        by: auditor-frontend (story-level consolidated APPROVED)
+    surface: frontend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: true
+    estimated_loc: 280
+    estimated_hours: 3.5
+    files:
+      new:
+        - vitalia/frontend/src/components/shared/shell-organism/ValeriaChat.tsx
+        - vitalia/frontend/src/components/shared/shell-organism/ValeriaChat.test.tsx
+        - vitalia/frontend/src/components/shared/shell-organism/ChatMessages.tsx
+      modify: []
+      delete: []
+    depends_on: [T-2, T-3, T-4]
+    acceptance:
+      validator_ids: [val-fe-tsc, val-fe-lint, val-fe-prettier, val-fe-vitest-unit, val-fe-arch-fsd, val-fe-arch-no-hex, val-fe-arch-no-voseo, val-fe-arch-no-vt, val-fe-arch-server-first]
+    gherkin_coverage:
+      - scenario: "SC-1 happy · render mock 6 mensajes en orden + ChatHeader + ChatComposer"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaChat.test.tsx::renders section role='region' aria-label='Chat con Valeria' data-testid='valeria-chat'"
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaChat.test.tsx::grid grid-rows-[auto_1fr_auto] overflow-hidden"
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaChat.test.tsx::renders ChatHeader + ChatMessages + ChatComposer in order"
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaChat.test.tsx::6 mensajes mock renderizados en orden: msg-bubble bot → user → msg-delegate → msg-bubble bot Camila → msg-bubble user → msg-thinking Camila"
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaChat.test.tsx::ChatMessages container role='log' aria-live='polite' aria-label='Conversación con Valeria'"
+      - scenario: "SC-2 happy · sendMessage E2E integration via store"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaChat.test.tsx::press Enter en composer → user bubble aparece + 800ms (vi fakeTimers) → bot canned aparece + status='idle'"
+      - scenario: "SC-5 empty_state · messages=[] → EmptyState ilustración + heading + subtexto"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaChat.test.tsx::ChatMessages messages=[] → renders empty state branch (no msg-bubble elements)"
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaChat.test.tsx::empty state heading 'Empieza una conversación' (corrected from voseo Empezá per spec § 6)"
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaChat.test.tsx::empty state subtexto 'Pregúntale a Valeria por la agenda de hoy, pacientes que faltan confirmar o cualquier tarea operativa de la clínica.' (Pregúntale tilde + clítico — corrected from Preguntale spec § 6)"
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaChat.test.tsx::empty state avatar grande h-16 w-16 bg-agent-valeria-soft ring"
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaChat.test.tsx::ChatHeader + ChatComposer still rendered in empty state"
+      - scenario: "(infrastructure) auto-scroll sentinel"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaChat.test.tsx::useEffect [messages.length] triggers scrollIntoView smooth on sentinel ref"
+      - scenario: "SC-1 happy · TypingIndicator + DelegateMarker variants render"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaChat.test.tsx::msg-thinking renders TypingIndicator with bg-agent-camila-soft + 'Camila está abriendo Voz del paciente…' + 3 typing-dot spans aria-hidden"
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaChat.test.tsx::msg-delegate renders 'delegando a Camila (modo Mantener)' italic centered + thumbnail Camila inline"
+    spec_anchor: "01-spec.md § 1 Scenarios + § 3 ChatMessages estados + § 5 chatStore + § 6 microcopy empty state · 03-arch.md § 2.1 component tree + § 2.5 ValeriaChat/ChatMessages"
+
+  # ──────────────────────────────────────────────────────────────
+  # T-6 — Integration: MODIFY ValeriaSidebar + DELETE legacy + arch tests extend + NEW agent-catalog-ssot test
+  # ──────────────────────────────────────────────────────────────
+  - id: T-6
+    title: "Integration: MODIFY ValeriaSidebar.tsx (swap slot 2 occurrences) + DELETE ValeriaChatSlot{,.test}.tsx + extend arch tests + NEW test-agent-catalog-ssot.test.ts"
+    state: audit-passed
+    commit: 4820bb2c
+    surface: frontend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: true   # ValeriaSidebar.tsx es production code; arch tests son tests-only pero ticket trata ambos
+    estimated_loc: 150
+    estimated_hours: 1.5
+    files:
+      new:
+        - vitalia/frontend/src/__tests__/architecture/test-agent-catalog-ssot.test.ts
+      modify:
+        - vitalia/frontend/src/components/shared/shell-organism/ValeriaSidebar.tsx
+        - vitalia/frontend/src/__tests__/architecture/test-no-cross-brand-shell-mirror.test.ts
+        - vitalia/frontend/src/__tests__/architecture/test_server_first.test.ts
+      delete:
+        - vitalia/frontend/src/components/shared/shell-organism/ValeriaChatSlot.tsx
+        - vitalia/frontend/src/components/shared/shell-organism/ValeriaChatSlot.test.tsx
+    depends_on: [T-5]
+    acceptance:
+      validator_ids: [val-fe-tsc, val-fe-lint, val-fe-prettier, val-fe-vitest-unit, val-fe-arch-fsd, val-fe-arch-no-cross-brand-mirror, val-fe-arch-shell-store-readonly-heredado, val-fe-arch-agent-catalog-ssot, val-fe-arch-server-first, val-fe-arch-skip-link]
+    gherkin_coverage:
+      - scenario: "(integration) ValeriaSidebar swap ValeriaChatSlot → ValeriaChat"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaSidebar.tsx grep: import { ValeriaChat } from './ValeriaChat' (no ValeriaChatSlot)"
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaSidebar.tsx grep: 2 occurrences of <ValeriaChat /> (no <ValeriaChatSlot />)"
+        note: "Verificable via git diff + assertion en ShellOrganismLayout.test.tsx heredado (ya assertea data-testid='valeria-sidebar' que sigue presente)."
+      - scenario: "(architectural) agent-catalog SSoT invariant"
+        tests:
+          - "vitalia/frontend/src/__tests__/architecture/test-agent-catalog-ssot.test.ts::no hardcoded agent name strings ('Valeria'|'Camila'|'Lisa'|'Lucas'|'Adrián'|'Mateo') outside agent-catalog + _mock-messages + test files"
+          - "vitalia/frontend/src/__tests__/architecture/test-agent-catalog-ssot.test.ts::no hardcoded agent thumbnail path strings outside catalog"
+          - "vitalia/frontend/src/__tests__/architecture/test-agent-catalog-ssot.test.ts::no hex literal cross-component (excepto agent-catalog.ts hex metadata field)"
+          - "vitalia/frontend/src/__tests__/architecture/test-agent-catalog-ssot.test.ts::allowlist documented (_mock-messages.ts + test files allowed literal strings)"
+      - scenario: "(architectural) anti-duplication cross-brand mirror extended"
+        tests:
+          - "vitalia/frontend/src/__tests__/architecture/test-no-cross-brand-shell-mirror.test.ts::no matches for ValeriaChat in nicolify/comunify/lupulo"
+          - "vitalia/frontend/src/__tests__/architecture/test-no-cross-brand-shell-mirror.test.ts::no matches for ChatHeader across brands"
+          - "vitalia/frontend/src/__tests__/architecture/test-no-cross-brand-shell-mirror.test.ts::no matches for ChatMessages across brands"
+          - "vitalia/frontend/src/__tests__/architecture/test-no-cross-brand-shell-mirror.test.ts::no matches for ChatComposer across brands"
+          - "vitalia/frontend/src/__tests__/architecture/test-no-cross-brand-shell-mirror.test.ts::no matches for MessageBubble across brands"
+          - "vitalia/frontend/src/__tests__/architecture/test-no-cross-brand-shell-mirror.test.ts::no matches for TypingIndicator across brands"
+          - "vitalia/frontend/src/__tests__/architecture/test-no-cross-brand-shell-mirror.test.ts::no matches for DelegateMarker across brands"
+          - "vitalia/frontend/src/__tests__/architecture/test-no-cross-brand-shell-mirror.test.ts::no matches for useChatStore across brands"
+          - "vitalia/frontend/src/__tests__/architecture/test-no-cross-brand-shell-mirror.test.ts::no matches for AGENT_CATALOG across brands"
+      - scenario: "(architectural) shell-store invariant heredado F1-S5 (chat-store separado)"
+        tests:
+          - "vitalia/frontend/src/__tests__/architecture/test-shell-store-schema-readonly-f1-s5.test.ts::shell-store.ts schema unchanged (regression guard heredado)"
+      - scenario: "(architectural) 'use client' allowlist extended shrink-only"
+        tests:
+          - "vitalia/frontend/src/__tests__/architecture/test_server_first.test.ts::ValeriaChat in allowlist + ChatHeader + ChatMessages + ChatComposer + MessageBubble + TypingIndicator + DelegateMarker (justified)"
+      - scenario: "(cleanup) ValeriaChatSlot files deleted"
+        tests:
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaChatSlot.tsx FILE DELETED (git diff verification)"
+          - "vitalia/frontend/src/components/shared/shell-organism/ValeriaChatSlot.test.tsx FILE DELETED"
+    spec_anchor: "01-spec.md § 4 Componentes MODIFY/DELETE + § 13 Deliverables · 03-arch.md § 2.7 side-effects MODIFY + § 3.3 arch fitness"
+
+  # ──────────────────────────────────────────────────────────────
+  # T-7 — Playwright POM ValeriaChatPage + fixtures chat-store-seed
+  # ──────────────────────────────────────────────────────────────
+  - id: T-7
+    title: "Playwright POM ValeriaChatPage + chat-store-seed fixtures (chatStoreSeed + chatStoreEmpty)"
+    state: audit-passed
+    surface: frontend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: false   # tests/POM/fixtures only
+    estimated_loc: 220
+    estimated_hours: 2.5
+    files:
+      new:
+        - vitalia/frontend/e2e/shell-organism/poms/valeria-chat-page.pom.ts
+        - vitalia/frontend/e2e/shell-organism/fixtures/chat-store-seed.fixture.ts
+      modify: []
+      delete: []
+    depends_on: [T-6]
+    acceptance:
+      validator_ids: [val-fe-tsc, val-fe-lint, val-fe-prettier]
+    gherkin_coverage:
+      - scenario: "(infrastructure) POM exposes all methods listed in test_construction_plan"
+        tests:
+          - "vitalia/frontend/e2e/shell-organism/poms/valeria-chat-page.pom.ts::class ValeriaChatPage exposes goto/seedChatStore/seedChatStoreEmpty/getMessage/getDelegateMarker/getThinkingIndicator/getChatHeader/getModePill/getComposer/getSendButton/sendMessage/getActiveAgent/clearMessages/getEmptyState/setViewport/setTheme"
+          - "vitalia/frontend/e2e/shell-organism/fixtures/chat-store-seed.fixture.ts::chatStoreSeed helper uses page.addInitScript window.__chatStoreSeed__ MOCK_MESSAGES"
+          - "vitalia/frontend/e2e/shell-organism/fixtures/chat-store-seed.fixture.ts::chatStoreEmpty helper sets window.__chatStoreSeed__ = []"
+    spec_anchor: "04-validators.yaml::test_construction_plan.poms_required + fixtures_required · 03-arch.md § 3.2 POM contract"
+
+  # ──────────────────────────────────────────────────────────────
+  # T-8 — Playwright behavior specs (4 functional scenarios: happy, send, keys, xss)
+  # ──────────────────────────────────────────────────────────────
+  - id: T-8
+    title: "Playwright behavior specs: valeria-chat-{happy, send, keys, xss}.spec.ts"
+    state: audit-passed
+    push_commit_sha: b804eb73
+    transitions:
+      - from: ready
+        to: pushed
+        at: "2026-05-24T21:00:00-05:00"
+        by: builder-frontend (claude-sonnet-4-6)
+      - from: pushed
+        to: audit-passed
+        at: "2026-05-25T02:40:00-05:00"
+        by: auditor-frontend (story-level consolidated APPROVED)
+    surface: frontend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: false   # tests-only
+    estimated_loc: 360
+    estimated_hours: 3
+    files:
+      new:
+        - vitalia/frontend/e2e/shell-organism/valeria-chat-happy.spec.ts
+        - vitalia/frontend/e2e/shell-organism/valeria-chat-send.spec.ts
+        - vitalia/frontend/e2e/shell-organism/valeria-chat-keys.spec.ts
+        - vitalia/frontend/e2e/shell-organism/valeria-chat-xss.spec.ts
+      modify: []
+      delete: []
+    depends_on: [T-7]
+    acceptance:
+      validator_ids: [val-fe-e2e-happy, val-fe-e2e-send, val-fe-e2e-keys, val-fe-e2e-xss]
+    gherkin_coverage:
+      - scenario: "SC-1 happy · render 6 mensajes mock orden correcto"
+        tests:
+          - "vitalia/frontend/e2e/shell-organism/valeria-chat-happy.spec.ts::ChatHeader visible avatar Valeria + status text + Mode Pill"
+          - "vitalia/frontend/e2e/shell-organism/valeria-chat-happy.spec.ts::6 mensajes renderizados en orden: bot/user/delegate/bot/user/thinking"
+          - "vitalia/frontend/e2e/shell-organism/valeria-chat-happy.spec.ts::DelegateMarker italic centered con pill Camila + label '(modo Mantener)'"
+          - "vitalia/frontend/e2e/shell-organism/valeria-chat-happy.spec.ts::TypingIndicator con 'Camila está abriendo Voz del paciente' + 3 dots"
+          - "vitalia/frontend/e2e/shell-organism/valeria-chat-happy.spec.ts::Composer + 3 stubs (📎🎙️⚡) + Send button visibles"
+      - scenario: "SC-2 happy · send mock message flow (user + 800ms thinking + bot canned)"
+        tests:
+          - "vitalia/frontend/e2e/shell-organism/valeria-chat-send.spec.ts::type '¿Cuántos pacientes para mañana?' + press Enter → user bubble aparece + composer cleared"
+          - "vitalia/frontend/e2e/shell-organism/valeria-chat-send.spec.ts::after 800ms TypingIndicator 'Valeria está escribiendo…' aparece"
+          - "vitalia/frontend/e2e/shell-organism/valeria-chat-send.spec.ts::after additional ~600ms bot bubble canned aparece (rotativo MOCK_RESPONSES)"
+          - "vitalia/frontend/e2e/shell-organism/valeria-chat-send.spec.ts::final state messages.length === 8"
+          - "vitalia/frontend/e2e/shell-organism/valeria-chat-send.spec.ts::aria-live='polite' anuncia mensajes nuevos"
+      - scenario: "SC-3 edge · Shift+Enter inserts newline preserved"
+        tests:
+          - "vitalia/frontend/e2e/shell-organism/valeria-chat-keys.spec.ts::press Shift+Enter inserts \\n (textarea contains 'línea 1\\nlínea 2')"
+          - "vitalia/frontend/e2e/shell-organism/valeria-chat-keys.spec.ts::press Enter después → mensaje user enviado con saltos preservados (whitespace-pre-wrap)"
+          - "vitalia/frontend/e2e/shell-organism/valeria-chat-keys.spec.ts::IME composition events not triggering send"
+      - scenario: "SC-4 adversarial · XSS guard"
+        tests:
+          - "vitalia/frontend/e2e/shell-organism/valeria-chat-xss.spec.ts::paste payload <script>alert('xss')</script> + send → render como texto plano"
+          - "vitalia/frontend/e2e/shell-organism/valeria-chat-xss.spec.ts::page.on('dialog', listener) NO fires (no alert)"
+          - "vitalia/frontend/e2e/shell-organism/valeria-chat-xss.spec.ts::DOM inspection: user bubble contains literal escaped text, no <script> tag"
+    spec_anchor: "01-spec.md § 1 Scenarios SC-1..SC-4 · 03-arch.md § 3.2 Playwright E2E suite"
+
+  # ──────────────────────────────────────────────────────────────
+  # T-9 — Playwright visual goldens + a11y axe + i18n spec
+  # ──────────────────────────────────────────────────────────────
+  - id: T-9
+    title: "Playwright visual goldens (4 PNGs populated/empty × light/dark) + valeria-chat-{empty, a11y, i18n}.spec.ts"
+    state: audit-passed
+    push_commit_sha: d4341ad7
+    transitions:
+      - from: ready
+        to: pushed
+        at: "2026-05-25T02:35:00-05:00"
+        by: builder-frontend (claude-sonnet-4-6)
+      - from: pushed
+        to: audit-passed
+        at: "2026-05-25T02:40:00-05:00"
+        by: auditor-frontend (story-level consolidated APPROVED)
+    surface: frontend
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: false   # tests/PNG only
+    estimated_loc: 380
+    estimated_hours: 3.5
+    files:
+      new:
+        - vitalia/frontend/e2e/shell-organism/valeria-chat-empty.spec.ts
+        - vitalia/frontend/e2e/shell-organism/valeria-chat-a11y.spec.ts
+        - vitalia/frontend/e2e/shell-organism/valeria-chat-i18n.spec.ts
+        - vitalia/frontend/e2e/shell-organism/valeria-chat-visual.spec.ts
+        - vitalia/frontend/e2e/shell-organism/valeria-chat-visual.spec.ts-snapshots/valeria-chat-populated-light-1280x800.png
+        - vitalia/frontend/e2e/shell-organism/valeria-chat-visual.spec.ts-snapshots/valeria-chat-populated-dark-1280x800.png
+        - vitalia/frontend/e2e/shell-organism/valeria-chat-visual.spec.ts-snapshots/valeria-chat-empty-light-1280x800.png
+        - vitalia/frontend/e2e/shell-organism/valeria-chat-visual.spec.ts-snapshots/valeria-chat-empty-dark-1280x800.png
+      modify: []
+      delete: []
+    depends_on: [T-8]
+    acceptance:
+      validator_ids:
+        - val-fe-e2e-empty
+        - val-fe-e2e-a11y
+        - val-fe-axe
+        - val-fe-e2e-i18n
+        - val-fe-visual-populated-light
+        - val-fe-visual-populated-dark
+        - val-fe-visual-empty-light
+        - val-fe-visual-empty-dark
+    gherkin_coverage:
+      - scenario: "SC-5 empty_state · chatStore.messages=[] → EmptyState"
+        tests:
+          - "vitalia/frontend/e2e/shell-organism/valeria-chat-empty.spec.ts::seedChatStoreEmpty + route renders → ChatHeader visible + empty state ilustración avatar grande"
+          - "vitalia/frontend/e2e/shell-organism/valeria-chat-empty.spec.ts::empty state heading 'Empieza una conversación' (no voseo)"
+          - "vitalia/frontend/e2e/shell-organism/valeria-chat-empty.spec.ts::empty state subtexto 'Pregúntale a Valeria por la agenda de hoy, pacientes que faltan confirmar o cualquier tarea operativa de la clínica.'"
+          - "vitalia/frontend/e2e/shell-organism/valeria-chat-empty.spec.ts::Composer disponible (no disabled)"
+          - "vitalia/frontend/e2e/shell-organism/valeria-chat-empty.spec.ts::msg-bubble count === 0"
+      - scenario: "SC-6 a11y · axe wcag2aa + Tab order + aria-live"
+        tests:
+          - "vitalia/frontend/e2e/shell-organism/valeria-chat-a11y.spec.ts::Tab order: composer textarea focusable; 3 stubs focusables; Send button focusable"
+          - "vitalia/frontend/e2e/shell-organism/valeria-chat-a11y.spec.ts::composer textarea has <label sr-only> asociada"
+          - "vitalia/frontend/e2e/shell-organism/valeria-chat-a11y.spec.ts::messages container role='log' aria-live='polite' aria-label"
+          - "vitalia/frontend/e2e/shell-organism/valeria-chat-a11y.spec.ts::Mode pill no interactive (no role button) — solo decorativo"
+          - "vitalia/frontend/e2e/shell-organism/valeria-chat-a11y.spec.ts::avatar aria-hidden='true'; name visible texto"
+          - "vitalia/frontend/e2e/shell-organism/valeria-chat-a11y.spec.ts::contrast ratio user bubble text-white sobre bg-agent-valeria ≥ 4.5:1 (axe verifies) @axe"
+          - "vitalia/frontend/e2e/shell-organism/valeria-chat-a11y.spec.ts::axe wcag2aa 0 violations populated light @axe"
+          - "vitalia/frontend/e2e/shell-organism/valeria-chat-a11y.spec.ts::axe wcag2aa 0 violations populated dark @axe"
+          - "vitalia/frontend/e2e/shell-organism/valeria-chat-a11y.spec.ts::axe wcag2aa 0 violations empty light @axe"
+          - "vitalia/frontend/e2e/shell-organism/valeria-chat-a11y.spec.ts::axe wcag2aa 0 violations empty dark @axe"
+      - scenario: "SC-7 i18n · 30+ strings ratificados + cero voseo + Spanish neutro tildes"
+        tests:
+          - "vitalia/frontend/e2e/shell-organism/valeria-chat-i18n.spec.ts::regex glossary cero matches en rendered DOM (/\\b(vos|sos|tenés|podés|dale|mirá|fijate|empezá|preguntale|cambialo|ofrecés|cobrás)\\b/i)"
+          - "vitalia/frontend/e2e/shell-organism/valeria-chat-i18n.spec.ts::tildes preservadas (También, Día, Año, Pregúntale, ábrela)"
+          - "vitalia/frontend/e2e/shell-organism/valeria-chat-i18n.spec.ts::Composer placeholder 'Escribe a Valeria… (Enter envía · Shift+Enter salto de línea)'"
+          - "vitalia/frontend/e2e/shell-organism/valeria-chat-i18n.spec.ts::Send button label 'Enviar'"
+          - "vitalia/frontend/e2e/shell-organism/valeria-chat-i18n.spec.ts::Mode pill '🤖 Modo agente'"
+          - "vitalia/frontend/e2e/shell-organism/valeria-chat-i18n.spec.ts::Stub titles 'Adjuntar (próximamente)' / 'Voz (próximamente)' / 'Comandos (próximamente)'"
+          - "vitalia/frontend/e2e/shell-organism/valeria-chat-i18n.spec.ts::MOCK_MESSAGES verbatim spec § 6 (Tienes 8 turnos, ábrela, etc.)"
+          - "vitalia/frontend/e2e/shell-organism/valeria-chat-i18n.spec.ts::cero PHI real patterns en mock data (no diagnósticos clínicos enumerados, no dosis, no labs results)"
+      - scenario: "(visual) 4 PNG snapshots match mockup valeria-chat-sample.html"
+        tests:
+          - "vitalia/frontend/e2e/shell-organism/valeria-chat-visual.spec.ts::populated light 1280x800 matches mockup variante A"
+          - "vitalia/frontend/e2e/shell-organism/valeria-chat-visual.spec.ts::populated dark 1280x800 matches mockup variante A dark"
+          - "vitalia/frontend/e2e/shell-organism/valeria-chat-visual.spec.ts::empty light 1280x800 matches mockup variante B"
+          - "vitalia/frontend/e2e/shell-organism/valeria-chat-visual.spec.ts::empty dark 1280x800 matches mockup variante B dark"
+    spec_anchor: "01-spec.md § 1 Scenarios SC-5..SC-7 + § 12 visual gate · 03-arch.md § 3.2 + § 3.3"
+    notes: |
+      Iter 1 visual goldens generation: builder T-9 monta mockup en
+      `python3 -m http.server 8888 vitalia/docs/product/stories/vitalia-fase1-valeria-chat-skeleton/mockups/`
+      side-by-side con componente real `localhost:3002/test-stack/shell-layout`. Asegurar chat-store
+      seed (MOCK_MESSAGES vs []) via addInitScript en chat-store-seed.fixture.ts antes de cada
+      snapshot. Solo cuando Chris valida side-by-side OK (4 estados: populated/empty × light/dark),
+      builder corre:
+      `cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test --project=visual --update-snapshots shell-organism/valeria-chat-visual.spec.ts`
+      Post-ratify Chris, PNGs committed + ratchet shrink-only enforced.
+      Si Chris encuentra diferencia visual blocking → STOP, fix componente (no actualizar mockup
+      salvo nueva ratificación visual dedicada).
+
+      XSS spec implementation: usar `page.on('dialog', d => { dialogFired = true; d.dismiss() })`
+      antes de send + assert dialogFired === false post-send. DOM inspection: `await page.locator('[data-testid=msg-bubble][data-role=user]').innerHTML()` no contiene `<script>` tag raw,
+      sí contiene texto escaped.
+
+      i18n spec: regex pattern per spec § 1 SC-7: `/\\b(vos|sos|tenés|podés|dale|mirá|fijate)\\b/i`.
+      Adicional para F1-S6: `empezá|preguntale` (porque mockup HTML los tenía pero spec § 6
+      explicita corrección a tuteo "Empieza" + "Pregúntale" tilde — code real NO debe tener
+      voseo aunque mockup HTML reference sí lo tenga).
+
+# ════════════════════════════════════════════════════════════════════
+# Cross-stack handoff notes (1 surface FE only — sin BE/AGENTIC)
+# ════════════════════════════════════════════════════════════════════
+cross_stack_handoff:
+  - "FE only story — no BE or AGENTIC surface."
+  - "Tenant isolation upstream: middleware Clerk + auth verifica tenantId antes que esta ruta renderice. F1-S6 confía en eso (out-of-scope FE)."
+  - "Route /test-stack/shell-layout sigue siendo el entry point E2E público (sin Clerk gate, heredado F1-S5). NO modificar."
+  - "Visual goldens iter 1 requiere Chris side-by-side ratificación dedicada momento antes de --update-snapshots. /pm-vitalia coordina con Chris en checkpoint developed→reviewing handoff."
+  - "Mock data 6 mensajes verbatim spec § 5 (Marina Pérez + Dr. Juan García son nombres ficticios del mockup ratificado por Chris — NO PHI real, no diagnósticos/dosis/labs)."
+  - "F2-S* (camila-voz / valeria-voz / sales_agent wire) reemplaza chat-store.sendMessage mock con WebSocket real + sales_agent backend. ChatHeader/MessageBubble/ChatComposer PRESERVED intactos."
+  - "Sub-story futura 'AgentSwitcher dropdown ChatHeader' consumirá setActiveAgent ya expuesto en chat-store F1-S6 — zero re-trabajo del componente."
+  - "ValeriaChat + agent-catalog + chat-store son LIFT CANDIDATES: 2do brand consumer (Nicolify/Comunify/Lupulo) triggerea /pm-luana promotion proposal para core/@luana/shell-chat-organism/ + core/@luana/agent-catalog/. Documentar caso en vitalia/docs/learnings/2026-05-24-valeria-chat-promotion-candidate.md post-merge."
+
+# ════════════════════════════════════════════════════════════════════
+# DAG dependency graph (visualization)
+# ════════════════════════════════════════════════════════════════════
+dag:
+  description: |
+    T-1 (agent-catalog + globals.css token) ─┬─> T-3 (átomos+moléculas low-level: MessageBubble/ChatHeader/TypingIndicator/DelegateMarker) ─┐
+                                              │                                                                                                ├─> T-5 (ValeriaChat + ChatMessages) ──> T-6 (Integration MODIFY ValeriaSidebar + DELETE legacy + arch tests) ──> T-7 (POM + fixtures) ──> T-8 (4 behavior specs) ──> T-9 (visual + a11y + i18n)
+    T-2 (chat-store + _mock-messages) ────────┴─> T-4 (ChatComposer interactivo) ───────────────────────────────────────────────────────────┘
+
+    Paralelización:
+      Wave 1: T-1 + T-2 (data layer independent, paralelo)
+      Wave 2: T-3 (post T-1) + T-4 (post T-2) — paralelo entre sí (no comparten files)
+      Wave 3: T-5 (post T-3 + T-4)
+      Wave 4: T-6 (post T-5 — integration + cleanup + arch tests)
+      Wave 5: T-7 (POM + fixtures post T-6)
+      Wave 6: T-8 (4 functional specs post T-7)
+      Wave 7: T-9 (visual + a11y + i18n post T-8 — requiere Chris ratify visual iter 1)
+
+# ════════════════════════════════════════════════════════════════════
+# Total estimate
+# ════════════════════════════════════════════════════════════════════
+total_estimated_hours: 23      # 1.5 + 2 + 3 + 2.5 + 3.5 + 1.5 + 2.5 + 3 + 3.5
+total_estimated_loc: 2150      # 120 + 180 + 280 + 180 + 280 + 150 + 220 + 360 + 380
+coherent_with_checkpoint_estimated_dev_days: "2-3 days OK (23h / 8h workday ≈ 2.9 días — coherente con checkpoint 'estimated_dev_days: 1-2' upper-bound, plus visual goldens iter Chris adds wallclock)"
+
+# ════════════════════════════════════════════════════════════════════
+# R23 production_code applicability matrix
+# ════════════════════════════════════════════════════════════════════
+r23_audit_matrix:
+  T-1: { production_code: true,  owner_eligible: [qwen-opencode, claude-sonnet], opus_required: false }   # catalog + CSS, no agentic
+  T-2: { production_code: true,  owner_eligible: [qwen-opencode, claude-sonnet], opus_required: false }   # zustand store + mock data, no agentic
+  T-3: { production_code: true,  owner_eligible: [qwen-opencode, claude-sonnet], opus_required: false }   # átomos+moléculas FE
+  T-4: { production_code: true,  owner_eligible: [qwen-opencode, claude-sonnet], opus_required: false }   # ChatComposer FE
+  T-5: { production_code: true,  owner_eligible: [qwen-opencode, claude-sonnet], opus_required: false }   # organism FE
+  T-6: { production_code: true,  owner_eligible: [qwen-opencode, claude-sonnet], opus_required: false }   # MODIFY ValeriaSidebar + arch tests
+  T-7: { production_code: false, owner_eligible: [qwen-opencode, claude-sonnet], opus_required: false }   # POM + fixtures tests-only
+  T-8: { production_code: false, owner_eligible: [qwen-opencode, claude-sonnet], opus_required: false }   # behavior specs tests-only
+  T-9: { production_code: false, owner_eligible: [qwen-opencode, claude-sonnet], opus_required: false }   # visual + a11y + i18n + PNGs tests-only
+
+  note: |
+    R23 rule: agentic tickets production_code=true → Opus 4.7 obligatorio.
+    F1-S6 cero agentic surface → Opus NO obligatorio. Sonnet/opencode/qwen permitidos para todos.
+    Tests-only tickets (T-7..T-9) fast-tracked Sonnet/qwen.
+
+# ════════════════════════════════════════════════════════════════════
+# Must-load skills enforceable (per ticket — extracted from 05-guidelines.md § 1)
+# ════════════════════════════════════════════════════════════════════
+must_load_skills_per_ticket:
+  T-1: [frontend-expert, tessl__tailwind, tessl__vitest]
+  T-2: [frontend-expert, tessl__react-patterns, tessl__vitest]
+  T-3: [frontend-expert, tessl__react-patterns, tessl__shadcn-ui, tessl__tailwind, tessl__vitest]
+  T-4: [frontend-expert, tessl__react-patterns, tessl__shadcn-ui, tessl__tailwind, tessl__vitest]
+  T-5: [frontend-expert, tessl__react-patterns, tessl__tailwind, tessl__vitest, tessl__nextjs-app-router-modularization]
+  T-6: [frontend-expert, tessl__vitest]
+  T-7: [playwright-expert]
+  T-8: [playwright-expert]
+  T-9: [playwright-expert]
+
+  enforce: |
+    Builder spawn MUST cite must_load_skills_per_ticket[<ticket_id>] verbatim en T-{n}-result.md
+    "Skills consulted" section. CHANGES_REQUESTED auto-fire si missing (per 05-guidelines.md § 1
+    enforcement gate).

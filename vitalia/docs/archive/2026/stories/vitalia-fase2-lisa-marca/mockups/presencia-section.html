@@ -1,0 +1,403 @@
+<!--
+  v2.1 (2026-05-27) Mockup: vitalia-fase2-lisa-marca · sub-sub-tab Presencia
+  ★ Refactor v2.1: shell wrapper fiel a canónico (dual-mode-shell.html + valeria-chat-sample.html).
+                   Panel-content (cards de Presencia) es código propio de esta story.
+                   Splitter responsive con 3 estados.
+                   NOTA: Reemplaza "Landing y presencia" v1 — Landing pública editor descopado a
+                   story futura vitalia-fase2-lisa-landing-public (state=idea).
+                   Esta sub-sub-tab in-scope: sitio web + redes + Google Business + trust + ubicaciones.
+  Defaults: OQ-D=hybrid trust catalog (cerrado per país + free-text "otra")
+  Idioma: español neutro LatAm (no voseo).
+-->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>v2.1 · Presencia · Lisa Marca — mockup shell responsive</title>
+<link rel="stylesheet" href="_shared.css" />
+<style>
+  /* Presencia-specific */
+  .social-row {
+    display: flex; align-items: center; gap: 0.625rem;
+    padding: 0.625rem 0.75rem;
+    border-radius: var(--radius);
+    background: hsl(var(--muted) / 0.5);
+    transition: background 0.15s;
+  }
+  .social-row:hover { background: hsl(var(--muted)); }
+  .social-icon {
+    width: 32px; height: 32px;
+    border-radius: 0.5rem;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: white; font-size: 1rem; font-weight: 600;
+    flex-shrink: 0;
+  }
+  .social-icon-ig { background: linear-gradient(135deg, #fa7e1e, #d62976, #962fbf, #4f5bd5); }
+  .social-icon-tt { background: #000; }
+  .social-icon-fb { background: #1877f2; }
+  .social-icon-gmb { background: #4285f4; }
+  .social-icon-wa { background: #25d366; }
+  .conn-status {
+    display: inline-flex; align-items: center; gap: 0.25rem;
+    font-size: 0.6875rem; font-weight: 600;
+    padding: 0.1875rem 0.4375rem;
+    border-radius: 9999px;
+    flex-shrink: 0;
+  }
+  .conn-status-ok      { background: hsl(var(--success) / 0.15);     color: hsl(var(--success)); }
+  .conn-status-missing { background: hsl(var(--warning) / 0.15);     color: hsl(var(--warning)); }
+  .conn-status-error   { background: hsl(var(--destructive) / 0.15); color: hsl(var(--destructive)); }
+  .social-input {
+    border: none !important;
+    padding: 0 !important;
+    background: transparent !important;
+    font-size: 0.8125rem;
+    font-weight: 500;
+  }
+  .location-row {
+    display: flex; gap: 0.625rem; align-items: flex-start;
+    padding: 0.625rem;
+    background: hsl(var(--muted) / 0.5);
+    border-radius: var(--radius);
+  }
+  .info-banner {
+    padding: 0.625rem 0.75rem;
+    border-radius: var(--radius);
+    background: hsl(var(--primary) / 0.06);
+    border: 1px solid hsl(var(--primary) / 0.2);
+    display: flex; gap: 0.625rem; align-items: flex-start;
+    font-size: 0.8125rem;
+  }
+</style>
+</head>
+<body>
+
+<div class="shell-root">
+
+  <!-- Topbar (canónico portado) -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-logo">
+        <div class="topbar-logo-mark">V</div>
+        <span>Vitalia</span>
+      </div>
+      <span class="topbar-breadcrumb">› Clínica Dental Lima Centro</span>
+    </div>
+    <div class="topbar-right">
+      <div class="splitter-control" role="group" aria-label="Estado del divisor (mockup demo)">
+        <button class="splitter-btn" data-state="chat-collapsed" title="Solo rail Valeria (60px)">◧</button>
+        <button class="splitter-btn" data-state="chat-narrow"    title="Valeria estrecha (360px)">◨</button>
+        <button class="splitter-btn" data-state="50-50" data-active="true" title="50/50 dual-mode">⬓</button>
+      </div>
+      <button class="topbar-icon-btn" id="theme-toggle" title="Cambiar tema">🌓</button>
+      <button class="tenant-chip" title="Cambiar tenant">
+        <span class="tenant-chip-avatar">SP</span>
+        <span>Sonrisa Plena</span>
+        <span style="color: hsl(var(--muted-foreground)); font-size: 0.625rem;">▾</span>
+      </button>
+      <div class="avatar bg-agent-valeria" style="width: 28px; height: 28px; font-size: 0.6875rem;" title="Tu usuario">CL</div>
+    </div>
+  </header>
+
+  <div class="shell-body" data-splitter-state="50-50" id="shell-body">
+
+    <!-- Chat side (canónico portado) -->
+    <aside class="chat-side">
+
+      <div class="chat-rail-only">
+        <div class="rail-btn active" title="Chat Valeria">💬</div>
+        <div class="rail-btn" title="Historial">📜</div>
+        <div class="rail-btn" title="Nueva conversación">＋</div>
+      </div>
+
+      <div class="chat-content">
+
+        <header class="chat-header">
+          <div class="chat-avatar-wrap">
+            <div class="chat-avatar">V</div>
+            <span class="chat-status-dot" aria-hidden="true"></span>
+          </div>
+          <div class="chat-meta">
+            <span class="chat-name">Valeria</span>
+            <span class="chat-role">En línea · Tu secretaria virtual</span>
+          </div>
+          <span class="chat-mode-pill">🤖 Modo agente</span>
+        </header>
+
+        <div class="chat-history-strip">
+          📜 Hoy 10:32 · Cobranza Sofía · Ayer 18:00 · Confirmación Carlos · Ayer 15:30 · Recordatorio Ana
+        </div>
+
+        <div class="chat-messages" role="log" aria-live="polite" aria-label="Conversación con Valeria">
+
+          <div class="msg-row" data-role="bot">
+            <div class="msg-bubble">
+              Verifiqué tu Google Business — tenés <strong>4.7★ con 147 reseñas</strong>. Camila puede empezar a responder reseñas automáticamente si querés (lo configurás en su tab).
+            </div>
+            <span class="msg-time">Valeria · 10:40</span>
+          </div>
+
+          <div class="msg-delegate">
+            <span>→ delegando a</span>
+            <span class="agent-tag" style="color: hsl(var(--agent-camila));">
+              <span class="dot" style="background: hsl(var(--agent-camila));"></span>Camila
+            </span>
+            <span>(reputación online)</span>
+          </div>
+
+          <div class="msg-row" data-role="bot">
+            <div class="msg-bubble">
+              Tu Instagram <em>@clinicadentallima</em> sigue verificado. La cuenta de TikTok <em>@clinicadental_lima</em> también. Las 5 conexiones tienen check ✓.
+            </div>
+            <span class="msg-time">Camila vía Valeria · 10:41</span>
+          </div>
+
+        </div>
+
+        <footer class="chat-composer">
+          <div class="composer-row">
+            <div class="composer-adornos">
+              <button class="composer-adorno-btn" aria-label="Adjuntar archivo">📎</button>
+              <button class="composer-adorno-btn" aria-label="Mensaje de voz">🎙️</button>
+              <button class="composer-adorno-btn" aria-label="Comandos rápidos">⚡</button>
+            </div>
+            <textarea class="composer-textarea" rows="1" placeholder="Escribe a Valeria…"></textarea>
+            <button class="composer-send">Enviar</button>
+          </div>
+          <p class="composer-hint">
+            <span class="kbd">Cmd</span> + <span class="kbd">K</span> enfoca el composer.
+          </p>
+        </footer>
+
+      </div>
+    </aside>
+
+    <!-- Panel side -->
+    <main class="panel-side">
+
+      <nav class="ribbon" aria-label="Agentes">
+        <button class="ribbon-tab" data-active="true" data-color="lisa">
+          <span class="ribbon-tab-avatar bg-agent-lisa" data-color="lisa">L</span>
+          <span>Lisa <span style="font-size: 0.625rem; color: hsl(var(--muted-foreground)); font-weight: 400;">· Marca</span></span>
+        </button>
+        <button class="ribbon-tab" data-color="lucas"><span class="ribbon-tab-avatar bg-agent-lucas" data-color="lucas">Lc</span><span>Lucas</span></button>
+        <button class="ribbon-tab" data-color="adrian"><span class="ribbon-tab-avatar bg-agent-adrian" data-color="adrian">A</span><span>Adrián</span></button>
+        <button class="ribbon-tab" data-color="valeria"><span class="ribbon-tab-avatar bg-agent-valeria" data-color="valeria">V</span><span>Valeria</span></button>
+        <button class="ribbon-tab" data-color="camila"><span class="ribbon-tab-avatar bg-agent-camila" data-color="camila">Ca</span><span>Camila</span></button>
+        <button class="ribbon-tab" data-color="config"><span class="ribbon-tab-avatar" data-color="config" style="background: hsl(var(--muted)); color: hsl(var(--muted-foreground));">⚙</span><span>Configurar</span></button>
+      </nav>
+
+      <nav class="subtabs-bar" aria-label="Sub-secciones Lisa">
+        <button class="subtab-btn" data-active="true" data-color="lisa">Marca</button>
+        <button class="subtab-btn">Doctores</button>
+        <button class="subtab-btn">Servicios</button>
+        <button class="subtab-btn">Compliance</button>
+      </nav>
+
+      <nav class="subsubtabs-bar" aria-label="Sub-sub-secciones Marca">
+        <button class="subsubtab-btn" data-slug="identidad">📝 Identidad</button>
+        <button class="subsubtab-btn" data-slug="voz-y-tono">🎤 Voz y tono</button>
+        <button class="subsubtab-btn" data-active="true" data-slug="presencia">🌐 Presencia</button>
+      </nav>
+
+      <div class="panel-content">
+        <div class="panel-inner">
+
+          <div class="section-header">
+            <div>
+              <h1 class="section-title">Presencia</h1>
+              <p class="section-subtitle">Sitio web propio, redes sociales, Google Business y señales de autoridad.</p>
+            </div>
+            <span class="autosave-badge chip-success">
+              <span style="width: 6px; height: 6px; border-radius: 9999px; background: hsl(var(--success));"></span>
+              Conexiones OK
+            </span>
+          </div>
+
+          <!-- Info banner: Landing descoped -->
+          <div class="info-banner" style="margin-bottom: 0.875rem;">
+            <span style="font-size: 1rem;">ℹ️</span>
+            <div>
+              La <strong>landing pública Vitalia</strong> (editor visual) se configura en una sección dedicada futura.
+              Acá administras tu <strong>presencia digital actual</strong>: sitio propio, redes y reseñas.
+            </div>
+          </div>
+
+          <div class="cards-stack">
+
+            <!-- Card: Sitio web propio -->
+            <section class="card">
+              <h2 class="card-title">🔗 Sitio web propio</h2>
+              <label class="label" for="i-site">URL</label>
+              <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <input id="i-site" type="url" value="https://clinicadentallima.com.pe" placeholder="https://tuclinica.com" />
+                <span class="conn-status conn-status-ok">✓ OK</span>
+              </div>
+              <p class="hint">Lo usamos como link "Más información" en mensajes de Valeria + señal de autoridad en landing pública.</p>
+            </section>
+
+            <!-- Card: Redes sociales -->
+            <section class="card">
+              <h2 class="card-title">📱 Redes sociales</h2>
+
+              <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                <div class="social-row">
+                  <div class="social-icon social-icon-ig">📷</div>
+                  <div style="flex:1; min-width: 0;">
+                    <div style="font-size: 0.6875rem; color: hsl(var(--muted-foreground));">Instagram</div>
+                    <input type="text" value="@clinicadentallima" class="social-input" />
+                  </div>
+                  <span class="conn-status conn-status-ok">✓</span>
+                </div>
+
+                <div class="social-row">
+                  <div class="social-icon social-icon-tt">🎵</div>
+                  <div style="flex:1; min-width: 0;">
+                    <div style="font-size: 0.6875rem; color: hsl(var(--muted-foreground));">TikTok</div>
+                    <input type="text" value="@clinicadental_lima" class="social-input" />
+                  </div>
+                  <span class="conn-status conn-status-ok">✓</span>
+                </div>
+
+                <div class="social-row">
+                  <div class="social-icon social-icon-fb">f</div>
+                  <div style="flex:1; min-width: 0;">
+                    <div style="font-size: 0.6875rem; color: hsl(var(--muted-foreground));">Facebook</div>
+                    <input type="text" value="ClinicaDentalLima" class="social-input" />
+                  </div>
+                  <span class="conn-status conn-status-ok">✓</span>
+                </div>
+
+                <div class="social-row">
+                  <div class="social-icon social-icon-gmb">G</div>
+                  <div style="flex:1; min-width: 0;">
+                    <div style="font-size: 0.6875rem; color: hsl(var(--muted-foreground));">Google Business</div>
+                    <input type="url" value="maps.app.goo.gl/clinica-dental-lima" class="social-input" />
+                  </div>
+                  <span class="conn-status conn-status-ok">✓ 4.7★</span>
+                </div>
+
+                <div class="social-row">
+                  <div class="social-icon social-icon-wa">📞</div>
+                  <div style="flex:1; min-width: 0;">
+                    <div style="font-size: 0.6875rem; color: hsl(var(--muted-foreground));">WhatsApp Business</div>
+                    <input type="text" value="+51 987 654 321" class="social-input" />
+                  </div>
+                  <span class="conn-status conn-status-ok">✓ Valeria</span>
+                </div>
+              </div>
+
+              <button class="btn btn-ghost" style="margin-top: 0.625rem; width: 100%; justify-content: center; padding: 0.4375rem; font-size: 0.75rem;">
+                + Agregar otra red
+              </button>
+            </section>
+
+            <!-- Card: Trust signals (OQ-D hybrid catalog) -->
+            <section class="card">
+              <h2 class="card-title">🏆 Señales de autoridad</h2>
+
+              <div style="margin-bottom: 0.75rem;">
+                <label class="label">Certificaciones (catálogo Perú · hybrid)</label>
+                <div style="display: flex; flex-wrap: wrap; gap: 0.375rem; margin-bottom: 0.375rem;">
+                  <span class="chip chip-lisa">✓ DIGESA</span>
+                  <span class="chip chip-lisa">✓ Colegio Odontólogos PE</span>
+                  <button class="chip" style="border: 1px dashed hsl(var(--border)); background: transparent; cursor: pointer;">+ Agregar</button>
+                </div>
+                <details style="font-size: 0.75rem;">
+                  <summary style="cursor: pointer; color: hsl(var(--muted-foreground)); padding: 0.25rem 0;">
+                    Ver catálogo Perú (15 certificaciones disponibles) · "otra" free-text
+                  </summary>
+                  <div style="margin-top: 0.5rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0.375rem; padding: 0.625rem; background: hsl(var(--muted)); border-radius: var(--radius); color: hsl(var(--foreground));">
+                    <label style="display: flex; align-items: center; gap: 0.375rem; font-size: 0.75rem;"><input type="checkbox" style="width: auto;" /> SUNAT</label>
+                    <label style="display: flex; align-items: center; gap: 0.375rem; font-size: 0.75rem;"><input type="checkbox" style="width: auto;" /> MINSA</label>
+                    <label style="display: flex; align-items: center; gap: 0.375rem; font-size: 0.75rem;"><input type="checkbox" style="width: auto;" /> SUSALUD</label>
+                    <label style="display: flex; align-items: center; gap: 0.375rem; font-size: 0.75rem;"><input type="checkbox" style="width: auto;" /> Colegio Médico PE</label>
+                    <label style="display: flex; align-items: center; gap: 0.375rem; font-size: 0.75rem;"><input type="checkbox" style="width: auto;" /> ISO 9001</label>
+                    <label style="display: flex; align-items: center; gap: 0.375rem; font-size: 0.75rem;"><input type="checkbox" style="width: auto;" /> ESSALUD</label>
+                  </div>
+                  <input type="text" placeholder="Otra (free-text)" style="margin-top: 0.5rem; font-size: 0.75rem; padding: 0.3125rem 0.5rem;" />
+                </details>
+              </div>
+
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                <div>
+                  <label class="label" for="i-anos">Años de experiencia</label>
+                  <input id="i-anos" type="number" value="15" />
+                </div>
+                <div>
+                  <label class="label" for="i-pacientes">Pacientes atendidos</label>
+                  <input id="i-pacientes" type="text" value="8000+" placeholder="ej: 5000+" />
+                </div>
+              </div>
+
+              <div style="margin-top: 0.75rem;">
+                <label class="label" for="i-premios">Premios y reconocimientos</label>
+                <textarea id="i-premios" style="min-height: 4.5rem;">Premio Latam Odontología Cosmética 2024
+Reconocimiento Cámara de Comercio Lima 2022</textarea>
+              </div>
+            </section>
+
+            <!-- Card: Ubicaciones -->
+            <section class="card">
+              <h2 class="card-title">
+                📍 Ubicaciones
+                <span class="chip" style="margin-left: auto;">2 sedes</span>
+              </h2>
+              <div style="display: flex; flex-direction: column; gap: 0.4375rem;">
+                <div class="location-row">
+                  <span style="font-size: 1.125rem;">🏥</span>
+                  <div style="flex: 1; min-width: 0;">
+                    <div style="font-size: 0.8125rem; font-weight: 500;">Sede Principal — Lima Centro</div>
+                    <div style="color: hsl(var(--muted-foreground)); font-size: 0.75rem; margin-top: 0.125rem;">Av. Garcilaso 1234, Cercado de Lima</div>
+                  </div>
+                  <button class="btn btn-ghost" style="padding: 0.25rem 0.5rem; font-size: 0.6875rem;">Editar</button>
+                </div>
+                <div class="location-row">
+                  <span style="font-size: 1.125rem;">🏥</span>
+                  <div style="flex: 1; min-width: 0;">
+                    <div style="font-size: 0.8125rem; font-weight: 500;">Sede Miraflores</div>
+                    <div style="color: hsl(var(--muted-foreground)); font-size: 0.75rem; margin-top: 0.125rem;">Av. José Pardo 456, Miraflores</div>
+                  </div>
+                  <button class="btn btn-ghost" style="padding: 0.25rem 0.5rem; font-size: 0.6875rem;">Editar</button>
+                </div>
+                <button class="btn btn-ghost" style="justify-content: center; padding: 0.4375rem; font-size: 0.75rem;">+ Agregar sede</button>
+              </div>
+            </section>
+
+          </div>
+        </div>
+      </div>
+
+      <div class="footer-meta">
+        <span>💾 Guardado hace 12s · conexiones OK</span>
+        <span>Última edición: <strong>Dra. Camila</strong> hace 2m</span>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<script>
+  document.querySelectorAll('.subsubtab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const slug = btn.dataset.slug;
+      if (slug === 'identidad') window.location.href = 'identidad-section.html';
+      else if (slug === 'voz-y-tono') window.location.href = 'voz-tono-section.html';
+    });
+  });
+  const shellBody = document.getElementById('shell-body');
+  document.querySelectorAll('.splitter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.splitter-btn').forEach(b => b.removeAttribute('data-active'));
+      btn.setAttribute('data-active', 'true');
+      shellBody.setAttribute('data-splitter-state', btn.dataset.state);
+    });
+  });
+  document.getElementById('theme-toggle').addEventListener('click', () => {
+    document.documentElement.classList.toggle('dark');
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,66 @@
+{
+  "schema_version": "1.0",
+  "pr_folder": "/home/chalreme/Proyectos/luana-vitalia/vitalia/docs/product/stories/vitalia-fase1-shell-layout-5050",
+  "ticket": "vitalia-fase1-shell-layout-5050",
+  "iter": 1,
+  "command": "cd /home/chalreme/Proyectos/luana-vitalia/vitalia/frontend && npx tsc --noEmit && npx eslint src/ --cache && npx vitest run --coverage && npx jscpd --list && npx knip && npx madge",
+  "command_alias": "test-vitalia frontend",
+  "started_at": "2026-05-23T15:45:54Z",
+  "finished_at": "2026-05-23T15:56:20Z",
+  "duration_ms": 626000,
+  "exit_code": 1,
+  "raw_log_path": "/home/chalreme/Proyectos/luana-vitalia/vitalia/docs/product/stories/vitalia-fase1-shell-layout-5050/gate-logs/iter-1-test-fe-vitalia-1779569147372435517.log",
+  "gates": [
+    {
+      "name": "tsc",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": []
+    },
+    {
+      "name": "eslint",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": []
+    },
+    {
+      "name": "vitest",
+      "status": "FAIL",
+      "errors_count": 2,
+      "first_5_errors": [
+        "src/__tests__/architecture/test_server_first.test.ts: Files using React client hooks missing \"use client\" directive in src/components/shared/shell-organism/ShellOrganismLayoutClient.tsx (uses useRef, useState, useEffect)",
+        "src/components/shared/shell-organism/ValeriaSidebarSlot.test.tsx: expected 'Valeria — abrir desde menúValeriaSidebarSlot · F1-S5/S6' to be '' (placeholder slot renders no children)"
+      ]
+    },
+    {
+      "name": "jscpd",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": []
+    },
+    {
+      "name": "knip",
+      "status": "UNKNOWN",
+      "errors_count": 1,
+      "first_5_errors": [
+        "knip: command not found (exit code 127)"
+      ]
+    },
+    {
+      "name": "madge",
+      "status": "UNKNOWN",
+      "errors_count": 1,
+      "first_5_errors": [
+        "madge: no input files provided (exit code 1, requires positional argument)"
+      ]
+    }
+  ],
+  "overall": {
+    "any_fail": true,
+    "fail_gate_names": [
+      "vitest"
+    ],
+    "summary": "vitest 2 failed (977 passed); knip/madge UNKNOWN (not installed/misconfigured); tsc/eslint/jscpd PASS"
+  },
+  "notes": "Vitest failures are blocking: ShellOrganismLayoutClient.tsx missing 'use client' directive (architecture), ValeriaSidebarSlot.test.tsx assertion expects empty textContent but placeholder renders with label (test expectations issue). Knip/madge not installed in node_modules or require explicit src path argument. Full log at raw_log_path."
+}

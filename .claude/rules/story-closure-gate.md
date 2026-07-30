@@ -1,0 +1,1 @@
+../../core-harness/rules/story-closure-gate.md

@@ -1,0 +1,239 @@
+---
+capability_id: vitalia-shell-foundation-shadcn-tailwind-v4
+module: platform
+slug: shell-foundation-shadcn-tailwind-v4
+status: live
+date_introduced: 2026-05-23
+story_introduced: vitalia-fase1-stack-stability
+package_version: 0.1.0
+package_path: vitalia/frontend
+license: proprietary
+
+# v3 cement 2026-05-27 · 4 dimensiones + dev_preview (ADR-vitalia-005)
+tech_module: platform
+agent_owner: plataforma-tecnica
+functional_area: plataforma-tecnica.platform
+user_visible: false
+nature: extension-point
+ui_paradigm: infra-only  # T-3 reconcile 2026-05-29
+
+user_facing_name: "Shell foundation Shadcn + Tailwind v4"
+user_facing_description: >
+  Stack visual base de Vitalia: Tailwind v4 con PostCSS, Shadcn UI con ocho
+  primitivos vendoreados (Button, Avatar, DropdownMenu, Input, Badge, Textarea,
+  Tabs, Tooltip), siete tokens de agentes HSL y el SSoT TypeScript de agentes
+  en src/lib/agents.ts. Es el bloqueador duro que habilita todas las stories
+  de Fase 1 y Fase 2 del shell agéntico.
+
+dev_preview:
+  route: null
+  how_to_navigate: "Infra scaffolding · ver preview en http://localhost:3002/test-stack/primitives y /test-stack/agent-tokens"
+  main_component: null
+  api_endpoints: []
+  e2e_test: "vitalia/frontend/e2e/visual/stack-stability/dev-stack-baseline.spec.ts"
+  fixtures_required: []
+  storybook_url: null
+  loom_demo: null
+
+related_capabilities:
+  - vitalia-design-tokens-foundation
+depends_on_engine: []
+
+# Capability ledger v2 (cement 2026-05-27)
+created_in_story: vitalia-fase1-stack-stability   # v2 cement · mirror of story_introduced
+created_date: 2026-05-23   # v2 cement · mirror of date_introduced
+parent_cap: null   # v2 cement · mirror of extends_capability
+derives_capabilities: []   # v2 cement · initial empty list
+
+# Capability ledger v2 (cement 2026-05-27)
+
+# Capability change log v2 (cement 2026-05-27)
+change_log:
+  - story_id: vitalia-fase1-stack-stability
+    date: 2026-05-23
+    type: new
+    summary: "Implementación inicial · migración legacy a schema v2"
+    merge_sha: null
+    status: done
+  - story_id: vitalia-stub-caps-scenario-backfill
+    date: 2026-05-30
+    type: extend
+    summary: "backfill scenario+e2e → verified-live (deployed-visible)"
+    added_in_story: vitalia-stub-caps-scenario-backfill
+    status: done
+
+last_modified: 2026-05-30
+
+scenarios:
+  - id: shell-primitivas-shadcn-renderizan
+    name: "Primitivas Shadcn (Button, Avatar, etc.) renderizan correctamente en el shell organism"
+    actor: sistema
+    status: live
+    given: "Stack Tailwind v4 + Shadcn UI instalado en vitalia/frontend con postcss.config.mjs + 8 primitivos vendored"
+    when: "El shell visual check carga rutas autenticadas del shell (/valeria/agenda, /lisa/marca/identidad)"
+    then: "No aparece el texto placeholder 'AppPanelSlot' en ninguna ruta · las rutas cargan sin errores de consola relacionados con Tailwind/Shadcn · screenshots de las rutas capturan el layout real"
+    e2e_test: "vitalia/frontend/e2e/regression/shell-visual-check/shell-visual-check.spec.ts"
+    verification_method: dev-app
+    story_spec_ref: "vitalia/docs/archive/2026/stories/vitalia-fase1-stack-stability/01-spec.md"
+    atomic_ref: null
+    added_in_story: vitalia-stub-caps-scenario-backfill
+    added_date: 2026-05-30
+map_box: plataforma-tecnica
+
+---
+
+# vitalia-shell-foundation-shadcn-tailwind-v4
+
+Fundación técnica del shell-organism agéntico — Tailwind v4 + Shadcn UI vendored + 8 primitivos base + 7 agent tokens (Lisa/Lucas/Adrián/Valeria/Camila/Mateo/Config) + ADR plan deprecación `.vt-*` progresiva. Blocker hard que desbloquea Fase 1 + Fase 2 completas (`vitalia-fase1-{design-tokens-theme,topbar-global,tenant-switcher,shell-layout-5050,...}` + Fase 2 ×22 stories).
+
+## Surface
+
+### Tailwind v4 + PostCSS infra (`vitalia/frontend/`)
+
+- `postcss.config.mjs` (NEW) — invoca `@tailwindcss/postcss` plugin para procesar directives Tailwind v4. Sin este archivo el `@tailwind base/components/utilities` syntax legacy se servía literal al browser sin generar utilities.
+- `src/app/globals.css` (MODIFIED) — migrado a Tailwind v4 syntax: `@import "tailwindcss"` + `@config "../../tailwind.config.ts"`. Preserva bloque `:root` + `.dark` con CSS vars Shadcn standard + 7 agent tokens HSL. Bloque `.vt-*` legacy intacto para compatibility temporal per ADR-vitalia-002 § 3.
+- `tailwind.config.ts` (already existed, sin cambios F1-S0) — extends theme.extend.colors con agent palette consumida via `hsl(var(--agent-{slug}))`. F1-S0 valida que el @config directive permite Tailwind v4 leer config legacy.
+- `package.json` — added `@tailwindcss/postcss` devDep.
+
+### 8 Shadcn primitivos vendored (`vitalia/frontend/src/components/ui/`)
+
+Copy-paste vendored desde `npx shadcn@latest add` (NO npm package consumption). Cada primitivo es editable in-place:
+
+- `button.tsx` — 6 variants (default/destructive/outline/secondary/ghost/link) × 4 sizes (default/sm/lg/icon). **Fix F1-S0**: agregado `cursor-pointer` base + `disabled:cursor-not-allowed` + defensive `hover:text-{*}-foreground` para evitar white-on-gray contrast bug.
+- `avatar.tsx` — Radix Avatar.{Root,Image,Fallback} wrapper con size class.
+- `dropdown-menu.tsx` — Radix DropdownMenu.* full set (Root, Trigger, Content, Item, Label, Separator, Group, Sub, Portal). **Fix F1-S0**: agregado `hover:bg-accent hover:text-accent-foreground` (antes solo `focus:`), destructive variant `hover:bg-destructive/10 hover:text-destructive`, `cursor-pointer` + `disabled:cursor-not-allowed`.
+- `input.tsx` — single-line text input con focus-visible ring.
+- `badge.tsx` — 4 variants (default/secondary/destructive/outline) con anchor-only hover (`[a&]:hover:`).
+- `textarea.tsx` — multi-line autoresize textarea.
+- `tabs.tsx` — Radix Tabs.{Root,List,Trigger,Content}. **Fix F1-S0**: agregado `cursor-pointer` + `hover:text-foreground` defensive + `disabled:cursor-not-allowed`.
+- `tooltip.tsx` — Radix Tooltip.{Provider,Root,Trigger,Content} con primary bg + white text + Arrow.
+
+`components.json` config: `style=new-york`, `baseColor=slate`, `cssVariables=true`, `tailwindConfig=existing`, `importAlias=@/`.
+
+### 7 Agent tokens (`vitalia/frontend/src/app/globals.css`)
+
+`:root` block extiende Shadcn standard con 7 tokens HSL format (sin función `hsl()`, consumido via `hsl(var(--agent-{slug}))`):
+
+| Token | HSL | Hex | Agent | Rol |
+|---|---|---|---|---|
+| `--agent-lisa` | `156 100% 41%` | #00D084 | Lisa | Estratega marca + offer ladder |
+| `--agent-lucas` | `0 0% 7%` | #111111 | Lucas | Setter growth viral |
+| `--agent-adrian` | `198 99% 49%` | #01b2f8 | Adrián | Closer integral leads+reactivación |
+| `--agent-valeria` | `287 53% 37%` | #7b2d91 | Valeria | Coordinadora general día-a-día |
+| `--agent-camila` | `244 84% 32%` | #180d95 | Camila | Post-venta CLTV+engagement |
+| `--agent-mateo` | `53 99% 51%` | #fee209 | Mateo | Especialista tech+diseño IA |
+| `--agent-config` | `240 4% 46%` | gris | Config | Configuración (no agente identidad) |
+
+`.dark` block contiene 5 soft variants (lisa-soft, lucas-soft, adrian-soft, valeria-soft, camila-soft) — placeholders hasta F1-S1 introduce theme toggle real.
+
+### Agent SSoT TypeScript (`vitalia/frontend/src/lib/agents.ts`)
+
+`AgentMeta` type + `AGENTS` Record con 6 entries (Lisa, Valeria, Adrián, Lucas, Camila, Mateo) y `AGENT_LIST` ordered (Valeria primero — agente principal). Cada entry: `slug`, `name`, `role`, `colorHex`, `thumbnail` path, `transparent` path.
+
+Consumido por:
+- `/test-stack/primitives` (F1-S0 showcase)
+- F1-S1+ TopBar / ValeriaRail / Ribbon agent tabs
+- Brand Studio voice presets (futuro)
+- Sales agent specialist routing (futuro)
+
+### Agent imagery (`vitalia/frontend/public/agents/{slug}/`)
+
+6 subdirectorios con 2 archivos cada uno:
+- `thumbnail.png` — retrato cuadrado 500x500 (avatars, ribbon tabs)
+- `transparent.{png,jpeg}` — body completo transparent background (hero usage, larger viewport)
+
+Imágenes canónicas copiadas desde `/home/chalreme/Trabajo/Vitalia/agentes/{Lisa-Estratega,Valeria-Ejecutiva,Adrian-Closer,Lucas-Setter,Camila-Fidelizacion,Mateo-Desarrollador}/` (Chris SSoT 2026-05-22).
+
+### Test pages preview (`vitalia/frontend/src/app/test-stack/`)
+
+Rutas Next.js dev-only para visual baseline + iteración manual:
+- `/test-stack/primitives` — renderiza 8 primitivos × todas variantes con datos LatAm realistas (clínica AR + OSDE/IOMA/Swiss Medical badges)
+- `/test-stack/agent-tokens` — renderiza 7 swatches color base + soft variant con labels HSL + 8 surface tokens (background, primary, accent, muted, card, destructive, secondary, ring)
+
+Ambas marcadas public en `proxy.ts` (no Clerk auth gating — sin datos sensibles).
+
+### Playwright visual project (`vitalia/frontend/playwright.config.ts`)
+
+`@project=visual` block agregado:
+- Viewport 1440×900
+- `maxDiffPixelRatio: 0.001` (0.1% tolerance per Design Contract § 9.4)
+- `animations: 'disabled'` + `caret: 'hide'` para determinismo
+- `storageState: 'playwright/.clerk/user.json'` + `dependencies: ['setup']` — dashboard goldens necesitan Clerk auth real
+
+### 6 Visual goldens baseline (`vitalia/frontend/e2e/__screenshots__/visual/stack-stability/dev-stack-baseline.spec.ts/`)
+
+Ratificados Chris 2026-05-23T01:30:00-05:00:
+- `dashboard-legacy-{light,dark}.png` — regression test legacy `(dashboard)/` post Tailwind v4 + Shadcn install
+- `shadcn-primitives-{light,dark}.png` — 8 primitivos × todas variantes
+- `agent-tokens-swatch-{light,dark}.png` — 7 swatches color + 8 surface tokens
+
+Dark variants byte-idénticas a light (F1-S1 introduce theme toggle real con `next-themes` — entonces dark.png regenera distinto, ratchet shrink-only desde ese punto).
+
+### Arch fitness test (`vitalia/frontend/src/__tests__/architecture/`)
+
+- `test-no-vt-classes-in-new-features.test.ts` (NEW) — recursive scan `SHELL_PATHS = ['src/app/[tenantId]/(shell-organism)', 'src/components/shared/shell-organism']` con `VT_PATTERN = /\bvt-[a-z]/`. Initial GREEN by emptiness (paths no existen aún — F1-S4 los crea). Ratchet shrink-only: cuando F1-S1+ poblean shell-organism, test sigue GREEN porque builders NO usan `.vt-*`.
+
+### ADR (`vitalia/docs/architecture/`)
+
+- `ADR-vitalia-002-vt-deprecation-plan.md` (NEW, 273 LOC, 8 secciones obligatorias) — contexto + inventario `.vt-*` + estrategia compatibility temporal + migration policy progresiva + final drop story (Fase 2 final) + arch fitness test enforcement + post-install audit checklist supply-chain (diff review 8 primitives vs ui.shadcn.com/r/) + riesgos+mitigaciones.
+
+## Verification
+
+```bash
+WS=$(git rev-parse --show-toplevel)
+cd ${WS}
+
+# Backend stack levantado
+make dev-vitalia
+
+# 1. tsc strict + lint clean
+cd vitalia/frontend && npx tsc --noEmit                        # exit 0
+cd vitalia/frontend && npx eslint src/ --max-warnings 0        # exit 0
+
+# 2. Unit tests + arch fitness
+cd vitalia/frontend && npx vitest run                           # 740/740 PASS
+
+# 3. Production build
+cd vitalia/frontend && npm run build                            # exit 0
+
+# 4. Visual goldens regression
+cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 \
+  npx playwright test --project=visual --grep "stack-stability"
+                                                                # 8/8 PASS (1 setup + 6 goldens + 1 cleanup)
+
+# 5. Live preview pages
+curl -s -o /dev/null -w "%{http_code}\n" http://localhost:3002/test-stack/primitives     # 200
+curl -s -o /dev/null -w "%{http_code}\n" http://localhost:3002/test-stack/agent-tokens   # 200
+```
+
+Expected: todos exit 0 / 200.
+
+## Gherkin coverage (de 01-spec.md § 6, ver 06-audit/gherkin-matrix.md)
+
+| Scenario | Tests | Status |
+|---|---|---|
+| 1 — happy-path full pipeline | fe_typecheck + fe_lint + fe_vitest + 6 visual goldens | ✅ PASS |
+| 2 — Tailwind v4 runtime | fe_build_production + visual_dashboard_legacy | ✅ PASS post Fix #5 |
+| 3 — Shadcn primitive render | visual_shadcn_primitives_{light,dark} | ✅ PASS |
+| 4 — agent tokens + dark structural | fe_agent_tokens_css_vars_grep + tailwind_introspection + visual_agent_tokens_swatch | ✅ PASS |
+| 5 — Shadcn install partial failure | fe_components_json_present + fe_8_primitives_present_ls | ✅ PASS |
+| 6 — build error post-install | fe_build_production | ✅ PASS post Fix #4 |
+| 7 — adversarial supply-chain | ADR-vitalia-002 § 7 manual checklist | N/A documented |
+| 8 — not_applicable_batch | 9 sub-categorías con razón explícita | N/A documented |
+
+## Dependencies cross-package
+
+- Engine: ninguna (story 100% FE brand-local).
+- Cross-brand: ninguna (anti-duplication respetado — Shadcn install scope brand-local exclusivo, no mirror nicolify/comunify/lupulo).
+- Promotion candidates: el SSoT `src/lib/agents.ts` pattern (agentic metadata centralized) podría lift a `core/luana-core-platform/agents/` si comunify/fixia/saasora replican el patrón. Por ahora brand-local.
+
+## Blocks (downstream stories desbloqueadas)
+
+Todas las stories Fase 1 + Fase 2 del shell-organism que requieren Shadcn primitives + agent tokens + Tailwind v4 funcional:
+
+- F1-S1 `vitalia-fase1-design-tokens-theme` — theme toggle + dark mode real
+- F1-S2 `vitalia-fase1-topbar-global` — uso `<Avatar>` agentes en topbar
+- F1-S3 `vitalia-fase1-tenant-switcher` — `<DropdownMenu>` para tenant selection
+- F1-S4 `vitalia-fase1-shell-layout-5050` — layout dual-mode shell
+- F1-S5..S10 — Valeria rail, chat skeleton, ribbon 6 tabs, sub-tabs, routing, empty states
+- F2-S1..S22 — todos los componentes Fase 2 reusan primitives + agent palette

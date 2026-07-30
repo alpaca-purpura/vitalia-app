@@ -1,0 +1,33 @@
+# vitalia/deploy/cloudflared/dev-config.yml
+# Locally-managed Cloudflare Tunnel config for dev environment.
+# Used by service `vitalia_cloudflared_dev` (profile=tunnel) — opt-in via `make dev-vitalia-tunnel`.
+#
+# Path-based ingress: /api/* → backend, rest → frontend (same subdomain).
+# Dominio: dev-app.vitalialat.com (zona única en cuenta CF de vitalia).
+
+tunnel: 737ae13f-7482-4a57-b5cc-6ae26bea9e69
+credentials-file: /etc/cloudflared/dev-tunnel.json
+
+ingress:
+  # 1) API requests (FastAPI) — path prefix /api
+  - hostname: dev-app.vitalialat.com
+    path: ^/api/.*
+    service: http://vitalia_backend_dev:8002
+    originRequest:
+      connectTimeout: 30s
+      tlsTimeout: 10s
+      noTLSVerify: true
+
+  # 2) Frontend (Next.js dev server, HMR via WebSocket)
+  - hostname: dev-app.vitalialat.com
+    service: http://vitalia_frontend_dev:3002
+    originRequest:
+      connectTimeout: 10s
+      tlsTimeout: 10s
+      noTLSVerify: true
+
+  # 3) Fallback obligatorio
+  - service: http_status:404
+
+metrics: 0.0.0.0:2000
+loglevel: info

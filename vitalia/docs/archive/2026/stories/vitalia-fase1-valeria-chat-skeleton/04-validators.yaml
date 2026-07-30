@@ -1,0 +1,366 @@
+# F1-S6 vitalia-fase1-valeria-chat-skeleton — validators (5 categorías ★ v4.1)
+#
+# Each validator: must_pass=true unless explicitly marked. Comando shell EJECUTABLE.
+# ZERO Opus en build (FE no-agentic puro). R23 NO aplica.
+#
+# Categorías v4.1:
+#   1. non_functional      — tsc, lint, prettier, vitest unit + coverage
+#   2. functional          — E2E Playwright (1 spec per Gherkin scenario, 7 scenarios mapeados)
+#   3. visual              — Playwright visual goldens (2 logical states × theme = 4 PNGs)
+#   4. agentic_eval        — N/A (declarar razón explícita)
+#   5. architectural_validation — FSD-Lite boundaries + arch tests heredados extend + 1 arch test NEW agent-catalog SSoT + spanish neutro + no-hex grep
+
+story_id: vitalia-fase1-valeria-chat-skeleton
+brand: vitalia
+phase: fase-1
+last_modified: 2026-05-24
+architect_iter: 1
+playwright_required: true   # ui-story HARD per v4.1
+
+scenario_coverage:
+  total_scenarios: 7
+  mapped: 7
+  coverage_pct: 100
+  scenarios:
+    - id: SC-1
+      title: "happy · render mock 6 mensajes en orden con ChatHeader + ChatMessages + ChatComposer"
+      validator_ids: [val-fe-e2e-happy, val-fe-visual-populated-light, val-fe-visual-populated-dark]
+    - id: SC-2
+      title: "happy · send mock message (composer interactivo Enter → user + thinking 800ms + bot canned)"
+      validator_ids: [val-fe-e2e-send]
+    - id: SC-3
+      title: "edge · Shift+Enter inserta newline (NO envía)"
+      validator_ids: [val-fe-e2e-keys]
+    - id: SC-4
+      title: "adversarial · XSS guard payload <script> renders como texto plano (no ejecuta)"
+      validator_ids: [val-fe-e2e-xss]
+    - id: SC-5
+      title: "empty_state · messages=[] → EmptyState ilustración + heading + subtexto + composer disponible"
+      validator_ids: [val-fe-e2e-empty, val-fe-visual-empty-light, val-fe-visual-empty-dark]
+    - id: SC-6
+      title: "accessibility · axe wcag2aa pass + Tab order + aria-live polite + sr-only label composer"
+      validator_ids: [val-fe-e2e-a11y, val-fe-axe]
+    - id: SC-7
+      title: "i18n · Spanish neutro LatAm renderizado (30+ strings) + cero voseo + cero PHI real"
+      validator_ids: [val-fe-e2e-i18n]
+
+sub_categories_coverage:
+  race_condition:
+    applies: false
+    not_applicable_reason: "Mock store sin unique constraint, no DB writes. setTimeout single-shot por send sin race posible (idempotency guard status==='thinking' bloquea concurrent sends)."
+  concurrent_users:
+    applies: false
+    not_applicable_reason: "chat-store local zustand per-instance, no shared state cross-tab/cross-user."
+  network_failure:
+    applies: false
+    not_applicable_reason: "F1-S6 no realiza fetch API alguno. Mock setTimeout local. F2-S* introducirá WebSocket/HTTP — sus scenarios cubrirán network_failure."
+  large_dataset:
+    applies: false
+    not_applicable_reason: "6 mensajes mock hardcoded + 4 canned responses rotativos. Pagination/virtualization queda para Fase 2 (out-of-scope F1-S6)."
+  empty_state:
+    applies: true
+    covered_by: [val-fe-e2e-empty, val-fe-visual-empty-light, val-fe-visual-empty-dark]
+  accessibility:
+    applies: true
+    covered_by: [val-fe-e2e-a11y, val-fe-axe]
+  i18n:
+    applies: true
+    covered_by: [val-fe-e2e-i18n]
+
+iteration:
+  max_iterations: 10
+  on_fail: "fix targeted file (single file edit per iter, no scope creep beyond § 5 files_in_scope of 05-guidelines.md)"
+  cap_reached_action: "escalate Chris with T-{n}-impl-log.md cap_reached summary; do NOT auto-disable any validator"
+
+test_construction_plan:
+  playwright_required: true
+  base_path: "vitalia/frontend/e2e/shell-organism/"
+  creation_order:
+    - "T-1: lib/__tests__/agent-catalog.test.ts (RED) → lib/agent-catalog.ts + app/globals.css MODIFY (--agent-mateo-soft + typing-dot keyframes) (GREEN). Foundation catalog + token gap."
+    - "T-2: stores/__tests__/chat-store.test.ts (RED) → stores/chat-store.ts + components/shared/shell-organism/_mock-messages.ts (GREEN). Foundation state + data."
+    - "T-3: MessageBubble.test.tsx + ChatHeader.test.tsx (RED) → MessageBubble.tsx + ChatHeader.tsx + TypingIndicator.tsx + DelegateMarker.tsx (GREEN). Átomos+moléculas low-level."
+    - "T-4: ChatComposer.test.tsx (RED) → ChatComposer.tsx (GREEN). Composer interactivo. Consume T-2."
+    - "T-5: ValeriaChat.test.tsx (RED) → ValeriaChat.tsx + ChatMessages.tsx (GREEN). Organism root + ChatMessages branch logic. Consume T-2+T-3+T-4."
+    - "T-6: Integration MODIFY ValeriaSidebar.tsx (swap slot, 2 occurrences) + DELETE ValeriaChatSlot{,.test}.tsx + extend arch tests (test-no-cross-brand-shell-mirror.test.ts, test_server_first.test.ts) + NEW arch test test-agent-catalog-ssot.test.ts. Consume T-5."
+    - "T-7: e2e/shell-organism/poms/valeria-chat-page.pom.ts + e2e/shell-organism/fixtures/chat-store-seed.fixture.ts (NEW POM + fixtures). Consume T-6."
+    - "T-8: Playwright behavior specs — valeria-chat-{happy,send,keys,xss}.spec.ts (4 functional scenarios). Consume T-7."
+    - "T-9: Playwright visual + a11y + i18n — valeria-chat-{empty,a11y,i18n,visual}.spec.ts (--update-snapshots iter 1 post Chris ratify side-by-side mockup HTML). Consume T-8."
+  scenario_to_test:
+    SC-1: "vitalia/frontend/e2e/shell-organism/valeria-chat-happy.spec.ts"
+    SC-2: "vitalia/frontend/e2e/shell-organism/valeria-chat-send.spec.ts"
+    SC-3: "vitalia/frontend/e2e/shell-organism/valeria-chat-keys.spec.ts"
+    SC-4: "vitalia/frontend/e2e/shell-organism/valeria-chat-xss.spec.ts"
+    SC-5: "vitalia/frontend/e2e/shell-organism/valeria-chat-empty.spec.ts"
+    SC-6: "vitalia/frontend/e2e/shell-organism/valeria-chat-a11y.spec.ts"
+    SC-7: "vitalia/frontend/e2e/shell-organism/valeria-chat-i18n.spec.ts"
+  poms_required:
+    - path: "vitalia/frontend/e2e/shell-organism/poms/valeria-chat-page.pom.ts"
+      methods:
+        - goto
+        - seedChatStore
+        - seedChatStoreEmpty
+        - getMessage
+        - getDelegateMarker
+        - getThinkingIndicator
+        - getChatHeader
+        - getModePill
+        - getComposer
+        - getSendButton
+        - sendMessage
+        - getActiveAgent
+        - clearMessages
+        - getEmptyState
+        - setViewport
+        - setTheme
+  fixtures_required:
+    - path: "vitalia/frontend/e2e/shell-organism/fixtures/chat-store-seed.fixture.ts"
+      action: "NEW — chatStoreSeed (6 messages from MOCK_MESSAGES) + chatStoreEmpty ([]) helpers via page.addInitScript que set window.__chatStoreSeed__ antes de mount; chat-store reads on initialization"
+    - path: "vitalia/frontend/e2e/fixtures/shell-theme.fixture.ts"
+      action: "REUSE F1-S5 — light/dark toggle helpers, addInitScript localStorage vitalia-theme"
+    - path: "vitalia/frontend/e2e/fixtures/clerk-auth.fixture.ts"
+      action: "REUSE F1-S3 — public route /test-stack/shell-layout bypassa Clerk gate"
+
+architectural_validation:
+  sub_tests:
+    - id: arch-fsd-imports
+      description: "FSD-Lite: shell-organism + lib + stores components NO importan de features/*. NEW files verificados."
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test_fsd_boundaries.test.ts"
+      must_pass: true
+    - id: arch-no-cross-brand-shell-mirror
+      description: "Grep nicolify/comunify/lupulo for chat-organism artifacts (extend NEW names — must be 0 matches each)"
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test-no-cross-brand-shell-mirror.test.ts"
+      must_pass: true
+      file_modify: "vitalia/frontend/src/__tests__/architecture/test-no-cross-brand-shell-mirror.test.ts"
+      extend_names:
+        - ValeriaChat
+        - ChatHeader
+        - ChatMessages
+        - ChatComposer
+        - MessageBubble
+        - TypingIndicator
+        - DelegateMarker
+        - useChatStore
+        - AGENT_CATALOG
+    - id: arch-shell-store-readonly-heredado
+      description: "INVARIANT heredado F1-S5: F1-S6 NO modifica shell-store.ts (chat-store es separado)"
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test-shell-store-schema-readonly-f1-s5.test.ts"
+      must_pass: true
+    - id: arch-agent-catalog-ssot
+      description: "NEW invariant: NO hardcoded agent name/color/thumbnail string fuera de agent-catalog.ts (allowlist _mock-messages + test files)"
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test-agent-catalog-ssot.test.ts"
+      must_pass: true
+      file_new: "vitalia/frontend/src/__tests__/architecture/test-agent-catalog-ssot.test.ts"
+    - id: arch-server-first
+      description: "'use client' allowlist extend NEW client components — shrink only (justify in commit body)"
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test_server_first.test.ts"
+      must_pass: true
+      file_modify: "vitalia/frontend/src/__tests__/architecture/test_server_first.test.ts"
+    - id: arch-no-hex-colors
+      description: "NEW files NO contienen hex literals — tokens semánticos ONLY (excepción agent-catalog.ts hex field como metadata)"
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test_no_hardcoded_colors.test.ts"
+      must_pass: true
+    - id: arch-no-vt-classes
+      description: "NEW files NO contienen .vt-* legacy utility classes (DC §5.3 deprecation enforce)"
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test-no-vt-classes-in-new-features.test.ts"
+      must_pass: true
+    - id: arch-no-voseo
+      description: "NEW components + microcopy validated against voseo glossary (.claude/rules/spanish-text.md)"
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test-vitalia-ui-strings-no-voseo.test.ts"
+      must_pass: true
+    - id: arch-skip-link-target
+      description: "Skip-link target invariant heredado F1-S5 — F1-S6 NO afecta <main id='main-content'>"
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test-skip-link-target.test.ts"
+      must_pass: true
+
+# ════════════════════════════════════════════════════════════════════
+# § 1 — NON-FUNCTIONAL
+# ════════════════════════════════════════════════════════════════════
+validators:
+  non_functional:
+
+    - id: val-fe-tsc
+      description: "TypeScript strict (no any, no implicit, FSD boundaries respect, React 19 + zustand 5 types ok)"
+      command: "cd vitalia/frontend && npx tsc --noEmit"
+      must_pass: true
+
+    - id: val-fe-lint
+      description: "ESLint cache scoped a archivos F1-S6 + shell-organism + lib + stores + arch tests"
+      command: "cd vitalia/frontend && npx eslint src/components/shared/shell-organism src/lib src/stores src/__tests__/architecture --cache --cache-location .eslintcache"
+      must_pass: true
+
+    - id: val-fe-prettier
+      description: "Prettier format check on new + modified files"
+      command: "cd vitalia/frontend && npx prettier --check 'src/components/shared/shell-organism/{ValeriaChat,ChatHeader,ChatMessages,ChatComposer,MessageBubble,TypingIndicator,DelegateMarker,_mock-messages}*.{ts,tsx}' 'src/components/shared/shell-organism/ValeriaSidebar.tsx' 'src/lib/agent-catalog.ts' 'src/stores/chat-store.ts' 'src/app/globals.css'"
+      must_pass: true
+
+    - id: val-fe-jscpd
+      description: "jscpd: zero new copy-paste blocks shell-organism (informational only — chat sub-components alike layout pero diferentes contenidos)"
+      command: "cd vitalia/frontend && npx jscpd src/components/shared/shell-organism --threshold 0 --silent || echo 'jscpd warning informational only'"
+      must_pass: false  # informational only, no block
+
+    - id: val-fe-vitest-unit
+      description: "Vitest unit: agent-catalog + chat-store + Chat* + Message* + Typing + Delegate + arch tests new + coverage threshold 20% (component-level target ≥80% logic-heavy files chat-store/ChatComposer)"
+      command: "cd vitalia/frontend && npx vitest run src/components/shared/shell-organism src/lib src/stores src/__tests__/architecture --reporter=default --coverage --coverage.thresholds.lines=20 --coverage.thresholds.functions=20"
+      must_pass: true
+
+  # ════════════════════════════════════════════════════════════════════
+  # § 2 — FUNCTIONAL (E2E Playwright per scenario, 7 specs)
+  # ════════════════════════════════════════════════════════════════════
+  functional:
+
+    - id: val-fe-e2e-happy
+      description: "SC-1 happy · render 6 mensajes mock en orden + ChatHeader + Mode Pill + composer visible"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test shell-organism/valeria-chat-happy.spec.ts"
+      must_pass: true
+      scenario_id: SC-1
+
+    - id: val-fe-e2e-send
+      description: "SC-2 happy · escribir + Enter → user bubble aparece + 800ms thinking + bot canned aparece"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test shell-organism/valeria-chat-send.spec.ts"
+      must_pass: true
+      scenario_id: SC-2
+
+    - id: val-fe-e2e-keys
+      description: "SC-3 edge · Shift+Enter inserta newline, Enter solo envía con saltos preservados"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test shell-organism/valeria-chat-keys.spec.ts"
+      must_pass: true
+      scenario_id: SC-3
+
+    - id: val-fe-e2e-xss
+      description: "SC-4 adversarial · payload <script>alert('xss')</script> renders como text plano + dialog event listener no fires + DOM contiene texto literal escapado"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test shell-organism/valeria-chat-xss.spec.ts"
+      must_pass: true
+      scenario_id: SC-4
+
+    - id: val-fe-e2e-empty
+      description: "SC-5 empty_state · chatStore.messages=[] → EmptyState ilustración + heading 'Empieza una conversación' + subtexto + composer disponible"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test shell-organism/valeria-chat-empty.spec.ts"
+      must_pass: true
+      scenario_id: SC-5
+
+    - id: val-fe-e2e-a11y
+      description: "SC-6 a11y · Tab order composer + 3 stubs + send button + sr-only label + aria-live polite + chat-header decoratives correct"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test shell-organism/valeria-chat-a11y.spec.ts"
+      must_pass: true
+      scenario_id: SC-6
+
+    - id: val-fe-axe
+      description: "SC-6 axe-core WCAG 2.1 AA on ValeriaChat states populated + empty · light + dark · 0 violations"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test shell-organism/valeria-chat-a11y.spec.ts --grep '@axe'"
+      must_pass: true
+      scenario_id: SC-6
+
+    - id: val-fe-e2e-i18n
+      description: "SC-7 i18n · 30+ strings ratificados + regex voseo glossary cero matches + Spanish neutro tildes/eñes + cero PHI real patterns en mock data + aria-labels correctos"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test shell-organism/valeria-chat-i18n.spec.ts"
+      must_pass: true
+      scenario_id: SC-7
+
+  # ════════════════════════════════════════════════════════════════════
+  # § 3 — VISUAL (2 logical states × theme = 4 PNG snapshots, mockup HTML side-by-side ratchet)
+  # ════════════════════════════════════════════════════════════════════
+  visual:
+
+    - id: val-fe-visual-populated-light
+      description: "Visual golden vs mockup valeria-chat-sample.html (variante A 6-messages, light) @ 1280x800 · maxDiffPixelRatio 0.001"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test --project=visual shell-organism/valeria-chat-visual.spec.ts --grep 'populated light 1280'"
+      must_pass: true
+      snapshot_path: "vitalia/frontend/e2e/shell-organism/valeria-chat-visual.spec.ts-snapshots/valeria-chat-populated-light-1280x800.png"
+      mockup_ref: "vitalia/docs/product/stories/vitalia-fase1-valeria-chat-skeleton/mockups/valeria-chat-sample.html"
+
+    - id: val-fe-visual-populated-dark
+      description: "Visual golden vs mockup valeria-chat-sample.html (variante A, dark) @ 1280x800"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test --project=visual shell-organism/valeria-chat-visual.spec.ts --grep 'populated dark 1280'"
+      must_pass: true
+      snapshot_path: "vitalia/frontend/e2e/shell-organism/valeria-chat-visual.spec.ts-snapshots/valeria-chat-populated-dark-1280x800.png"
+      mockup_ref: "vitalia/docs/product/stories/vitalia-fase1-valeria-chat-skeleton/mockups/valeria-chat-sample.html"
+
+    - id: val-fe-visual-empty-light
+      description: "Visual golden vs mockup valeria-chat-sample.html (variante B empty state, light) @ 1280x800"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test --project=visual shell-organism/valeria-chat-visual.spec.ts --grep 'empty light 1280'"
+      must_pass: true
+      snapshot_path: "vitalia/frontend/e2e/shell-organism/valeria-chat-visual.spec.ts-snapshots/valeria-chat-empty-light-1280x800.png"
+      mockup_ref: "vitalia/docs/product/stories/vitalia-fase1-valeria-chat-skeleton/mockups/valeria-chat-sample.html"
+
+    - id: val-fe-visual-empty-dark
+      description: "Visual golden vs mockup valeria-chat-sample.html (variante B, dark) @ 1280x800"
+      command: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test --project=visual shell-organism/valeria-chat-visual.spec.ts --grep 'empty dark 1280'"
+      must_pass: true
+      snapshot_path: "vitalia/frontend/e2e/shell-organism/valeria-chat-visual.spec.ts-snapshots/valeria-chat-empty-dark-1280x800.png"
+      mockup_ref: "vitalia/docs/product/stories/vitalia-fase1-valeria-chat-skeleton/mockups/valeria-chat-sample.html"
+
+  # ════════════════════════════════════════════════════════════════════
+  # § 4 — AGENTIC EVAL (N/A — FE only chrome UI sin LangGraph/specialist/LLM real)
+  # ════════════════════════════════════════════════════════════════════
+  agentic_eval:
+    applies: false
+    not_applicable_reason: "FE only chrome UI story (shell-organism chat skeleton). NO LangGraph state, NO specialist node, NO LLM call, NO goldens, NO sales_agent wire real (mock setTimeout). Sales_agent + Copilot brand extensions out-of-scope F1-S6. F2-S11 (camila-voz) y F2 wire sales_agent introducirán agentic_eval + goldens cuando wire real WebSocket."
+
+  # ════════════════════════════════════════════════════════════════════
+  # § 5 — ARCHITECTURAL VALIDATION
+  # ════════════════════════════════════════════════════════════════════
+  architectural_validation:
+
+    - id: val-fe-arch-fsd
+      description: "FSD-Lite boundaries — NEW shell-organism + lib + stores components NO importan features/*"
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test_fsd_boundaries.test.ts"
+      must_pass: true
+
+    - id: val-fe-arch-no-cross-brand-mirror
+      description: "Cross-brand mirror guard — extend NEW component names (anti-duplication.md cardinal rule)"
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test-no-cross-brand-shell-mirror.test.ts"
+      must_pass: true
+
+    - id: val-fe-arch-shell-store-readonly-heredado
+      description: "INVARIANT heredado F1-S5: shell-store.ts NO modificado por F1-S6 (chat-store separado)"
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test-shell-store-schema-readonly-f1-s5.test.ts"
+      must_pass: true
+
+    - id: val-fe-arch-agent-catalog-ssot
+      description: "NEW invariant: NO hardcoded agent name/color/thumbnail fuera de catalog (allowlist _mock-messages + test files)"
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test-agent-catalog-ssot.test.ts"
+      must_pass: true
+
+    - id: val-fe-arch-server-first
+      description: "'use client' allowlist extend NEW client components (shrink only — justify in commit body)"
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test_server_first.test.ts"
+      must_pass: true
+
+    - id: val-fe-arch-no-hex
+      description: "NEW files NO contienen hex literals — tokens semánticos ONLY (excepción documentada: agent-catalog.ts hex field como metadata)"
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test_no_hardcoded_colors.test.ts"
+      must_pass: true
+
+    - id: val-fe-arch-no-vt
+      description: "NEW files NO contienen .vt-* legacy utility classes (DC §5.3 deprecation enforce)"
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test-no-vt-classes-in-new-features.test.ts"
+      must_pass: true
+
+    - id: val-fe-arch-no-voseo
+      description: "NEW components microcopy validated against Spanish neutro glossary"
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test-vitalia-ui-strings-no-voseo.test.ts"
+      must_pass: true
+
+    - id: val-fe-arch-skip-link
+      description: "Skip-link target invariant preservado (F1-S5 cementado, F1-S6 NO afecta)"
+      command: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test-skip-link-target.test.ts"
+      must_pass: true
+
+# ════════════════════════════════════════════════════════════════════
+# Pre-build environment requirements (informacional — no validator)
+# ════════════════════════════════════════════════════════════════════
+preflight:
+  notes: |
+    - Dev stack vitalia must be running for E2E specs: `make dev-vitalia` (ports backend 8002, frontend 3002).
+    - Playwright preflight: `bash scripts/e2e-preflight.sh` (verifica dev stack + Clerk auth state).
+    - Public route /test-stack/shell-layout sigue siendo el entry point E2E (sin Clerk gate, heredado F1-S5).
+    - Visual goldens iter 1 generation: builder T-9 monta mockup en
+      `python3 -m http.server 8888 vitalia/docs/product/stories/vitalia-fase1-valeria-chat-skeleton/mockups/`
+      side-by-side con componente real `localhost:3002/test-stack/shell-layout` (con seed chatStore populated / empty toggled).
+      Solo cuando Chris valida side-by-side OK (4 estados visuales: populated/empty × light/dark), builder corre:
+      `cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test --project=visual --update-snapshots shell-organism/valeria-chat-visual.spec.ts`
+      Post-ratify Chris, ratchet shrink-only enforced.
+    - chatStore seed determinism: addInitScript pre-nav setting `window.__chatStoreSeed__` (MOCK_MESSAGES o []). chat-store reads this on initial state si presente; fallback a default MOCK_MESSAGES.
+    - 4 PNG snapshots: 2 states (populated/empty) × 2 themes (light/dark).
+    - Time mocking en Playwright E2E NO disponible directo; SC-2 (send) verifica via wait + assertion (no fake timers). Vitest unit usa vi.useFakeTimers para sendMessage 800ms.
+    - XSS spec: usar `page.on('dialog', ...)` listener para verificar NO alert disparada + DOM textContent inspection.

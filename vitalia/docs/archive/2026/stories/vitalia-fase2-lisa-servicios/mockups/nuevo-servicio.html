@@ -1,0 +1,793 @@
+<!--
+  Mockup vitalia-fase2-lisa-servicios · Crear servicio (★ Chris 2026-06-12 ronda 4)
+  CAMBIO A: workspace nuevo = MISMO workspace que editar (estructura idéntica, campos vacíos).
+  CAMBIO B: root "‹ Servicios" = primer leaf del tablist (peer-leaf, patrón ui-kit).
+  CAMBIO C: BibliotecaPicker = INLINE en la hoja (NO modal). Workspace nace al elegir plantilla.
+  Shell wrapper VERBATIM. EntitySubNavBar (patrón staff · full-bleed).
+-->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Nuevo servicio · Biblioteca — shell</title>
+<link rel="stylesheet" href="_shared.css" />
+<style>
+  /* Vista picker vs workspace: solo uno visible a la vez */
+  #vista-picker  { display:block; }
+  #vista-workspace { display:none; }
+  body.workspace-mode #vista-picker   { display:none; }
+  body.workspace-mode #vista-workspace { display:block; }
+
+  /* Subnav: en modo picker los content-leaves y el EntityPicker se ocultan */
+  #subnav-picker-only   { display:flex; align-items:center; }
+  #subnav-workspace-only { display:none; }
+  body.workspace-mode #subnav-picker-only   { display:none; }
+  body.workspace-mode #subnav-workspace-only { display:flex; align-items:center; flex:1; }
+
+  /* Hojas del workspace */
+  .leaf-pane { display:none; }
+  .leaf-pane.active { display:block; }
+
+  /* Local helpers */
+  .qa { border:1px solid hsl(var(--border)); border-radius:var(--radius); padding:.625rem .75rem; margin-bottom:.5rem; }
+  .qa .q { font-weight:600; font-size:.8125rem; }
+  .qa .a { font-size:.8125rem; color:hsl(var(--muted-foreground)); margin-top:.25rem; }
+  .obj { display:grid; grid-template-columns:120px 1fr; gap:.5rem .75rem; font-size:.8125rem; padding:.5rem 0; border-bottom:1px solid hsl(var(--border)); }
+  .obj:last-child { border-bottom:none; }
+  .obj .otag { font-weight:600; }
+  .ba { aspect-ratio:4/3; background:hsl(var(--muted)); border-radius:var(--radius); display:flex; align-items:center; justify-content:center; color:hsl(var(--muted-foreground)); font-size:.75rem; }
+  .safety { border-left:3px solid hsl(var(--warning)); background:hsl(var(--warning) / .08); border-radius:.5rem; padding:.625rem .75rem; font-size:.75rem; }
+  .group-h { font-size:.6875rem; font-weight:700; text-transform:uppercase; letter-spacing:.03em; color:hsl(var(--muted-foreground)); margin:.25rem 0 .5rem; }
+  .empty-leaf { text-align:center; color:hsl(var(--muted-foreground)); padding:2.5rem 1rem; font-size:.8125rem; }
+  /* barra de estado consolidada (Chris 2026-06-15 · mismo patrón que servicio-workspace) */
+  .svc-statusbar { display:flex; align-items:center; gap:.5rem .875rem; flex-wrap:wrap; padding:.5rem .75rem; margin-bottom:.75rem; background:hsl(var(--card)); border:1px solid hsl(var(--border)); border-radius:var(--radius); }
+  .svc-statusbar .svc-active { font-weight:600; color:hsl(var(--foreground)); font-size:.8125rem; }
+  .svc-status-note { font-size:.75rem; color:hsl(var(--muted-foreground)); }
+  .svc-statusbar .completeness-chip { margin-left:auto; }
+
+  /* ===== BibliotecaPicker — picker de creación de servicio (Chris 2026-06-15 · rediseño UI) ===== */
+  .biblio-context { display:flex; align-items:center; gap:.4375rem; flex-wrap:wrap; margin-bottom:1rem; font-size:.75rem; color:hsl(var(--muted-foreground)); }
+  .biblio-context .bc-chip { display:inline-flex; align-items:center; gap:.3125rem; padding:.1875rem .5rem; border-radius:9999px; background:hsl(var(--agent-lisa-soft) / .5); color:hsl(var(--agent-lisa)); font-weight:600; }
+  .biblio-modal { background:hsl(var(--card)); border:1px solid hsl(var(--border)); border-radius:var(--radius); overflow:hidden; }
+  .biblio-head { padding:1rem 1.125rem .75rem; }
+  .biblio-head h2 { font-size:1rem; font-weight:600; margin:0; }
+  .biblio-search { padding:0 1.125rem .875rem; }
+  .biblio-search-wrap { position:relative; display:flex; align-items:center; }
+  .biblio-search-ico { position:absolute; left:.75rem; font-size:.9375rem; color:hsl(var(--muted-foreground)); pointer-events:none; }
+  .biblio-search-wrap input { width:100%; padding:.5625rem .75rem .5625rem 2.25rem; font-size:.8125rem; border:1px solid hsl(var(--border)); border-radius:.5rem; background:hsl(var(--background)); color:hsl(var(--foreground)); }
+  .biblio-search-wrap input:focus { outline:none; border-color:hsl(var(--ring)); box-shadow:0 0 0 2px hsl(var(--ring) / .2); }
+  .biblio-results { display:flex; flex-direction:column; padding:0 .625rem; }
+  .biblio-result { display:flex; align-items:center; gap:.75rem; padding:.6875rem .625rem; cursor:pointer; border-radius:.5rem; transition:background .12s; }
+  .biblio-result:hover { background:hsl(var(--agent-lisa-soft) / .45); }
+  .biblio-results > .biblio-result:not(:last-of-type) { box-shadow:inset 0 -1px 0 hsl(var(--border)); }
+  .br-icon { flex:0 0 auto; width:38px; height:38px; border-radius:9999px; background:hsl(var(--muted)); display:flex; align-items:center; justify-content:center; font-size:1.125rem; }
+  .br-body { flex:1 1 auto; min-width:0; display:flex; flex-direction:column; gap:.25rem; }
+  .br-name { font-size:.875rem; font-weight:600; }
+  .br-meta { display:flex; align-items:center; gap:.375rem; flex-wrap:wrap; font-size:.6875rem; }
+  .br-action { flex:0 0 auto; }
+  /* botón liviano (outline accent en reposo · se rellena al hover de la fila) — no 6 botones azules pesados */
+  .br-action .btn { font-size:.75rem; white-space:nowrap; background:transparent; color:hsl(var(--agent-lisa)); border:1px solid hsl(var(--agent-lisa) / .45); box-shadow:none; padding:.3125rem .6875rem; transition:all .12s; }
+  .biblio-result:hover .br-action .btn { background:hsl(var(--agent-lisa)); color:#fff; border-color:hsl(var(--agent-lisa)); }
+  .biblio-empty { padding:1.75rem 1rem; text-align:center; font-size:.8125rem; color:hsl(var(--muted-foreground)); }
+  .biblio-footer { padding:.75rem 1.125rem 1rem; border-top:1px solid hsl(var(--border)); }
+  .biblio-footer .biblio-count { display:block; text-align:center; font-size:.6875rem; color:hsl(var(--muted-foreground)); }
+  .biblio-custom-sep { text-align:center; font-size:.6875rem; color:hsl(var(--muted-foreground)); margin:.625rem 0; }
+  .biblio-custom { display:flex; align-items:center; justify-content:center; gap:.4375rem; width:100%; padding:.6875rem; font-size:.8125rem; font-weight:600; color:hsl(var(--foreground)); background:transparent; border:1.5px dashed hsl(var(--border)); border-radius:.5rem; cursor:pointer; transition:all .12s; }
+  .biblio-custom:hover { border-color:hsl(var(--agent-lisa)); color:hsl(var(--agent-lisa)); background:hsl(var(--agent-lisa-soft) / .3); }
+  /* Peldaño = 5 botones (Chris 2026-06-15) · legibilidad sobre el .rung-opt de _shared */
+  .rung-picker.id-rung .rung-opt { font-size:.6875rem; padding:.5rem .375rem; line-height:1.2; }
+  /* bloqueo cuando viene de plantilla estándar (categoría + peldaño los define el estándar) */
+  .rung-picker.locked .rung-opt { cursor:not-allowed; opacity:.45; }
+  .rung-picker.locked .rung-opt[data-sel="true"] { opacity:1; }
+  .select-canon select:disabled { opacity:1; color:hsl(var(--foreground)); background:hsl(var(--muted) / .45); cursor:not-allowed; }
+  .lock-hint { font-size:.6875rem; color:hsl(var(--muted-foreground)); display:inline-flex; align-items:center; gap:.25rem; margin-top:.375rem; }
+  /* Modalidad del servicio (Chris 2026-06-15 · reemplaza el toggle "¿Recurrente?") — único / paquete sesiones / recurrente */
+  .modalidad-picker { display:grid; grid-template-columns:repeat(3,1fr); gap:.375rem; }
+  .mod-opt { border:1px solid hsl(var(--border)); border-radius:.5rem; padding:.5rem; cursor:pointer; transition:all .12s; }
+  .mod-opt:hover { border-color:hsl(var(--agent-lisa) / .5); }
+  .mod-opt[data-sel="true"] { border-color:hsl(var(--agent-lisa)); background:hsl(var(--agent-lisa-soft) / .5); }
+  .mod-t { font-size:.75rem; font-weight:600; display:flex; align-items:center; gap:.3125rem; }
+  .mod-d { font-size:.625rem; color:hsl(var(--muted-foreground)); margin-top:.1875rem; line-height:1.3; }
+  .mod-detail { margin-top:.75rem; }
+</style>
+</head>
+<body>
+<div class="shell-root">
+
+  <header class="topbar">
+    <div class="topbar-left"><div class="topbar-logo"><div class="topbar-logo-mark">V</div><span>Vitalia</span></div><span class="topbar-breadcrumb" id="topbar-bc">› Lisa · Servicios · Nuevo</span></div>
+    <div class="topbar-right">
+      <div class="splitter-control"><button class="splitter-btn" data-state="chat-collapsed">◧</button><button class="splitter-btn" data-state="chat-narrow">◨</button><button class="splitter-btn" data-state="50-50" data-active="true">⬓</button></div>
+      <button class="topbar-icon-btn" id="theme-toggle" title="Tema">🌓</button>
+      <button class="tenant-chip"><span class="tenant-chip-avatar">SP</span><span>Sonrisa Plena</span><span style="color:hsl(var(--muted-foreground));font-size:.625rem;">▾</span></button>
+      <div class="avatar bg-agent-valeria" style="width:28px;height:28px;font-size:.6875rem;">CL</div>
+    </div>
+  </header>
+
+  <div class="shell-body" data-splitter-state="50-50" id="shell-body">
+    <aside class="chat-side">
+      <div class="chat-rail-only"><div class="rail-btn active">💬</div><div class="rail-btn">📜</div><div class="rail-btn">＋</div></div>
+      <div class="chat-content">
+        <header class="chat-header"><div class="chat-avatar-wrap"><div class="chat-avatar">V</div><span class="chat-status-dot"></span></div><div class="chat-meta"><span class="chat-name">Valeria</span><span class="chat-role">En línea · Tu secretaria virtual</span></div><span class="chat-mode-pill">🤖 Modo agente</span></header>
+        <div class="chat-history-strip">📜 Hoy 09:10 · Adrián cerró a Sofía Mendoza</div>
+        <div class="chat-messages"><div class="msg-row" data-role="bot"><div class="msg-bubble">Elige una plantilla de la biblioteca — ya tiene la ficha clínica completa — o crea uno personalizado. ¿Qué servicio vas a agregar?</div><span class="msg-time">Valeria · 09:15</span></div></div>
+        <footer class="chat-composer"><div class="composer-row"><div class="composer-adornos"><button class="composer-adorno-btn">📎</button><button class="composer-adorno-btn">🎙️</button><button class="composer-adorno-btn">⚡</button></div><textarea class="composer-textarea" rows="1" placeholder="Escribe a Valeria…"></textarea><button class="composer-send">Enviar</button></div><p class="composer-hint"><span class="kbd">Cmd</span> + <span class="kbd">K</span> enfoca el composer.</p></footer>
+      </div>
+    </aside>
+
+    <main class="panel-side">
+      <nav class="ribbon" aria-label="Agentes">
+        <button class="ribbon-tab" data-active="true" data-color="lisa"><span class="ribbon-tab-avatar bg-agent-lisa" data-color="lisa">L</span><span>Lisa <span style="font-size:.625rem;color:hsl(var(--muted-foreground));font-weight:400;">· Servicios</span></span></button>
+        <button class="ribbon-tab" data-color="lucas"><span class="ribbon-tab-avatar bg-agent-lucas" data-color="lucas">Lc</span><span>Lucas</span></button>
+        <button class="ribbon-tab" data-color="adrian"><span class="ribbon-tab-avatar bg-agent-adrian" data-color="adrian">A</span><span>Adrián</span></button>
+        <button class="ribbon-tab" data-color="valeria"><span class="ribbon-tab-avatar bg-agent-valeria" data-color="valeria">V</span><span>Valeria</span></button>
+        <button class="ribbon-tab" data-color="camila"><span class="ribbon-tab-avatar bg-agent-camila" data-color="camila">Ca</span><span>Camila</span></button>
+        <button class="ribbon-tab" data-color="config"><span class="ribbon-tab-avatar" data-color="config" style="background:hsl(var(--muted));color:hsl(var(--muted-foreground));">⚙</span><span>Configurar</span></button>
+      </nav>
+      <nav class="subtabs-bar">
+        <button class="subtab-btn" data-color="lisa">Marca</button>
+        <button class="subtab-btn" data-color="lisa">Especialistas</button>
+        <button class="subtab-btn" data-active="true" data-color="lisa">Servicios</button>
+        <button class="subtab-btn" data-color="lisa">Compliance</button>
+      </nav>
+
+      <!-- ★ EntitySubNavBar (Cambio B + C combinados)
+           MODO PICKER: solo root leaf "‹ Servicios" + texto muted "Nuevo servicio" (sin picker ▾, sin los 5 leaves)
+           MODO WORKSPACE: root leaf + EntityPicker ▾ + 5 leaves (igual que editar) -->
+      <div class="entity-subnav" role="navigation" aria-label="Servicio nuevo">
+        <!-- Root leaf (peer del tablist · siempre visible · Cambio B) -->
+        <div class="entity-leaves" role="tablist" style="gap:0;margin:0;">
+          <a class="entity-leaf-root" href="catalogo.html" role="tab" data-testid="entity-leaf-root"><span class="rl-arrow">‹</span> Servicios</a>
+        </div>
+
+        <!-- Solo visible en modo PICKER -->
+        <div id="subnav-picker-only" style="margin-left:.75rem;">
+          <span style="font-size:.8125rem;color:hsl(var(--muted-foreground));">Nuevo servicio</span>
+        </div>
+
+        <!-- Solo visible en modo WORKSPACE -->
+        <div id="subnav-workspace-only">
+          <!-- EntityPicker ▾ — cambia de servicio sin volver al catálogo -->
+          <div class="entity-picker" id="ep" style="margin-left:.5rem;">
+            <button class="entity-picker-trigger" onclick="document.getElementById('ep-panel').classList.toggle('open')" aria-haspopup="listbox" aria-expanded="false">
+              <span class="ep-avatar" id="ep-avatar">L</span>
+              <span id="ep-label">Nuevo servicio (borrador)</span>
+              <span class="ep-chevron">▾</span>
+            </button>
+            <div class="entity-picker-panel" id="ep-panel" role="listbox">
+              <div class="entity-picker-search"><input placeholder="Buscar servicio…" aria-label="Buscar servicio"></div>
+              <div class="entity-picker-list">
+                <div class="entity-picker-option" data-active="true" role="option"><span class="ep-opt-avatar">L</span><span id="ep-opt-label">Nuevo servicio (borrador)</span></div>
+              </div>
+              <div class="entity-picker-footer">Mostrando 1 de 1</div>
+            </div>
+          </div>
+          <!-- 5 content leaves (idénticos a servicio-workspace.html · Cambio A) -->
+          <div class="entity-leaves" role="tablist">
+            <button class="entity-leaf" data-active="true" data-leaf="resumen">Resumen</button>
+            <button class="entity-leaf" data-leaf="adrian">⭐ Para Adrián</button>
+            <button class="entity-leaf" data-leaf="doctores">Especialistas</button>
+            <button class="entity-leaf" data-leaf="pago">Plan de pago</button>
+            <button class="entity-leaf" data-leaf="social">Prueba social</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-content">
+        <div class="panel-inner">
+
+          <!-- ★★ VISTA PICKER (Cambio C · inline · nace al cargar) -->
+          <div id="vista-picker">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:.75rem;flex-wrap:wrap;margin-bottom:1.25rem;">
+              <div>
+                <h1 class="section-title" style="font-size:1.25rem;">Nuevo servicio</h1>
+                <p class="section-subtitle">Empieza desde la biblioteca de tu tipo de clínica — o crea uno personalizado.</p>
+              </div>
+            </div>
+
+            <!-- contexto de biblioteca (derivado del tipo de clínica · Onboarding) -->
+            <div class="biblio-context">
+              <span class="bc-chip" title="El tipo de tu clínica se define en el Onboarding y se edita en Lisa → Marca.">📚 Biblioteca de tu clínica</span>
+              <span>Odontología + Estética · cada plantilla ya trae la ficha clínica completa</span>
+            </div>
+
+            <!-- BibliotecaPicker inline (sin backdrop · bloque en flujo · Cambio C) -->
+            <div class="biblio-overlay" id="biblio-overlay">
+              <div class="biblio-modal">
+                <div class="biblio-head">
+                  <h2>¿Qué servicio quieres agregar?</h2>
+                  <p class="hint" style="margin:.125rem 0 0;">Busca en la biblioteca estándar — ya tiene ficha clínica completa — o crea uno personalizado.</p>
+                </div>
+                <div class="biblio-search">
+                  <div class="biblio-search-wrap">
+                    <span class="biblio-search-ico">🔍</span>
+                    <input id="biblio-input" placeholder="Buscar por nombre o sinónimo (ej: carillas, fundas, botox…)" aria-label="Buscar en la biblioteca" oninput="filterBiblio(this.value)">
+                  </div>
+                </div>
+                <div class="biblio-results" id="biblio-results">
+                  <div class="biblio-result" onclick="selectBiblio(this,'Limpieza dental','Odontología general','Primera visita')">
+                    <span class="br-icon">🦷</span>
+                    <div class="br-body">
+                      <div class="br-name">Limpieza dental</div>
+                      <div class="br-meta">
+                        <span class="chip chip-lisa" style="font-size:.625rem;padding:.0625rem .375rem;">Odontología general</span>
+                        <span class="rung-badge rung-primera">Primera visita</span>
+                        <span class="hint" style="margin:0;">Sinónimos: profilaxis, limpieza de sarro</span>
+                      </div>
+                    </div>
+                    <div class="br-action"><button class="btn btn-primary" style="font-size:.75rem;white-space:nowrap;" onclick="event.stopPropagation();useBiblio('Limpieza dental','Primera visita','LD','rung-primera','Odontología general')">Usar esta plantilla</button></div>
+                  </div>
+                  <div class="biblio-result" onclick="selectBiblio(this,'Carillas de porcelana','Estética dental','Premium')">
+                    <span class="br-icon">💎</span>
+                    <div class="br-body">
+                      <div class="br-name">Carillas de porcelana <span class="hint" style="margin:0;display:inline;">(coincide con "fundas")</span></div>
+                      <div class="br-meta">
+                        <span class="chip chip-lisa" style="font-size:.625rem;padding:.0625rem .375rem;">Estética dental</span>
+                        <span class="rung-badge rung-premium">Premium</span>
+                        <span class="hint" style="margin:0;">Sinónimos: lentes de contacto dental, chapas, fundas</span>
+                      </div>
+                    </div>
+                    <div class="br-action"><button class="btn btn-primary" style="font-size:.75rem;white-space:nowrap;" onclick="event.stopPropagation();useBiblio('Carillas de porcelana','Premium','CP','rung-premium','Estética dental')">Usar esta plantilla</button></div>
+                  </div>
+                  <div class="biblio-result" onclick="selectBiblio(this,'Diseño de sonrisa','Estética dental','Tratamiento principal')">
+                    <span class="br-icon">✨</span>
+                    <div class="br-body">
+                      <div class="br-name">Diseño de sonrisa</div>
+                      <div class="br-meta">
+                        <span class="chip chip-lisa" style="font-size:.625rem;padding:.0625rem .375rem;">Estética dental</span>
+                        <span class="rung-badge rung-principal">Tratamiento principal</span>
+                        <span class="hint" style="margin:0;">Sinónimos: carillas, smile makeover</span>
+                      </div>
+                    </div>
+                    <div class="br-action"><button class="btn btn-primary" style="font-size:.75rem;white-space:nowrap;" onclick="event.stopPropagation();useBiblio('Diseño de sonrisa','Tratamiento principal','DS','rung-principal','Estética dental')">Usar esta plantilla</button></div>
+                  </div>
+                  <div class="biblio-result" onclick="selectBiblio(this,'Implante dental','Implantología','Tratamiento principal')">
+                    <span class="br-icon">🦴</span>
+                    <div class="br-body">
+                      <div class="br-name">Implante dental</div>
+                      <div class="br-meta">
+                        <span class="chip chip-lisa" style="font-size:.625rem;padding:.0625rem .375rem;">Implantología</span>
+                        <span class="rung-badge rung-principal">Tratamiento principal</span>
+                        <span class="hint" style="margin:0;">Sinónimos: tornillo dental, diente fijo</span>
+                      </div>
+                    </div>
+                    <div class="br-action"><button class="btn btn-primary" style="font-size:.75rem;white-space:nowrap;" onclick="event.stopPropagation();useBiblio('Implante dental','Tratamiento principal','ID','rung-principal','Implantología')">Usar esta plantilla</button></div>
+                  </div>
+                  <div class="biblio-result" onclick="selectBiblio(this,'Botox facial','Medicina estética','Tratamiento principal')">
+                    <span class="br-icon">💉</span>
+                    <div class="br-body">
+                      <div class="br-name">Botox facial</div>
+                      <div class="br-meta">
+                        <span class="chip chip-lisa" style="font-size:.625rem;padding:.0625rem .375rem;">Medicina estética</span>
+                        <span class="rung-badge rung-principal">Tratamiento principal</span>
+                        <span class="hint" style="margin:0;">Sinónimos: toxina botulínica, botulínica, arrugas</span>
+                      </div>
+                    </div>
+                    <div class="br-action"><button class="btn btn-primary" style="font-size:.75rem;white-space:nowrap;" onclick="event.stopPropagation();useBiblio('Botox facial','Tratamiento principal','BF','rung-principal','Medicina estética')">Usar esta plantilla</button></div>
+                  </div>
+                  <div class="biblio-result" onclick="selectBiblio(this,'Plan de mantenimiento anual','Odontología general','Plan / convenio')">
+                    <span class="br-icon">📋</span>
+                    <div class="br-body">
+                      <div class="br-name">Plan de mantenimiento anual</div>
+                      <div class="br-meta">
+                        <span class="chip chip-lisa" style="font-size:.625rem;padding:.0625rem .375rem;">Odontología general</span>
+                        <span class="rung-badge rung-plan">Plan / convenio</span>
+                        <span class="hint" style="margin:0;">Sinónimos: membresía dental, plan preventivo</span>
+                      </div>
+                    </div>
+                    <div class="br-action"><button class="btn btn-primary" style="font-size:.75rem;white-space:nowrap;" onclick="event.stopPropagation();useBiblio('Plan de mantenimiento anual','Plan / convenio','PM','rung-plan','Odontología general')">Usar esta plantilla</button></div>
+                  </div>
+                </div>
+                <div class="biblio-footer">
+                  <span class="biblio-count">Mostrando 6 de 24 servicios de la biblioteca</span>
+                  <div class="biblio-custom-sep">¿No está en la lista?</div>
+                  <button class="biblio-custom" onclick="useCustom()"><span style="font-size:1rem;">+</span> Crear un servicio personalizado</button>
+                </div>
+              </div>
+            </div>
+            <!-- Link volver a elegir (visible solo en workspace-mode · aria-hidden en picker) -->
+          </div><!-- /#vista-picker -->
+
+          <!-- ★ VISTA WORKSPACE (Cambio A · estructura IDÉNTICA a servicio-workspace.html) -->
+          <div id="vista-workspace">
+
+            <!-- barra de estado consolidada (borrador · Chris 2026-06-15) -->
+            <div class="svc-statusbar">
+              <label class="switch-label svc-active"><span class="switch"><input type="checkbox"><span class="track"></span></span> Activar</label>
+              <span class="svc-status-note">📝 Borrador — se guarda solo mientras lo llenas. Actívalo cuando esté listo.</span>
+              <span class="chip-origen personalizado" id="ws-origen-chip">Personalizado</span>
+              <span class="completeness-chip" id="ws-completeness" title="Completa los campos faltantes para que Adrián pueda responder con más detalle. No bloquea 'Activar'.">
+                <span class="cc-bar"><span class="cc-fill" id="ws-cc-fill" style="width:8%;"></span></span>
+                <span id="ws-cc-label">ficha 2/26</span>
+              </span>
+            </div>
+
+            <!-- Link "↻ Volver a elegir de la biblioteca" (Cambio C) -->
+            <div style="margin-bottom:.875rem;">
+              <a href="#" class="hint" style="margin:0;text-decoration:underline dotted;" onclick="volverPicker(event)">↻ Volver a elegir de la biblioteca</a>
+            </div>
+
+            <!-- ★ PANEL CONOCIMIENTO (idéntico a editar · persiste + colapsable · abierto en nuevo) -->
+            <details class="kpanel" open>
+              <summary>📚 Fuentes &amp; conocimiento <span class="chip chip-lisa" style="margin-left:.25rem;">empieza por aquí ✨</span></summary>
+              <div class="kpanel-body">
+                <p class="hint" style="margin:0;">¿Tienes material del servicio? Cárgalo una vez. Lisa <strong>(1)</strong> autocompleta los campos de abajo (los revisas) y <strong>(2)</strong> lo deja disponible para que Adrián responda preguntas del paciente. Así no llenas un formulario enorme a mano.</p>
+                <div class="dropzone">
+                  <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;"><span style="font-size:1.25rem;">📄</span><div style="flex:1;min-width:12rem;"><div style="font-weight:600;font-size:.8125rem;">Arrastra o <span class="text-agent-lisa" style="cursor:pointer;text-decoration:underline;">elige archivos</span></div><div class="hint" style="margin:0;">folleto · lista de precios · protocolo · ficha técnica · enlace web</div></div><button class="btn btn-primary" style="font-size:.75rem;"><span>✨</span> Procesar con Lisa</button></div>
+                </div>
+                <p class="hint" style="margin:0;">🔒 El precio siempre sale del campo (no del documento) para no quedar viejo. Lo clínico que Adrián consulte se limita a lo comercial + escala al doctor.</p>
+              </div>
+            </details>
+
+            <!-- ===== HOJA RESUMEN (vacío · MISMOS 6 grupos que editar · Cambio A) ===== -->
+            <div class="leaf-pane active" data-pane="resumen">
+              <div class="section-header"><div><h1 class="section-title">Resumen</h1><p class="section-subtitle">Qué es y qué se lleva el paciente.</p></div></div>
+              <div class="cards-stack">
+
+                <!-- GRUPO 1: Identidad -->
+                <section class="card">
+                  <h2 class="card-title">📋 Identidad</h2>
+                  <div class="field-row">
+                    <div><label class="label">Nombre</label><input id="f-nombre" placeholder="Ej: Diseño de sonrisa"></div>
+                    <div><label class="label"><span class="tip" title="Las áreas salen de tu clínica (Onboarding → Lisa → Marca). Si el servicio viene de la biblioteca, ya llega con su categoría; solo la cambias si quieres.">Especialidad / categoría</span><span id="sparkle-esp"></span></label><span class="select-canon" style="display:block;"><select id="f-esp"><option>Elige…</option><option>Odontología general</option><option>Estética dental</option><option>Ortodoncia</option><option>Implantología</option><option>Medicina estética</option></select></span></div>
+                  </div>
+                  <div style="margin-top:.5rem;display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;">
+                    <span class="chip-origen personalizado" id="origen-chip-inline">Personalizado</span>
+                  </div>
+                  <div style="margin-top:.625rem;">
+                    <label class="label"><span class="tip" title="En qué momento del recorrido del paciente entra. Si viene de la biblioteca, lo define el servicio estándar.">Peldaño</span><span id="sparkle-peldano"></span></label>
+                    <div class="rung-picker id-rung" id="f-peldano">
+                      <div class="rung-opt" data-rung="Gancho gratuito" onclick="pickRung(this)">Gancho gratuito</div>
+                      <div class="rung-opt" data-rung="Primera visita" onclick="pickRung(this)">Primera visita</div>
+                      <div class="rung-opt" data-rung="Tratamiento principal" onclick="pickRung(this)">Tratamiento principal</div>
+                      <div class="rung-opt" data-rung="Premium" onclick="pickRung(this)">Premium</div>
+                      <div class="rung-opt" data-rung="Plan / convenio" onclick="pickRung(this)">Plan / convenio</div>
+                    </div>
+                    <span class="hint" id="peldano-hint" style="margin:.375rem 0 0;display:block;">Elige dónde entra en el recorrido del paciente.</span>
+                  </div>
+                </section>
+
+                <!-- GRUPO 2: Qué es -->
+                <section class="card">
+                  <h2 class="card-title">📝 Qué es</h2>
+                  <label class="label">Descripción corta (lenguaje paciente) <span class="chip chip-lisa tip" title="El tono/voz lo toma de Lisa → Marca (tu voz de marca). El texto es editable; el estilo viene de Marca.">✨ voz de marca</span></label>
+                  <textarea id="f-desc" rows="2" placeholder="Describe brevemente el servicio… o deja que Lisa lo redacte."></textarea>
+                  <label class="label" style="margin-top:.625rem;">Descripción larga (FAQ + landing)</label>
+                  <textarea id="f-desc-larga" rows="3" placeholder="Descripción más detallada para la página de landing y respuestas a preguntas frecuentes…"></textarea>
+                  <div class="cards-grid" style="grid-template-columns:1fr 1fr;margin-top:.625rem;">
+                    <div><label class="label">Qué incluye <span id="sparkle-incluye"></span></label><textarea id="f-incluye" rows="3" placeholder="Diagnóstico, sesiones, materiales…"></textarea></div>
+                    <div><label class="label">Qué no incluye</label><textarea id="f-excluye" rows="3" placeholder="Tratamientos previos que puedan ser necesarios…"></textarea></div>
+                  </div>
+                  <div style="margin-top:.625rem;">
+                    <label class="label">Variantes <span class="hint" style="display:inline;margin:0;font-weight:400;">— opciones del mismo servicio que cambian el precio</span></label>
+                    <div class="variants-list" id="variants-list">
+                      <div class="variant-row">
+                        <input class="v-name" placeholder="Nombre (ej: Composite)">
+                        <div class="num-affix"><span class="num-unit">S/</span><input type="number" class="v-price" placeholder="0"></div>
+                        <input class="v-note" placeholder="qué cambia (opcional)">
+                        <button class="v-del" title="Quitar variante" onclick="this.closest('.variant-row').remove()">✕</button>
+                      </div>
+                    </div>
+                    <button class="btn btn-ghost v-add" onclick="addVariant('variants-list')">+ Agregar variante</button>
+                    <p class="hint" style="margin:.375rem 0 0;">Opcional. Si el servicio tiene un solo precio, déjalo vacío.</p>
+                  </div>
+                  <div class="field-row" style="margin-top:.625rem;"><div><label class="label">Garantía</label><input id="f-garantia" placeholder="Ej: 5 años sobre las carillas"></div><div></div></div>
+                </section>
+
+                <!-- GRUPO 3: El procedimiento -->
+                <section class="card">
+                  <h2 class="card-title">🔬 El procedimiento</h2>
+                  <p class="hint" style="margin-bottom:.625rem;">Adrián cita esto textual en las conversaciones. Lo clínico escala al doctor.</p>
+                  <label class="label">Cómo se hace (pasos numerados) <span id="sparkle-pasos"></span></label>
+                  <textarea id="f-pasos" rows="4" placeholder="1. Diagnóstico · 2. … · 3. …"></textarea>
+                  <div class="field-row" style="margin-top:.625rem;">
+                    <div><label class="label">¿Lleva anestesia / duele? <span id="sparkle-anestesia"></span></label><input id="f-anestesia" placeholder="Ej: Anestesia local; molestias leves los primeros días"></div>
+                    <div><label class="label">Duración de cada sesión</label><div class="num-affix"><input type="number" id="f-duracion" min="5" step="5" placeholder="60"><span class="num-unit">min</span></div></div>
+                  </div>
+                  <div class="field-row" style="margin-top:.625rem;">
+                    <div><label class="label">Preparación previa <span id="sparkle-prep"></span></label><input id="f-prep" placeholder="Ej: Encías sanas + limpieza si hay sarro"></div>
+                    <div><label class="label">Cuidados posteriores <span id="sparkle-cuidados"></span></label><input id="f-cuidados" placeholder="Ej: Higiene normal; evitar morder hielo"></div>
+                  </div>
+                  <div class="field-row" style="margin-top:.625rem;">
+                    <div><label class="label">Tiempo de recuperación / downtime <span id="sparkle-downtime"></span></label><input id="f-downtime" placeholder="Ej: Sin downtime"></div>
+                    <div></div>
+                  </div>
+                </section>
+
+                <!-- GRUPO 4: Resultados -->
+                <section class="card">
+                  <h2 class="card-title">🌟 Resultados</h2>
+                  <div class="field-row">
+                    <div><label class="label">Resultado esperado</label><input id="f-resultado" placeholder="Ej: Sonrisa pareja, blanca y armónica con tu rostro"></div>
+                    <div><label class="label">¿Cuándo se ve el resultado?</label><input id="f-cuando" placeholder="Ej: Al colocar las carillas finales"></div>
+                  </div>
+                  <div class="field-row" style="margin-top:.625rem;">
+                    <div><label class="label">¿Cuánto dura el resultado?</label><input id="f-duracion-res" placeholder="Ej: 15-20 años (porcelana) con buen cuidado"></div>
+                    <div><label class="label">Expectativas realistas</label><input id="f-expectativas" placeholder="Ej: Las carillas no blanquean los dientes adyacentes sin tratar"></div>
+                  </div>
+                </section>
+
+                <!-- GRUPO 5: Riesgos -->
+                <section class="card">
+                  <h2 class="card-title">⚠️ Riesgos y cuidados</h2>
+                  <div class="safety" style="margin-bottom:.625rem;">🛡️ Adrián cita esto textual en las conversaciones — siempre deriva al doctor para diagnóstico clínico.</div>
+                  <label class="label">Riesgos y efectos secundarios <span id="sparkle-riesgos"></span></label>
+                  <textarea id="f-riesgos" rows="3" placeholder="• Sensibilidad temporal (1-2 semanas): normal y cede sola.&#10;• …"></textarea>
+                  <label class="label" style="margin-top:.625rem;">Señales de alarma <span id="sparkle-alarma"></span></label>
+                  <textarea id="f-alarma" rows="2" placeholder="Si hay dolor intenso, hinchazón o la pieza se mueve: contactar a la clínica inmediatamente."></textarea>
+                </section>
+
+                <!-- GRUPO 6: Operación -->
+                <section class="card">
+                  <h2 class="card-title">🗓️ Modalidad y agenda</h2>
+                  <label class="label"><span class="tip" title="Cómo se entrega y se agenda el servicio. Define si Adrián vende una cita, un paquete de sesiones, o un plan que se repite.">Modalidad</span><span id="sparkle-modal"></span></label>
+                  <div class="modalidad-picker" id="f-modalidad">
+                    <div class="mod-opt" data-mod="unica" onclick="pickMod(this)"><div class="mod-t">🟢 Sesión única</div><div class="mod-d">Se resuelve en una sola cita</div></div>
+                    <div class="mod-opt" data-mod="sesiones" onclick="pickMod(this)"><div class="mod-t">🔁 Por sesiones</div><div class="mod-d">Un paquete de varias sesiones completa el tratamiento</div></div>
+                    <div class="mod-opt" data-mod="recurrente" onclick="pickMod(this)"><div class="mod-t">📅 Recurrente</div><div class="mod-d">El paciente lo repite cada cierto tiempo (mantenimiento)</div></div>
+                  </div>
+                  <div class="mod-detail" id="mod-detail-sesiones" style="display:none;">
+                    <div class="field-row">
+                      <div><label class="label">Número de sesiones</label><div class="num-affix"><input type="number" id="f-sesiones" min="1" placeholder="3"><span class="num-unit">sesiones</span></div></div>
+                      <div><label class="label">Cada cuánto</label><div class="num-affix"><span class="num-unit">cada</span><input type="number" id="f-intervalo" min="1" placeholder="2" style="max-width:68px;"><span class="select-canon" style="min-width:118px;"><select><option>semanas</option><option>días</option><option>meses</option></select></span></div></div>
+                    </div>
+                    <p class="hint" style="margin:.375rem 0 0;">El paquete se vende junto; Adrián lo ofrece como un solo tratamiento y Mateo agenda las sesiones.</p>
+                  </div>
+                  <div class="mod-detail" id="mod-detail-recurrente" style="display:none;">
+                    <div class="field-row">
+                      <div><label class="label">Se repite cada</label><div class="num-affix"><input type="number" id="f-cadencia" min="1" placeholder="6" style="max-width:68px;"><span class="select-canon" style="min-width:118px;"><select><option>meses</option><option>semanas</option><option>años</option></select></span></div></div>
+                      <div></div>
+                    </div>
+                    <p class="hint" style="margin:.375rem 0 0;">Camila lo usa para reactivar al paciente cuando toca repetir.</p>
+                  </div>
+                  <div class="field-row" style="margin-top:.875rem;">
+                    <div><label class="label">Duración de la cita inicial</label><div class="num-affix"><input type="number" id="f-cita-dur" min="5" step="5" placeholder="40"><span class="num-unit">min</span></div></div>
+                    <div><label class="label">Tipo de cita inicial</label>
+                      <div class="rich-select" id="rs-tipocita">
+                        <button class="rich-select-trigger" type="button" aria-haspopup="listbox" aria-expanded="false" onclick="toggleRich(event,this)">
+                          <span class="rs-label"><span class="rs-title">Valoración + diagnóstico</span><span class="rs-desc">Primera cita para evaluar y planificar el tratamiento</span></span>
+                          <span class="rs-chevron">▾</span>
+                        </button>
+                        <div class="rich-select-panel" role="listbox">
+                          <div class="rich-option" data-sel="true" role="option" onclick="pickRich(this)"><span class="rs-title">Valoración + diagnóstico</span><span class="rs-desc">Primera cita para evaluar y planificar el tratamiento</span></div>
+                          <div class="rich-option" role="option" onclick="pickRich(this)"><span class="rs-title">Primera sesión directa</span><span class="rs-desc">El tratamiento arranca en la primera cita, sin valoración previa</span></div>
+                          <div class="rich-option" role="option" onclick="pickRich(this)"><span class="rs-title">Consulta informativa gratuita</span><span class="rs-desc">Charla sin costo para resolver dudas antes de decidir</span></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+              </div>
+            </div>
+            <!-- FloatingAutosaveIndicator (canon §2.6 · UNA por página · fixed bottom-center) -->
+            <div class="floating-autosave" data-state="saved" id="floating-autosave" role="status" aria-live="polite" style="display:none;">
+              <span class="fa-dot"></span> Guardado
+            </div>
+
+            <!-- ===== PARA ADRIÁN (vacío) ===== -->
+            <div class="leaf-pane" data-pane="adrian">
+              <div class="section-header"><div><h1 class="section-title">⭐ Para Adrián <span class="hint" style="font-weight:400;">(argumentario de venta)</span></h1><p class="section-subtitle">Todo lo que el agente usa para ofrecer, calificar, manejar objeciones y cerrar. Mientras más completes, mejor vende.</p></div></div>
+              <div class="empty-leaf">Completa la pestaña <strong>Resumen</strong> primero — o carga un documento arriba y Lisa autocompletará estas secciones: candidatura, objeciones, FAQ, palabras clave.</div>
+            </div>
+
+            <!-- ===== ESPECIALISTAS (vacío) ===== -->
+            <div class="leaf-pane" data-pane="doctores">
+              <div class="section-header"><div><h1 class="section-title">Especialistas</h1><p class="section-subtitle">Quién realiza este servicio. Adrián propone al especialista correcto (match canal-inbound).</p></div></div>
+              <div class="empty-leaf">Vincula los especialistas que realizan este servicio desde tu roster (Lisa → Especialistas). Disponible al activar el borrador.</div>
+            </div>
+
+            <!-- ===== PLAN DE PAGO (vacío) ===== -->
+            <div class="leaf-pane" data-pane="pago">
+              <div class="section-header"><div><h1 class="section-title">Plan de pago</h1><p class="section-subtitle">Cómo Adrián cotiza y cobra para cerrar.</p></div></div>
+              <div class="empty-leaf">Configura precio · reserva · anticipo · cuotas. Disponible al activar el borrador.</div>
+            </div>
+
+            <!-- ===== PRUEBA SOCIAL (vacío) ===== -->
+            <div class="leaf-pane" data-pane="social">
+              <div class="section-header"><div><h1 class="section-title">Prueba social</h1><p class="section-subtitle">Casos y reseñas que Adrián muestra para generar confianza.</p></div></div>
+              <div class="empty-leaf">Sube fotos antes/después y testimonios cuando los tengas.</div>
+            </div>
+
+          </div><!-- /#vista-workspace -->
+
+        </div><!-- /.panel-inner -->
+      </div><!-- /.panel-content -->
+
+      <div class="footer-meta">
+        <span id="footer-label">Elige una plantilla o crea un servicio personalizado</span>
+        <span><button class="btn btn-ghost" style="font-size:.75rem;" onclick="location.href='catalogo.html'">Cancelar</button></span>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script>
+  // ── Shell controls ──────────────────────────────────────────────────────
+  const shellBody = document.getElementById('shell-body');
+  document.querySelectorAll('.splitter-btn').forEach(btn => btn.addEventListener('click', () => {
+    document.querySelectorAll('.splitter-btn').forEach(b => b.removeAttribute('data-active'));
+    btn.setAttribute('data-active','true');
+    shellBody.setAttribute('data-splitter-state', btn.dataset.state);
+  }));
+  document.getElementById('theme-toggle').addEventListener('click', () => document.documentElement.classList.toggle('dark'));
+
+  // ── Leaf tabs (workspace mode) ──────────────────────────────────────────
+  document.querySelectorAll('.entity-leaf[data-leaf]').forEach(b => b.addEventListener('click', () => {
+    document.querySelectorAll('.entity-leaf[data-leaf]').forEach(x => x.removeAttribute('data-active'));
+    b.setAttribute('data-active','true');
+    document.querySelectorAll('#vista-workspace .leaf-pane').forEach(p => p.classList.remove('active'));
+    document.querySelector(`#vista-workspace [data-pane="${b.dataset.leaf}"]`).classList.add('active');
+  }));
+
+  // EntityPicker: cerrar al hacer click fuera
+  document.addEventListener('click', e => {
+    const ep = document.getElementById('ep');
+    const panel = document.getElementById('ep-panel');
+    if (ep && panel && !ep.contains(e.target)) panel.classList.remove('open');
+  });
+
+  // ── BibliotecaPicker: filtrar ─────────────────────────────────────────
+  function filterBiblio(q) {
+    const ql = q.toLowerCase().trim();
+    const results = document.getElementById('biblio-results');
+    const items = results.querySelectorAll('.biblio-result');
+    let visible = 0;
+    items.forEach(item => {
+      const txt = item.textContent.toLowerCase();
+      const match = !ql || txt.includes(ql);
+      item.style.display = match ? '' : 'none';
+      if (match) visible++;
+    });
+    let emptyEl = results.querySelector('.biblio-empty');
+    if (!emptyEl) {
+      emptyEl = document.createElement('div');
+      emptyEl.className = 'biblio-empty';
+      results.appendChild(emptyEl);
+    }
+    emptyEl.textContent = `No hay resultados para "${q}". Prueba con otro nombre o sinónimo.`;
+    emptyEl.style.display = visible === 0 ? '' : 'none';
+  }
+
+  function selectBiblio(el) {
+    document.querySelectorAll('.biblio-result').forEach(r => r.removeAttribute('data-selected'));
+    el.setAttribute('data-selected', 'true');
+  }
+  // Toda la fila es clickeable → crea el borrador desde esa plantilla (un solo paso · Chris 2026-06-15)
+  document.querySelectorAll('.biblio-result').forEach(row => {
+    row.addEventListener('click', () => row.querySelector('.br-action button')?.click());
+  });
+
+  // ── Transición picker → workspace ───────────────────────────────────────
+  function markLock(spanId) {
+    const s = document.getElementById(spanId);
+    if (s) { s.textContent = ' 🔒'; s.title = 'Definido por el servicio estándar — no editable'; s.style.cursor = 'help'; s.style.fontSize = '.75rem'; }
+  }
+  function clearMark(spanId) {
+    const s = document.getElementById(spanId);
+    if (s) { s.textContent = ''; s.removeAttribute('title'); }
+  }
+  // Peldaño = 5 botones: seleccionar (solo si NO está bloqueado)
+  function pickRung(el) {
+    const p = el.closest('.rung-picker');
+    if (!p || p.classList.contains('locked')) return;
+    p.querySelectorAll('.rung-opt').forEach(o => o.setAttribute('data-sel', 'false'));
+    el.setAttribute('data-sel', 'true');
+  }
+  // Modalidad: única / por sesiones / recurrente — revela el detalle correspondiente
+  function markFill(spanId) {
+    const s = document.getElementById(spanId);
+    if (s) { s.textContent = ' ✨'; s.title = 'Sugerido por la plantilla — ajústalo a tu clínica'; s.style.cursor = 'help'; s.style.fontSize = '.75rem'; }
+  }
+  function applyMod(mod) {
+    const ds = document.getElementById('mod-detail-sesiones');
+    const dr = document.getElementById('mod-detail-recurrente');
+    if (ds) ds.style.display = (mod === 'sesiones') ? '' : 'none';
+    if (dr) dr.style.display = (mod === 'recurrente') ? '' : 'none';
+  }
+  function pickMod(el) {
+    const wrap = document.getElementById('f-modalidad');
+    wrap.querySelectorAll('.mod-opt').forEach(o => o.setAttribute('data-sel', 'false'));
+    el.setAttribute('data-sel', 'true');
+    applyMod(el.dataset.mod);
+  }
+  function useBiblio(nombre, peldano, initials, rungClass, area) {
+    // Actualizar EntityPicker ▾ en subnav
+    const epLabel = document.getElementById('ep-label');
+    const epOptLabel = document.getElementById('ep-opt-label');
+    const epAvatar = document.getElementById('ep-avatar');
+    if (epLabel) epLabel.innerHTML = nombre + ' <span class="chip" style="margin-left:.25rem;font-size:.6rem;">borrador</span>';
+    if (epOptLabel) epOptLabel.textContent = nombre + ' (borrador)';
+    if (epAvatar) epAvatar.textContent = initials || nombre.slice(0,2).toUpperCase();
+
+    // Actualizar breadcrumb
+    document.getElementById('topbar-bc').textContent = '› Lisa · Servicios · ' + nombre + ' (borrador)';
+
+    // Marcar como "Estándar" (viene de biblioteca)
+    const origenChip = document.getElementById('origen-chip-inline');
+    if (origenChip) { origenChip.className = 'chip-origen estandar'; origenChip.innerHTML = '📚 Servicio estándar: <strong>' + nombre + '</strong>'; }
+    const wsOrigenChip = document.getElementById('ws-origen-chip');
+    if (wsOrigenChip) { wsOrigenChip.className = 'chip-origen estandar'; wsOrigenChip.innerHTML = '📚 Estándar'; }
+
+    // Pre-llenar campos con sparkles ✨
+    sparkleField('f-nombre', nombre);
+    sparkleField('f-desc', 'Descripción oficial de "' + nombre + '" desde la biblioteca estándar. Revisa y personaliza con tu voz.');
+    sparkleField('f-pasos', '1. Diagnóstico inicial · 2. Procedimiento · 3. Control post-tratamiento');
+    sparkleField('f-anestesia', 'Consultar con especialista según procedimiento');
+    sparkleField('f-prep', 'Sin preparación especial en la mayoría de casos');
+    sparkleField('f-cuidados', 'Higiene habitual; indicaciones específicas post-sesión');
+    sparkleField('f-downtime', 'Sin downtime significativo');
+    sparkleField('f-riesgos', '• Molestias temporales habituales.\n• Resultado a la medida previa evaluación.');
+    sparkleField('f-alarma', 'Dolor intenso o cambio inesperado → contactar a la clínica.');
+
+    // ★ Heredado del servicio estándar (Chris 2026-06-15): categoría + peldaño PRE-MARCADOS + BLOQUEADOS (no editables)
+    const espSel = document.getElementById('f-esp');
+    if (espSel && area) {
+      let opt = [...espSel.options].find(o => o.text === area);
+      if (!opt) { opt = new Option(area, area); espSel.add(opt, 1); }
+      espSel.value = opt.value;
+      espSel.disabled = true;
+      markLock('sparkle-esp');
+    }
+    const picker = document.getElementById('f-peldano');
+    if (picker && peldano) {
+      picker.querySelectorAll('.rung-opt').forEach(o => o.setAttribute('data-sel', o.dataset.rung === peldano ? 'true' : 'false'));
+      picker.classList.add('locked');
+      markLock('sparkle-peldano');
+    }
+    const pHint = document.getElementById('peldano-hint');
+    if (pHint) pHint.textContent = '🔒 Lo define el servicio estándar.';
+
+    // Modalidad sugerida por la plantilla (editable — la clínica ajusta sesiones/cadencia/precio)
+    const MODAL = { 'Diseño de sonrisa':'sesiones', 'Carillas de porcelana':'sesiones', 'Implante dental':'sesiones', 'Limpieza dental':'recurrente', 'Botox facial':'recurrente', 'Plan de mantenimiento anual':'recurrente' };
+    const mod = MODAL[nombre] || 'unica';
+    const modWrap = document.getElementById('f-modalidad');
+    if (modWrap) {
+      modWrap.querySelectorAll('.mod-opt').forEach(o => o.setAttribute('data-sel', o.dataset.mod === mod ? 'true' : 'false'));
+      applyMod(mod);
+      markFill('sparkle-modal');
+    }
+
+    // Completitud post-plantilla: ~9/26
+    const ccFill = document.getElementById('ws-cc-fill');
+    const ccLabel = document.getElementById('ws-cc-label');
+    if (ccFill) ccFill.style.width = '35%';
+    if (ccLabel) ccLabel.textContent = 'ficha 9/26 · faltan varios campos';
+
+    // Activar footer y autosave
+    document.getElementById('footer-label').textContent = '💾 Borrador · ' + nombre + ' — se guarda solo mientras escribes';
+    showAutosave('saved');
+
+    // Cambiar a modo workspace
+    document.body.classList.add('workspace-mode');
+  }
+
+  function useCustom() {
+    // Personalizado: el usuario ELIGE especialidad (de sus áreas) + peldaño (5 botones) — nada bloqueado
+    document.getElementById('topbar-bc').textContent = '› Lisa · Servicios · Nuevo servicio (borrador)';
+    document.getElementById('footer-label').textContent = '💾 Borrador · Personalizado — se guarda solo mientras escribes';
+    const espSel = document.getElementById('f-esp'); if (espSel) { espSel.value = 'Elige…'; espSel.disabled = false; }
+    const picker = document.getElementById('f-peldano');
+    if (picker) { picker.classList.remove('locked'); picker.querySelectorAll('.rung-opt').forEach(o => o.setAttribute('data-sel', 'false')); }
+    clearMark('sparkle-esp'); clearMark('sparkle-peldano');
+    const pHint = document.getElementById('peldano-hint'); if (pHint) pHint.textContent = 'Elige dónde entra en el recorrido del paciente.';
+    const modWrap = document.getElementById('f-modalidad');
+    if (modWrap) modWrap.querySelectorAll('.mod-opt').forEach(o => o.setAttribute('data-sel', 'false'));
+    applyMod(null); clearMark('sparkle-modal');
+    document.body.classList.add('workspace-mode');
+  }
+
+  function volverPicker(e) {
+    e.preventDefault();
+    document.body.classList.remove('workspace-mode');
+    // Reset leaf activo a Resumen
+    document.querySelectorAll('#vista-workspace .leaf-pane').forEach(p => p.classList.remove('active'));
+    const primerPane = document.querySelector('#vista-workspace [data-pane="resumen"]');
+    if (primerPane) primerPane.classList.add('active');
+    document.querySelectorAll('.entity-leaf[data-leaf]').forEach(b => {
+      b.removeAttribute('data-active');
+      if (b.dataset.leaf === 'resumen') b.setAttribute('data-active','true');
+    });
+    // Ocultar autosave
+    const fa = document.getElementById('floating-autosave');
+    if (fa) fa.style.display = 'none';
+  }
+
+  // ── Demo tipo-clínica ────────────────────────────────────────────────────
+  const TIPOS = {
+    dental: { chip:'🦷 Odontología', nombre:'Ej: Diseño de sonrisa', desc:'Ej: Transformamos tu sonrisa con carillas y un plan integral…', incluye:'Ej: Diagnóstico · mockup digital · carillas · ajustes' },
+    estetica: { chip:'💉 Estética', nombre:'Ej: Botox preventivo', desc:'Ej: Suavizamos líneas de expresión con un protocolo natural…', incluye:'Ej: Valoración · aplicación · control a los 15 días' }
+  };
+  function setTipo(t) {
+    const c = TIPOS[t]; if (!c) return;
+    document.getElementById('tipo-chip').textContent = c.chip;
+    const fn = document.getElementById('f-nombre'); if (fn && !fn.value) fn.placeholder = c.nombre;
+    const fd = document.getElementById('f-desc'); if (fd && !fd.value) fd.placeholder = c.desc;
+    const fi = document.getElementById('f-incluye'); if (fi && !fi.value) fi.placeholder = c.incluye;
+  }
+
+  // ── Helpers ──────────────────────────────────────────────────────────────
+  function sparkleField(id, valor) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.value = valor;
+    // Agregar badge sparkle al label hermano
+    const parent = el.parentElement;
+    if (parent) {
+      const lbl = parent.querySelector('label');
+      if (lbl && !lbl.querySelector('.field-sparkle')) {
+        const sp = document.createElement('span');
+        sp.className = 'field-sparkle'; sp.title = 'Pre-llenado desde la biblioteca — revísalo'; sp.textContent = '✨';
+        lbl.appendChild(sp);
+      }
+    }
+  }
+
+  let autosaveTimer;
+  function showAutosave(state) {
+    const fa = document.getElementById('floating-autosave');
+    if (!fa) return;
+    fa.style.display = '';
+    if (state === 'saving') { fa.setAttribute('data-state','saving'); fa.innerHTML = '<span class="fa-dot"></span> Guardando…'; }
+    else { fa.setAttribute('data-state','saved'); fa.innerHTML = '<span class="fa-dot"></span> Guardado'; }
+  }
+  document.addEventListener('input', e => {
+    if (!document.body.classList.contains('workspace-mode')) return;
+    showAutosave('saving');
+    clearTimeout(autosaveTimer);
+    autosaveTimer = setTimeout(() => showAutosave('saved'), 900);
+  });
+  // Acordeón de grupos del Resumen (Chris 2026-06-15) — mismo patrón que servicio-workspace (nuevo = editar)
+  document.querySelectorAll('[data-pane="resumen"] .cards-stack > .card').forEach((card, i) => {
+    card.classList.add('acc');
+    card.setAttribute('data-open', i === 0 ? 'true' : 'false');
+    const title = card.querySelector('.card-title');
+    if (!title) return;
+    const n = card.querySelectorAll('input,textarea,select').length;
+    if (n && !title.querySelector('.acc-count')) {
+      const c = document.createElement('span');
+      c.className = 'acc-count';
+      c.textContent = n === 1 ? '1 campo' : n + ' campos';
+      title.appendChild(c);
+    }
+    title.addEventListener('click', () => card.setAttribute('data-open', card.getAttribute('data-open') === 'true' ? 'false' : 'true'));
+  });
+  // #3 RichSelect (Select con descripción · candidato CORE) — popover position:fixed anclado al trigger
+  function toggleRich(e, trigger){
+    e.stopPropagation();
+    const panel = trigger.parentElement.querySelector('.rich-select-panel');
+    const willOpen = !panel.classList.contains('open');
+    document.querySelectorAll('.rich-select-panel.open').forEach(p => { if (p !== panel){ p.classList.remove('open'); p.parentElement.querySelector('.rich-select-trigger').setAttribute('aria-expanded','false'); } });
+    panel.classList.toggle('open', willOpen);
+    trigger.setAttribute('aria-expanded', String(willOpen));
+    if (willOpen){
+      const r = trigger.getBoundingClientRect();
+      panel.style.width = r.width + 'px';
+      panel.style.left = Math.min(r.left, window.innerWidth - r.width - 8) + 'px';
+      panel.style.top  = (r.bottom + 4) + 'px';
+    }
+  }
+  function pickRich(opt){
+    const panel = opt.parentElement;
+    panel.querySelectorAll('.rich-option').forEach(o => o.setAttribute('data-sel','false'));
+    opt.setAttribute('data-sel','true');
+    panel.parentElement.querySelector('.rich-select-trigger .rs-label').innerHTML = opt.innerHTML;
+    panel.classList.remove('open');
+    panel.parentElement.querySelector('.rich-select-trigger').setAttribute('aria-expanded','false');
+  }
+  document.addEventListener('click', e => {
+    document.querySelectorAll('.rich-select-panel.open').forEach(panel => {
+      const rs = panel.closest('.rich-select');
+      if (rs && !rs.contains(e.target)){ panel.classList.remove('open'); rs.querySelector('.rich-select-trigger').setAttribute('aria-expanded','false'); }
+    });
+  });
+  // #4 agregar variante vacía
+  function addVariant(listId){
+    const row = document.createElement('div'); row.className = 'variant-row';
+    row.innerHTML = '<input class="v-name" placeholder="Nombre"><div class="num-affix"><span class="num-unit">S/</span><input type="number" class="v-price" placeholder="0"></div><input class="v-note" placeholder="qué cambia (opcional)"><button class="v-del" title="Quitar variante" onclick="this.closest(\'.variant-row\').remove()">✕</button>';
+    document.getElementById(listId).appendChild(row);
+  }
+</script>
+</body>
+</html>

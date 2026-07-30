@@ -1,0 +1,177 @@
+story_id: vitalia-fase2-lisa-servicios
+brand: vitalia
+schema_version: v4.1
+architecture_pattern: ADR-vitalia-004
+mode: RECONCILE-DELTA          # extends 04-validators.yaml — does NOT replace it
+base: 04-validators.yaml
+
+# ───────────────────────────────────────────────────────────────────────────
+# Verification nature (unchanged from base · re-live-verify MANDATORY post-build)
+# ───────────────────────────────────────────────────────────────────────────
+verification_nature: ambas       # FE fidelity = funcional (UI + demo) · BE widening = técnica
+demo_required: true              # funcional → chris_verify.signoff in G (re-exercise post-build)
+dev_app_verified:
+  required: true                 # DoD #37 (Critical Rule #37) — re-exercise rich-field writes live + read logs + effect
+  env: "make dev-app-vitalia → dev-app.vitalialat.com (Chrome DevTools MCP · LUANA_LANE=A) · tenant Sanaré LATAM · dr.demo@vitalialat.com (owner)"
+  note: >-
+    Re-live-verify is OBLIGATORIO after this delta builds — the previous signoff was withheld in G.
+    Exercise: (1) PATCH each rich group field + reload → value persists (write+read), (2) modality→sesiones reveals
+    session_interval + saves, (3) appointment_type saves (F3), (4) StatusBar Activo toggle in workspace (F1),
+    (5) collapsible groups toggle (Identidad open, rest closed). Read BE logs + confirm DB rows. NO fake green.
+
+# ───────────────────────────────────────────────────────────────────────────
+# Technical gates (delta tickets)
+# ───────────────────────────────────────────────────────────────────────────
+technical_gates:
+  backend:
+    - "ruff check + ruff format --check (vitalia/backend)"
+    - "pytest tests/architecture/ (response_model required · DDD boundaries · no-engine-edit) GREEN"
+    - "pytest tests/modules/vitalia/offer/ (patch_service rich routing · VO build invariants · read-path DTO) GREEN"
+  frontend:
+    - "tsc --noEmit (vitalia/frontend) — ServiceDetail TS mirror + CollapsibleSection consumption typecheck"
+    - "eslint src/ --cache (no-arbitrary-values · boundaries · no <select> nativo)"
+    - "vitest run (ResumenView hydration + autosave + conditionals · ServiceStatusBar in shell)"
+    - "arch fitness: test_features_no_cross_imports · test-no-clerk-organizations · no-div-layout · no-arbitrary-values GREEN"
+  ui_kit:                          # T-R0 (owned by /pm-luana lift — gate, not vitalia ticket)
+    - "vitest CollapsibleSection.test.tsx (title/summary/defaultOpen/toggle/accentVar/missingFields)"
+    - "existing accordion + Group tests stay GREEN (regression_guard · additive only)"
+  mutation_gate:
+    applies: false                # advisory — no new mutation-critical pure logic (DTO widening + wiring); base T-1 pricing/completeness already covered
+    note: "patch_service routing is conditional plumbing, not pure calc. If mutmut available, diff-scoped advisory on new lines."
+
+# ───────────────────────────────────────────────────────────────────────────
+# Functional — gap → scenario map (each ratified gap → verified scenario)
+# ───────────────────────────────────────────────────────────────────────────
+functional:
+  gap_scenario_map:
+    - gap: "F1 — ServiceStatusBar orphan (no Activo toggle / origin chip / completeness in workspace)"
+      ticket: T-R2
+      scenarios:
+        - id: RD-1
+          desc: "Workspace muestra ServiceStatusBar sticky en cada leaf (Switch Activo + ChipOrigen + FichaCompletenessChip)."
+          rn: [RN-10, RN-27]
+          ac: ["AC-19"]
+          verification: [vitest, e2e, live]
+        - id: RD-2
+          desc: "Toggle Activo desde el workspace (no solo desde la card) → POST activate → status active + growth_studio_event."
+          rn: [RN-10]
+          verification: [e2e, live]
+        - id: RD-3
+          desc: "ServicioWorkspaceView orphan eliminado · ningún import roto · layout SSR-safe (G2 store-free) intacto."
+          verification: [tsc, vitest, arch]
+    - gap: "F2 — rich ficha fields not persistible NOR readable (BE contract gap)"
+      ticket: [T-R1, T-R3]
+      scenarios:
+        - id: RD-4
+          desc: "ServicePatchRequest acepta TODOS los campos ricos (description_long, includes, excludes, warranty, procedure_steps, prep, aftercare, downtime, expected_result, result_timing, result_lifespan, realistic_expectations, risks, red_flags) · per-field autosave last-write-wins."
+          rn: [RN-20, RN-26]
+          ac: ["AC-4", "AC-13"]
+          verification: [int, e2e, live]
+        - id: RD-5
+          desc: "Cada campo rico se guarda Y se relee al recargar (read-path: ServiceView + ServiceDetailDTO carrying rich fields · GET hydrata el form)."
+          rn: [RN-20, RN-26]
+          verification: [int, e2e, live]
+        - id: RD-6
+          desc: "variants (list[ServiceVariant]) patch + hidrata en VariantsRepeater (no [] vacío) · invariante price>=0, name non-empty enforced (422 si rompe)."
+          rn: [RN-29, RN-11]
+          ac: ["AC-5"]
+          verification: [int, vitest, e2e]
+        - id: RD-7
+          desc: "pricing (ThreeChargePricing VO) patch via DTO → frozen VO build → invariantes RN-6/RN-11 · currency str|None nunca 'USD' hardcoded."
+          rn: [RN-6, RN-11]
+          verification: [int]
+        - id: RD-8
+          desc: "Condicional modalidad: sesiones revela+guarda session_interval (ValueWithUnit value>=1) · recurrente revela+guarda recurrence_interval."
+          rn: [RN-28, RN-31]
+          ac: ["AC-13"]
+          verification: [vitest, e2e, live]
+    - gap: "F3 — appointment_type (initial_appt_type) no persiste"
+      ticket: [T-R1, T-R3]
+      scenarios:
+        - id: RD-9
+          desc: "initial_appt_type (InitialApptType enum) patch + relee · Select canónico (no <select> nativo) guarda el valor."
+          rn: [RN-32]
+          verification: [int, e2e, live]
+    - gap: "Fidelity — 6 grupos colapsables (mockup servicio-workspace.html:497) + KnowledgeSourcesPanel huérfano"
+      ticket: T-R3
+      scenarios:
+        - id: RD-10
+          desc: "ResumenView: 6 CollapsibleSection (Identidad open · resto closed) · click título toggle · contador 'N campos' por grupo · UNA FloatingAutosaveIndicator."
+          ac: ["AC-19"]
+          verification: [vitest, e2e, visual, live]
+        - id: RD-11
+          desc: "KnowledgeSourcesPanel cableado al shell (persistente cross-leaf · colapsable per mockup) · ya no huérfano."
+          verification: [vitest, e2e]
+        - id: RD-12
+          desc: "ResumenView consume @luana/ui-kit CollapsibleSection (no importa el accordion.tsx local). Borrado del dup local DIFERIDO a cleanup (2 importers mateo out-of-scope · ver 03-arch-delta § C.2.5)."
+          verification: [tsc, arch]
+
+# ───────────────────────────────────────────────────────────────────────────
+# Visual goldens (8 · the 4 mockups still pending from base · 0.001 tolerance)
+# ───────────────────────────────────────────────────────────────────────────
+visual_goldens:
+  tolerance: 0.001               # maxDiffPixelRatio
+  count: 8
+  pairs:
+    - mockup: "mockups/servicio-workspace.html (Resumen · Identidad open, rest collapsed)"
+      golden: "resumen-collapsibles-light"
+      theme: light
+      component: "ResumenView (CollapsibleSection ×6)"
+    - mockup: "mockups/servicio-workspace.html (Resumen · dark)"
+      golden: "resumen-collapsibles-dark"
+      theme: dark
+    - mockup: "mockups/servicio-workspace.html (StatusBar sticky · Activo + ChipOrigen + completeness)"
+      golden: "statusbar-light"
+      theme: light
+      component: "ServiceStatusBar in ServicioWorkspaceShell"
+    - mockup: "mockups/servicio-workspace.html (StatusBar · dark)"
+      golden: "statusbar-dark"
+      theme: dark
+    - mockup: "mockups/servicio-workspace.html (Modalidad=sesiones reveal session_interval)"
+      golden: "modalidad-sesiones-conditional-light"
+      theme: light
+    - mockup: "mockups/servicio-workspace.html (KnowledgeSourcesPanel kpanel collapsible)"
+      golden: "knowledge-panel-light"
+      theme: light
+    - mockup: "mockups/catalogo.html (regression — unchanged)"
+      golden: "catalogo-light"
+      theme: light
+      note: "regression_guard — base mockup must not drift"
+    - mockup: "mockups/escalera.html (regression — unchanged)"
+      golden: "escalera-light"
+      theme: light
+      note: "regression_guard"
+
+# ───────────────────────────────────────────────────────────────────────────
+# Playwright visual scope discipline (story_scope vs forbidden)
+# ───────────────────────────────────────────────────────────────────────────
+playwright_visual_scope:
+  story_scope_routes:
+    - "/[tenantId]/lisa/servicios/[offer-id]/resumen"
+    - "/[tenantId]/lisa/servicios/[offer-id]/* (StatusBar appears on every leaf via the shell)"
+  story_scope_components:
+    - "vitalia/frontend/src/features/lisa/components/servicios/leaves/ResumenView.tsx"
+    - "vitalia/frontend/src/features/lisa/components/servicios/workspace/ServicioWorkspaceShell.tsx"
+    - "vitalia/frontend/src/features/lisa/components/servicios/ServiceStatusBar.tsx"
+    - "vitalia/frontend/src/features/lisa/components/servicios/KnowledgeSourcesPanel.tsx"
+    - "vitalia/frontend/src/features/lisa/components/servicios/VariantsRepeater.tsx"
+    - "core/@luana/ui-kit/src/CollapsibleSection.tsx (T-R0 · new molecule)"
+  out_of_mockup_scope:
+    - "other shell primitives (TopBar, Ribbon, SubTabsBar, ValeriaSidebar) — DO NOT touch/re-screenshot"
+    - "EscaleraView, CatalogoView, other leaves (ParaAdrian/Especialistas/PlanPago/PruebaSocial) — unchanged by this delta"
+    - "@luana/ui-kit accordion/collapsible/Group internals — composed, NOT edited"
+
+# ───────────────────────────────────────────────────────────────────────────
+# Regression guard (what must NOT break)
+# ───────────────────────────────────────────────────────────────────────────
+regression_guard:
+  backend:
+    - "Existing PATCH 4-field behaviour (public_name/price/category/modality) unchanged — additive widening only."
+    - "create/activate/soft-delete/list/sales-brief endpoints unchanged."
+    - "Keystone AC-6 (offer active in engine products) unchanged."
+  frontend:
+    - "Catálogo grid + escalera + other 4 leaves render unchanged (out of scope)."
+    - "Single FloatingAutosaveIndicator per page (no per-section indicators added)."
+    - "value_level move-rung gap stays documented (NOT fixed here)."
+  ui_kit:
+    - "accordion + Group + collapsible exports unchanged (CollapsibleSection is additive new file)."

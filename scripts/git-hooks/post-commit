@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# post-commit — nudge advisory anti-drift: si el commit es COMPARTIDO (cero {brand}/**)
+# en una rama wip/{brand}, recordá promoverlo para que las demás marcas no queden atrás.
+# NUNCA bloquea (post-commit no puede). Doctrina: docs/process/harness-backlog.md HB-86.
+set -uo pipefail
+
+branch="$(git symbolic-ref --short HEAD 2>/dev/null || echo '')"
+case "${branch}" in wip/*) ;; *) exit 0 ;; esac   # solo en ramas de marca
+
+# Saltar merge commits (2+ padres) — un sync no se promueve
+nparents=$(( $(git rev-list --parents -n1 HEAD 2>/dev/null | wc -w) - 1 ))
+[ "${nparents}" -ge 2 ] && exit 0
+
+files="$(git diff-tree --no-commit-id --name-only -r HEAD 2>/dev/null || true)"
+[ -z "${files}" ] && exit 0
+
+BRAND_DIRS="vitalia nicolify comunify lupulo saasora inmoflow retailly fixia guestly fitflow"
+while IFS= read -r f; do
+  [ -z "${f}" ] && continue
+  seg="${f%%/*}"
+  case " ${BRAND_DIRS} " in *" ${seg} "*) exit 0 ;; esac   # toca marca → no es promovible-puro
+done <<< "${files}"
+
+# Cero rutas de marca → commit compartido (core/harness/docs/root)
+sha="$(git rev-parse --short HEAD)"
+echo ""
+echo "📤 post-commit: commit COMPARTIDO (cero {brand}/**) — ${sha}"
+echo "   Promovelo así las demás marcas no quedan atrás:"
+echo "     make promote-to-main SHA=\"${sha}\" && make sync-all"
+echo "   (ver drift sin riesgo: make sync-check)"
+exit 0

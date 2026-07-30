@@ -1,0 +1,146 @@
+---
+capability_id: vitalia-connections-oauth-meta-google-ads
+module: connections
+slug: oauth-meta-google-ads
+status: deprecated
+date_introduced: 2026-05-21
+story_introduced: vitalia-slice-1-marketing
+package_version: 0.1.0
+package_path: vitalia/backend/src/modules/vitalia/connections
+license: proprietary
+
+# v3 cement 2026-05-27 · 4 dimensiones + dev_preview (ADR-vitalia-005)
+tech_module: connections
+agent_owner: configuracion
+functional_area: configuracion.conexiones
+user_visible: true
+nature: feature
+ui_paradigm: slice-1-superseded  # T-3 reconcile 2026-05-29
+replaced_by_story: vitalia-fase2-config-conexiones  # T-3: story F2 que reconstruye esta cap
+
+user_facing_name: "Conexión OAuth con Meta y Google Ads"
+user_facing_description: >
+  Permite conectar la cuenta de Meta Ads y Google Ads de la clínica con Vitalia
+  mediante un flujo de autorización OAuth. Una vez conectados, el sistema sincroniza
+  automáticamente cada 4 horas el gasto publicitario y las impresiones para que
+  Lucas pueda mostrar la atribución correcta de cada canal de marketing.
+
+dev_preview:
+  route: "/configurar/connections"
+  how_to_navigate: "Login como admin_clinic → Configurar → Connections → botón Conectar Meta Ads o Google Ads → flujo OAuth"
+  main_component: "vitalia/frontend/src/features/marketing/components/ChannelConnectionWizard.tsx"
+  api_endpoints:
+    - "POST /api/v1/vitalia/marketing/channels/{provider}/connect"
+    - "POST /api/v1/vitalia/marketing/channels/{provider}/sync"
+    - "GET /api/v1/vitalia/marketing/channels/{provider}"
+  e2e_test: null
+  fixtures_required: []
+  storybook_url: null
+  loom_demo: null
+
+# Capability ledger v2 (cement 2026-05-27)
+created_in_story: vitalia-slice-1-marketing   # v2 cement · mirror of story_introduced
+created_date: 2026-05-21   # v2 cement · mirror of date_introduced
+last_modified: 2026-05-29   # T-3 reconcile 2026-05-29
+parent_cap: null   # v2 cement · mirror of extends_capability
+derives_capabilities: []   # v2 cement · initial empty list
+
+# Capability ledger v2 (cement 2026-05-27)
+
+# Capability change log v2 (cement 2026-05-27)
+change_log:
+  - story_id: vitalia-slice-1-marketing
+    date: 2026-05-21
+    type: new
+    summary: "Implementación inicial · migración legacy a schema v2"
+    merge_sha: null
+    status: done
+map_box: configuracion
+
+---
+
+# vitalia-connections-oauth-meta-google-ads
+
+Meta Ads + Google Ads OAuth adapters with resilience patterns (timeout 30s + retry 3× exponential backoff + per-tenant circuit breaker). Registered via Extension SDK EP-8 (channel providers). OAuth tokens encrypted at rest via pgcrypto (KEK rotated annually).
+
+## Surface
+
+### Adapters
+- `vitalia/backend/src/modules/vitalia/connections/meta_ads/adapter.py::MetaAdsAdapter`
+  - `authorize_url()` → Facebook OAuth dialog URL with state param
+  - `callback(code, state)` → exchanges code for `access_token` (long-lived)
+  - `list_ad_accounts(token)` → ad accounts pickable post-auth
+  - `fetch_insights(account_id, since, until)` → Marketing API v18.0
+- `vitalia/backend/src/modules/vitalia/connections/google_ads/adapter.py::GoogleAdsAdapter`
+  - Same interface using Google Ads REST API v13 + GAQL queries
+  - `access_type=offline` for refresh_token
+
+### Resilience
+- Timeout 30s per HTTP call (httpx.AsyncClient)
+- Exponential backoff retry 3× (0.5s, 1s, 2s)
+- Per-tenant circuit breaker (in-memory dict + asyncio.Lock): threshold 5 consecutive failures → status='error' + 1h cool-down
+- `CircuitBreakerOpenError` raised in Spanish neutro
+
+### Persistence (migration 026)
+- `vitalia_channel_sync_state.oauth_token_encrypted BYTEA` — pgcrypto symmetric encrypt via KEK
+- KEK from `vitalia/backend/src/modules/vitalia/_shared/encryption/kek_client.py` (shipped infra story)
+
+### Registration (Extension SDK EP-8)
+- `vitalia/backend/src/modules/vitalia/extensions.py::register_all` adds:
+  ```python
+  registry.channel_adapter_register(ChannelAdapterDef(
+      channel_slug="vitalia/meta_ads",
+      adapter=MetaAdsAdapter(),
+      ...
+  ))
+  registry.channel_adapter_register(ChannelAdapterDef(
+      channel_slug="vitalia/google_ads",
+      adapter=GoogleAdsAdapter(),
+      ...
+  ))
+  ```
+
+### Cron consumers
+- `channel_metrics_sync_meta` (c/4h) calls `MetaAdsAdapter.fetch_insights` → upserts `vitalia_channel_metrics`
+- `channel_metrics_sync_google` (c/4h) idem for Google Ads
+
+### API
+- `POST /api/v1/vitalia/marketing/channels/{provider}/connect` — start OAuth flow
+- `POST /api/v1/vitalia/marketing/channels/{provider}/sync` — manual sync trigger (Idempotency-Key required)
+- `GET /api/v1/vitalia/marketing/channels/{provider}` — channel detail + sync status
+
+### FE Components
+- `ChannelConnectionWizard.tsx` — 3 pasos: selector canal → OAuth redirect full-page → confirm test sync
+- `ChannelDetailSidebar.tsx` — KPIs principales + campañas top 3 + Lucas recommendations canal-specific + cross-link external Ads Manager `target=_blank`
+- `ConnectionBadge.tsx` — 4 estados (idle/running/error/disconnected) con tokens vt-text-success/warning/danger
+- `ChannelBreakdownRow.tsx` — row per provider in AttractionStage
+
+### Hooks
+- `useChannelDetail` · `useSyncChannel`
+
+## Verification
+
+```bash
+WS=$(git rev-parse --show-toplevel)
+cd ${WS}/vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/connections/meta_ads tests/modules/vitalia/connections/google_ads tests/modules/vitalia/marketing/infrastructure/repositories/test_channel_sync_state_repository.py::test_oauth_token_pgcrypto_roundtrip -v
+cd ${WS}/vitalia/frontend && npx vitest run src/features/marketing/__tests__/ChannelConnectionWizard.test.tsx src/features/marketing/__tests__/ChannelBreakdownRow.test.tsx src/features/marketing/__tests__/ConnectionBadge.test.tsx
+```
+
+Verification gherkin evidence: SC-MK-02 (Meta API timeout + sync degraded UI + retry) — see `06-audit/gherkin-matrix-{backend,frontend}.md`.
+
+## Dependencies
+
+- ENGINE: `core/luana-core-extension-sdk.extension_points::ExtensionPointRegistry` (EP-8 channel providers)
+- BRAND: `vitalia/backend/src/modules/vitalia/_shared/encryption/kek_client.py` (pgcrypto helpers)
+
+## Compliance
+
+- **HIPAA-lite:** OAuth tokens encrypted at rest via pgcrypto symmetric (KEK rotated annually). NO PHI in UTM payload. Audit log SYNC write on connect + sync trigger. Cross-tenant isolation enforced (CompoundScopeRepositoryBase dual filter).
+- **Security:** OAuth state param verified anti-CSRF. Redirect URIs whitelisted per provider. No tokens in URLs or logs (sanitize_payload).
+- **Resilience:** Soft-fail per tenant — one provider error ≠ all tenants fail. Circuit breaker bounded in-memory (single-pod adequate Slice 1; multi-pod Slice 2 follow-up — non-blocking WARN in audit).
+
+## KPIs
+
+- Sync latency ≤ 30s per tenant per provider (timeout enforced)
+- Circuit breaker recovery ≤ 1h (cool-down)
+- OAuth flow completion rate ≥ 90% (excluding user-aborted)

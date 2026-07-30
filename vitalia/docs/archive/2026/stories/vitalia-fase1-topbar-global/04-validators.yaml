@@ -1,0 +1,444 @@
+# vitalia/docs/product/stories/vitalia-fase1-topbar-global/04-validators.yaml
+# Schema: v4.1 cement 2026-05-19
+# Story: F1-S2 vitalia-fase1-topbar-global
+# Surfaces: FE only
+
+story_id: vitalia-fase1-topbar-global
+brand: vitalia
+schema_version: v4.1
+written_at: 2026-05-22
+
+validators:
+  # ──────── NON-FUNCTIONAL ────────
+  - id: fe_typecheck
+    category: non_functional
+    type: shell
+    cmd: "cd vitalia/frontend && npx tsc --noEmit"
+    must_pass: true
+    timeout_sec: 90
+
+  - id: fe_lint
+    category: non_functional
+    type: shell
+    cmd: "cd vitalia/frontend && npx eslint src/components/shared/shell-organism/ src/app/layout.tsx --max-warnings 0"
+    must_pass: true
+    timeout_sec: 60
+
+  - id: fe_format
+    category: non_functional
+    type: shell
+    cmd: "cd vitalia/frontend && npx prettier --check src/components/shared/shell-organism/"
+    must_pass: true
+    timeout_sec: 30
+
+  - id: fe_build_production
+    category: non_functional
+    type: shell
+    cmd: "cd vitalia/frontend && npm run build"
+    must_pass: true
+    timeout_sec: 240
+
+  - id: fe_vitest_existing_regression
+    category: non_functional
+    type: shell
+    cmd: "cd vitalia/frontend && npx vitest run"
+    must_pass: true
+    timeout_sec: 180
+
+  # ──────── FUNCTIONAL ────────
+  - id: fe_e2e_topbar_interaction
+    category: functional
+    type: playwright
+    cmd: "cd vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test e2e/regression/topbar-global/topbar-interaction.spec.ts"
+    must_pass: true
+    timeout_sec: 240
+    description: "Skip link Tab+Enter jump · ThemeToggle integration · responsive viewport switch 375 vs 1440 · aria-label assertions"
+
+  # ──────── VISUAL ────────
+  - id: visual_topbar_light_desktop
+    category: visual
+    type: playwright
+    cmd: "cd vitalia/frontend && npx playwright test e2e/visual/topbar-global/topbar.spec.ts --grep 'light desktop'"
+    capture: screenshot
+    golden: vitalia/frontend/e2e/__screenshots__/topbar-global/topbar-light-desktop.png
+    must_pass: true
+    timeout_sec: 60
+
+  - id: visual_topbar_dark_desktop
+    category: visual
+    type: playwright
+    cmd: "cd vitalia/frontend && npx playwright test e2e/visual/topbar-global/topbar.spec.ts --grep 'dark desktop'"
+    capture: screenshot
+    golden: vitalia/frontend/e2e/__screenshots__/topbar-global/topbar-dark-desktop.png
+    must_pass: true
+    timeout_sec: 60
+
+  - id: visual_topbar_light_mobile
+    category: visual
+    type: playwright
+    cmd: "cd vitalia/frontend && npx playwright test e2e/visual/topbar-global/topbar.spec.ts --grep 'light mobile'"
+    capture: screenshot
+    golden: vitalia/frontend/e2e/__screenshots__/topbar-global/topbar-light-mobile.png
+    must_pass: true
+    timeout_sec: 60
+
+  - id: visual_topbar_dark_mobile
+    category: visual
+    type: playwright
+    cmd: "cd vitalia/frontend && npx playwright test e2e/visual/topbar-global/topbar.spec.ts --grep 'dark mobile'"
+    capture: screenshot
+    golden: vitalia/frontend/e2e/__screenshots__/topbar-global/topbar-dark-mobile.png
+    must_pass: true
+    timeout_sec: 60
+
+  - id: visual_logo_mark_grid_light
+    category: visual
+    type: playwright
+    cmd: "cd vitalia/frontend && npx playwright test e2e/visual/topbar-global/logo-mark.spec.ts --grep 'light'"
+    capture: screenshot
+    golden: vitalia/frontend/e2e/__screenshots__/topbar-global/logo-mark-grid-light.png
+    must_pass: true
+    timeout_sec: 60
+
+  - id: visual_logo_mark_grid_dark
+    category: visual
+    type: playwright
+    cmd: "cd vitalia/frontend && npx playwright test e2e/visual/topbar-global/logo-mark.spec.ts --grep 'dark'"
+    capture: screenshot
+    golden: vitalia/frontend/e2e/__screenshots__/topbar-global/logo-mark-grid-dark.png
+    must_pass: true
+    timeout_sec: 60
+
+  # Regression goldens heredados F1-S0 + F1-S1
+  - id: visual_regression_f1s0_dashboard_light
+    category: visual
+    type: playwright
+    cmd: "cd vitalia/frontend && npx playwright test e2e/visual/stack-stability/dev-stack-baseline.spec.ts --grep 'dashboard.*light'"
+    must_pass: true
+    timeout_sec: 60
+    description: "Regression: dashboard legacy light golden de F1-S0 debe seguir GREEN post F1-S2"
+
+  - id: visual_regression_f1s0_dashboard_dark
+    category: visual
+    type: playwright
+    cmd: "cd vitalia/frontend && npx playwright test e2e/visual/stack-stability/dev-stack-baseline.spec.ts --grep 'dashboard.*dark'"
+    must_pass: true
+    timeout_sec: 60
+
+  - id: visual_regression_f1s1_theme_toggle_light
+    category: visual
+    type: playwright
+    cmd: "cd vitalia/frontend && npx playwright test e2e/visual/design-tokens-theme/theme-toggle.spec.ts --grep 'light'"
+    must_pass: true
+    timeout_sec: 60
+
+  - id: visual_regression_f1s1_theme_toggle_dark
+    category: visual
+    type: playwright
+    cmd: "cd vitalia/frontend && npx playwright test e2e/visual/design-tokens-theme/theme-toggle.spec.ts --grep 'dark'"
+    must_pass: true
+    timeout_sec: 60
+
+  - id: visual_regression_f1s1_agent_tokens_swatch_light
+    category: visual
+    type: playwright
+    cmd: "cd vitalia/frontend && npx playwright test e2e/visual/stack-stability/dev-stack-baseline.spec.ts --grep 'agent-tokens.*light'"
+    must_pass: true
+    timeout_sec: 60
+
+  - id: visual_regression_f1s1_agent_tokens_swatch_dark
+    category: visual
+    type: playwright
+    cmd: "cd vitalia/frontend && npx playwright test e2e/visual/stack-stability/dev-stack-baseline.spec.ts --grep 'agent-tokens.*dark'"
+    must_pass: true
+    timeout_sec: 60
+
+  # ──────── ARCHITECTURAL_VALIDATION ────────
+  - id: fe_fsd_boundaries
+    category: architectural_validation
+    type: shell
+    cmd: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/"
+    must_pass: true
+    timeout_sec: 60
+    description: "FSD-Lite boundaries — shell-organism components no importan de features"
+
+  - id: fe_no_vt_classes_in_new_features
+    category: architectural_validation
+    type: shell
+    cmd: "cd vitalia/frontend && npx vitest run src/__tests__/architecture/test-no-vt-classes-in-new-features.test.ts"
+    must_pass: true
+    timeout_sec: 30
+    description: "Arch test heredado F1-S0 — NO .vt-* classes en shell-organism code"
+
+  - id: fe_no_cross_brand_imports_grep
+    category: architectural_validation
+    type: shell
+    cmd: "! grep -rn 'from .nicolify\\|from .comunify\\|from .lupulo' vitalia/frontend/src/components/shared/shell-organism/"
+    must_pass: true
+    timeout_sec: 10
+
+  - id: fe_no_default_exports_grep
+    category: architectural_validation
+    type: shell
+    cmd: "! grep -E '^export default' vitalia/frontend/src/components/shared/shell-organism/{LogoMark,TopBarGlobal,TenantSwitcherSlot}.tsx"
+    must_pass: true
+    timeout_sec: 10
+    description: "Named exports only (FSD-Lite enforcement)"
+
+  - id: fe_no_any_typescript_grep
+    category: architectural_validation
+    type: shell
+    cmd: "! grep -E ':\\s*any(\\s|;|,|\\)|>)' vitalia/frontend/src/components/shared/shell-organism/{LogoMark,TopBarGlobal,TenantSwitcherSlot}.tsx"
+    must_pass: true
+    timeout_sec: 10
+
+  - id: fe_brand_assets_present
+    category: architectural_validation
+    type: shell
+    cmd: "test -f vitalia/frontend/public/brand/vitalia-ico.png && test -f vitalia/frontend/public/brand/vitalia-logo.png && test -f vitalia/frontend/public/brand/vitalia-logo-dark.png"
+    must_pass: true
+    timeout_sec: 5
+    description: "3 PNG brand assets committed pre-implementación"
+
+  - id: fe_topbar_role_banner_grep
+    category: architectural_validation
+    type: shell
+    cmd: "grep -q 'role=\"banner\"' vitalia/frontend/src/components/shared/shell-organism/TopBarGlobal.tsx"
+    must_pass: true
+    timeout_sec: 5
+
+  - id: fe_logo_mark_next_image_grep
+    category: architectural_validation
+    type: shell
+    cmd: "grep -q \"from 'next/image'\" vitalia/frontend/src/components/shared/shell-organism/LogoMark.tsx"
+    must_pass: true
+    timeout_sec: 5
+    description: "LogoMark usa Next.js Image (NO <img> raw)"
+
+  - id: fe_skip_link_present_grep
+    category: architectural_validation
+    type: shell
+    cmd: "grep -q 'Saltar al contenido' vitalia/frontend/src/app/layout.tsx && grep -q '#main-content' vitalia/frontend/src/app/layout.tsx"
+    must_pass: true
+    timeout_sec: 5
+
+  - id: fe_main_content_id_present_grep
+    category: architectural_validation
+    type: shell
+    cmd: "grep -rE 'id=\"main-content\"' vitalia/frontend/src/app/"
+    must_pass: true
+    timeout_sec: 5
+    description: "Main content wrapper tiene id=main-content (target del skip link)"
+
+  # ──────── ACCESSIBILITY ────────
+  - id: a11y_topbar_axe
+    category: accessibility
+    type: playwright
+    cmd: "cd vitalia/frontend && npx playwright test e2e/a11y/topbar-global/topbar.spec.ts --grep 'axe'"
+    must_pass: true
+    timeout_sec: 90
+    description: "axe-core WCAG 2.1 AA — 0 violations TopBar + skip link + LogoMark"
+
+  - id: a11y_skip_link_keyboard
+    category: accessibility
+    type: playwright
+    cmd: "cd vitalia/frontend && npx playwright test e2e/a11y/topbar-global/topbar.spec.ts --grep 'skip link'"
+    must_pass: true
+    timeout_sec: 60
+    description: "Tab focus skip link · Enter jump a #main-content · Shift+Tab vuelve"
+
+  - id: a11y_logo_mark_aria_label
+    category: accessibility
+    type: playwright
+    cmd: "cd vitalia/frontend && npx playwright test e2e/a11y/topbar-global/topbar.spec.ts --grep 'aria-label'"
+    must_pass: true
+    timeout_sec: 30
+
+  - id: a11y_banner_landmark
+    category: accessibility
+    type: playwright
+    cmd: "cd vitalia/frontend && npx playwright test e2e/a11y/topbar-global/topbar.spec.ts --grep 'banner landmark'"
+    must_pass: true
+    timeout_sec: 30
+    description: "<header role=banner> exposed correctly al accessibility tree"
+
+scenario_coverage:
+  - scenario_id: happy_render_desktop
+    validators: [fe_e2e_topbar_interaction, visual_topbar_light_desktop, fe_topbar_role_banner_grep, fe_vitest_existing_regression]
+  - scenario_id: happy_render_mobile_responsive
+    validators: [visual_topbar_light_mobile, visual_topbar_dark_mobile, fe_e2e_topbar_interaction]
+  - scenario_id: theme_switch_applies_topbar
+    validators: [visual_topbar_dark_desktop, fe_e2e_topbar_interaction]
+  - scenario_id: logo_mark_variants_grid
+    validators: [visual_logo_mark_grid_light, visual_logo_mark_grid_dark, fe_vitest_existing_regression]
+  - scenario_id: accessibility_skip_link
+    validators: [a11y_skip_link_keyboard, a11y_topbar_axe, fe_skip_link_present_grep, fe_main_content_id_present_grep]
+  - scenario_id: accessibility_banner_landmark
+    validators: [a11y_banner_landmark, a11y_topbar_axe]
+  - scenario_id: i18n_microcopy
+    validators: [a11y_logo_mark_aria_label, fe_e2e_topbar_interaction]
+  - scenario_id: adversarial
+    validators: []
+    not_applicable_reason: "Componentes presentacionales server-side render sin user input · sin auth surface · sin PHI · sin fetch API. LogoMark href estático '/'. Skip link URL fragment estática. NO vectores adversarial reales en F1-S2."
+  - scenario_id: cross_cutting_regression_f1s0_f1s1
+    validators: [visual_regression_f1s0_dashboard_light, visual_regression_f1s0_dashboard_dark, visual_regression_f1s1_theme_toggle_light, visual_regression_f1s1_theme_toggle_dark, visual_regression_f1s1_agent_tokens_swatch_light, visual_regression_f1s1_agent_tokens_swatch_dark]
+
+not_applicable_sub_categories:
+  - sub_category: race_condition
+    reason: "F1-S2 no introduce endpoints DB con create/update ni unique constraints. Componentes presentacionales SSR."
+  - sub_category: concurrent_users
+    reason: "F1-S2 chrome shell estático per-usuario. No multi-user shared state en TopBar."
+  - sub_category: network_failure
+    reason: "F1-S2 zero fetch FE runtime. LogoMark + TopBarGlobal SSR estáticos. ThemeToggle (F1-S1) sin fetch."
+  - sub_category: empty_state
+    reason: "F1-S2 no introduce list/dashboard. TopBar siempre renderiza."
+  - sub_category: large_dataset
+    reason: "F1-S2 no introduce data fetching ni pagination."
+  - sub_category: loading_state
+    reason: "F1-S2 es SSR síncrono. Sin async ni loading states (Next.js Image lazy loading manejado por framework, no spec-level concern)."
+
+# ★ v4.1 — Test Construction Plan
+test_construction_plan:
+  playwright_required: true
+  base_path: "vitalia/frontend/e2e/{__test-pages__,regression,visual,a11y,__screenshots__}/topbar-global/"
+
+  creation_order:
+    - step: 1
+      file: "vitalia/frontend/public/brand/{vitalia-ico,vitalia-logo,vitalia-logo-dark}.png"
+      content: "Verify 3 brand assets PNG present (commit pre-implementación durante /po-ux F1-S2 refining)"
+      depends_on: []
+
+    - step: 2
+      file: "vitalia/frontend/src/components/shared/shell-organism/LogoMark.tsx"
+      content: "Server component Next.js Image wrapper · 6 combinations · doble Image dark swap"
+      depends_on: [1]
+
+    - step: 3
+      file: "vitalia/frontend/src/components/shared/shell-organism/LogoMark.test.tsx"
+      content: "Vitest unit · render cada combination · assert aria-label + href + Image src"
+      depends_on: [2]
+
+    - step: 4
+      file: "vitalia/frontend/src/components/shared/shell-organism/TenantSwitcherSlot.tsx"
+      content: "Placeholder server component · returns null + TODO comment F1-S3"
+      depends_on: [1]
+
+    - step: 5
+      file: "vitalia/frontend/src/components/shared/shell-organism/TopBarGlobal.tsx"
+      content: "Server component · <header role=banner> · 2 LogoMark instances responsive swap · ThemeToggle + TenantSwitcherSlot"
+      depends_on: [2, 4]
+
+    - step: 6
+      file: "vitalia/frontend/src/components/shared/shell-organism/TopBarGlobal.test.tsx"
+      content: "Vitest unit · render TopBar · assert role · composición children · classes responsive"
+      depends_on: [5]
+
+    - step: 7
+      file: "vitalia/frontend/src/app/layout.tsx"
+      content: "MODIFY agregar skip link `Saltar al contenido` ANTES de {children} · verify main#main-content"
+      depends_on: [5]
+
+    - step: 8
+      file: "vitalia/frontend/e2e/__test-pages__/topbar-global/topbar-showcase.tsx"
+      content: "Test page Playwright · <TopBarGlobal /> + dummy main#main-content"
+      depends_on: [5]
+
+    - step: 9
+      file: "vitalia/frontend/e2e/__test-pages__/topbar-global/logo-mark-showcase.tsx"
+      content: "Test page · grid 3×2 LogoMark (6 combinations) en card centrada"
+      depends_on: [2]
+
+    - step: 10
+      file: "vitalia/frontend/e2e/regression/topbar-global/topbar-interaction.spec.ts"
+      content: "Behavior spec · skip link Tab+Enter · ThemeToggle integration · viewport resize · aria-label"
+      depends_on: [7, 8]
+
+    - step: 11
+      file: "vitalia/frontend/e2e/visual/topbar-global/{topbar,logo-mark}.spec.ts"
+      content: "Visual baseline specs @project=visual · 6 goldens generation + Chris ratify"
+      depends_on: [8, 9]
+
+    - step: 12
+      file: "vitalia/frontend/e2e/a11y/topbar-global/topbar.spec.ts"
+      content: "A11y spec · @axe-core/playwright WCAG 2.1 AA + keyboard nav + landmarks"
+      depends_on: [8]
+
+  scenario_to_test:
+    - gherkin_scenario: "Scenario 1 — happy render desktop"
+      test_file: "vitalia/frontend/e2e/regression/topbar-global/topbar-interaction.spec.ts"
+      test_function: "test('renders TopBar 48px height with LogoMark + ThemeToggle desktop'"
+      assertions:
+        - "expect(page.getByTestId('topbar-global')).toHaveCSS('height', '48px')"
+        - "expect(page.getByTestId('topbar-global').getByRole('link', { name: 'Vitalia inicio' })).toBeVisible()"
+        - "expect(page.locator('[data-testid=\"theme-toggle\"]')).toBeVisible()"
+
+    - gherkin_scenario: "Scenario 2 — happy mobile responsive 375px"
+      test_file: "vitalia/frontend/e2e/regression/topbar-global/topbar-interaction.spec.ts"
+      test_function: "test('switches LogoMark to mark variant on mobile viewport'"
+      assertions:
+        - "await page.setViewportSize({ width: 375, height: 667 })"
+        - "expect(page.locator('img[src*=\"vitalia-ico\"]').first()).toBeVisible()"
+        - "expect(page.locator('img[src*=\"vitalia-logo.png\"]').first()).not.toBeVisible()"
+
+    - gherkin_scenario: "Scenario 3 — theme switch applies to TopBar"
+      test_file: "vitalia/frontend/e2e/regression/topbar-global/topbar-interaction.spec.ts"
+      test_function: "test('TopBar bg switches on ThemeToggle click + LogoMark asset swap'"
+      assertions:
+        - "await page.click('[data-testid=\"theme-toggle\"]')"
+        - "expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')"
+        - "expect(page.locator('img[src*=\"vitalia-logo-dark\"]').first()).toBeVisible()"
+
+    - gherkin_scenario: "Scenario 4 — logo-mark variants grid"
+      test_file: "vitalia/frontend/src/components/shared/shell-organism/LogoMark.test.tsx"
+      test_function: "describe('LogoMark renders all 6 combinations'"
+      assertions:
+        - "expect(rendered.dimensions).toMatch(sizeMatrix[size][variant])"
+        - "expect(rendered.image.src).toBe(expectedSrcMap[variant][mode])"
+
+    - gherkin_scenario: "Scenario 5 — a11y skip link Tab+Enter"
+      test_file: "vitalia/frontend/e2e/a11y/topbar-global/topbar.spec.ts"
+      test_function: "test('skip link Tab focus + Enter jumps to main-content'"
+      assertions:
+        - "await page.keyboard.press('Tab')"
+        - "expect(page.locator('[href=\"#main-content\"]')).toBeFocused()"
+        - "await page.keyboard.press('Enter')"
+        - "expect(page.url()).toContain('#main-content')"
+
+    - gherkin_scenario: "Scenario 6 — a11y banner landmark"
+      test_file: "vitalia/frontend/e2e/a11y/topbar-global/topbar.spec.ts"
+      test_function: "test('TopBar exposed as banner landmark + 0 axe violations'"
+      assertions:
+        - "expect(page.getByRole('banner')).toBeVisible()"
+        - "await checkA11y(page, null, { rules: { 'landmark-banner-is-top-level': { enabled: true } } })"
+
+    - gherkin_scenario: "Scenario 7 — i18n Spanish neutro microcopy"
+      test_file: "vitalia/frontend/e2e/regression/topbar-global/topbar-interaction.spec.ts"
+      test_function: "test('aria-label + skip link text Spanish neutro exact strings'"
+      assertions:
+        - "expect(page.getByRole('link', { name: 'Vitalia inicio' })).toBeVisible()"
+        - "expect(page.getByText('Saltar al contenido')).toBeAttached()"
+
+  poms_required:
+    - file: "vitalia/frontend/e2e/regression/topbar-global/poms/topbar.pom.ts"
+      methods:
+        - "goto()"
+        - "getLogoMark() → Locator"
+        - "getThemeToggle() → Locator"
+        - "getTenantSlot() → Locator"
+        - "getSkipLink() → Locator"
+      optional: true
+      description: "POM ligero — opcional, story atómica"
+
+  fixtures_required:
+    - name: "themeFixture(initial: 'light' | 'dark')"
+      content: "Set localStorage vitalia-theme antes de page.goto"
+    - name: "viewportFixture(size: 'desktop' | 'mobile')"
+      content: "page.setViewportSize({ width: 1440 or 375, height: 900 or 667 })"
+    - name: "axeFixture"
+      content: "injectAxe + checkA11y wrapper"
+
+iteration:
+  max_iterations: 10
+  on_fail: "fix targeted file based on test output, re-run failing validator only"
+  on_all_pass: "set state developing → developed, append iteration_log to T-{n}-impl-log.md, trigger AUTO-HANDOFF /auditor"
+  on_cap_reached: "set state developing → blocked, escalate Chris with last error trace + diagnosis"

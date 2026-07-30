@@ -1,0 +1,1 @@
+../../../core-harness/hooks/checks/11-worktree.sh

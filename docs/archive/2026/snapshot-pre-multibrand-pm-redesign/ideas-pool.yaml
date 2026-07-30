@@ -1,0 +1,232 @@
+# docs/product/ideas-pool.yaml — SSoT discovery layer
+#
+# All raw ideas + validated opportunities live here as YAML entries.
+# State machine: idea → validated → (promoted to outcome) | dropped | parked
+#
+# State transitions:
+#   idea → validated     : OST applied + problem worth solving confirmed
+#   validated → promoted : promoted_to_outcome set, outcome.md created
+#   any → dropped        : terminal, won't do
+#   any → parked         : de-prioritized, NOT abandoned
+#
+# Caps (enforced by Stop hook + pre-commit):
+#   max validated = 10  (avoid cementerio "validated")
+#
+# Stale markers (auto-warn):
+#   idea last_touched > 90d         → flag stale
+#   validated last_touched > 180d   → flag stale
+#
+# OST (Opportunity Solution Tree, Torres) — only when state=validated
+#   outcome:        the business outcome this idea contributes to
+#   opportunities:  customer needs / pain points (NOT solutions)
+#   solutions:      candidate solutions for the opportunities
+#   tests:          assumption tests to validate before committing
+#
+# Tag conventions:
+#   module:<name>      e.g. module:sales-agent
+#   effort:S|M|L       rough sizing (S<=2d, M=3-7d, L>7d)
+#   value:<reason>     e.g. value:user-feedback, value:tech-debt
+#   source:<who>       e.g. source:chris, source:user-X, source:gap-report
+
+ideas:
+  - id: calendario-comercial
+    one_liner: "Calendario comercial por país (fechas importantes para vender) — admin Streamlit + tenant-extensible"
+    state: idea
+    tags: [module:commercial-calendar, effort:M, value:business-feature, source:chris]
+    created: 2026-04-15
+    last_touched: 2026-04-15
+    notes: |
+      Migrated from docs/product/ideas/calendario-comercial.md (2026-05-05).
+      Original detail: por País inicial, tenant-extensible para nicho.
+      Admin (Chris) único que elimina fechas globales. Tenant agrega fechas nicho.
+      Data inicial Perú cargada en idea original (Mes/Día/Tema).
+
+  - id: metricas-atraccion
+    one_liner: "Attraction stage metrics expansion (analytics module)"
+    state: idea
+    tags: [module:analytics, effort:S, value:user-feedback, source:chris]
+    created: 2026-04-20
+    last_touched: 2026-04-20
+    notes: |
+      Migrated from docs/product/ideas/metricas-atraccion.md (file was empty,
+      title only). Refine antes de validar.
+
+  - id: live-selling-whatsapp-assistant
+    one_liner: "Asistente AI por WhatsApp ephemeral para acompañar TikTok Live de microempresarios LATAM (screenshot→producto→pago→notificación al vendedor, sin memoria post-sesión)"
+    state: idea
+    tags: [module:sales-agent, module:connections, effort:L, value:business-model, source:chris, channel:whatsapp]
+    created: 2026-05-01
+    last_touched: 2026-05-01
+    notes: |
+      Migrated from docs/pm-nico/ideas/live-selling-whatsapp-assistant.md (2026-05-06)
+      as part of Wave 2 PM redesign. Full original (research stack +
+      competidores + viabilidad técnica + riesgos) preserved at
+      docs/archive/2026/legacy-pm-nico-research/ideas/live-selling-whatsapp-assistant.md.
+
+      Highlights del archivo original:
+      - Pricing target: 20-50 PEN por sesión
+      - Diferenciador compuesto vs mercado: livestream context + ephemeral
+        session + screenshot-to-buy + real-time seller notification (ningún
+        competidor directo encontrado)
+      - Tech stack viable: WhatsApp Business API (Baileys o Cloud API) +
+        Google Vision Product Search / CLIP + Culqi/ITPago links Yape/Plin
+        + WhatsApp In-App Browser para checkout sin salir
+      - Riesgos: WhatsApp API session stability, Yape/Plin sin API oficial
+        comercios, screenshot quality con TikTok UI overlay, concurrencia,
+        compliance Sunat
+      - Estado original: "Idea validada como realizable. Ningún componente
+        bloqueante. Ningún competidor directo." Pendiente JTBD + OST formal.
+
+  - id: solo-mode-chat-first-layout
+    one_liner: "SOLO Mode — toggle UI top-bar invierte layout: copilot chat principal centro/izq, contenido secundario derecha (estilo Claude Desktop / Cowork)"
+    state: idea
+    tags: [module:copilot, module:shared, type:layout-paradigm-shift, effort:L, value:product-direction, source:chris]
+    created: 2026-05-06
+    last_touched: 2026-05-06
+    notes: |
+      Captured 2026-05-06 durante refining session sidebar-copilot overlap (PI-9+PI-10 unification).
+
+      Concepto:
+      - Toggle button parte superior de la app
+      - Layout invertido: chat copilot = elemento PRINCIPAL (centro o izq, dominante)
+      - Contenido aplicación (studios, dashboards, forms) = panel secundario derecho, más pequeño,
+        aparece on-demand según conversación
+      - Cambia paradigma "website-with-chat-on-side" → "chat-first con apoyo visual derecha"
+      - Referencias UX: Claude Desktop (chat dominante, panels contextuales), Claude Cowork
+
+      Estado: NO refinar aún. Anotado para que próxima refinación de copilot/layout-system esté
+      pre-aware. Probable predecesor: PI-9+PI-10 unified (sidebar+copilot decoupling + Growth
+      Studio architecture parity) — sin esa base SOLO Mode no es implementable limpio.
+
+      Pendiente JTBD + OST formal cuando se valide.
+
+  - id: sales-inbox-responsive-collapse
+    one_liner: "Sales Studio inbox 3-col (lista/detalle/conversación) inner layout responsive — colapsa a 2 o 1 col cuando viewport+chrome restringen ancho"
+    state: idea
+    tags: [module:sales-agent, module:crm, type:responsive-ui, effort:M, value:user-experience, source:chris-via-live-repro]
+    created: 2026-05-07
+    last_touched: 2026-05-07
+    notes: |
+      Captured 2026-05-07 durante live repro chrome-devtools-verify de
+      app-shell-sidebar-copilot-decoupling. Subagent observó:
+
+      Sales studio /sales/studio/inbox tiene inner 3-col layout (lista de leads
+      izquierda + detalle lead centro + thread conversación derecha) sobre el
+      shell global (AppSidebar + main + CopilotSidebar).
+
+      A viewport 1024 × sidebar collapsed × copilot open → main = 484px, dividido
+      en 3 cols inner → ~96px/col. Resultado:
+      - Filtros truncados ("Manua...")
+      - Lead detail truncado ("Brenda Pasto...", "creaci...")
+      - Conversation pane invisible (rendered pero 0 perceived width)
+
+      No es bug del shell (story 1 mejora a ≥720px main floor con DashboardShell).
+      Es bug del inner layout sales-inbox que NO colapsa cuando el ancho disponible
+      es estrecho (no usa `useViewport` o equivalente para decidir 3→2→1 cols).
+
+      Solution candidates:
+      - Drawer pattern: thread conversación → drawer overlay cuando main <900px
+      - Tab pattern: lista | detalle | thread tabs cuando main <700px
+      - Stack pattern: vertical stacking < ancho mínimo
+
+      Predecesor: NO depende de outcome growth-copilot-layout-unification, pero
+      su impacto SE REDUCE post-story 1 (main ≥720px elimina catastrófico 484px).
+      Aún así sales-inbox a 720-1023px sigue subóptimo con 3-col.
+
+      Pendiente: JTBD + métricas (cuántos tenants usan inbox a viewport <1280) +
+      OST formal cuando se valide.
+
+  - id: sales-agent-qualification-toolkit
+    one_liner: "BE tools `qualify_lead` + `tag_lead_status` for sales_agent runtime — unblocks Story C T-6/T-7 SKIP transitions"
+    state: idea
+    tags: [module:sales-agent, type:agentic-runtime, effort:S, value:eval-unblock, source:story-c-escalation]
+    created: 2026-05-08
+    last_touched: 2026-05-08
+    notes: |
+      Captured 2026-05-08 post Story C audit + merge.
+
+      Scope:
+      - Implement `qualify_lead(lead_id, qualified: bool, reasoning: str)` BE tool
+        in sales_agent runtime (modules/sales_agent/application/tools/qualification.py)
+      - Implement `tag_lead_status(lead_id, status: Literal[...])` BE tool
+      - Register both in TOOL_REGISTRY for sales_agent specialists
+      - Pydantic v2 schemas + tenant isolation + observability writes
+      - Integration with CRM module (lead_id ref existing entity)
+
+      Origin:
+      Story C (sales-agent-personas-instrumented-runtime) T-6 + T-7 cement
+      synthetic eval tests for Scenarios 5+6 (qualification × 5 archetypes ×
+      3 trials + nurture multi-question 8-15 turns × 5 archetypes). Tests
+      currently SKIP at collection time via `_TOOLKIT_SUPPORTED` capability
+      probe — when these tools land in TOOL_REGISTRY, tests transition GREEN
+      automatically (no test changes needed).
+
+      Decision Chris 2026-05-08: Story C closure accepted as-is (Option B);
+      toolkit is independent future work. Story E voice-fidelity-grader-runtime
+      ratified the decision but DOES NOT naturally bundle the toolkit (E's
+      scope is GRADER + rubrics + cache, NOT sales_agent runtime tools).
+
+      Predecesor: NO blocked. Can be picked up in any session toca
+      modules/sales_agent/application/tools/.
+
+      Pendiente: JTBD framing + spec ratification + /architect ready package.
+      Recommended owner skill at refining: /po (service-story BE only).
+
+      Related:
+      - Story C archive (T-6/T-7 cement)
+      - Story C 07-merge.md "Open escalation /pm" section
+      - rubrics/qualification-accuracy.md (Story E owns runtime grading;
+        toolkit is separate concern: agent EXECUTING qualification action vs
+        grader MEASURING qualification quality)
+
+  - id: agent-bridge-session-injection-fix
+    one_liner: "Fix agent_bridge._resolve_session_for_simulation T-8 stub — currently returns None even with session injected, causing SessionUnavailable in eval-foundation smokes"
+    state: dropped
+    tags: [module:sales-agent, type:agentic-runtime, effort:S, value:eval-unblock-CRITICAL, source:story-d-runevals-smoke]
+    created: 2026-05-08
+    last_touched: 2026-05-08
+    closed: 2026-05-08
+    closing_commit: 21f2f641
+    notes: |
+      CLOSED 2026-05-08 by commit 21f2f641 — DEEPER-A agent_bridge ContextVar session injection wiring.
+      Diagnosis correction (R26): real path was tests/agentic_evals/sales_agent/simulator/_internal/{agent_bridge.py, runner.py} NOT modules/sales_agent/. Eval test infra stub, not production runtime.
+      Fix: ContextVar bridge from run_simulation(db_session=...) → graph.ainvoke() context. 31/31 simulator + 673/673 sales_agent + 1016/1016 arch fitness GREEN.
+      Verified end-to-end via 3 RUN_EVALS env-gated smokes with real LLM (~$0.30-0.60 cost per full smoke run).
+
+  - id: goldens-archetype-slug-propagation
+    one_liner: "Fix promote_golden e2e flow — archetype_slug not propagated from tenant context, causing 'Unknown archetype_slug' error in TestE2ESmoke"
+    state: dropped
+    tags: [module:sales-agent, type:tooling, effort:S, value:eval-completion, source:story-d-runevals-smoke]
+    created: 2026-05-08
+    last_touched: 2026-05-08
+    closed: 2026-05-08
+    closing_commit: b28c28ea
+    notes: |
+      CLOSED 2026-05-08 by commit b28c28ea — DEEPER-B archetype_slug propagation defense in depth.
+      Root cause: SimulationResult.model_dump() serialized field as 'archetype_slug' (Pydantic field name); promote_golden read 'tenant_archetype_slug' with empty-string fallback → ValidationError.
+      Fix: 2 layers — (1) generator writes both 'archetype_slug' AND 'tenant_archetype_slug' to artifact JSON; (2) promote reads either key. 71 unit + 3 regression + 1016 arch GREEN.
+      Verified end-to-end with 3 RUN_EVALS env-gated smokes (real LLM).
+
+  - id: fix-reconcile-capabilities-script-v4-paradigm
+    state: idea
+    created: 2026-05-11
+    tags:
+      - tooling:scripts
+      - paradigm:v4
+      - bug
+    summary: |
+      scripts/reconcile_capabilities.py looks for stories at legacy v3 path
+      docs/product/stories/{module}/{story_id}.yaml. v4 paradigm uses
+      docs/product/stories/{story_id}/checkpoint.md (flat) + done stories live in
+      docs/archive/2026/stories/{story_id}/checkpoint.md.
+      Result: ALL story files marked "missing", caps with new story_ids get
+      flipped to status=planned + stories_live=0. Caused friction during
+      Story E sales-agent-voice-fidelity-grader-runtime cap promotion 2026-05-11
+      (had to manual-override status=live in YAML + add explanation comment).
+    fix_scope: |
+      Update reconcile_capabilities.py to scan BOTH:
+      1. docs/product/stories/{story_id}/checkpoint.md → parse `state` field
+      2. docs/archive/2026/stories/{story_id}/checkpoint.md → state=done
+      Compute stories_status list from those, derive cap status correctly.
+    estimated_effort: 1-2h Sonnet
+    why_now: minor friction, recur every cap promotion

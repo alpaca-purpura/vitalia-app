@@ -1,0 +1,69 @@
+---
+# vitalia/deploy/k8s/ingress.yaml
+# Ingress for Vitalia — routes app.vitalia.health + cdn.vitalia.health.
+#
+# Prerequisites:
+#   - ingress-nginx controller installed in cluster.
+#   - cert-manager installed for TLS (Let's Encrypt or Cloudflare Origin CA).
+#   - Cloudflare Tunnel (cloudflared) handles external TLS termination —
+#     ingress TLS is optional when using CF tunnel (traffic arrives plain HTTP
+#     from cloudflared pod to this ingress). Annotation below disables HTTPS
+#     redirect in that case; remove annotation if terminating TLS at ingress.
+#
+# Hosts (per 03-arch.md § 5.3):
+#   - app.vitalia.health  → vitalia-app service (FastAPI backend + Next.js SSR)
+#   - cdn.vitalia.health  → vitalia-app service (static assets / widget bundle)
+#
+# Arch ref: 03-arch.md § 5.3 · T-deploy-1
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: vitalia-ingress
+  namespace: vitalia
+  labels:
+    app.kubernetes.io/name: vitalia
+    app.kubernetes.io/component: ingress
+    app.kubernetes.io/part-of: luana-platform
+    app.kubernetes.io/managed-by: kubectl
+  annotations:
+    # nginx ingress controller
+    kubernetes.io/ingress.class: "nginx"
+    # Disable HTTP → HTTPS redirect when CF tunnel handles external TLS.
+    # Change to "true" if terminating TLS at ingress level instead.
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    # Increase timeouts for agentic long-running requests (LLM calls may take 30s+)
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+    # Body size — consent PDF uploads, medical KB ingestion
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+spec:
+  rules:
+    - host: app.vitalia.health
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: vitalia-app
+                port:
+                  number: 80
+
+    - host: cdn.vitalia.health
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: vitalia-app
+                port:
+                  number: 80
+
+  # TLS section — enable if terminating at ingress (not CF tunnel).
+  # Chris must create TLS secret via cert-manager ClusterIssuer or manual cert.
+  # tls:
+  #   - hosts:
+  #       - app.vitalia.health
+  #       - cdn.vitalia.health
+  #     secretName: vitalia-tls

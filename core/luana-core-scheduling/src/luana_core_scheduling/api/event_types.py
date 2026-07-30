@@ -1,0 +1,68 @@
+"""Event Types API endpoints."""
+
+from typing import Annotated
+
+import structlog
+from fastapi import APIRouter, Depends, HTTPException
+from luana_core_iam.api.dependencies import get_current_user
+from luana_core_iam.domain.user import User
+from luana_core_platform.core.database import get_db
+from sqlalchemy.orm import Session
+
+from luana_core_scheduling.application.services.event_type_service import (
+    EventTypeService,
+)
+from luana_core_scheduling.domain.event_type_schema import EventType, EventTypeUpdate
+
+router = APIRouter(tags=["event-types"])
+logger = structlog.get_logger()
+
+
+@router.get("")
+async def list_event_types(
+    db: Annotated[Session, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
+) -> list[EventType]:
+    """List event types."""
+    service = EventTypeService(db, user.tenant_id)
+    return service.list_event_types()
+
+
+@router.post("")
+async def create_event_type(
+    event_type: EventType,
+    db: Annotated[Session, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
+) -> EventType:
+    """Create a new event type."""
+    service = EventTypeService(db, user.tenant_id)
+    return service.create_event_type(event_type)
+
+
+@router.patch("/{event_type_id}")
+async def update_event_type(
+    event_type_id: str,
+    update: EventTypeUpdate,
+    db: Annotated[Session, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
+) -> EventType:
+    """Update event type."""
+    service = EventTypeService(db, user.tenant_id)
+    updated = service.update_event_type(event_type_id, update)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Event Type not found")
+    return updated
+
+
+@router.delete("/{event_type_id}")
+async def delete_event_type(
+    event_type_id: str,
+    db: Annotated[Session, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
+) -> dict[str, str]:
+    """Delete event type."""
+    service = EventTypeService(db, user.tenant_id)
+    deleted = service.delete_event_type(event_type_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Event Type not found")
+    return {"status": "deleted"}

@@ -1,0 +1,96 @@
+---
+capability_id: vitalia-medical-pdf-extractors
+module: copilot
+slug: medical-pdf-extractors
+status: planned   # nota: forward-declared (status planned · sin código aún)
+date_introduced: 2026-05-15
+story_introduced: luana-vitalia-bootstrap
+package_version: 0.1.0
+package_path: vitalia/backend/src/modules/vitalia/copilot/extractors
+license: proprietary
+
+# v3 cement 2026-05-27 · 4 dimensiones + dev_preview (ADR-vitalia-005)
+tech_module: copilot
+agent_owner: motor-agentico
+functional_area: motor-agentico.copilot
+user_visible: false
+nature: extension-point
+
+user_facing_name: "Extractores PDF médicos"
+user_facing_description: >
+  Pipeline de extracción de PDFs médicos (guías, papers, protocolos de práctica
+  clínica) hacia el knowledge base. Utiliza visión LLM en 4 ondas para OCR,
+  limpieza, normalización y validación. Incluye extractor especializado con
+  notación FDI dental (ISO 3950) para historiales odontológicos.
+
+dev_preview:
+  route: null
+  how_to_navigate: "BE-only · ver via arch test vitalia/backend/tests/architecture/test_extraction_orchestrator_inheritance.py"
+  main_component: null
+  api_endpoints: []
+  e2e_test: null
+  fixtures_required: []
+  storybook_url: null
+  loom_demo: null
+
+# Capability ledger v2 (cement 2026-05-27)
+created_in_story: luana-vitalia-bootstrap   # v2 cement · mirror of story_introduced
+created_date: 2026-05-15   # v2 cement · mirror of date_introduced
+last_modified: 2026-05-29   # T-3 reconcile 2026-05-29
+parent_cap: null   # v2 cement · mirror of extends_capability
+derives_capabilities: []   # v2 cement · initial empty list
+
+# Capability ledger v2 (cement 2026-05-27)
+
+# Capability change log v2 (cement 2026-05-27)
+change_log:
+  - story_id: vitalia-bootstrap-inventory-2026-05-15
+    date: 2026-05-15
+    type: new
+    summary: "Implementación inicial · migración legacy a schema v2"
+    merge_sha: null
+    status: done
+map_box: motor-agentico
+
+---
+
+# vitalia-medical-pdf-extractors
+
+2 PDF extractors 4-wave vision-based heredados de `BaseExtractionOrchestrator` (engine `core/luana-core-extraction`). Registrados vía Extension SDK EP-7.
+
+## Surface
+
+### Extractors (`vitalia/backend/src/modules/vitalia/copilot/extractors/`)
+
+- **`medical_kb_extractor.py::MedicalKBExtractor`** — 4-wave vision-based para PDFs médicos genéricos
+- **`dental_history_extractor.py::DentalHistoryExtractor`** — 4-wave + FDI dental notation (numeración internacional ISO 3950)
+- **`_schemas.py`** — Pydantic schemas para output estructurado
+- **`_prompts/`** — prompts per-wave
+
+### Config (`vitalia/config/brand.yaml`)
+
+```yaml
+extractors: [MedicalKBExtractor, DentalHistoryExtractor]
+```
+
+## Test coverage
+
+- Arch fitness: `vitalia/backend/tests/architecture/test_extraction_orchestrator_inheritance.py` — ambos subclass `BaseExtractionOrchestrator` (no mirror)
+- Integration cubierta indirectamente vía `patient-medical-pdf-upload` flow
+
+## Dependencies
+
+- `core/luana-core-extraction.application.base_orchestrator.BaseExtractionOrchestrator` (EXTEND, no mirror)
+- `core/luana-core-llm` (router LLM con vision capability)
+- `core/luana-core-extension-sdk` EP-7 (ExtractorDef registration)
+
+## Scenarios live
+
+- Doctor sube PDF historial médico → MedicalKBExtractor 4-wave produce output estructurado
+- Dentista sube historial dental → DentalHistoryExtractor extrae FDI notation per pieza dental
+- Wave 1: vision extraction → Wave 2: cleanup → Wave 3: normalization → Wave 4: validation
+- Output persistido en `medical_history_model` con `extractor_version` para reextract en updates
+
+## Referencias
+
+- Archive: `docs/archive/2026/snapshot-pre-multibrand-pm-redesign/capabilities/vitalia/medical-kb-rag.yaml` (subset extractors)

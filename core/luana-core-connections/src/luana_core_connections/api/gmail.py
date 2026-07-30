@@ -1,0 +1,124 @@
+"""Gmail API endpoints."""
+
+from typing import Annotated
+
+import structlog
+from fastapi import APIRouter, Body, Depends, HTTPException
+from luana_core_connections.api.dto.common import ConnectionTestResponse
+from luana_core_connections.api.dto.gmail import GmailStatusResponse
+from luana_core_connections.domain.enums import ChannelType
+from luana_core_connections.infrastructure.channels.gmail import GmailAdapter
+from luana_core_connections.infrastructure.repositories import (
+    ChannelConnectionRepository,
+)
+from luana_core_iam.api.dependencies import get_current_user
+from luana_core_iam.domain.user import User
+from luana_core_platform.core.database import get_db
+from sqlalchemy.orm import Session
+
+router = APIRouter(tags=["gmail"])
+logger = structlog.get_logger()
+
+
+def _get_repo(db: Session = Depends(get_db)) -> ChannelConnectionRepository:
+    return ChannelConnectionRepository(db)
+
+
+@router.get("/auth-url")
+async def get_auth_url(
+    user: Annotated[User, Depends(get_current_user)],
+    redirect_uri: str | None = None,
+) -> dict[str, str]:
+    """Retrieve auth url."""
+    url, state = GmailAdapter.get_authorization_url(redirect_uri)
+    return {"url": url, "state": state}
+
+
+@router.post("/callback")
+async def oauth_callback(
+    code: Annotated[str, Body(embed=True)],
+    user: Annotated[User, Depends(get_current_user)],
+    repo: Annotated[ChannelConnectionRepository, Depends(_get_repo)],
+    redirect_uri: Annotated[str | None, Body(embed=True)] = None,
+) -> dict[str, str]:
+    """Oauth callback."""
+    try:
+        creds_data = GmailAdapter.exchange_code(code, redirect_uri)
+    except Exception as e:
+        logger.exception("gmail_oauth_exchange_failed", error=str(e))
+        raise HTTPException(
+            status_code=400,
+            detail="Error de autenticacion con Google",
+        ) from e
+
+    try:
+        adapter = GmailAdapter(creds_data)
+        profile = adapter.get_profile()
+        email = profile.get("emailAddress")
+        if not email:
+            msg = "Email address not found in profile"
+            raise ValueError(msg)  # noqa: TRY301
+    except Exception as e:
+        logger.exception("failed_to_get_gmail_profile", error=str(e))
+        raise HTTPException(
+            status_code=400,
+            detail="No se pudo obtener el perfil de Gmail. Verifica los permisos.",
+        ) from e
+
+    repo.upsert(
+        tenant_id=user.tenant_id,
+        channel_type=ChannelType.GMAIL,
+        credentials=creds_data,
+        config={"email": email},
+    )
+    return {"status": "connected", "email": email}
+
+
+@router.get("/status")
+async def get_status(
+    user: Annotated[User, Depends(get_current_user)],
+    repo: Annotated[ChannelConnectionRepository, Depends(_get_repo)],
+) -> GmailStatusResponse:
+    """Retrieve status."""
+    connection = repo.get_active(user.tenant_id, ChannelType.GMAIL)
+
+    if not connection:
+        return GmailStatusResponse(is_connected=False)
+
+    return GmailStatusResponse(
+        is_connected=True,
+        email=connection.config.get("email"),
+    )
+
+
+@router.delete("/disconnect")
+async def disconnect(
+    user: Annotated[User, Depends(get_current_user)],
+    repo: Annotated[ChannelConnectionRepository, Depends(_get_repo)],
+) -> dict[str, str]:
+    """Disconnect."""
+    connection = repo.get_by_tenant_and_type(user.tenant_id, ChannelType.GMAIL)
+    if connection:
+        repo.deactivate(connection)
+    return {"status": "disconnected"}
+
+
+@router.post("/test", response_model=ConnectionTestResponse)
+async def test_connection(
+    user: Annotated[User, Depends(get_current_user)],
+    repo: Annotated[ChannelConnectionRepository, Depends(_get_repo)],
+) -> dict[str, str | dict[str, str] | None]:
+    """Test connection."""
+    connection = repo.get_active(user.tenant_id, ChannelType.GMAIL)
+
+    if not connection or not connection.credentials:
+        raise HTTPException(status_code=400, detail="Gmail no conectado")
+
+    try:
+        adapter = GmailAdapter(connection.credentials)
+        profile = adapter.get_profile()
+    except Exception as e:
+        logger.exception("gmail_test_failed", error=str(e))
+        return {"status": "error", "message": str(e)}
+    else:
+        return {"status": "ok", "message": "Conexion exitosa", "data": profile}

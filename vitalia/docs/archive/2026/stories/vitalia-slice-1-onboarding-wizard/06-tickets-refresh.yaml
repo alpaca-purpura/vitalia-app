@@ -1,0 +1,550 @@
+# vitalia-slice-1-onboarding-wizard — Tickets refresh (MINOR_DRIFT overrides)
+# Owner: /architect Opus 4.7 · 2026-05-18
+# Consumer: /dev-team picks T-onboarding-1..7 from parent
+#   vitalia/docs/product/stories/vitalia-ux-discovery/06-tickets.yaml
+#   APLICANDO los overrides aquí cuando el ticket_id coincide.
+#
+# Razón refresh: shipped reality post 2026-05-18 merges (infra-cross-cutting + copilot-tools-impl)
+# excede el scope de los tickets originales en 5/7 casos. Ver delta-arch-refresh.md § Check 5.
+#
+# Política override: este archivo declara SÓLO los tickets con scope_status != "unchanged".
+# Tickets ausentes aquí → usar parent 06-tickets.yaml verbatim.
+#
+# ★ RATIFIED by Chris 2026-05-18 ★
+#   - R23 OPT-OUT T-onboarding-4 + T-onboarding-5 (production_code=false, Sonnet OK — wire-up + regression only,
+#     NOT new agentic production code; tools+graph shipped APPROVED en copilot-tools-impl)
+#   - Mini-arch inline T-onboarding-1 (Architect drafts repo signatures + SQLA 2.0 ORM models + DI binding
+#     inline en T-onboarding-1::scope for builder Sonnet velocidad)
+#   - Whisper STT audio path DEFERRED Slice 2 (extract_tenant_context ships Slice 1 with URL + text_content only;
+#     re-evaluate post Slice 1 + tenant feedback)
+#   - FE feature path features/onboarding/ verbatim per spec (NOT nested under features/vitalia/; FSD boundary
+#     matrix raw — vitalia/frontend already brand-scoped by path)
+
+version: 1
+story_id: vitalia-slice-1-onboarding-wizard
+parent_story_id: vitalia-ux-discovery
+brand: vitalia
+ws_root: /home/chalreme/Proyectos/luana-vitalia    # NOTA: refresh corre desde worktree vitalia, no luana-platform root
+state_target: developing → developed when all unblocked tickets GREEN
+refresh_authored_by: /architect (architect-orchestrator)
+refresh_authored_on: 2026-05-18
+based_on_evidence:
+  - vitalia/docs/archive/2026/stories/vitalia-slice-1-infra-cross-cutting/07-merge.md
+  - vitalia/docs/archive/2026/stories/vitalia-copilot-tools-impl/07-merge.md
+  - vitalia/backend/alembic/versions/{001..021}_vitalia_*.py
+  - vitalia/backend/src/modules/vitalia/copilot/tools/{extract_tenant_context,confirm_slot,simulate_personality,complete_onboarding}.py
+  - vitalia/backend/src/modules/vitalia/copilot/workflows/{wizard_onboarding_state,wizard_onboarding_graph,wizard_prompt_compiler,wizard_checkpoint_config,extract_subagent}.py
+  - vitalia/backend/src/modules/vitalia/copilot/application/services/{extract_tenant_context_service,onboarding_draft_service,simulate_personality_service,complete_onboarding_service,wizard_orchestrator_service}.py
+  - vitalia/backend/src/modules/vitalia/copilot/api/routes/wizard_onboarding_routes.py
+  - vitalia/backend/src/modules/vitalia/extensions.py (lines 351-456, EP-3 + EP-4 wizard wiring)
+
+# ===========================================================================
+# Ratified decisions (Chris 2026-05-18) — UNBLOCKED for /dev-team spawn
+# ===========================================================================
+# Open Questions OQ-1..OQ-4 raised by /architect post-refresh (delta-arch-refresh.md
+# § Open Questions) were ratified verbatim by Chris on 2026-05-18 and folded into
+# ticket overrides below. Kept here as audit trail.
+
+ratified_decisions_2026_05_18:
+  - id: OQ-1
+    question: "R23 OPT-OUT for T-onboarding-4 + T-onboarding-5?"
+    verdict: opt_out_to_sonnet
+    rationale: "Tools (T-4) + graph (T-5) shipped APPROVED in copilot-tools-impl. Refresh es wire-up + smoke regression, NOT new agentic production code. owner_eligibility=[qwen-opencode, claude-sonnet], production_code=false. ~70% cost reduction vs keeping Opus mandatory."
+  - id: OQ-2
+    question: "T-onboarding-1 repo design inline o builder free hand?"
+    verdict: architect_inline_signatures
+    rationale: "Builder Sonnet beneficia de signatures Pydantic + SQLA 2.0 ORM models + DI binding explícitas para velocidad GREEN-first. Mini-arch inline folded into T-onboarding-1::scope below (~30 lines)."
+  - id: OQ-3
+    question: "Whisper STT audio path en T-onboarding-2 — wire Slice 1 or defer Slice 2?"
+    verdict: defer_slice_2
+    rationale: "extract_tenant_context_service ships Slice 1 with URL + text_content only. Audio adapter ratified deferred (re-evaluate post Slice 1 + tenant feedback). audio_transcriber.py from T-onboarding-2 scope REMOVED."
+  - id: OQ-4
+    question: "FE feature path features/onboarding/ vs features/vitalia/onboarding/?"
+    verdict: features_onboarding_root
+    rationale: "Parent spec verbatim — vitalia/frontend/src/features/onboarding/ (NOT nested under features/vitalia/). FSD boundary matrix raw — vitalia/frontend already brand-scoped by path."
+
+# ===========================================================================
+# Overrides per ticket
+# ===========================================================================
+
+ticket_overrides:
+
+  - id: T-onboarding-1
+    sub_story: vitalia-slice-1-onboarding-wizard
+    scope_status: SCOPE_REDUCED
+    title: "Repos reales OnboardingProgress + BrandStudioDraft + DI wire-up wizard routes (replacing AsyncMock)"
+    parent_scope_status_was: |
+      Crear modulo onboarding/ independiente bajo vitalia/backend/src/modules/vitalia/onboarding/{domain,infrastructure}/
+      con OnboardingProgress + BrandStudioDraft entities + slot_taxonomy + repositories tenant_id filter (~600 LOC).
+    refresh_scope: |
+      SHIPPED ya: entities OnboardingDraft + WizardSlot en
+      vitalia/backend/src/modules/vitalia/copilot/domain/entities/.
+      SHIPPED ya: enum WizardState en copilot/domain/enums/.
+      SHIPPED ya: tablas vitalia_onboarding_progress + vitalia_brand_studio_drafts (migrations 011 + 012).
+      SHIPPED ya: AsyncMock placeholder DI en wizard_onboarding_routes.py.
+
+      REFRESH WORK:
+      1. Crear domain repository interfaces (Inside-Out per .claude/rules/backend-ddd.md):
+         vitalia/backend/src/modules/vitalia/copilot/domain/repositories/onboarding_progress_repository.py
+         vitalia/backend/src/modules/vitalia/copilot/domain/repositories/brand_studio_draft_repository.py
+      2. Crear infrastructure impl con SQLA 2.0 ORM:
+         vitalia/backend/src/modules/vitalia/copilot/infrastructure/repositories/onboarding_progress_repository.py
+         vitalia/backend/src/modules/vitalia/copilot/infrastructure/repositories/brand_studio_draft_repository.py
+      3. ORM models extend existing en copilot/persistence/models/ (mapped_column SQLA 2.0).
+      4. Reemplazar AsyncMock en wizard_onboarding_routes.py lines 75-78 por DI real (FastAPI Depends + AsyncSession).
+      5. Tests RED-first:
+         vitalia/backend/tests/modules/vitalia/copilot/infrastructure/repositories/test_onboarding_progress_repository.py
+         vitalia/backend/tests/modules/vitalia/copilot/infrastructure/repositories/test_brand_studio_draft_repository.py
+         - Coverage: create, get_by_tenant_user, get_by_id_tenant, update_step, mark_completed, append_payload_patch,
+           mark_committed, tenant isolation cross-tenant rejection (404 not 403).
+
+      MINI-ARCH INLINE (ratified Chris 2026-05-18 per OQ-2):
+      ────────────────────────────────────────────────────────────────────────────
+
+      ### ORM models (SQLA 2.0 mapped_column — vitalia/backend/src/modules/vitalia/copilot/persistence/models/)
+
+      ```python
+      # onboarding_progress_model.py — backs table vitalia_onboarding_progress (migration 011)
+      from datetime import datetime
+      from uuid import UUID
+      from sqlalchemy import String, DateTime, JSON, Index, UniqueConstraint
+      from sqlalchemy.orm import Mapped, mapped_column
+      from sqlalchemy.dialects.postgresql import UUID as PGUUID, JSONB
+      from vitalia.backend.src.modules.vitalia.shared.persistence.base import VitaliaBase
+
+      class OnboardingProgressModel(VitaliaBase):
+          __tablename__ = "vitalia_onboarding_progress"
+          id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
+          tenant_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), nullable=False, index=True)
+          user_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), nullable=False)
+          step: Mapped[str] = mapped_column(String(64), nullable=False)
+          slots_confirmed: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+          slots_pending: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+          mode: Mapped[str | None] = mapped_column(String(32), nullable=True)
+          draft_id: Mapped[UUID | None] = mapped_column(PGUUID(as_uuid=True), nullable=True)
+          attachments: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+          status: Mapped[str] = mapped_column(String(32), nullable=False, default="active")  # active|completed|abandoned
+          completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+          created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+          updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+          __table_args__ = (UniqueConstraint("tenant_id", "user_id", name="uq_onb_progress_tenant_user"),)
+
+      # brand_studio_draft_model.py — backs table vitalia_brand_studio_drafts (migration 012)
+      class BrandStudioDraftModel(VitaliaBase):
+          __tablename__ = "vitalia_brand_studio_drafts"
+          id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
+          tenant_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), nullable=False, index=True)
+          user_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), nullable=False)
+          draft_kind: Mapped[str] = mapped_column(String(64), nullable=False)
+          draft_payload: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+          voice_profile_partial_json: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+          committed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+          expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+          created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+          updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+      ```
+
+      ### Repository signatures (async — all queries filter tenant_id MANDATORY per .claude/rules/tenant-isolation.md)
+
+      ```python
+      # vitalia/backend/src/modules/vitalia/copilot/domain/repositories/onboarding_progress_repository.py
+      from abc import ABC, abstractmethod
+      from datetime import datetime
+      from uuid import UUID
+      from vitalia.backend.src.modules.vitalia.copilot.domain.entities.onboarding_draft import OnboardingDraft
+
+      class OnboardingProgressRepository(ABC):
+          @abstractmethod
+          async def create(self, *, tenant_id: UUID, user_id: UUID, step: str, mode: str | None,
+                           draft_id: UUID | None) -> OnboardingDraft: ...
+          @abstractmethod
+          async def get_by_tenant_user(self, *, tenant_id: UUID, user_id: UUID) -> OnboardingDraft | None: ...
+          @abstractmethod
+          async def update_step(self, *, tenant_id: UUID, progress_id: UUID, step: str,
+                                slots_confirmed: dict, slots_pending: dict) -> OnboardingDraft: ...
+          @abstractmethod
+          async def mark_completed(self, *, tenant_id: UUID, progress_id: UUID,
+                                   completed_at: datetime) -> OnboardingDraft: ...
+
+      # vitalia/backend/src/modules/vitalia/copilot/domain/repositories/brand_studio_draft_repository.py
+      class BrandStudioDraftRepository(ABC):
+          @abstractmethod
+          async def create(self, *, tenant_id: UUID, user_id: UUID, draft_kind: str,
+                           expires_at: datetime | None) -> BrandStudioDraft: ...
+          @abstractmethod
+          async def get_by_id_tenant(self, *, tenant_id: UUID, draft_id: UUID) -> BrandStudioDraft | None: ...
+          @abstractmethod
+          async def append_payload_patch(self, *, tenant_id: UUID, draft_id: UUID,
+                                          patch: dict, voice_profile_patch: dict) -> BrandStudioDraft: ...
+          @abstractmethod
+          async def mark_committed(self, *, tenant_id: UUID, draft_id: UUID,
+                                   committed_at: datetime) -> BrandStudioDraft: ...
+      ```
+
+      ### DI binding (replaces AsyncMock in wizard_onboarding_routes.py lines 75-78)
+
+      ```python
+      # vitalia/backend/src/modules/vitalia/copilot/api/routes/wizard_onboarding_routes.py
+      from fastapi import Depends
+      from sqlalchemy.ext.asyncio import AsyncSession
+      from vitalia.backend.src.shared.persistence.session import get_async_session
+      from vitalia.backend.src.modules.vitalia.copilot.infrastructure.repositories.onboarding_progress_repository import \
+          SqlAlchemyOnboardingProgressRepository
+      from vitalia.backend.src.modules.vitalia.copilot.infrastructure.repositories.brand_studio_draft_repository import \
+          SqlAlchemyBrandStudioDraftRepository
+
+      async def get_onboarding_progress_repo(
+          session: AsyncSession = Depends(get_async_session),
+      ) -> OnboardingProgressRepository:
+          return SqlAlchemyOnboardingProgressRepository(session)
+
+      async def get_brand_studio_draft_repo(
+          session: AsyncSession = Depends(get_async_session),
+      ) -> BrandStudioDraftRepository:
+          return SqlAlchemyBrandStudioDraftRepository(session)
+
+      async def get_onboarding_draft_service(
+          progress_repo: OnboardingProgressRepository = Depends(get_onboarding_progress_repo),
+          draft_repo: BrandStudioDraftRepository = Depends(get_brand_studio_draft_repo),
+      ) -> OnboardingDraftService:
+          return OnboardingDraftService(progress_repo=progress_repo, draft_repo=draft_repo)
+      ```
+
+      ### Constraints (mandatory per .claude/rules/)
+      - Tenant isolation: ALL queries filter tenant_id (incl. get_by_id) — `.where(Model.tenant_id == tenant_id)`. No exceptions.
+      - SQLAlchemy 2.0 only: `select(Model).where(...)` + `mapped_column` (NEVER `session.query()` or `Column()`).
+      - Soft delete via `status='abandoned'` (no deleted_at on these tables — tenant config, not PHI).
+      - PhiRepositoryBase NOT required (wizard tables = brand voice samples + onboarding config, NOT PHI per
+        vitalia/.claude/rules/hipaa-lite.md § PHI fields canónicos).
+      - Inside-Out DDD: domain interfaces in copilot/domain/repositories/ → infrastructure impl in
+        copilot/infrastructure/repositories/. No leak of SQLAlchemy types into domain layer.
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: true   # ★ DB persistence is production code (non-agentic — Sonnet OK per R23)
+    estimated_loc: 450  # ~400 actual code + ~50 inline mini-arch (no change to LOC of actual code)
+    acceptance:
+      test_paths:
+        - vitalia/backend/tests/modules/vitalia/copilot/infrastructure/repositories/
+      validator_ids: [be_lint_ruff_check, be_format_ruff, be_arch_fitness_brand, be_test_onboarding]
+    blocked_by: []  # infra-cross-cutting + copilot-tools-impl already merged
+    notes: "OQ-2 RATIFIED 2026-05-18: mini-arch inline above (signatures + ORM + DI binding). Builder Sonnet consumes verbatim."
+
+  - id: T-onboarding-2
+    sub_story: vitalia-slice-1-onboarding-wizard
+    scope_status: SCOPE_REDUCED
+    title: "Adapter providers wire-up + LivePreviewService verification (no recreate services)"
+    parent_scope_status_was: |
+      Crear 6 services nuevos en vitalia/backend/src/modules/vitalia/onboarding/application/services/
+      + providers website_scraper + document_extractor + audio_transcriber + throttle + cache (~1200 LOC).
+    refresh_scope: |
+      SHIPPED ya: 5 services en copilot/application/services/
+        - extract_tenant_context_service.py (orchestrates website_scraper + document_extractor)
+        - onboarding_draft_service.py (slot CRUD)
+        - simulate_personality_service.py (throttle 5/min + cache 10min)
+        - complete_onboarding_service.py (compile → commit → tenant.is_onboarded=True → audit_log SYNC → outbox)
+        - wizard_orchestrator_service.py (entry point para LangGraph supervisor)
+
+      REFRESH WORK:
+      1. Verificar adapters bajo copilot/infrastructure/providers/ shipped por copilot-tools-impl:
+         - website_scraper.py (extends core/luana-core-brand-studio/.../brand_data_adapter.py)
+         - document_extractor.py (PDF/DOCX parser)
+      2. LivePreviewService — verify shipped via simulate_personality_service.simulate() OR create thin wrapper
+         vitalia/backend/src/modules/vitalia/copilot/application/services/live_preview_service.py
+         que orquesta simulate (audio sample WhatsApp) + landing snippet (HTML render server-side from BrandStudioDraft)
+         + cache integration con simulate_personality_service (throttle 5/min + cache 10min ya shipped).
+      3. Tests: integration coverage verifying simulate throttle + cache hit + extract_tenant_context end-to-end fluye
+         con URL + text_content únicamente (no audio path en Slice 1).
+
+      ★ AUDIO WHISPER STT — DEFERRED SLICE 2 (ratified Chris 2026-05-18 per OQ-3) ★
+      extract_tenant_context_service ships Slice 1 con URL + text_content únicamente. Audio Whisper STT path
+      DEFERRED Slice 2 — re-evaluate post Slice 1 + tenant feedback. Razón:
+        - Audio adapter adds external dep (Whisper API) + cost variability sin test coverage actual.
+        - Shipped extract_tenant_context_service ya accepta URL + text_content; audio sería ampliación.
+        - Slice 1 prioriza wire-up + smoke regression sobre superficies shipped, NO nuevas features.
+      Acción concreta refresh:
+        - REMOVE audio_transcriber.py adapter wire-up del scope T-onboarding-2.
+        - NO mock audio_transcriber con NotImplementedError; simplemente NO existe en Slice 1.
+        - Si extract_tenant_context_service tool input schema actualmente acepta audio param → mark
+          field como `audio_uploads: list[str] | None = None` con docstring "DEFERRED Slice 2".
+        - Tests audio path → SKIP con `@pytest.mark.skip(reason="Audio Whisper STT deferred Slice 2 per Chris 2026-05-18")`.
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: false  # wire-up + smoke regression de services shipped
+    estimated_loc: 320  # ~80 LOC reduction vs prior 400 (audio_transcriber removed)
+    acceptance:
+      test_paths:
+        - vitalia/backend/tests/modules/vitalia/copilot/application/services/
+      validator_ids: [be_lint_ruff_check, be_format_ruff, be_arch_fitness_brand, be_test_onboarding]
+    blocked_by: [T-onboarding-1]
+    notes: "OQ-3 RATIFIED 2026-05-18: Whisper STT audio path DEFERRED Slice 2. audio_transcriber.py REMOVED del scope."
+
+  - id: T-onboarding-3
+    sub_story: vitalia-slice-1-onboarding-wizard
+    scope_status: SCOPE_REDUCED
+    title: "Replace AsyncMock DI with real services in wizard_onboarding_routes (no new endpoints)"
+    parent_scope_status_was: |
+      Crear 5 endpoints en vitalia/backend/src/modules/vitalia/onboarding/api/router.py
+      con response_model + Bearer + X-Tenant-ID (~500 LOC).
+    refresh_scope: |
+      SHIPPED ya: 7 endpoints en copilot/api/routes/wizard_onboarding_routes.py (más que los 5 spec'd):
+        POST   /api/v1/vitalia/onboarding/drafts
+        GET    /api/v1/vitalia/onboarding/drafts/{draft_id}
+        POST   /api/v1/vitalia/onboarding/drafts/{draft_id}/extract
+        POST   /api/v1/vitalia/onboarding/drafts/{draft_id}/slots/{slot_id}/confirm
+        POST   /api/v1/vitalia/onboarding/drafts/{draft_id}/simulate
+        POST   /api/v1/vitalia/onboarding/drafts/{draft_id}/complete
+        GET    /api/v1/vitalia/onboarding/drafts/{draft_id}/stream    (SSE)
+
+      REFRESH WORK:
+      1. En wizard_onboarding_routes.py:
+         - Reemplazar get_*_service() factories que usan AsyncMock(...) por DI real (FastAPI Depends + AsyncSession)
+         - Verificar response_model= en 6 endpoints non-SSE (arch fitness V-AE-2 enforces)
+         - SSE stream endpoint puede omitir response_model (per spec note)
+      2. Validar X-Tenant-ID header presente en cada route handler (Annotated[str, Header(alias="X-Tenant-ID")])
+      3. Tests API: hit each endpoint with valid+invalid tenant → 200/401/403
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: true   # ★ Route DI swap is production code (non-agentic — Sonnet OK per R23)
+    estimated_loc: 150  # down from 500
+    acceptance:
+      test_paths:
+        - vitalia/backend/tests/modules/vitalia/copilot/api/routes/test_wizard_onboarding_routes.py
+      validator_ids: [be_arch_fitness_brand, be_test_onboarding]
+    blocked_by: [T-onboarding-2]
+
+  - id: T-onboarding-4
+    sub_story: vitalia-slice-1-onboarding-wizard
+    scope_status: SCOPE_REDUCED_FROM_CREATE_TO_VERIFY
+    title: "Valeria tools wiring smoke regression (4 tools shipped — no recreate)"
+    parent_scope_status_was: |
+      Crear 4 Valeria copilot tools wizard onboarding R23 production-code Opus 4.7 mandatory:
+      extract_tenant_context + confirm_slot + simulate_personality + complete_onboarding (~800 LOC).
+    refresh_scope: |
+      SHIPPED ya por copilot-tools-impl (commits 3331151..427b0f3, APPROVED 2026-05-18):
+        - vitalia/backend/src/modules/vitalia/copilot/tools/extract_tenant_context.py (134 LOC)
+        - vitalia/backend/src/modules/vitalia/copilot/tools/confirm_slot.py (123 LOC)
+        - vitalia/backend/src/modules/vitalia/copilot/tools/simulate_personality.py (112 LOC)
+        - vitalia/backend/src/modules/vitalia/copilot/tools/complete_onboarding.py (98 LOC)
+        All @tool decorated, async, Pydantic v2 args_schema, service-call pattern, tenant_id mandatory.
+        Registered via EP-3 in extensions.py (líneas 351-456).
+
+      REFRESH WORK (smoke regression):
+      1. Grep verify 4 tools still imported by extensions.py and tool_groups contain ("wizard", "copilot", "onboarding")
+      2. Smoke test: spawn LangGraph wizard graph with mock LLM, invoke each tool once, assert
+         tool returns success string + DB row created via service layer (no PHI in trace)
+      3. Cost canonicalization regression: assert cost_recorder.pop_cost(litellm_call_id) returns non-None
+         post-tool-call (per PI-12 S1 T-1 fix)
+    # R23 OPT-OUT ratified by Chris 2026-05-18 — tools already shipped APPROVED by copilot-tools-impl,
+    # this ticket is wire-up + smoke regression, NOT new agentic production code.
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: false
+    r23_opt_out_rationale: "Tools shipped APPROVED en copilot-tools-impl (2026-05-18). Refresh es smoke regression + wiring verify, no production code agentic nuevo. Sonnet OK per R23 OPT-OUT ratified Chris 2026-05-18."
+    estimated_loc: 50  # smoke + grep verification (down from 800)
+    acceptance:
+      test_paths:
+        - vitalia/backend/tests/modules/vitalia/copilot/tools/test_wizard_tools_wiring.py
+      validator_ids: [be_test_onboarding, agentic_cost_canonicalization]
+    blocked_by: [T-onboarding-2, T-onboarding-3]
+    notes: "OQ-1 RATIFIED 2026-05-18: R23 OPT-OUT confirmed. Sonnet OK — no Opus mandatory."
+
+  - id: T-onboarding-5
+    sub_story: vitalia-slice-1-onboarding-wizard
+    scope_status: SCOPE_REDUCED_FROM_CREATE_TO_VERIFY
+    title: "Wizard onboarding LangGraph supervisor integration regression (graph shipped — no recreate)"
+    parent_scope_status_was: |
+      Crear LangGraph supervisor topology + deepagents.task subagent + AsyncPostgresSaver + max-iter 25 +
+      5-slot prompt cache architecture. R23 production-code Opus 4.7 mandatory (~1000 LOC).
+    refresh_scope: |
+      SHIPPED ya por copilot-tools-impl:
+        - wizard_onboarding_state.py (TypedDict + WizardSlotDict + Annotated[messages, add_messages] +
+          iterations:int max-iter guard cap 25)
+        - wizard_onboarding_graph.py (StateGraph supervisor + extract_subagent deepagents SubAgentMiddleware
+          allowed_keys_to_subagent + allowed_keys_from_subagent isolation)
+        - wizard_prompt_compiler.py (5-slot layout: SLOT 0 system_role + SLOT 1 wizard_role_vitalia + SLOT 2 tools_manifest +
+          SLOT 3 valeria_persona [_CACHE_BREAKPOINT_INDEX=3] + SLOT 4 variable)
+        - wizard_checkpoint_config.py (AsyncPostgresSaver table_prefix vitalia_wizard_onboarding_)
+        - extract_subagent.py + extract_subagent_tools.py (deepagents.task subagent with sandboxed tools)
+        - migration 020 — vitalia_wizard_onboarding_checkpoints table created
+        - WizardOrchestratorService (entry-point invocando graph + checkpointer)
+
+      REFRESH WORK (integration regression):
+      1. Integration test: spawn graph end-to-end with stub LLM, verify supervisor routes between
+         extract_subagent → slot_question_router → live_preview_router → completion_router → END
+      2. Verify max-iter guard fires: force iterations > 25 → graph returns END
+      3. Cache hit rate validation: invoke graph 3x consecutive same draft_id → assert
+         cache_read_input_tokens > 0 on iter 2+ (validator agentic_cache_hit_rate_smoke from copilot-tools-impl)
+      4. Cost budget assert: total wizard session cost ≤ $0.10 USD (per spec § 5.4) — use cost_recorder
+      5. AsyncPostgresSaver smoke: graph state survives session resume (thread_id=(tenant_id, draft_id))
+    # R23 OPT-OUT ratified by Chris 2026-05-18 — tools already shipped APPROVED by copilot-tools-impl,
+    # this ticket is wire-up + smoke regression, NOT new agentic production code.
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: false
+    r23_opt_out_rationale: "Graph + state + compiler + checkpointer shipped APPROVED en copilot-tools-impl (2026-05-18). Refresh es integration regression, no production code agentic nuevo. Sonnet OK per R23 OPT-OUT ratified Chris 2026-05-18."
+    estimated_loc: 80  # integration test re-run + cost target ≤$0.10 USD + cache_read_input_tokens > 0 iter 2+ (down from 1000)
+    acceptance:
+      test_paths:
+        - vitalia/backend/tests/integration/copilot/test_wizard_onboarding_graph_e2e.py
+        - vitalia/backend/tests/agentic_evals/copilot/cache/test_cache_hit_rate.py  # already shipped, just verify still green
+      validator_ids: [be_test_onboarding, agentic_wizard_goldens, agentic_cost_canonicalization]
+      cost_target_per_session_usd: 0.10
+      cache_hit_rate_assertion: "cache_read_input_tokens > 0 on iter 2+ (smoke regression heredado de agentic_cache_hit_rate_smoke validator)"
+    blocked_by: [T-onboarding-4]
+    notes: "OQ-1 RATIFIED 2026-05-18: R23 OPT-OUT confirmed. Sonnet OK — no Opus mandatory."
+
+  - id: T-onboarding-6
+    sub_story: vitalia-slice-1-onboarding-wizard
+    scope_status: SCOPE_UNCHANGED   # FE wizard NEW — parent scope verbatim
+    title: "FE wizard onboarding feature net-new (chat-LEFT 50/50 + 10 components + 6 hooks + URL state)"
+    parent_scope_status_was: |
+      Crear FE wizard onboarding completo en vitalia/frontend/src/features/onboarding/:
+      WizardOnboardingLayout + WizardChatThread adapter + SlotTrackerSticky + ModeSelector +
+      SlotConfirmInline + LiveWhatsAppPreview + LiveLandingSnippetPreview + CloseSetupWarningModal +
+      WizardCompletionTransition + 6 hooks + URL state nuqs + copy.ts LatAm neutro + morph transition 400ms
+      (Batch 1 ratificado). ~2200 LOC.
+    refresh_scope: |
+      SCOPE_UNCHANGED vs parent — vitalia/frontend/src/features/onboarding/ NO existe (verified via find).
+      Trabajo completo aplica per parent spec verbatim.
+
+      ★ FE FEATURE PATH RATIFIED Chris 2026-05-18 per OQ-4 ★
+      Path: vitalia/frontend/src/features/onboarding/  (NOT features/vitalia/onboarding/ nested)
+      Razón: parent spec verbatim. FSD boundary matrix raw — vitalia/frontend ya está brand-scoped
+      por path (no requiere nesting adicional bajo features/vitalia/). Cada brand tiene su propio
+      vitalia/frontend/, nicolify/frontend/, etc — los features/ dentro son flat per .claude/rules/frontend-fsd.md
+      tabla boundary matrix.
+
+      Estructura target:
+        vitalia/frontend/src/features/onboarding/
+        ├── components/
+        │   ├── WizardOnboardingLayout.tsx
+        │   ├── WizardChatThread.tsx          (adapter sobre chat-thread primitivo)
+        │   ├── SlotTrackerSticky.tsx
+        │   ├── ModeSelector.tsx              (URL/doc/audio — audio DEFERRED Slice 2 per OQ-3)
+        │   ├── SlotConfirmInline.tsx
+        │   ├── LiveWhatsAppPreview.tsx
+        │   ├── LiveLandingSnippetPreview.tsx
+        │   ├── CloseSetupWarningModal.tsx
+        │   └── WizardCompletionTransition.tsx
+        ├── hooks/
+        │   ├── use-wizard-onboarding-state.ts
+        │   ├── use-wizard-slot-extraction.ts
+        │   ├── use-wizard-live-preview.ts
+        │   ├── use-wizard-completion.ts
+        │   ├── use-wizard-sse-stream.ts
+        │   └── use-wizard-url-state.ts       (nuqs URL state)
+        ├── api/
+        │   └── wizard-onboarding-api.ts      (fetchClient wrapper con X-Tenant-ID auto)
+        ├── types/
+        │   └── wizard-onboarding.types.ts    (mirror BE Pydantic DTOs camelCase)
+        ├── config/
+        │   └── copy.ts                       (LatAm neutro tuteo per .claude/rules/spanish-text.md)
+        ├── __tests__/
+        │   ├── components/
+        │   └── hooks/
+        └── index.ts                          (Public API exports)
+
+      Audio mode handling (Slice 2 deferred per OQ-3):
+        - ModeSelector shows 3 options ["URL", "Documento", "Audio"]
+        - Audio option DISABLED con tooltip "Disponible próximamente"
+        - Backend receives audio_uploads field as None (Slice 2 wire deferred)
+
+      Tests:
+        - vitalia/frontend/src/features/onboarding/__tests__/components/*.test.tsx (Vitest)
+        - vitalia/frontend/src/features/onboarding/__tests__/hooks/*.test.ts (Vitest)
+        - vitalia/frontend/e2e/specs/smoke/wizard-onboarding.smoke.spec.ts (Playwright E2E, port 3002)
+        - Page Object Model: vitalia/frontend/e2e/pages/wizard-onboarding.page.ts
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: true   # FE feature is production code (non-agentic — Sonnet OK per R23)
+    estimated_loc: 2200  # unchanged from parent
+    acceptance:
+      test_paths:
+        - vitalia/frontend/src/features/onboarding/__tests__/
+        - vitalia/frontend/e2e/specs/smoke/wizard-onboarding.smoke.spec.ts
+      validator_ids: [fe_lint_eslint, fe_tsc_no_emit, fe_arch_fitness, fe_test_onboarding, e2e_smoke_wizard_onboarding, spanish_neutro_voseo_check]
+    blocked_by: [T-onboarding-3]  # needs BE routes wired with real DI before FE can integrate
+    notes: |
+      OQ-4 RATIFIED 2026-05-18: FE path vitalia/frontend/src/features/onboarding/ verbatim (NOT nested under features/vitalia/).
+      FSD boundary matrix raw — vitalia/frontend already brand-scoped by path.
+      Audio mode disabled in UI (Slice 2 deferred per OQ-3).
+
+  - id: T-onboarding-7
+    sub_story: vitalia-slice-1-onboarding-wizard
+    scope_status: SCOPE_REDUCED
+    title: "Wizard goldens smoke regression + edge case additions if FE QA reveals (4 goldens shipped)"
+    parent_scope_status_was: |
+      Crear 4 wizard eval goldens YAML + pass^k runner k=3 threshold 0.5 (~500 LOC).
+    refresh_scope: |
+      SHIPPED ya por copilot-tools-impl:
+        - vitalia/backend/tests/agentic_evals/copilot/wizard_goldens/happy_url_extraction.yaml
+        - vitalia/backend/tests/agentic_evals/copilot/wizard_goldens/negative_incomplete.yaml
+        - vitalia/backend/tests/agentic_evals/copilot/wizard_goldens/edge_browser_close_resume.yaml
+        - vitalia/backend/tests/agentic_evals/copilot/wizard_goldens/adversarial_url_malicious_pii_xss.yaml
+        - test_wizard_pass_k_evaluation.py runner (k=3, threshold 0.5)
+        - merge artifact § 1: SC-W1..W4 all PASS
+
+      REFRESH WORK:
+      1. Run existing runner post-T-onboarding-6 FE wire (verify FE doesn't break runtime contract via
+         FE→BE call shape change) — 12 trials total (4 goldens × k=3)
+      2. If FE QA reveals new edge case (e.g. FE mobile viewport interrupts mid-wizard) → add as
+         5th golden (edge_mobile_interrupt.yaml)
+      3. Voice fidelity grader smoke (engine consumed READ-ONLY) — confirm Adrián voice ≥0.85 in
+         simulate_personality samples (heredado de sales_agent goldens 12 escenarios, no nuevo trabajo)
+    owner_eligibility: [qwen-opencode, claude-sonnet]
+    production_code: false  # smoke regression + verify wizard goldens still pass post-FE wire-up (T-6)
+    estimated_loc: 100  # smoke + posible 1 golden adicional (down from 500)
+    acceptance:
+      test_paths:
+        - vitalia/backend/tests/agentic_evals/copilot/test_wizard_pass_k_evaluation.py
+      validator_ids: [agentic_wizard_goldens]
+    blocked_by: [T-onboarding-5, T-onboarding-6]
+    notes: "Si FE QA NO genera edge case nuevo → este ticket cierra con grep verify + runner re-run (~30 LOC)."
+
+# ===========================================================================
+# DAG summary refresh (post-merge unblocked)
+# ===========================================================================
+
+dag_summary:
+  fan_out_unblocked_2026_05_18:
+    # All blockers cleared via infra-cross-cutting + copilot-tools-impl merges
+    - T-onboarding-1   # Independent — repos + DI wire-up
+  sequential_after_T-onboarding-1:
+    - T-onboarding-2   # Adapters + LivePreview
+    - T-onboarding-3   # DI mock→real swap (parallel-safe w/ T-onboarding-2)
+  parallel_after_T-onboarding-3:
+    - T-onboarding-4   # Tools wiring smoke
+    - T-onboarding-6   # FE wizard (independent of T-4 — FE consumes API contracts only)
+  sequential_after_T-onboarding-4:
+    - T-onboarding-5   # Graph integration regression
+  sequential_after_T-onboarding-5_and_T-onboarding-6:
+    - T-onboarding-7   # Goldens smoke + posible 1 golden adicional
+
+# ===========================================================================
+# Side story blockers (none — all already shipped per parent 06-tickets.yaml)
+# ===========================================================================
+
+side_story_blockers_status:
+  vitalia-payment-adapter-mvp: NOT_APPLICABLE   # this sub-story doesn't depend on payment
+  vitalia-copilot-tools-impl: SHIPPED            # 2026-05-18 APPROVED + capabilities live
+  vitalia-fiscal-emission-pe: NOT_APPLICABLE     # this sub-story doesn't depend on fiscal
+
+engine_promotion_blockers_status:
+  proposals_already_migrated:
+    - 2026-05-17-platform-tenants-location-columns.md  # state=migrated, luana-core-platform 0.2.0
+    - 2026-05-17-offer-studio-multi-session-maintenance.md # state=migrated, luana-core-offer-studio 0.2.0
+
+# ===========================================================================
+# Total estimated effort refresh
+# ===========================================================================
+
+estimated_total_loc_refresh: 3350   # T-1:450 + T-2:320 + T-3:150 + T-4:50 + T-5:80 + T-6:2200 (unchanged) + T-7:100
+estimated_total_loc_parent: 6600    # T-1:600 + T-2:1200 + T-3:500 + T-4:800 + T-5:1000 + T-6:2200 + T-7:500
+estimated_savings_loc: 3250         # ~49% reduction vs parent (mostly removing recreation of shipped surfaces; T-2 down ~80 LOC post Whisper STT defer)
+estimated_calendar_weeks: 2          # parent already estimated 2; refresh stays same since FE wizard T-onboarding-6 (2200 LOC) dominates critical path
+
+# ===========================================================================
+# Audit hooks for /auditor Phase D
+# ===========================================================================
+
+audit_hooks:
+  c1_code: "Auditor must verify NO duplicate creation of files already shipped in copilot/{tools,workflows,application/services/}. Cross-ref delta-arch-refresh.md § Check 2 + § Check 3."
+  c2_spec: "Gherkin scenarios SC-W1..W4 already mapped to wizard_goldens YAML + test_wizard_pass_k_evaluation.py (per copilot-tools-impl 07-merge.md § 1). Refresh sub-story inherits this mapping."
+  c3_arch: "No engine modifications expected. Verify git diff main...HEAD -- 'core/luana-core-*/src/**' = empty post-refresh-merge."
+  c4_cross_cutting: "Tenant isolation: each new repo (T-1) must filter tenant_id incl. get_by_id. PII sanitize: wizard tables NOT PHI (tenant config only) — no pgcrypto BYTEA required."
+  c5_trace: "Anti-duplication §0 ratchet still passes: test_no_observability_mirror_copilot.py + test_no_observability_mirror_sales_agent.py."
+

@@ -1,0 +1,1 @@
+"""Vitalia architecture fitness tests."""

@@ -1,0 +1,108 @@
+# LiteLLM Proxy — shared dev gateway (cross-brand · platform infra)
+#
+# WHY: the engine (core/luana-core-llm) talks to ONE OpenAI-compatible gateway
+# via ChatOpenAI(base_url=LITELLM_BASE_URL). Cognitive-load routing lives in the
+# engine's ModelRole abstraction (NANO/FAST/REASONING/AGENT/VISION/EMBEDDING).
+# The engine builds the request model string as "{provider}/{model}" where
+# provider = settings.get_provider_for_role(role) (AI_PROVIDER_<ROLE> env) and
+# model = settings.get_model(role) (AI_MODEL_<ROLE> env). So the proxy model_name
+# MUST equal that exact "{provider}/{model}" string (provider values: openai,
+# deepseek, kimi, qwen, gemini — engine enum, NOT litellm's "moonshot").
+#
+# MODEL-INDEPENDENCE (the "switch without touching code" Chris asked for): to
+# adopt a better model, change litellm_params.model below (or the AI_MODEL_* /
+# AI_PROVIDER_* env / per-tenant binding) — programming logic never changes.
+#
+# POLICY (cement 2026-06-04): Chinese-first (cheaper). DeepSeek V4 Flash + Kimi K2
+# (Moonshot) are the base. OpenAI is the EXCEPTION — only low-use + high-need, or
+# where price/quality clearly beats the Chinese alternatives (today: embeddings).
+#
+# SECRETS: keys come from env (os.environ/*) — NEVER inline. This file is tracked;
+# keys live in the gitignored deploy/litellm/.env.
+#
+# SSoT proposal (platform integration + core default-flip): see
+# docs/promotion-protocol/proposals/*-llm-gateway-chinese-first.md (/pm-luana).
+
+model_list:
+  # ── NANO / FAST → DeepSeek V4 Flash NON-THINKING (classification, routing,
+  #    structured extraction e.g. abel ICP extractor). 1M ctx, $0.14/$0.28 per M,
+  #    98% cache discount.
+  #    MIGRATED 2026-06-25: legacy alias `deepseek-chat` retires 2026-07-24 15:59
+  #    UTC (namespace change, NOT a sunset — same V4-Flash engine). Now explicit
+  #    deepseek/deepseek-v4-flash with reasoning_effort=none (thinking OFF, as the
+  #    high-volume role needs). ⚠ LiteLLM bug #27453/#27439: some versions ignore
+  #    effort=none and force thinking ON → VALIDATE at deploy; if it leaks, add
+  #    `thinking: {type: disabled}`. drop_params:true guards malformed params.
+  - model_name: deepseek/deepseek-v4-flash
+    litellm_params:
+      model: deepseek/deepseek-v4-flash
+      api_key: os.environ/DEEPSEEK_API_KEY
+      reasoning_effort: none
+    model_info:
+      mode: chat
+
+  # ── REASONING → DeepSeek v4-flash THINKING mode.
+  #    MIGRATED 2026-06-25: legacy alias `deepseek-reasoner` retires 2026-07-24
+  #    15:59 UTC → now explicit deepseek/deepseek-v4-flash with reasoning_effort=
+  #    high (thinking ON). Same engine, no quality change. The model_name alias
+  #    stays `deepseek/deepseek-reasoner` → engine role-binding, DB and fallbacks
+  #    below are untouched.
+  - model_name: deepseek/deepseek-reasoner
+    litellm_params:
+      model: deepseek/deepseek-v4-flash
+      api_key: os.environ/DEEPSEEK_API_KEY
+      reasoning_effort: high
+    model_info:
+      mode: chat
+
+  # ── AGENT / VISION → Kimi K2 (Moonshot) — strong agentic / tool-use, 256K ctx,
+  #    multimodal. Engine provider enum value is "kimi"; litellm provider is
+  #    "moonshot" → the litellm_params.model bridges kimi → moonshot.
+  - model_name: kimi/kimi-k2
+    litellm_params:
+      model: moonshot/kimi-k2.5
+      api_key: os.environ/MOONSHOT_API_KEY
+    model_info:
+      mode: chat
+
+  # ── Kimi K2 Thinking — interleaved reasoning + tool use (REASONING fallback).
+  - model_name: kimi/kimi-k2-thinking
+    litellm_params:
+      model: moonshot/kimi-k2-thinking
+      api_key: os.environ/MOONSHOT_API_KEY
+    model_info:
+      mode: chat
+
+  # ── EMBEDDING → OpenAI EXCEPTION (no strong cheap Chinese embedding today).
+  - model_name: openai/text-embedding-3-large
+    litellm_params:
+      model: openai/text-embedding-3-large
+      api_key: os.environ/OPENAI_API_KEY
+    model_info:
+      mode: embedding
+
+  # ── OpenAI EXCEPTION — kept available for rare, justified high-need chat.
+  - model_name: openai/gpt-4o-mini
+    litellm_params:
+      model: openai/gpt-4o-mini
+      api_key: os.environ/OPENAI_API_KEY
+    model_info:
+      mode: chat
+
+litellm_settings:
+  num_retries: 2
+  request_timeout: 120
+  drop_params: true            # tolerate provider param incompatibilities
+  telemetry: false             # no phone-home
+
+router_settings:
+  # Cross-provider resiliency: if the primary Chinese model fails after retries,
+  # fall to the other Chinese model (never silently to OpenAI for chat).
+  fallbacks:
+    - deepseek/deepseek-v4-flash: ["kimi/kimi-k2"]
+    - kimi/kimi-k2: ["deepseek/deepseek-v4-flash"]
+    - deepseek/deepseek-reasoner: ["kimi/kimi-k2-thinking"]
+    - kimi/kimi-k2-thinking: ["deepseek/deepseek-reasoner"]
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY

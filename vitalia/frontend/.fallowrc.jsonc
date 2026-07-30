@@ -1,0 +1,25 @@
+// fallow config — code-health gate (HB-61). SSoT proceso: docs/process/code-health-gate.md
+// Scope: SOLO código de producto src/. e2e/specs/.next excluidos (no son mantenibilidad de producto).
+// Template cross-brand — replicar en {brand}/frontend/.fallowrc.jsonc.
+{
+  "$schema": "https://docs.fallow.tools/schema/fallowrc.json",
+  "ignorePatterns": [
+    "e2e/**",
+    "playwright/**",
+    ".next/**",
+    "**/__tests__/**",
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    "**/*.test.ts",
+    "**/*.test.tsx"
+  ],
+  "duplicates": {
+    "ignoreImports": true,
+    "ignore": [
+      "e2e/**",
+      "**/*.spec.ts",
+      "**/*.test.ts",
+      "**/*.test.tsx"
+    ]
+  }
+}

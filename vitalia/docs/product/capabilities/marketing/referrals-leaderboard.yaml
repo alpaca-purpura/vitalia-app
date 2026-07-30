@@ -1,0 +1,121 @@
+---
+capability_id: vitalia-marketing-referrals-leaderboard
+module: marketing
+slug: referrals-leaderboard
+status: deprecated
+date_introduced: 2026-05-21
+story_introduced: vitalia-slice-1-marketing
+package_version: 0.1.0
+package_path: vitalia/backend/src/modules/vitalia/marketing
+license: proprietary
+
+# v3 cement 2026-05-27 · 4 dimensiones + dev_preview (ADR-vitalia-005)
+tech_module: marketing
+agent_owner: lucas
+functional_area: lucas.referrals
+user_visible: true
+nature: feature
+ui_paradigm: slice-1-superseded  # T-3 reconcile 2026-05-29
+replaced_by_story: vitalia-fase2-camila-multiplicar  # T-3: story F2 que reconstruye esta cap
+
+user_facing_name: "Lucas · leaderboard de referidos"
+user_facing_description: >
+  Panel de la etapa Expansión que muestra los 3 KPIs clave de referidos
+  (total de códigos generados, pacientes convertidos y valor de conversión)
+  junto con el ranking de los 5 mejores referidores del período. Incluye
+  un botón de acción rápida para que Adrián envíe la plantilla de
+  reactivación a pacientes que aún no han referido.
+
+dev_preview:
+  route: "/lucas/marketing"
+  how_to_navigate: "Login → ribbon clic en avatar Lucas → sub-tab Marketing → stage Expansión → widget Referidos."
+  main_component: "vitalia/frontend/src/features/marketing/components/ReferralsWidget.tsx"
+  api_endpoints:
+    - "GET /api/v1/vitalia/marketing/referrals"
+  e2e_test: null
+  fixtures_required: ["3-clinic-fixture-latam"]
+  storybook_url: null
+  loom_demo: null
+
+# Capability ledger v2 (cement 2026-05-27)
+created_in_story: vitalia-slice-1-marketing   # v2 cement · mirror of story_introduced
+created_date: 2026-05-21   # v2 cement · mirror of date_introduced
+last_modified: 2026-05-29   # T-3 reconcile 2026-05-29
+parent_cap: null   # v2 cement · mirror of extends_capability
+derives_capabilities: []   # v2 cement · initial empty list
+
+# Capability ledger v2 (cement 2026-05-27)
+
+# Capability change log v2 (cement 2026-05-27)
+change_log:
+  - story_id: vitalia-slice-1-marketing
+    date: 2026-05-21
+    type: new
+    summary: "Implementación inicial · migración legacy a schema v2"
+    merge_sha: null
+    status: done
+map_box: lucas
+
+---
+
+# vitalia-marketing-referrals-leaderboard
+
+Referrals widget en Stage Expansión: 3 KPIs hero + top 5 leaderboard + Adrián template CTA. Cron `referrals_value_sync` daily 10:00 UTC recomputes `conversion_value_cents` from completed appointments. Consume `LucasReferralsService` shipped 2026-05-18.
+
+## Surface
+
+### Domain
+- `Referral` entity (status: `OPEN` · `SHARED` · `SIGNED_UP` · `CONVERTED` · `EXPIRED`)
+- `ReferralStatus` enum (5 values per spec)
+- `ReferralCodeGenerated`, `ReferralConverted` domain events
+
+### Persistence (migrations 029 + 031)
+- `vitalia_referrals` table — `conversion_value_cents INTEGER NOT NULL DEFAULT 0` (added in 031)
+- Dual filter via `CompoundScopeRepositoryBase`
+
+### Application
+- `ReferralsService` (marketing proxy wrapper)
+  - `leaderboard()` — top 5 ranked
+  - `generate_code(patient_id)` — creates `Referral` row + code
+- Proxies to agentic `LucasReferralsService.compute_referrals_leaderboard`
+
+### Cron
+- `referrals_value_sync` daily 10:00 UTC — recomputes `conversion_value_cents` from completed appointments (where `appointment.status = COMPLETED` AND `appointment.referral_id IS NOT NULL`)
+- Updates `Referral.status = SIGNED_UP → CONVERTED` when revenue > 0
+
+### API
+- `GET /api/v1/vitalia/marketing/referrals` — leaderboard + KPIs hero
+
+### FE Components
+- `vitalia/frontend/src/features/marketing/components/ReferralsWidget.tsx` — 3 KPIs + top 5 leaderboard + Adrián CTA button
+- `ExpansionStage.tsx` — embeds `ReferralsWidget` + NPS placeholder
+
+### Hooks
+- `useReferrals`
+
+## Verification
+
+```bash
+WS=$(git rev-parse --show-toplevel)
+cd ${WS}/vitalia/backend && ${WS}/.venv/bin/pytest tests/modules/vitalia/marketing/application/services/test_referrals_service.py tests/workers/test_marketing_crons.py -v -k referrals
+cd ${WS}/vitalia/frontend && npx vitest run src/features/marketing/__tests__/ReferralsWidget.test.tsx src/features/marketing/__tests__/ExpansionStage.test.tsx
+```
+
+Verification gherkin evidence: SC-MK-03 (tab change → ExpansionStage renders referrals widget) — see `06-audit/gherkin-matrix-frontend.md`.
+
+## Dependencies
+
+- ENGINE: `core/luana-core-platform.workers.cron_envelope` (cron envelope)
+- ENGINE: `core/luana-core-platform.repositories.compound_scope_repository.CompoundScopeRepositoryBase`
+- BRAND: `vitalia-copilot-tools-impl` (shipped 2026-05-18) — `LucasReferralsService` consumed
+- BRAND: `vitalia-marketing-bowtie-funnel-5-stages` (Expansión stage)
+
+## Compliance
+
+- Referral codes hashed (no PII exposure in leaderboard)
+- Adrián CTA respects sales_agent voice (MARKETING_COPY namespace)
+
+## KPIs
+
+- Leaderboard refresh ≤ 24h (daily cron)
+- Conversion value sync accuracy: 100% from `appointments.payment_cents` SUM

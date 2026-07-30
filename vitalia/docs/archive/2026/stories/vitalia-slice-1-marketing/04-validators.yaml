@@ -1,0 +1,141 @@
+# 04-validators.yaml — vitalia-slice-1-marketing
+# Generated 2026-05-20 by /architect (Opus 4.7) post REPLAN.
+# Executable commands. Each MUST exit 0 to count as PASS. must_pass: true on all.
+---
+story_id: vitalia-slice-1-marketing
+brand: vitalia
+ws_root: /home/chalreme/Proyectos/luana-vitalia
+generated_on: 2026-05-20
+architect_model: claude-opus-4-7
+
+# ────────────────────────────────────────────────────────────────────────
+# Non-functional gates (lint · format · type · arch fitness)
+# ────────────────────────────────────────────────────────────────────────
+non_functional:
+  - id: be_lint_ruff_check
+    must_pass: true
+    description: Ruff lint vitalia/backend marketing + connections + tests
+    command: cd ${ws_root} && .venv/bin/ruff check vitalia/backend/src/modules/vitalia/marketing/ vitalia/backend/src/modules/vitalia/connections/meta_ads/ vitalia/backend/src/modules/vitalia/connections/google_ads/ vitalia/backend/tests/modules/vitalia/marketing/ vitalia/backend/tests/modules/vitalia/connections/meta_ads/ vitalia/backend/tests/modules/vitalia/connections/google_ads/ vitalia/backend/tests/workers/test_marketing_crons.py --no-cache
+
+  - id: be_format_ruff_check
+    must_pass: true
+    description: Ruff format check
+    command: cd ${ws_root} && .venv/bin/ruff format --check vitalia/backend/src/modules/vitalia/marketing/ vitalia/backend/src/modules/vitalia/connections/meta_ads/ vitalia/backend/src/modules/vitalia/connections/google_ads/ vitalia/backend/tests/modules/vitalia/marketing/
+
+  - id: be_arch_fitness_brand
+    must_pass: true
+    description: Vitalia BE architecture fitness suite (allowlists shrink only)
+    command: cd ${ws_root} && .venv/bin/pytest vitalia/backend/tests/architecture/ -v --tb=short -x
+
+  - id: fe_typecheck_tsc
+    must_pass: true
+    description: TypeScript strict typecheck vitalia frontend
+    command: cd ${ws_root}/vitalia/frontend && npx tsc --noEmit
+
+  - id: fe_lint_eslint
+    must_pass: true
+    description: ESLint vitalia frontend
+    command: cd ${ws_root}/vitalia/frontend && npx eslint src/features/marketing/ src/features/marketing-shared/ src/app/marketing/ src/components/shared/marketing/ src/components/shared/lucas-recommendations/ src/components/shared/attribution/ src/components/shared/channels/ --cache --cache-location .eslintcache
+
+  - id: fe_arch_fitness
+    must_pass: true
+    description: Vitalia FE architecture fitness suite
+    command: cd ${ws_root}/vitalia/frontend && npx vitest run src/__tests__/architecture/ --reporter=default
+
+# ────────────────────────────────────────────────────────────────────────
+# Functional tests (unit + integration BE + FE)
+# ────────────────────────────────────────────────────────────────────────
+functional:
+  - id: be_test_marketing_domain
+    must_pass: true
+    description: Marketing module domain layer (entities + enums + events)
+    command: cd ${ws_root} && .venv/bin/pytest vitalia/backend/tests/modules/vitalia/marketing/domain/ -v -x --tb=short
+
+  - id: be_test_marketing_infrastructure
+    must_pass: true
+    description: Marketing module repositories — dual filter enforce, ON CONFLICT upserts, pgcrypto roundtrip
+    command: cd ${ws_root} && .venv/bin/pytest vitalia/backend/tests/modules/vitalia/marketing/infrastructure/ -v -x --tb=short
+
+  - id: be_test_marketing_application
+    must_pass: true
+    description: Marketing services — MarketingService, AttributionService, ReferralsService, LucasRecommendationsService (approve/reject/undo state machine, idempotency, audit_log sync write, outbox events)
+    command: cd ${ws_root} && .venv/bin/pytest vitalia/backend/tests/modules/vitalia/marketing/application/ -v -x --tb=short
+
+  - id: be_test_marketing_api
+    must_pass: true
+    description: Marketing API routes — 10 endpoints (auth, role gating, response_model schema, error paths, idempotency)
+    command: cd ${ws_root} && .venv/bin/pytest vitalia/backend/tests/modules/vitalia/marketing/api/ -v -x --tb=short
+
+  - id: be_test_marketing_coverage
+    must_pass: true
+    description: Marketing module coverage threshold 43% per backend-quality
+    command: cd ${ws_root} && .venv/bin/pytest vitalia/backend/tests/modules/vitalia/marketing/ --cov=vitalia/backend/src/modules/vitalia/marketing --cov-report=term-missing --cov-fail-under=43 -q
+
+  - id: be_test_connections_meta_ads
+    must_pass: true
+    description: Meta Ads adapter — OAuth flow, token encrypt, rate limit + retry backoff
+    command: cd ${ws_root} && .venv/bin/pytest vitalia/backend/tests/modules/vitalia/connections/meta_ads/ -v -x --tb=short
+
+  - id: be_test_connections_google_ads
+    must_pass: true
+    description: Google Ads adapter — OAuth flow, GAQL query, rate limit
+    command: cd ${ws_root} && .venv/bin/pytest vitalia/backend/tests/modules/vitalia/connections/google_ads/ -v -x --tb=short
+
+  - id: be_test_workers_marketing_crons
+    must_pass: true
+    description: 4 marketing cron jobs — soft-fail per tenant, outbox events publish, structlog audit, cron_envelope wrapping
+    command: cd ${ws_root} && .venv/bin/pytest vitalia/backend/tests/workers/test_marketing_crons.py -v -x --tb=short
+
+  - id: fe_test_marketing_unit
+    must_pass: true
+    description: Vitest unit tests vitalia/frontend/src/features/marketing/
+    command: cd ${ws_root}/vitalia/frontend && npx vitest run src/features/marketing/ src/features/marketing-shared/ --coverage --coverage.reporter=text --coverage.thresholds.lines=20 --coverage.thresholds.statements=20 --coverage.thresholds.functions=20 --coverage.thresholds.branches=20 --reporter=default
+
+  - id: be_test_extension_sdk_registration_marketing
+    must_pass: true
+    description: Verify vitalia/backend/src/modules/vitalia/extensions.py registers Meta + Google adapters via EP-8 and NO direct engine modifications
+    command: cd ${ws_root} && .venv/bin/pytest vitalia/backend/tests/architecture/test_extension_sdk_registration.py -v -x --tb=short
+
+# ────────────────────────────────────────────────────────────────────────
+# Visual tests (E2E smoke + visual regression + performance budget)
+# ────────────────────────────────────────────────────────────────────────
+visual:
+  - id: e2e_smoke_marketing
+    must_pass: true
+    description: Playwright smoke — load /marketing · bowtie SVG render · click stage tab · Lucas card visible · modal open+close
+    command: cd ${ws_root}/vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test --project=smoke e2e/specs/smoke/marketing.smoke.spec.ts --reporter=list
+
+  - id: visual_regression_bowtie_svg
+    must_pass: true
+    description: Chromatic visual regression bowtie SVG pixel-invariante (5 stages × 4 breakpoints = 20 baselines) + supporting components (Lucas card 4 states · AttributionMatrix 8 variants · ReferralsWidget 3 · ChannelBreakdownRow 20)
+    command: cd ${ws_root}/vitalia/frontend && npx chromatic --exit-zero-on-changes --skip 'dependabot/**' --build-script-name=build-storybook --auto-accept-changes=false
+
+  - id: visual_perf_budget_lighthouse
+    must_pass: true
+    description: Lighthouse CI perf budget LCP<2.5s · INP<200ms · CLS<0.1 on /marketing route
+    command: cd ${ws_root}/vitalia/frontend && npx lighthouse-ci collect --url=http://localhost:3002/marketing --numberOfRuns=3 && npx lighthouse-ci assert --preset=lighthouse:recommended
+
+  - id: visual_a11y_axe
+    must_pass: true
+    description: Axe a11y scan WCAG 2.1 AA on /marketing route
+    command: cd ${ws_root}/vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test --project=smoke e2e/specs/a11y/marketing.a11y.spec.ts --reporter=list
+
+  - id: visual_bowtie_bundle_size
+    must_pass: true
+    description: Bowtie SVG bundle size budget < 30KB gzipped
+    command: cd ${ws_root}/vitalia/frontend && node scripts/check-bowtie-bundle.mjs
+
+# ────────────────────────────────────────────────────────────────────────
+# Agentic eval (consumer-only — re-uses existing Lucas evals)
+# ────────────────────────────────────────────────────────────────────────
+agentic_eval: []
+# Empty — this story is consumer-only of Lucas stack. No new agentic surface introduced.
+# Existing Lucas goldens at vitalia/backend/tests/agentic_evals/sales_agent/goldens/
+# cement was done in vitalia-copilot-tools-impl (archived 2026-05-18). They keep passing
+# but are NOT scoped to this story's CI gate — they belong to the Lucas tools story.
+
+# ────────────────────────────────────────────────────────────────────────
+# Variables substitution (per /dev-team handoff template)
+# ────────────────────────────────────────────────────────────────────────
+variables:
+  ws_root: /home/chalreme/Proyectos/luana-vitalia

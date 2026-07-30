@@ -1,0 +1,848 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=1440, initial-scale=1" />
+  <title>Vitalia · /inbox · v1 Batch 2 ratificado</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    :root {
+      --vitalia-cian: 198 99% 49%;
+      --vitalia-purpura: 287 53% 37%;
+      --vitalia-amarillo: 53 99% 51%;
+      --vitalia-azul-marino: 244 84% 32%;
+      --vitalia-verde-lima: 70 73% 51%;
+      --vitalia-bg: 220 28% 98%;
+      --vitalia-surface: 0 0% 100%;
+      --vitalia-surface-alt: 220 38% 98%;
+      --vitalia-muted: 220 33% 96%;
+      --vitalia-text: 226 36% 16%;
+      --vitalia-text-muted: 220 9% 46%;
+      --vitalia-text-faint: 220 9% 65%;
+      --vitalia-border: 222 18% 93%;
+      --vitalia-border-soft: 220 25% 96%;
+      --vitalia-success: 142 76% 36%;
+      --vitalia-warning: 33 91% 44%;
+      --vitalia-danger: 0 73% 50%;
+      --vitalia-info: 199 89% 48%;
+      --vitalia-gradient-agent: linear-gradient(135deg, #01B2F8 0%, #7B2D91 100%);
+      --vitalia-gradient-adrian: linear-gradient(135deg, #7B2D91 0%, #180D95 100%);
+      --vitalia-gradient-lucas: linear-gradient(135deg, #B8DC2A 0%, #01B2F8 100%);
+    }
+    body { font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; }
+    .bg-vitalia-bg { background-color: hsl(var(--vitalia-bg)); }
+    .bg-vitalia-surface { background-color: hsl(var(--vitalia-surface)); }
+    .bg-vitalia-surface-alt { background-color: hsl(var(--vitalia-surface-alt)); }
+    .bg-vitalia-muted { background-color: hsl(var(--vitalia-muted)); }
+    .text-vitalia-text { color: hsl(var(--vitalia-text)); }
+    .text-vitalia-text-muted { color: hsl(var(--vitalia-text-muted)); }
+    .text-vitalia-text-faint { color: hsl(var(--vitalia-text-faint)); }
+    .text-vitalia-cian { color: hsl(var(--vitalia-cian)); }
+    .text-vitalia-purpura { color: hsl(var(--vitalia-purpura)); }
+    .text-vitalia-azul-marino { color: hsl(var(--vitalia-azul-marino)); }
+    .text-vitalia-success { color: hsl(var(--vitalia-success)); }
+    .text-vitalia-warning { color: hsl(var(--vitalia-warning)); }
+    .text-vitalia-danger { color: hsl(var(--vitalia-danger)); }
+    .bg-vitalia-cian { background-color: hsl(var(--vitalia-cian)); }
+    .bg-vitalia-purpura { background-color: hsl(var(--vitalia-purpura)); }
+    .bg-vitalia-azul-marino { background-color: hsl(var(--vitalia-azul-marino)); }
+    .bg-vitalia-success { background-color: hsl(var(--vitalia-success)); }
+    .bg-vitalia-warning { background-color: hsl(var(--vitalia-warning)); }
+    .bg-vitalia-danger { background-color: hsl(var(--vitalia-danger)); }
+    .border-vitalia-border { border-color: hsl(var(--vitalia-border)); }
+    .border-vitalia-border-soft { border-color: hsl(var(--vitalia-border-soft)); }
+    .border-vitalia-cian { border-color: hsl(var(--vitalia-cian)); }
+    .border-vitalia-purpura { border-color: hsl(var(--vitalia-purpura)); }
+    .border-vitalia-success { border-color: hsl(var(--vitalia-success)); }
+    .border-vitalia-warning { border-color: hsl(var(--vitalia-warning)); }
+    .border-vitalia-danger { border-color: hsl(var(--vitalia-danger)); }
+    .avatar-adrian { background: var(--vitalia-gradient-adrian); }
+    .avatar-valeria { background: var(--vitalia-gradient-agent); }
+    .avatar-lucas { background: var(--vitalia-gradient-lucas); }
+
+    /* Tab switcher */
+    .tab-btn { @apply px-3 py-1.5 text-xs font-semibold rounded-md transition-colors; }
+    .tab-btn-active { background-color: hsl(var(--vitalia-azul-marino)); color: white; }
+    .tab-btn-inactive { color: hsl(var(--vitalia-text-muted)); }
+
+    /* Segmented control 3-modos */
+    .seg-btn {
+      flex: 1;
+      padding: 0.5rem 0.75rem;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      border-radius: 0.375rem;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.25rem;
+    }
+    .seg-btn-active {
+      background-color: hsl(var(--vitalia-purpura) / 0.12);
+      color: hsl(var(--vitalia-purpura));
+      box-shadow: 0 0 0 1.5px hsl(var(--vitalia-purpura) / 0.3) inset;
+    }
+    .seg-btn-inactive {
+      color: hsl(var(--vitalia-text-muted));
+    }
+    .seg-btn-inactive:hover {
+      background-color: hsl(var(--vitalia-muted));
+    }
+  </style>
+</head>
+<body class="bg-vitalia-bg text-vitalia-text">
+
+<!-- Header: state switcher (para preview de estados visuales) -->
+<div class="bg-white border-b border-vitalia-border px-6 py-3 flex items-center gap-4 sticky top-0 z-50">
+  <div class="text-sm font-semibold text-vitalia-azul-marino">Vitalia · /inbox · mockup v1 Batch 2 (ratificado 2026-05-17)</div>
+  <div class="text-xs text-vitalia-text-faint">|</div>
+  <div class="text-xs text-vitalia-text-muted">Estado:</div>
+  <div class="flex gap-1 bg-vitalia-muted rounded-md p-0.5">
+    <button class="tab-btn tab-btn-active" onclick="setState('success', this)">success (default)</button>
+    <button class="tab-btn tab-btn-inactive" onclick="setState('empty', this)">empty</button>
+    <button class="tab-btn tab-btn-inactive" onclick="setState('agent-thinking', this)">agent-thinking</button>
+    <button class="tab-btn tab-btn-inactive" onclick="setState('agent-waiting-approval', this)">agent-waiting-approval</button>
+    <button class="tab-btn tab-btn-inactive" onclick="setState('agent-failed', this)">agent-failed</button>
+  </div>
+  <div class="ml-auto flex items-center gap-2">
+    <div class="text-xs text-vitalia-text-faint">Modo agente:</div>
+    <div class="flex gap-0.5 bg-vitalia-muted rounded-md p-0.5">
+      <button class="text-[11px] font-semibold px-2 py-1 rounded text-vitalia-purpura bg-vitalia-purpura/12">Adrián decide</button>
+      <button class="text-[11px] font-semibold px-2 py-1 rounded text-vitalia-text-muted" onclick="setMode('consulta', this)">Adrián consulta</button>
+      <button class="text-[11px] font-semibold px-2 py-1 rounded text-vitalia-text-muted" onclick="setMode('manual', this)">Yo escribo</button>
+    </div>
+  </div>
+</div>
+
+<!-- App TopBar -->
+<div class="bg-vitalia-surface border-b border-vitalia-border h-14 flex items-center px-4 gap-4">
+  <div class="flex items-center gap-2 text-sm font-semibold text-vitalia-azul-marino">
+    <div class="w-7 h-7 rounded" style="background: linear-gradient(135deg, #01B2F8 0%, #7B2D91 50%, #B8DC2A 100%);"></div>
+    Vitalia
+  </div>
+  <div class="h-5 w-px bg-vitalia-border"></div>
+  <button class="flex items-center gap-1.5 text-xs font-medium text-vitalia-text-muted hover:text-vitalia-text">
+    Sonrisa Plena Odontología
+    <i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>
+  </button>
+  <div class="flex-1 max-w-md mx-auto">
+    <div class="relative">
+      <i data-lucide="search" class="absolute left-3 top-2 w-3.5 h-3.5 text-vitalia-text-faint"></i>
+      <input class="w-full bg-vitalia-muted text-xs pl-9 pr-12 py-1.5 rounded-md border-0 placeholder-vitalia-text-faint" placeholder="Buscar pacientes, ofertas, turnos…" />
+      <kbd class="absolute right-3 top-1.5 text-[10px] text-vitalia-text-faint border border-vitalia-border rounded px-1">⌘K</kbd>
+    </div>
+  </div>
+  <button class="relative w-9 h-9 rounded-md hover:bg-vitalia-muted flex items-center justify-center">
+    <i data-lucide="bell" class="w-4 h-4 text-vitalia-text-muted"></i>
+    <span class="absolute top-1 right-1 bg-vitalia-danger text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">3</span>
+  </button>
+  <div class="h-5 w-px bg-vitalia-border"></div>
+  <button class="flex items-center gap-2 text-xs font-medium">
+    <div class="w-7 h-7 rounded-full bg-vitalia-cian text-white text-[11px] font-bold flex items-center justify-center">MM</div>
+    María M.
+    <i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>
+  </button>
+</div>
+
+<!-- Main app shell -->
+<div class="flex" style="height: calc(100vh - 100px);">
+
+  <!-- Sidebar nav 240px -->
+  <aside class="w-[240px] bg-vitalia-surface border-r border-vitalia-border flex flex-col py-3 px-2 gap-0.5">
+    <div class="px-3 pt-1 pb-2 text-[10px] font-bold tracking-wider text-vitalia-text-faint uppercase">Operativo</div>
+
+    <div class="flex items-center justify-between gap-2.5 px-3 py-2 rounded text-sm font-semibold text-vitalia-azul-marino border-l-[3px] border-vitalia-cian pl-[9px]" style="background: linear-gradient(to right, hsl(var(--vitalia-cian) / 0.10), transparent);">
+      <div class="flex items-center gap-2.5">
+        <i data-lucide="inbox" class="w-4 h-4"></i>
+        Inbox
+      </div>
+      <div class="flex items-center gap-1">
+        <span class="text-[10px] font-bold bg-vitalia-azul-marino text-white px-1.5 rounded">5</span>
+        <span class="text-[10px] bg-vitalia-danger text-white rounded-full w-4 h-4 flex items-center justify-center font-bold">!</span>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-2.5 px-3 py-2 rounded text-sm text-vitalia-text-muted hover:bg-vitalia-bg cursor-pointer">
+      <i data-lucide="git-pull-request-arrow" class="w-4 h-4"></i>Pipeline
+    </div>
+    <div class="flex items-center justify-between gap-2.5 px-3 py-2 rounded text-sm text-vitalia-text-muted hover:bg-vitalia-bg cursor-pointer">
+      <div class="flex items-center gap-2.5"><i data-lucide="calendar" class="w-4 h-4"></i>Agenda</div>
+      <span class="text-[10px] font-bold bg-vitalia-muted text-vitalia-text-muted px-1.5 rounded">4</span>
+    </div>
+    <div class="flex items-center gap-2.5 px-3 py-2 rounded text-sm text-vitalia-text-muted hover:bg-vitalia-bg cursor-pointer">
+      <i data-lucide="heart-handshake" class="w-4 h-4"></i>Fidelización
+    </div>
+    <div class="flex items-center gap-2.5 px-3 py-2 rounded text-sm text-vitalia-text-muted hover:bg-vitalia-bg cursor-pointer">
+      <i data-lucide="megaphone" class="w-4 h-4"></i>Marketing
+    </div>
+
+    <div class="my-2 border-t border-vitalia-border-soft"></div>
+    <div class="px-3 pt-1 pb-2 text-[10px] font-bold tracking-wider text-vitalia-text-faint uppercase">Dirección (P2)</div>
+
+    <div class="flex items-center gap-2.5 px-3 py-2 rounded text-sm text-vitalia-text-muted hover:bg-vitalia-bg cursor-pointer">
+      <i data-lucide="layout-dashboard" class="w-4 h-4"></i>Dashboard
+    </div>
+    <div class="flex items-center gap-2.5 px-3 py-2 rounded text-sm text-vitalia-text-muted hover:bg-vitalia-bg cursor-pointer">
+      <i data-lucide="dollar-sign" class="w-4 h-4"></i>Inversión publicitaria
+    </div>
+    <div class="flex items-center gap-2.5 px-3 py-2 rounded text-sm text-vitalia-text-muted hover:bg-vitalia-bg cursor-pointer">
+      <i data-lucide="palette" class="w-4 h-4"></i>Brand Studio
+    </div>
+    <div class="flex items-center gap-2.5 px-3 py-2 rounded text-sm text-vitalia-text-muted hover:bg-vitalia-bg cursor-pointer">
+      <i data-lucide="stethoscope" class="w-4 h-4"></i>Tratamientos
+    </div>
+    <div class="flex items-center gap-2.5 px-3 py-2 rounded text-sm text-vitalia-text-muted hover:bg-vitalia-bg cursor-pointer">
+      <i data-lucide="settings" class="w-4 h-4"></i>Configuración
+    </div>
+  </aside>
+
+  <!-- ConversationList 320px -->
+  <aside class="w-[320px] bg-vitalia-surface border-r border-vitalia-border flex flex-col">
+    <!-- Header -->
+    <div class="px-4 pt-3 pb-2 border-b border-vitalia-border">
+      <div class="flex items-center justify-between mb-2">
+        <h2 class="text-sm font-bold text-vitalia-azul-marino">Inbox</h2>
+        <span class="text-[11px] text-vitalia-text-muted">5 conversaciones</span>
+      </div>
+      <!-- Search -->
+      <div class="relative mb-2">
+        <i data-lucide="search" class="absolute left-2.5 top-2 w-3.5 h-3.5 text-vitalia-text-faint"></i>
+        <input class="w-full bg-vitalia-muted text-xs pl-8 pr-3 py-1.5 rounded border-0 placeholder-vitalia-text-faint" placeholder="Buscar paciente o canal…" />
+      </div>
+    </div>
+
+    <!-- Filter chips primarios -->
+    <div class="px-3 pt-2.5 pb-2 border-b border-vitalia-border-soft space-y-1.5">
+      <div class="flex flex-wrap gap-1">
+        <button class="text-[10.5px] font-semibold px-2 py-0.5 rounded-full bg-vitalia-azul-marino text-white">✕ Todas</button>
+        <button class="text-[10.5px] font-semibold px-2 py-0.5 rounded-full bg-vitalia-muted text-vitalia-text-muted hover:bg-vitalia-border">WhatsApp 3</button>
+        <button class="text-[10.5px] font-semibold px-2 py-0.5 rounded-full bg-vitalia-muted text-vitalia-text-muted hover:bg-vitalia-border">Instagram 1</button>
+        <button class="text-[10.5px] font-semibold px-2 py-0.5 rounded-full bg-vitalia-muted text-vitalia-text-muted hover:bg-vitalia-border">Email 1</button>
+      </div>
+      <div class="flex flex-wrap gap-1">
+        <button class="text-[10.5px] font-semibold px-2 py-0.5 rounded-full bg-vitalia-muted text-vitalia-text-muted hover:bg-vitalia-border">Activa</button>
+        <button class="text-[10.5px] font-semibold px-2 py-0.5 rounded-full bg-vitalia-muted text-vitalia-text-muted hover:bg-vitalia-border">Esperando depósito</button>
+        <button class="text-[10.5px] font-semibold px-2 py-0.5 rounded-full bg-vitalia-muted text-vitalia-text-muted hover:bg-vitalia-border">NPS pendiente</button>
+        <button class="text-[10.5px] font-semibold px-2 py-0.5 rounded-full bg-vitalia-muted text-vitalia-text-muted hover:bg-vitalia-border">Cerradas</button>
+      </div>
+      <div class="flex flex-wrap gap-1">
+        <button class="text-[10.5px] font-semibold px-2 py-0.5 rounded-full text-white" style="background-color: hsl(var(--vitalia-danger));">🔴 Adrián pide ayuda 1</button>
+        <button class="text-[10.5px] font-semibold px-2 py-0.5 rounded-full text-vitalia-azul-marino" style="background-color: hsl(var(--vitalia-cian) / 0.18);">📎 Audio/imagen sin abrir 2</button>
+      </div>
+      <button class="text-[10.5px] text-vitalia-text-muted hover:text-vitalia-azul-marino font-medium flex items-center gap-1 mt-1">
+        Más filtros <i data-lucide="chevron-down" class="w-3 h-3"></i>
+      </button>
+    </div>
+
+    <!-- Lista conversaciones -->
+    <div class="flex-1 overflow-y-auto" id="conv-list">
+      <!-- Conv selected: M. Rodríguez con audio sin transcripción si state=agent-failed -->
+      <div class="px-3 py-2.5 border-b border-vitalia-border-soft cursor-pointer bg-vitalia-surface-alt border-l-[3px] border-l-vitalia-cian">
+        <div class="flex items-start gap-2.5">
+          <div class="w-9 h-9 rounded-full bg-vitalia-muted text-vitalia-text text-[12px] font-bold flex items-center justify-center shrink-0">MR</div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between gap-1">
+              <div class="text-[12.5px] font-semibold text-vitalia-text truncate">M. Rodríguez</div>
+              <div class="text-[10px] text-vitalia-text-faint shrink-0">4 min</div>
+            </div>
+            <div class="text-[11px] text-vitalia-text-muted truncate">Sí, perfecto. ¿Cuánto sale?</div>
+            <div class="flex items-center gap-1 mt-1">
+              <span class="text-[9px] uppercase font-bold tracking-wide text-vitalia-success">WhatsApp</span>
+              <span class="text-[9px] text-vitalia-text-faint">·</span>
+              <span class="text-[9px] text-vitalia-text-muted">Considerando</span>
+              <span class="text-[9px] text-vitalia-text-faint">·</span>
+              <span class="text-[9px] text-vitalia-purpura font-semibold flex items-center gap-0.5">
+                <span class="w-3 h-3 rounded-full avatar-adrian"></span>
+                Adrián
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Conv: Ana López con audio sin abrir -->
+      <div class="px-3 py-2.5 border-b border-vitalia-border-soft hover:bg-vitalia-bg cursor-pointer">
+        <div class="flex items-start gap-2.5">
+          <div class="w-9 h-9 rounded-full bg-vitalia-muted text-vitalia-text text-[12px] font-bold flex items-center justify-center shrink-0">AL</div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between gap-1">
+              <div class="text-[12.5px] font-semibold text-vitalia-text truncate flex items-center gap-1">
+                Ana López
+                <span class="text-vitalia-warning text-[10px]">📎</span>
+              </div>
+              <div class="text-[10px] text-vitalia-text-faint shrink-0">12 min</div>
+            </div>
+            <div class="text-[11px] text-vitalia-text-muted truncate flex items-center gap-1">
+              <i data-lucide="mic" class="w-3 h-3"></i> nota de voz · 18s
+            </div>
+            <div class="flex items-center gap-1 mt-1">
+              <span class="text-[9px] uppercase font-bold tracking-wide text-vitalia-purpura">Instagram</span>
+              <span class="text-[9px] text-vitalia-text-faint">·</span>
+              <span class="text-[9px] text-vitalia-text-muted">Interesado</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Conv: Juan Pérez esperando depósito -->
+      <div class="px-3 py-2.5 border-b border-vitalia-border-soft hover:bg-vitalia-bg cursor-pointer">
+        <div class="flex items-start gap-2.5">
+          <div class="w-9 h-9 rounded-full bg-vitalia-muted text-vitalia-text text-[12px] font-bold flex items-center justify-center shrink-0">JP</div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between gap-1">
+              <div class="text-[12.5px] font-semibold text-vitalia-text truncate">Juan Pérez</div>
+              <div class="text-[10px] text-vitalia-text-faint shrink-0">1 h</div>
+            </div>
+            <div class="text-[11px] text-vitalia-text-muted truncate">Adrián envió link de depósito 30%</div>
+            <div class="flex items-center gap-1 mt-1">
+              <span class="text-[9px] uppercase font-bold tracking-wide text-vitalia-success">WhatsApp</span>
+              <span class="text-[9px] text-vitalia-text-faint">·</span>
+              <span class="text-[9px] uppercase font-bold tracking-wide" style="color: hsl(var(--vitalia-warning));">Esperando depósito</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Conv: Sofía Z. con imagen + 🔴 Adrián pide ayuda -->
+      <div class="px-3 py-2.5 border-b border-vitalia-border-soft hover:bg-vitalia-bg cursor-pointer">
+        <div class="flex items-start gap-2.5">
+          <div class="w-9 h-9 rounded-full bg-vitalia-muted text-vitalia-text text-[12px] font-bold flex items-center justify-center shrink-0">SZ</div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between gap-1">
+              <div class="text-[12.5px] font-semibold text-vitalia-text truncate flex items-center gap-1">
+                Sofía Zambrano
+                <span class="text-vitalia-warning text-[10px]">📎</span>
+                <span class="bg-vitalia-danger text-white text-[8px] font-bold rounded-full px-1 py-0.5 leading-none">🔴 ayuda</span>
+              </div>
+              <div class="text-[10px] text-vitalia-text-faint shrink-0">2 h</div>
+            </div>
+            <div class="text-[11px] text-vitalia-text-muted truncate flex items-center gap-1">
+              <i data-lucide="image" class="w-3 h-3"></i> imagen clínica detectada
+            </div>
+            <div class="flex items-center gap-1 mt-1">
+              <span class="text-[9px] uppercase font-bold tracking-wide" style="color: hsl(var(--vitalia-cian));">Email</span>
+              <span class="text-[9px] text-vitalia-text-faint">·</span>
+              <span class="text-[9px] text-vitalia-text-muted">Considerando</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Conv: Camila R. cerrada -->
+      <div class="px-3 py-2.5 border-b border-vitalia-border-soft hover:bg-vitalia-bg cursor-pointer opacity-70">
+        <div class="flex items-start gap-2.5">
+          <div class="w-9 h-9 rounded-full bg-vitalia-muted text-vitalia-text text-[12px] font-bold flex items-center justify-center shrink-0">CR</div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between gap-1">
+              <div class="text-[12.5px] font-semibold text-vitalia-text truncate">Camila R.</div>
+              <div class="text-[10px] text-vitalia-text-faint shrink-0">ayer</div>
+            </div>
+            <div class="text-[11px] text-vitalia-text-muted truncate">Reservó turno: Limpieza 17/05 14:00</div>
+            <div class="flex items-center gap-1 mt-1">
+              <span class="text-[9px] uppercase font-bold tracking-wide text-vitalia-success">WhatsApp</span>
+              <span class="text-[9px] text-vitalia-text-faint">·</span>
+              <span class="text-[9px] uppercase font-bold tracking-wide text-vitalia-success">Cerrada · reservó</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ConversationThread (flex) -->
+  <main class="flex-1 flex flex-col bg-vitalia-bg">
+
+    <!-- Thread header -->
+    <div class="bg-vitalia-surface border-b border-vitalia-border px-5 py-3">
+      <div class="flex items-start justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-vitalia-muted text-vitalia-text text-sm font-bold flex items-center justify-center">MR</div>
+          <div>
+            <div class="text-sm font-bold text-vitalia-azul-marino">M. Rodríguez</div>
+            <div class="flex items-center gap-2 text-[11px] text-vitalia-text-muted mt-0.5">
+              <span class="uppercase font-bold tracking-wide text-vitalia-success">WhatsApp</span>
+              <span class="text-vitalia-text-faint">·</span>
+              <span>Activa hace 4 min</span>
+              <span class="text-vitalia-text-faint">·</span>
+              <span class="text-vitalia-purpura font-semibold">Considerando</span>
+            </div>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button class="px-2.5 py-1.5 rounded-md text-[12px] font-medium border border-vitalia-border text-vitalia-text-muted hover:bg-vitalia-muted flex items-center gap-1">
+            <i data-lucide="pause" class="w-3.5 h-3.5"></i> Pausar Adrián
+          </button>
+          <button class="px-2.5 py-1.5 rounded-md text-[12px] font-medium border border-vitalia-border text-vitalia-text-muted hover:bg-vitalia-muted flex items-center gap-1">
+            <i data-lucide="wrench" class="w-3.5 h-3.5"></i> Herramientas
+          </button>
+          <button class="px-2.5 py-1.5 rounded-md text-[12px] font-medium border border-vitalia-border text-vitalia-text-muted hover:bg-vitalia-muted flex items-center gap-1">
+            <i data-lucide="user" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Segmented control 3-modos -->
+      <div class="mt-3 bg-vitalia-muted rounded-md p-1 flex gap-0.5" id="seg-control">
+        <button class="seg-btn seg-btn-active" data-mode="decide">
+          <i data-lucide="circle-check-big" class="w-3.5 h-3.5"></i> Adrián decide
+        </button>
+        <button class="seg-btn seg-btn-inactive" data-mode="consulta">
+          <i data-lucide="message-square-more" class="w-3.5 h-3.5"></i> Adrián consulta
+        </button>
+        <button class="seg-btn seg-btn-inactive" data-mode="manual">
+          <i data-lucide="user-pen" class="w-3.5 h-3.5"></i> Yo escribo
+        </button>
+      </div>
+      <div class="text-[11.5px] text-vitalia-text-muted mt-1.5 px-1" id="seg-description">
+        Adrián atiende solo y te avisa si necesita ayuda.
+      </div>
+
+      <!-- Voice style chip -->
+      <div class="mt-2.5 flex items-center justify-between">
+        <div class="inline-flex items-center gap-1.5 text-[11px] font-semibold text-vitalia-success bg-vitalia-success/12 px-2 py-0.5 rounded-full">
+          <span class="w-1.5 h-1.5 rounded-full bg-vitalia-success"></span>
+          Estilo: consultivo · sin presión
+        </div>
+        <div class="text-[10.5px] text-vitalia-text-faint">Voz Brand Studio aplicada</div>
+      </div>
+    </div>
+
+    <!-- Help-needed banner (visible solo en agent-failed state) -->
+    <div id="help-banner" class="hidden bg-vitalia-danger/8 border-b border-vitalia-danger/30 px-5 py-3">
+      <div class="flex items-start gap-2.5">
+        <div class="w-6 h-6 rounded-full bg-vitalia-danger text-white text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">!</div>
+        <div class="flex-1">
+          <div class="text-[12.5px] font-semibold text-vitalia-danger">Adrián te pide ayuda en esta conversación</div>
+          <div class="text-[11.5px] text-vitalia-text-muted mt-0.5">No pudo entender la nota de voz. Te paso la conversación para que la escuches tú.</div>
+        </div>
+        <button class="text-[12px] font-semibold px-3 py-1.5 rounded bg-vitalia-danger text-white">Tomar yo</button>
+      </div>
+    </div>
+
+    <!-- Thread messages -->
+    <div class="flex-1 overflow-y-auto px-6 py-5 space-y-4" id="messages">
+
+      <!-- Message: M.R. voice note 14:18 -->
+      <div class="flex items-start gap-2.5 max-w-[600px]">
+        <div class="w-7 h-7 rounded-full bg-vitalia-muted text-vitalia-text text-[10px] font-bold flex items-center justify-center shrink-0">MR</div>
+        <div class="flex-1">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="text-[11px] font-semibold text-vitalia-text">M. Rodríguez</span>
+            <span class="text-[10px] text-vitalia-text-faint">14:18</span>
+          </div>
+          <div class="bg-vitalia-surface border border-vitalia-border rounded-bubble rounded-tl-md px-4 py-3 shadow-sm">
+            <div class="flex items-center gap-2 mb-2">
+              <button class="w-9 h-9 rounded-full bg-vitalia-azul-marino text-white flex items-center justify-center hover:opacity-90">
+                <i data-lucide="play" class="w-4 h-4"></i>
+              </button>
+              <div class="flex-1">
+                <div class="h-6 rounded flex items-end gap-0.5">
+                  <div class="w-1 bg-vitalia-cian rounded h-3"></div>
+                  <div class="w-1 bg-vitalia-cian rounded h-4"></div>
+                  <div class="w-1 bg-vitalia-cian rounded h-5"></div>
+                  <div class="w-1 bg-vitalia-cian rounded h-2"></div>
+                  <div class="w-1 bg-vitalia-cian rounded h-6"></div>
+                  <div class="w-1 bg-vitalia-cian rounded h-4"></div>
+                  <div class="w-1 bg-vitalia-cian rounded h-3"></div>
+                  <div class="w-1 bg-vitalia-cian rounded h-5"></div>
+                  <div class="w-1 bg-vitalia-cian rounded h-6"></div>
+                  <div class="w-1 bg-vitalia-cian rounded h-4"></div>
+                  <div class="w-1 bg-vitalia-cian rounded h-3"></div>
+                  <div class="w-1 bg-vitalia-cian rounded h-2"></div>
+                  <div class="w-1 bg-vitalia-cian rounded h-5"></div>
+                  <div class="w-1 bg-vitalia-cian rounded h-3"></div>
+                  <div class="w-1 bg-vitalia-cian rounded h-4"></div>
+                </div>
+              </div>
+              <span class="text-[10px] text-vitalia-text-faint">0:12</span>
+            </div>
+            <div class="text-[12.5px] text-vitalia-text border-t border-vitalia-border-soft pt-2 italic">
+              "Hola, me interesaba saber precios de blanqueamiento dental. Vi en su Instagram que tienen una promo."
+            </div>
+            <div class="text-[10px] text-vitalia-text-faint mt-1.5 flex items-center gap-1">
+              <i data-lucide="sparkles" class="w-3 h-3"></i> transcripción automática
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Message: Adrián 14:19 (auto) -->
+      <div class="flex items-start gap-2.5 max-w-[640px] ml-auto flex-row-reverse" id="msg-adrian-auto">
+        <div class="w-7 h-7 rounded-full avatar-adrian text-white text-[10px] font-bold flex items-center justify-center shrink-0">A</div>
+        <div class="flex-1">
+          <div class="flex items-center gap-2 mb-1 justify-end">
+            <span class="text-[10px] text-vitalia-text-faint">14:19</span>
+            <span class="text-[11px] font-semibold text-vitalia-purpura">Adrián</span>
+            <span class="text-[9px] font-bold uppercase tracking-wide bg-vitalia-purpura/12 text-vitalia-purpura px-1.5 py-0.5 rounded">✨ auto</span>
+          </div>
+          <div class="bg-vitalia-azul-marino text-white rounded-bubble rounded-br-md px-4 py-3 shadow-sm">
+            <div class="text-[13px] leading-relaxed">
+              ¡Hola María! 😊 Te paso info del <strong>Blanqueamiento Premium</strong>:
+              <br><br>
+              💎 Precio: $24.000<br>
+              ⏱ Duración: 90 min<br>
+              ✨ Incluye: profilaxis + flúor + funda blanqueadora<br>
+              📅 Garantía 6 meses<br>
+              <br>
+              Tengo disponibilidad el <strong>martes 12:00</strong>. ¿Te queda bien?
+            </div>
+          </div>
+          <div class="mt-1 flex justify-end">
+            <button class="text-[11px] text-vitalia-text-muted hover:text-vitalia-danger flex items-center gap-1 px-2 py-0.5 rounded border border-vitalia-border-soft hover:border-vitalia-danger/40">
+              <i data-lucide="undo-2" class="w-3 h-3"></i>
+              Revertir (4:32)
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Message: M.R. text 14:21 -->
+      <div class="flex items-start gap-2.5 max-w-[600px]">
+        <div class="w-7 h-7 rounded-full bg-vitalia-muted text-vitalia-text text-[10px] font-bold flex items-center justify-center shrink-0">MR</div>
+        <div class="flex-1">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="text-[11px] font-semibold text-vitalia-text">M. Rodríguez</span>
+            <span class="text-[10px] text-vitalia-text-faint">14:21</span>
+          </div>
+          <div class="bg-vitalia-surface border border-vitalia-border rounded-bubble rounded-tl-md px-4 py-2.5 shadow-sm">
+            <div class="text-[13px] text-vitalia-text">Sí, perfecto. ¿Cuánto sale en total con el depósito?</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Message: M.R. image 14:22 (stub Slice 1) -->
+      <div class="flex items-start gap-2.5 max-w-[600px]">
+        <div class="w-7 h-7 rounded-full bg-vitalia-muted text-vitalia-text text-[10px] font-bold flex items-center justify-center shrink-0">MR</div>
+        <div class="flex-1">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="text-[11px] font-semibold text-vitalia-text">M. Rodríguez</span>
+            <span class="text-[10px] text-vitalia-text-faint">14:22</span>
+            <span class="text-[10px] text-vitalia-text-faint">·</span>
+            <span class="text-[10px] text-vitalia-text-muted flex items-center gap-1"><i data-lucide="image" class="w-3 h-3"></i> imagen</span>
+          </div>
+          <div class="bg-vitalia-surface border border-vitalia-border rounded-bubble rounded-tl-md p-2 shadow-sm">
+            <div class="w-60 h-44 rounded bg-gradient-to-br from-vitalia-muted to-vitalia-border flex items-center justify-center mb-2">
+              <i data-lucide="smile" class="w-12 h-12 text-vitalia-text-faint"></i>
+            </div>
+            <div class="text-[12px] text-vitalia-text-muted italic flex items-center gap-1.5 px-2 py-1.5 bg-vitalia-cian/8 rounded">
+              <i data-lucide="sparkles" class="w-3.5 h-3.5 text-vitalia-cian"></i>
+              Adrián está analizando esta imagen…
+              <button class="ml-auto text-[11px] text-vitalia-cian font-semibold">Ver análisis ▾</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- agent-thinking typing indicator (visible solo en state=agent-thinking) -->
+      <div id="typing-indicator" class="hidden flex items-start gap-2.5 max-w-[600px] ml-auto flex-row-reverse">
+        <div class="w-7 h-7 rounded-full avatar-adrian text-white text-[10px] font-bold flex items-center justify-center shrink-0">A</div>
+        <div>
+          <div class="flex items-center gap-2 mb-1 justify-end">
+            <span class="text-[11px] font-semibold text-vitalia-purpura">Adrián</span>
+          </div>
+          <div class="bg-vitalia-muted rounded-bubble rounded-br-md px-4 py-3 inline-flex items-center gap-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-vitalia-purpura animate-bounce" style="animation-delay: 0ms"></span>
+            <span class="w-1.5 h-1.5 rounded-full bg-vitalia-purpura animate-bounce" style="animation-delay: 180ms"></span>
+            <span class="w-1.5 h-1.5 rounded-full bg-vitalia-purpura animate-bounce" style="animation-delay: 360ms"></span>
+          </div>
+          <div class="text-[10.5px] text-vitalia-text-faint mt-1 text-right">Adrián está escribiendo…</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Composer -->
+    <div class="border-t border-vitalia-border bg-vitalia-surface px-5 py-3" id="composer-area">
+      <!-- Suggest banner (visible solo en agent-waiting-approval) -->
+      <div id="suggest-banner" class="hidden mb-2 px-3 py-2 bg-vitalia-cian/8 border border-vitalia-cian/30 rounded-md">
+        <div class="flex items-center gap-2 text-[12px] text-vitalia-azul-marino">
+          <i data-lucide="sparkles" class="w-3.5 h-3.5 text-vitalia-cian"></i>
+          <span class="font-semibold">Adrián te sugiere esta respuesta. Edítala si quieres.</span>
+        </div>
+      </div>
+      <div class="border border-vitalia-border rounded-lg p-2.5 bg-vitalia-bg focus-within:border-vitalia-azul-marino">
+        <textarea id="composer-textarea" class="w-full bg-transparent text-[13px] text-vitalia-text placeholder-vitalia-text-faint border-0 resize-none focus:outline-none" rows="2" placeholder="Escribe algo si quieres tomar la conversación…"></textarea>
+        <div class="flex items-center justify-between mt-1">
+          <div class="flex items-center gap-1">
+            <button class="w-7 h-7 rounded hover:bg-vitalia-muted text-vitalia-text-muted flex items-center justify-center" title="Adjuntar archivo">
+              <i data-lucide="paperclip" class="w-4 h-4"></i>
+            </button>
+            <button class="w-7 h-7 rounded hover:bg-vitalia-muted text-vitalia-text-muted flex items-center justify-center" title="Grabar nota de voz">
+              <i data-lucide="mic" class="w-4 h-4"></i>
+            </button>
+          </div>
+          <div class="flex items-center gap-1.5" id="send-buttons">
+            <span class="text-[10px] text-vitalia-text-faint">Adrián va a enviar lo que escribas</span>
+            <button class="px-3 py-1.5 rounded text-[12px] font-semibold bg-vitalia-azul-marino text-white hover:opacity-95 flex items-center gap-1">
+              Enviar como Adrián
+              <i data-lucide="send" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Activity stream collapsible -->
+    <div class="bg-vitalia-surface-alt border-t border-vitalia-border" id="activity-stream">
+      <button class="w-full px-5 py-2 flex items-center justify-between text-[11.5px] text-vitalia-text-muted hover:bg-vitalia-muted/50 transition-colors" onclick="toggleActivity()">
+        <div class="flex items-center gap-2">
+          <i data-lucide="activity" class="w-3.5 h-3.5"></i>
+          <span class="font-semibold">Actividad de Adrián</span>
+          <span class="text-vitalia-text-faint">· últimos 5 min · 5 acciones</span>
+        </div>
+        <i data-lucide="chevron-down" class="w-3.5 h-3.5" id="activity-chevron"></i>
+      </button>
+      <div class="hidden px-5 pb-3 space-y-1" id="activity-content">
+        <div class="flex items-baseline gap-2 text-[11.5px]">
+          <span class="text-vitalia-text-faint font-mono w-10 shrink-0">14:21</span>
+          <span class="text-vitalia-text"><strong class="text-vitalia-purpura">propuso</strong> turno martes 12:00 a M. Rodríguez</span>
+        </div>
+        <div class="flex items-baseline gap-2 text-[11.5px]">
+          <span class="text-vitalia-text-faint font-mono w-10 shrink-0">14:21</span>
+          <span class="text-vitalia-text"><strong class="text-vitalia-purpura">verificó</strong> disponibilidad agenda martes 12:00 (libre)</span>
+        </div>
+        <div class="flex items-baseline gap-2 text-[11.5px]">
+          <span class="text-vitalia-text-faint font-mono w-10 shrink-0">14:21</span>
+          <span class="text-vitalia-text"><strong class="text-vitalia-purpura">consultó</strong> precio Blanqueamiento Premium ($24.000)</span>
+        </div>
+        <div class="flex items-baseline gap-2 text-[11.5px]">
+          <span class="text-vitalia-text-faint font-mono w-10 shrink-0">14:19</span>
+          <span class="text-vitalia-text"><strong class="text-vitalia-purpura">detectó</strong> stage: paciente preguntó precio (2 de 4)</span>
+        </div>
+        <div class="flex items-baseline gap-2 text-[11.5px]">
+          <span class="text-vitalia-text-faint font-mono w-10 shrink-0">14:18</span>
+          <span class="text-vitalia-text"><strong class="text-vitalia-purpura">clasificó</strong> interés alto · vertical odontológica</span>
+        </div>
+        <div class="text-[11.5px] text-vitalia-cian font-semibold mt-2 cursor-pointer hover:underline">Ver historial completo →</div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ContactSidebar 280px -->
+  <aside class="w-[280px] bg-vitalia-surface border-l border-vitalia-border flex flex-col overflow-y-auto">
+    <div class="px-4 py-4 border-b border-vitalia-border-soft">
+      <div class="flex items-center gap-2.5">
+        <div class="w-12 h-12 rounded-full bg-vitalia-muted text-vitalia-text text-base font-bold flex items-center justify-center">MR</div>
+        <div class="flex-1 min-w-0">
+          <div class="text-[14px] font-bold text-vitalia-azul-marino truncate">M. Rodríguez</div>
+          <div class="text-[11px] text-vitalia-text-muted">Activa hace 4 min</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="px-4 py-3 border-b border-vitalia-border-soft">
+      <div class="text-[10.5px] font-bold tracking-wider text-vitalia-text-faint uppercase mb-2">Contacto</div>
+      <div class="space-y-1.5">
+        <div class="flex items-center gap-2 text-[12px]">
+          <i data-lucide="phone" class="w-3.5 h-3.5 text-vitalia-text-muted"></i>
+          <span class="text-vitalia-text-muted">+54 11 ***-4567</span>
+          <button class="ml-auto text-[10px] text-vitalia-cian font-semibold flex items-center gap-0.5 hover:underline" title="Mostrar dato (queda registrado)">
+            <i data-lucide="eye" class="w-3 h-3"></i>
+          </button>
+        </div>
+        <div class="flex items-center gap-2 text-[12px]">
+          <i data-lucide="mail" class="w-3.5 h-3.5 text-vitalia-text-muted"></i>
+          <span class="text-vitalia-text-muted">m***@gmail.com</span>
+          <button class="ml-auto text-[10px] text-vitalia-cian font-semibold flex items-center gap-0.5 hover:underline">
+            <i data-lucide="eye" class="w-3 h-3"></i>
+          </button>
+        </div>
+        <div class="flex items-center gap-2 text-[12px]">
+          <i data-lucide="file-text" class="w-3.5 h-3.5 text-vitalia-text-muted"></i>
+          <span class="text-vitalia-text-muted">DNI 12***5678</span>
+          <button class="ml-auto text-[10px] text-vitalia-cian font-semibold flex items-center gap-0.5 hover:underline">
+            <i data-lucide="eye" class="w-3 h-3"></i>
+          </button>
+        </div>
+      </div>
+      <div class="mt-2 text-[10px] text-vitalia-text-faint flex items-center gap-1">
+        <i data-lucide="lock" class="w-3 h-3"></i>
+        Mostrar dato queda registrado en audit log
+      </div>
+    </div>
+
+    <div class="px-4 py-3 border-b border-vitalia-border-soft">
+      <div class="text-[10.5px] font-bold tracking-wider text-vitalia-text-faint uppercase mb-2">Stage de decisión</div>
+      <div class="flex items-center gap-1.5">
+        <span class="text-[12px] font-semibold text-vitalia-purpura">Considerando</span>
+        <span class="text-[10px] text-vitalia-text-faint">(2 de 4)</span>
+      </div>
+      <div class="mt-1.5 flex items-center gap-1">
+        <div class="flex-1 h-1.5 bg-vitalia-success rounded-l"></div>
+        <div class="flex-1 h-1.5 bg-vitalia-purpura"></div>
+        <div class="flex-1 h-1.5 bg-vitalia-muted"></div>
+        <div class="flex-1 h-1.5 bg-vitalia-muted rounded-r"></div>
+      </div>
+      <div class="mt-1 flex justify-between text-[9px] text-vitalia-text-faint">
+        <span>Interesado</span>
+        <span class="text-vitalia-purpura font-semibold">Considerando</span>
+        <span>Reservar</span>
+        <span>Cerrada</span>
+      </div>
+    </div>
+
+    <div class="px-4 py-3 border-b border-vitalia-border-soft">
+      <div class="text-[10.5px] font-bold tracking-wider text-vitalia-text-faint uppercase mb-2">Oferta vinculada</div>
+      <div class="bg-vitalia-cian/8 border border-vitalia-cian/30 rounded-md p-2.5">
+        <div class="text-[12.5px] font-semibold text-vitalia-azul-marino">Blanqueamiento dental Premium</div>
+        <div class="text-[11px] text-vitalia-text-muted mt-0.5">$24.000 · 90 min · depósito 30%</div>
+        <button class="mt-2 text-[11px] text-vitalia-cian font-semibold flex items-center gap-1 hover:underline">
+          Ver oferta <i data-lucide="arrow-right" class="w-3 h-3"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="px-4 py-3 border-b border-vitalia-border-soft">
+      <div class="text-[10.5px] font-bold tracking-wider text-vitalia-text-faint uppercase mb-2">Próximo turno</div>
+      <div class="text-[12px] text-vitalia-text-faint">—</div>
+    </div>
+
+    <div class="px-4 py-3 border-b border-vitalia-border-soft">
+      <div class="text-[10.5px] font-bold tracking-wider text-vitalia-text-faint uppercase mb-2">Historial NPS</div>
+      <div class="text-[12px] text-vitalia-text-faint">—</div>
+    </div>
+
+    <div class="px-4 py-3 mt-auto">
+      <button class="w-full text-[12px] font-semibold text-vitalia-azul-marino border border-vitalia-border rounded-md py-2 hover:bg-vitalia-muted flex items-center justify-center gap-1">
+        <i data-lucide="lock" class="w-3.5 h-3.5"></i> Ver ficha completa
+      </button>
+    </div>
+  </aside>
+
+  <!-- Copilot rail Valeria 80px (Fase 2 shell ratificado Batch 1) -->
+  <aside class="w-[80px] bg-vitalia-azul-marino flex flex-col items-center py-4 gap-3">
+    <button class="w-12 h-12 rounded-full avatar-valeria text-white text-base font-bold flex items-center justify-center shadow-md">V</button>
+    <div class="text-[10px] font-semibold text-white text-center leading-tight">Valeria</div>
+    <button class="w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 text-white flex items-center justify-center" title="Nueva conversación">
+      <i data-lucide="plus" class="w-4 h-4"></i>
+    </button>
+    <div class="mt-auto text-[9px] text-white/70 text-center px-1 leading-tight">Pídele algo</div>
+  </aside>
+
+</div>
+
+<!-- Footer info -->
+<div class="bg-white border-t border-vitalia-border px-6 py-2 text-[10px] text-vitalia-text-faint flex items-center gap-3">
+  <span>Mockup ratificado <strong>v1 Batch 2</strong> · vitalia-ux-discovery · 2026-05-17</span>
+  <span class="text-vitalia-text-faint">|</span>
+  <span>Microcopy SSoT: <code class="bg-vitalia-muted px-1 rounded">vitalia/frontend/src/features/inbox/copy.ts</code></span>
+  <span class="text-vitalia-text-faint">|</span>
+  <span>REUSE base: <code class="bg-vitalia-muted px-1 rounded">nicolify/frontend/src/features/closer-studio/</code></span>
+</div>
+
+<script>
+  lucide.createIcons();
+
+  // State switcher
+  function setState(state, btn) {
+    document.querySelectorAll('.tab-btn').forEach(b => { b.classList.remove('tab-btn-active'); b.classList.add('tab-btn-inactive'); });
+    btn.classList.add('tab-btn-active'); btn.classList.remove('tab-btn-inactive');
+
+    const composer = document.getElementById('composer-area');
+    const typing = document.getElementById('typing-indicator');
+    const helpBanner = document.getElementById('help-banner');
+    const suggestBanner = document.getElementById('suggest-banner');
+    const adrianMsg = document.getElementById('msg-adrian-auto');
+    const sendButtons = document.getElementById('send-buttons');
+    const messages = document.getElementById('messages');
+    const composerTextarea = document.getElementById('composer-textarea');
+
+    // Reset
+    typing.classList.add('hidden');
+    helpBanner.classList.add('hidden');
+    suggestBanner.classList.add('hidden');
+    adrianMsg.style.display = '';
+    composer.style.display = '';
+    composerTextarea.value = '';
+    composerTextarea.placeholder = 'Escribe algo si quieres tomar la conversación…';
+    messages.style.display = '';
+    messages.style.opacity = '1';
+
+    if (state === 'empty') {
+      messages.innerHTML = `
+        <div class="flex flex-col items-center justify-center h-full text-center py-20">
+          <div class="w-20 h-20 rounded-full mb-5 avatar-valeria flex items-center justify-center text-white text-2xl font-bold shadow-lg">V</div>
+          <div class="text-[15px] font-bold text-vitalia-azul-marino mb-1.5">Aún no hay conversaciones</div>
+          <div class="text-[12.5px] text-vitalia-text-muted max-w-sm">Cuando lleguen pacientes interesados, Adrián los va a recibir con calidez. Puedes acompañar siempre.</div>
+        </div>
+      `;
+      composer.style.display = 'none';
+    } else if (state === 'agent-thinking') {
+      typing.classList.remove('hidden');
+      composerTextarea.placeholder = 'Adrián está respondiendo…';
+      composerTextarea.disabled = true;
+    } else if (state === 'agent-waiting-approval') {
+      suggestBanner.classList.remove('hidden');
+      adrianMsg.style.display = 'none';
+      composerTextarea.value = '¡Hola María! 😊 Para reservar el martes 12:00 te paso el link de depósito 30% ($7.200). Una vez confirmes el pago, tu turno queda asegurado: https://mpago.la/abcXYZ';
+      sendButtons.innerHTML = `
+        <button class="px-2.5 py-1.5 rounded text-[12px] font-medium border border-vitalia-border text-vitalia-text-muted hover:bg-vitalia-muted">Descartar</button>
+        <button class="px-2.5 py-1.5 rounded text-[12px] font-medium border border-vitalia-border text-vitalia-text-muted hover:bg-vitalia-muted">Editar</button>
+        <button class="px-3 py-1.5 rounded text-[12px] font-semibold bg-vitalia-success text-white hover:opacity-95 flex items-center gap-1">
+          Aprobar y enviar
+          <i data-lucide="check" class="w-3.5 h-3.5"></i>
+        </button>
+      `;
+      lucide.createIcons();
+    } else if (state === 'agent-failed') {
+      helpBanner.classList.remove('hidden');
+      composerTextarea.placeholder = 'Escribe tu mensaje a M. Rodríguez…';
+      composerTextarea.value = '';
+      sendButtons.innerHTML = `
+        <button class="px-3 py-1.5 rounded text-[12px] font-semibold bg-vitalia-azul-marino text-white hover:opacity-95 flex items-center gap-1">
+          Enviar
+          <i data-lucide="send" class="w-3.5 h-3.5"></i>
+        </button>
+      `;
+      lucide.createIcons();
+    } else {
+      composerTextarea.disabled = false;
+      sendButtons.innerHTML = `
+        <span class="text-[10px] text-vitalia-text-faint">Adrián va a enviar lo que escribas</span>
+        <button class="px-3 py-1.5 rounded text-[12px] font-semibold bg-vitalia-azul-marino text-white hover:opacity-95 flex items-center gap-1">
+          Enviar como Adrián
+          <i data-lucide="send" class="w-3.5 h-3.5"></i>
+        </button>
+      `;
+      lucide.createIcons();
+    }
+  }
+
+  // Segmented control demo
+  document.querySelectorAll('#seg-control .seg-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('#seg-control .seg-btn').forEach(b => {
+        b.classList.remove('seg-btn-active');
+        b.classList.add('seg-btn-inactive');
+      });
+      this.classList.add('seg-btn-active');
+      this.classList.remove('seg-btn-inactive');
+      const mode = this.dataset.mode;
+      const desc = document.getElementById('seg-description');
+      const composerTextarea = document.getElementById('composer-textarea');
+      if (mode === 'decide') {
+        desc.textContent = 'Adrián atiende solo y te avisa si necesita ayuda.';
+        composerTextarea.placeholder = 'Escribe algo si quieres tomar la conversación…';
+      } else if (mode === 'consulta') {
+        desc.textContent = 'Adrián te pasa cada respuesta antes de enviar.';
+        composerTextarea.placeholder = 'Adrián te sugiere esta respuesta. Edítala si quieres.';
+      } else {
+        desc.textContent = 'Tú respondes en esta conversación. Adrián queda en modo escucha.';
+        composerTextarea.placeholder = 'Escribe tu mensaje a M. Rodríguez…';
+      }
+    });
+  });
+
+  function setMode(mode) { /* simulate top header global selector — opcional */ }
+
+  function toggleActivity() {
+    const content = document.getElementById('activity-content');
+    const chev = document.getElementById('activity-chevron');
+    content.classList.toggle('hidden');
+    chev.style.transform = content.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,194 @@
+---
+capability_id: vitalia.ops.k8s-admin-deployment
+module: ops
+slug: k8s-admin-deployment
+status: deprecated
+date_introduced: 2026-05-18
+story_introduced: vitalia-auth-base-functional
+package_version: vitalia-deploy@0.1.0
+package_path: vitalia/deploy/
+license: proprietary
+
+# v3 cement 2026-05-27 · 4 dimensiones + dev_preview (ADR-vitalia-005)
+tech_module: ops
+agent_owner: seguridad-cumplimiento
+functional_area: seguridad-cumplimiento.scaffolding
+user_visible: false
+nature: scaffold
+ui_paradigm: slice-1-superseded  # T-3 reconcile 2026-05-29
+
+user_facing_name: "Deployment k8s del admin Streamlit"
+user_facing_description: >
+  Manifests Kubernetes para el panel admin Streamlit de Vitalia (Deployment,
+  Service, Ingress con TLS cert-manager) más Dockerfile y script de smoke
+  post-deploy con cinco verificaciones. Accesible en el subdominio
+  vitalia-admin.vitalialat.com en el ambiente productivo.
+
+dev_preview:
+  route: null
+  how_to_navigate: "Infra scaffolding · no navegable directamente"
+  main_component: null
+  api_endpoints: []
+  e2e_test: null
+  fixtures_required: []
+  storybook_url: null
+  loom_demo: null
+
+# Capability ledger v2 (cement 2026-05-27)
+created_in_story: vitalia-auth-base-functional   # v2 cement · mirror of story_introduced
+created_date: 2026-05-18   # v2 cement · mirror of date_introduced
+last_modified: 2026-05-29   # T-3 reconcile 2026-05-29
+parent_cap: null   # v2 cement · mirror of extends_capability
+derives_capabilities: []   # v2 cement · initial empty list
+
+# Capability ledger v2 (cement 2026-05-27)
+
+# Capability change log v2 (cement 2026-05-27)
+change_log:
+  - story_id: vitalia-auth-base-functional
+    date: 2026-05-18
+    type: new
+    summary: "Implementación inicial · migración legacy a schema v2"
+    merge_sha: null
+    status: done
+  - story_id: vitalia-auth-base-functional
+    date: 2026-05-28
+    type: extend
+    summary: "backfill scenarios desde spec archivado"
+    scenarios_added:
+      - manifests-k8s-validos
+      - smoke-post-deploy-cinco-checks
+      - generar-hash-password-admin
+      - admin-pod-accesible-via-ingress
+    merge_sha: null
+    status: done
+
+scenarios:
+  - id: manifests-k8s-validos
+    name: "Los manifests de Kubernetes del admin son válidos y aplicables"
+    actor: infra
+    status: live
+    given: "Manifests Deployment, Service e Ingress del admin Streamlit en vitalia/deploy/k8s/"
+    when: "Se validan los YAML y se aplican con kubectl al namespace vitalia"
+    then: "Los manifests parsean sin error · Deployment con envFrom vitalia-secrets y livenessProbe /healthz · Service ClusterIP 8501 · Ingress con TLS cert-manager"
+    e2e_test: null
+    story_spec_ref: "vitalia/docs/archive/2026/stories/vitalia-auth-base-functional/01-spec.md"
+    atomic_ref: null
+    edge_cases:
+      - "Namespace vitalia inexistente → kubectl apply falla (pre-req manual gate Chris)"
+    added_in_story: vitalia-auth-base-functional
+    added_date: 2026-05-18
+  - id: smoke-post-deploy-cinco-checks
+    name: "El smoke post-deploy verifica las cinco comprobaciones de salud"
+    actor: infra
+    status: live
+    given: "Deploy del admin Streamlit y la app web completado en el ambiente productivo"
+    when: "Se ejecuta el script post_deploy_smoke.sh"
+    then: "Verifica pods Ready · health de la app 200 · healthz del admin Streamlit 200 · redirect 307 a sign-in (middleware Clerk activo) · sign-in 200 con 'Iniciar sesión' · exit 1 si cualquier check falla"
+    e2e_test: null
+    story_spec_ref: "vitalia/docs/archive/2026/stories/vitalia-auth-base-functional/01-spec.md"
+    atomic_ref: null
+    edge_cases:
+      - "Cualquier check falla → exit 1 (gate de deploy)"
+    added_in_story: vitalia-auth-base-functional
+    added_date: 2026-05-18
+  - id: generar-hash-password-admin
+    name: "Se genera el hash bcrypt de la contraseña del admin"
+    actor: infra
+    status: live
+    given: "Operador con acceso al script generate_admin_password_hash.sh"
+    when: "Ejecuta el script con la contraseña del admin"
+    then: "Produce el hash bcrypt para el secret VITALIA_ADMIN_PASSWORD_HASH del namespace vitalia"
+    e2e_test: null
+    story_spec_ref: "vitalia/docs/archive/2026/stories/vitalia-auth-base-functional/01-spec.md"
+    atomic_ref: null
+    edge_cases:
+      - "Follow-up pendiente: refactor env-var para mitigar shell injection (contexto trusted-operator local aceptable por ahora)"
+    added_in_story: vitalia-auth-base-functional
+    added_date: 2026-05-18
+  - id: admin-pod-accesible-via-ingress
+    name: "El admin Streamlit es accesible en su subdominio con TLS"
+    actor: infra
+    status: live
+    given: "Deploy aplicado con DNS de vitalia-admin.vitalialat.com apuntando al ingress controller y cert-manager configurado"
+    when: "Se hace una petición de salud al subdominio del admin"
+    then: "El healthz del admin responde 200 sobre HTTPS con certificado TLS válido"
+    e2e_test: null
+    story_spec_ref: "vitalia/docs/archive/2026/stories/vitalia-auth-base-functional/01-spec.md"
+    atomic_ref: null
+    edge_cases: []
+    added_in_story: vitalia-auth-base-functional
+    added_date: 2026-05-18
+map_box: seguridad-cumplimiento
+
+---
+
+# K8s Admin Deployment — Vitalia
+
+Manifests + Dockerfile + scripts para deployment del admin Streamlit Vitalia en K8s (subdomain `vitalia-admin.vitalialat.com`, port 8501).
+
+## Surfaces
+
+- **Config:**
+  - `vitalia/deploy/Dockerfile.admin` (python:3.12-slim + streamlit + passlib + clerk-backend-api, EXPOSE 8501)
+  - `vitalia/deploy/k8s/admin-deployment.yaml` (Deployment vitalia-admin, replicas 1, envFrom vitalia-secrets, livenessProbe /healthz)
+  - `vitalia/deploy/k8s/admin-service.yaml` (ClusterIP port 8501)
+  - `vitalia/deploy/k8s/admin-ingress.yaml` (host vitalia-admin.vitalialat.com, TLS cert-manager)
+  - `vitalia/deploy/k8s/secrets.template.yaml` (EDIT — added `VITALIA_ADMIN_PASSWORD_HASH`)
+  - `vitalia/.env.dev.template` (EDIT — added admin password vars)
+- **Scripts:**
+  - `vitalia/deploy/scripts/post_deploy_smoke.sh` (automated 5-check smoke; bash strict)
+  - `vitalia/deploy/scripts/generate_admin_password_hash.sh` (bcrypt helper — auditor flagged shell injection mitigation needed in follow-up ticket; trusted-operator local context acceptable for now)
+
+## Comportamiento
+
+### Build + Deploy
+```bash
+docker build -f vitalia/deploy/Dockerfile.admin -t registry/vitalia-admin:latest vitalia/backend
+docker push registry/vitalia-admin:latest
+kubectl apply -f vitalia/deploy/k8s/admin-*.yaml
+kubectl rollout restart deployment/vitalia-admin -n vitalia
+```
+
+### Post-deploy smoke (5 checks)
+1. `kubectl get pods -n vitalia` → all Ready (10s timeout per pod)
+2. `curl -fsS https://dev-app.vitalialat.com/api/health` → 200 JSON {status:"ok"}
+3. `curl -fsS https://vitalia-admin.vitalialat.com/healthz` → 200 (Streamlit native)
+4. `curl -fsS https://dev-app.vitalialat.com/` → 307 to /sign-in (Clerk middleware active)
+5. `curl -fsS https://dev-app.vitalialat.com/sign-in` → 200 HTML contains "Iniciar sesión"
+
+Exit 1 si cualquier check falla.
+
+## Verification
+
+```yaml
+commands:
+  - "bash -n vitalia/deploy/scripts/post_deploy_smoke.sh"
+  - "bash -n vitalia/deploy/scripts/generate_admin_password_hash.sh"
+  - "python3 -c 'import yaml,glob; [yaml.safe_load(open(f)) for f in glob.glob(\"vitalia/deploy/k8s/admin-*.yaml\")]'"
+  - "bash vitalia/deploy/scripts/post_deploy_smoke.sh  # LIVE post-deploy"
+gherkin_evidence:
+  - SC-17: "vitalia/deploy/scripts/post_deploy_smoke.sh (PENDING_DEPLOY)"
+```
+
+## Dependencies (cluster pre-reqs — Chris manual gate)
+
+- Namespace `vitalia` existe
+- Secret `vitalia-secrets` con keys:
+  - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`, `CLERK_ISSUER`
+  - `VITALIA_CLERK_WEBHOOK_SECRET` (NEW — Chris from Clerk dashboard webhook config)
+  - `VITALIA_ADMIN_PASSWORD_HASH` (NEW — bcrypt from `generate_admin_password_hash.sh`)
+- DNS `vitalia-admin.vitalialat.com` apunta a ingress controller
+- cert-manager letsencrypt issuer configurado
+
+## Follow-up ticket required
+
+Per auditor-backend WARNs (non-blocking):
+1. `generate_admin_password_hash.sh` env-var refactor (replace shell interpolation)
+2. envFrom least-privilege secrets refactor (admin pod scope only)
+3. Streamlit XSRF + nginx proxy headers gap
+
+## Notes
+
+- T-5 commit e1c2315.
+- Pre_t5_chris_checklist (8 items) blocks actual `kubectl apply` execution.

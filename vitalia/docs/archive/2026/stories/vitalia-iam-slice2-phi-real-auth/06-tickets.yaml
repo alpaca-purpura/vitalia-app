@@ -1,0 +1,135 @@
+# 06-tickets — vitalia-iam-slice2-phi-real-auth
+# Build SUPERVISADO (autonomous_mode: false — auth/PHI). Todos sonnet, NO agentic, NO opus-required.
+story_id: vitalia-iam-slice2-phi-real-auth
+brand: vitalia
+schema_version: v4.1
+architecture_pattern: ADR-vitalia-004
+adr_004_compliance: n/a-with-rationale
+autonomous_mode: false
+
+# DAG: T-1 (auth core) -> T-2 (repos wire) -> T-3 (FE hook)
+# T-3 depende de T-1 (necesita rol-from-DB resuelto + /me consumible)
+dag:
+  - { id: T-1, depends_on: [] }
+  - { id: T-2, depends_on: [T-1] }
+  - { id: T-3, depends_on: [T-1] }
+
+tickets:
+
+  - id: T-1
+    title: "BE-auth core — decoder JWKS real + rol desde DB"
+    surface: BE
+    production_code: true
+    owner_eligibility: [opencode, sonnet, opus]
+    gherkin_coverage: [SC-1, SC-4]
+    deliverables:
+      - "clerk_jwt_decoder.py: decode() usa verify_token_payload (engine JWKS); stub solo VITALIA_AUTH_STUB=1 + token stub: (AD-4)"
+      - "clinic_resolver.py: rol desde user_tenants.role (DB) por (user_id, tenant_id) via UserTenantModel engine import; sub->uuid via UserModel.clerk_id; ClinicContext shape intacto"
+      - "tests/architecture/test_auth_stub_env_gate.py (NEW): runtime no setea VITALIA_AUTH_STUB"
+      - "unit tests RED-first: decoder JWKS-vs-stub gate + resolver rol-from-DB"
+      - "integration tests RED-first: SC-1 (doctor JWT real->PHI 200) + SC-4 (invalido/expirado/stub-legacy->401) en test_phi_real_auth.py"
+    assignment:
+      primary_agent: builder-backend
+      model_preference: sonnet
+      must_load_skills:
+        - backend-expert
+        - tessl__fastapi
+        - tessl__pytest-api-testing
+        - .claude/rules/tenant-isolation.md
+        - .claude/rules/backend-ddd.md
+        - .claude/rules/anti-duplication.md
+        - .claude/rules/tdd-mandatory.md
+        - vitalia/.claude/rules/hipaa-lite.md
+      must_load_artifacts:
+        - "vitalia/docs/product/stories/vitalia-iam-slice2-phi-real-auth/01-spec.md § SC-1, SC-4"
+        - "vitalia/docs/product/stories/vitalia-iam-slice2-phi-real-auth/03-arch.md § 1,2,7 + Existing systems audit + AD-2/AD-4"
+        - "vitalia/docs/product/stories/vitalia-iam-slice2-phi-real-auth/04-validators.yaml § cat-1, cat-2, scenario_coverage SC-1/SC-4"
+        - "vitalia/docs/product/stories/vitalia-iam-slice2-phi-real-auth/05-guidelines.md"
+      forbidden_to_touch:
+        - "core/luana-core-*/src/"
+        - "nicolify/"
+        - "comunify/"
+        - "lupulo/"
+        - "vitalia/backend/src/modules/vitalia/{copilot,sales_agent}/"
+        - "vitalia/backend/src/modules/vitalia/_shared/auth/rbac.py"
+        - "vitalia/backend/src/modules/vitalia/_shared/repositories/audit_log_repository.py"
+      rationale: "BE auth wiring non-agentic; consume engine JWKS+user_tenants via import. Sonnet sweet spot. NO opus (no toca copilot/sales_agent). Build supervisado por auth/PHI."
+
+  - id: T-2
+    title: "BE repos-wire — cablear repos PHI reales (DI) en crm/consent/marketing/inbox"
+    surface: BE
+    production_code: true
+    owner_eligibility: [opencode, sonnet, opus]
+    gherkin_coverage: [SC-1, SC-2, SC-3]
+    deliverables:
+      - "crm/router.py + consent_endpoints.py: quitar AsyncMock() inline; repos reales (PatientRepository/LeadRepository/AuditLogRepository) via Depends(get_async_session)"
+      - "marketing/deps.py + routes.py: verify_role/get_clinic_context usan rol desde DB (consumen resolver T-1)"
+      - "inbox/router.py: repos reales + rol desde DB"
+      - "confirmar repo real existe para CADA endpoint PHI; si falta -> sub-scope explicito en T-2-impl-log.md § Sub-scope (OQ-1), NO inventar repo"
+      - "integration tests RED-first: SC-2 (recepcion/marketing->403) + SC-3 (cross-tenant 404 / cross-clinic 403) en test_phi_real_auth.py"
+      - "arch fitness EXTEND verde: test_phi_dual_filter + test_audit_log_sync_write + test_audit_log_row_per_phi_endpoint + test_response_model_required + test_no_phi_in_url_params"
+    assignment:
+      primary_agent: builder-backend
+      model_preference: sonnet
+      must_load_skills:
+        - backend-expert
+        - tessl__fastapi
+        - tessl__pytest-api-testing
+        - .claude/rules/tenant-isolation.md
+        - .claude/rules/backend-ddd.md
+        - .claude/rules/tdd-mandatory.md
+        - .claude/rules/test-design-doctrine.md
+        - vitalia/.claude/rules/hipaa-lite.md
+      must_load_artifacts:
+        - "vitalia/docs/product/stories/vitalia-iam-slice2-phi-real-auth/01-spec.md § SC-2, SC-3 + Consumers afectados"
+        - "vitalia/docs/product/stories/vitalia-iam-slice2-phi-real-auth/03-arch.md § 3,4,6 + Integration design + OQ-1"
+        - "vitalia/docs/product/stories/vitalia-iam-slice2-phi-real-auth/04-validators.yaml § cat-3, cat-4, scenario_coverage SC-2/SC-3"
+        - "vitalia/docs/product/stories/vitalia-iam-slice2-phi-real-auth/05-guidelines.md"
+      forbidden_to_touch:
+        - "core/luana-core-*/src/"
+        - "nicolify/"
+        - "comunify/"
+        - "lupulo/"
+        - "vitalia/backend/src/modules/vitalia/{copilot,sales_agent}/"
+        - "vitalia/backend/src/modules/vitalia/_shared/auth/rbac.py"
+        - "vitalia/backend/src/modules/vitalia/_shared/repositories/audit_log_repository.py"
+        - "vitalia/backend/src/modules/vitalia/iam/"   # T-1 owns iam; T-2 solo consume
+      rationale: "Wiring DI de repos reales existentes; reemplaza deuda AsyncMock. Non-agentic, Sonnet. Depende de T-1 (rol-from-DB resuelto)."
+
+  - id: T-3
+    title: "FE hook — useCurrentUser rol desde /me (1 fuente verdad DB)"
+    surface: FE
+    production_code: true
+    owner_eligibility: [opencode, sonnet, opus]
+    gherkin_coverage: []   # cambio FE de fuente de rol; cubierto por unit + verificacion supervisada
+    deliverables:
+      - "useCurrentUser.ts: rol desde GET /api/v1/iam/users/me (React Query) en vez de Clerk publicMetadata.role"
+      - "shape CurrentUser intacto (consumers RequireRole/usePiiRoleGate sin cambios)"
+      - "confirmar shape engine /me cubre el hook (OQ-2); si no -> marcar en T-3-impl-log.md (cero edit engine)"
+      - "vitest RED-first: success/loading/error del hook"
+      - "NO tocar components/ui/, layout, useClinicId"
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: sonnet
+      must_load_skills:
+        - frontend-expert
+        - vitalia-design-system
+        - tessl__react-patterns
+        - tessl__vitest
+        - .claude/rules/frontend-fsd.md
+        - .claude/rules/spanish-text.md
+        - .claude/rules/tdd-mandatory.md
+      must_load_artifacts:
+        - "vitalia/docs/product/stories/vitalia-iam-slice2-phi-real-auth/01-spec.md § DONE point 6 + Q1"
+        - "vitalia/docs/product/stories/vitalia-iam-slice2-phi-real-auth/03-arch.md § 5 + AD-3 + OQ-2"
+        - "vitalia/docs/product/stories/vitalia-iam-slice2-phi-real-auth/04-validators.yaml § cat-5"
+        - "vitalia/docs/product/stories/vitalia-iam-slice2-phi-real-auth/05-guidelines.md"
+      forbidden_to_touch:
+        - "core/luana-core-*/src/"
+        - "nicolify/"
+        - "comunify/"
+        - "lupulo/"
+        - "vitalia/frontend/src/components/ui/"
+        - "vitalia/frontend/src/app/**/layout.tsx"
+        - "vitalia/frontend/src/hooks/useClinicId.ts"
+      rationale: "Cambio FE minimo (fuente del rol) a hook existente. NO sub-tab UI -> ADR-004 n/a. Sonnet. Depende de T-1 (/me devuelve rol DB)."

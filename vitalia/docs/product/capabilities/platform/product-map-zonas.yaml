@@ -1,0 +1,181 @@
+---
+# cap: platform.product-map-zonas
+capability_id: vitalia.platform.product-map-zonas
+module: platform
+slug: product-map-zonas
+status: live
+date_introduced: 2026-05-30
+story_introduced: vitalia-paradigm-map-zones
+package_version: vitalia@0.2.0
+package_path: scripts/map_zones_migration.py
+license: brand-local
+
+# 5th dimension (ADR-vitalia-005 v2)
+tech_module: platform
+agent_owner: plataforma-tecnica
+functional_area: plataforma-tecnica.map
+map_box: plataforma-tecnica
+user_visible: false
+nature: scaffold
+ui_paradigm: none
+
+user_facing_name: "Mapa de zonas del producto (taxonomía 3 zonas)"
+user_facing_description: >
+  Taxonomía de 3 zonas (Agentes · Plataforma · Infraestructura) y 12 cajas
+  que organiza todas las capabilities del producto Vitalia. Habilita la
+  navegación del mapa en el cockpit por zona y la generación del índice
+  de acciones. Documentación técnica — no user-facing en la shell.
+
+dev_preview:
+  route: null
+  how_to_navigate: "Cockpit: /functionality → map view por zonas (tool-scope F3)"
+  main_component: "scripts/map_zones_migration.py"
+  api_endpoints: []
+  e2e_test: null
+  fixtures_required: []
+  storybook_url: null
+  loom_demo: null
+
+# Capability ledger v2
+created_in_story: vitalia-paradigm-map-zones
+created_date: 2026-05-30
+last_modified: 2026-05-30
+parent_cap: null
+derives_capabilities: []
+
+change_log:
+  - story_id: vitalia-paradigm-map-zones
+    date: 2026-05-30
+    type: new
+    scenarios_added:
+      - map-zones-migration-idempotente
+      - validate-system-map-map-box-aware
+      - actions-index-generado
+    summary: >
+      Migración de taxonomía: re-tag de 48 caps con map_box (5ª dimensión
+      ADR-vitalia-005 v2). Nuevo: zones 3 zonas · 12 cajas · SYSTEM-MAP
+      promovido · validate_system_map map_box-aware · actions-index generator.
+    merge_sha: null
+    status: done
+
+access:
+  entry_points: []
+  forbidden_roles: []
+  authentication: none
+
+scenarios:
+  - id: map-zones-migration-idempotente
+    name: "Script de migración re-tag 48 caps con map_box (idempotente)"
+    actor: developer
+    status: live
+    given: "Caps vitalia con agent_owner config/infra/valeria sin map_box"
+    when: "Se ejecuta scripts/map_zones_migration.py --brand vitalia --apply"
+    then: >
+      48 caps tienen map_box válido · user_visible alineado a zona ·
+      agent_owner actualizado · segunda corrida = no-op (idempotente) ·
+      HALT sin asignar default si cap no mapea
+    e2e_test: "scripts/tests/test_map_zones_migration.py"
+    story_spec_ref: "vitalia/docs/product/stories/vitalia-paradigm-map-zones/01-spec.md"
+    atomic_ref: null
+    edge_cases:
+      - "Cap sin functional_area matching → HALT (SC-3) — NUNCA asigna default"
+      - "Cap con map_box inválido existente → HALT (SC-5)"
+      - "Re-run = no-op (SC-4 idempotencia)"
+    added_in_story: vitalia-paradigm-map-zones
+    added_date: 2026-05-30
+
+  - id: validate-system-map-map-box-aware
+    name: "validate_system_map acepta 12 cajas válidas y rechaza box inventado"
+    actor: developer
+    status: live
+    given: "Caps con map_box seteado tras migración"
+    when: "Se ejecuta scripts/validate_system_map.py --brand vitalia"
+    then: "Exit 0 · valida map_box ∈ {12 cajas} · user_visible coherente con zona"
+    e2e_test: null
+    story_spec_ref: "vitalia/docs/product/stories/vitalia-paradigm-map-zones/01-spec.md"
+    atomic_ref: null
+    edge_cases:
+      - "map_box inventado → error CAP_MAP_BOX_INVALID"
+      - "user_visible true en Infra cap → error CAP_USER_VISIBLE_MISMATCH"
+    added_in_story: vitalia-paradigm-map-zones
+    added_date: 2026-05-30
+
+  - id: actions-index-generado
+    name: "actions-index generado y regenerable (SC-7)"
+    actor: developer
+    status: live
+    given: "Caps migradas con map_box + _code-index.json existente"
+    when: "Se ejecuta scripts/generate_actions_index.py --brand vitalia"
+    then: "_actions-index.json generado con acción→cap→{route,api_endpoints,main_component,e2e_test}"
+    e2e_test: null
+    story_spec_ref: "vitalia/docs/product/stories/vitalia-paradigm-map-zones/01-spec.md"
+    atomic_ref: null
+    edge_cases:
+      - "Re-run regenera sin error (idempotente)"
+      - "Cap sin dev_preview → incluida con campos vacíos"
+    added_in_story: vitalia-paradigm-map-zones
+    added_date: 2026-05-30
+
+business_rules:
+  - id: halt-no-silent
+    rule: >
+      La migración NUNCA asigna una caja por defecto a una cap sin mapeo.
+      Si una cap no puede ser mapeada → exit 1 + lista explícita.
+    enforcement:
+      - "vitalia/docs/product/stories/vitalia-paradigm-map-zones/03-arch.md § 2.1"
+    code_ref: "scripts/map_zones_migration.py"
+    severity: critical
+    audit_trail: false
+  - id: zone-derivation
+    rule: >
+      La zona (Agentes/Plataforma/Infraestructura) se DERIVA del map_box vía
+      SYSTEM-MAP.yaml zones[].boxes — NUNCA se escribe por cap.
+      user_visible se alinea automáticamente (Infra → false, resto → true).
+    enforcement:
+      - "vitalia/docs/architecture/ADR-vitalia-005-capability-model-4-dimensions.md"
+    code_ref: "scripts/map_zones_migration.py"
+    severity: high
+    audit_trail: false
+  - id: idempotent-migration
+    rule: >
+      Re-ejecutar el script de migración en cualquier estado debe ser un no-op
+      si los caps ya tienen los valores correctos. Re-run = cero diffs.
+    enforcement:
+      - "scripts/tests/test_map_zones_migration.py::test_rerun_is_noop"
+    code_ref: "scripts/map_zones_migration.py"
+    severity: high
+    audit_trail: false
+
+related_capabilities:
+  depends_on:
+    - platform.vertical-medical-extension-sdk
+    - platform.shell-foundation-shadcn-tailwind-v4
+  enables: []
+  similar: []
+  obsoletes: []
+---
+
+# Mapa de zonas del producto — Vitalia
+
+Taxonomía cementada 2026-05-30 (ADR-vitalia-005 v2). Define las 3 zonas y 12 cajas
+que organizan todas las capabilities del producto.
+
+## Zonas y cajas
+
+| Zona | Cajas | user_visible |
+|---|---|---|
+| **Agentes** | lisa · mateo · adrian · lucas · camila | true |
+| **Plataforma** | acceso · onboarding · configuracion | true |
+| **Infraestructura** | seguridad-cumplimiento · observabilidad · plataforma-tecnica · motor-agentico | false |
+
+## Scripts
+
+- `scripts/map_zones_migration.py` — Re-tag idempotente de caps con map_box
+- `scripts/generate_actions_index.py` — Generador del índice de acciones (SC-7)
+- `scripts/validate_system_map.py` — Validador SYSTEM-MAP map_box-aware
+
+## SSoT
+
+- `vitalia/docs/architecture/SYSTEM-MAP.yaml` — zones[].target_boxes[].absorbs
+- `vitalia/docs/architecture/ADR-vitalia-005-capability-model-4-dimensions.md` — v2.0
+- `vitalia/docs/product/stories/vitalia-paradigm-map-zones/02-impact.md` — mapeo verbatim

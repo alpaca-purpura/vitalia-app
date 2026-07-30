@@ -1,0 +1,68 @@
+{
+  "schema_version": "1.0",
+  "pr_folder": "vitalia/docs/product/stories/vitalia-slice-1-marketing",
+  "brand": "vitalia",
+  "story_id": "vitalia-slice-1-marketing",
+  "ticket": "audit-2",
+  "iter": 2,
+  "command": "test-vitalia (scoped: marketing module + arch fitness + FE marketing)",
+  "command_alias": null,
+  "started_at": "2026-05-21T00:26:53Z",
+  "finished_at": "2026-05-21T00:27:45Z",
+  "duration_ms": 52000,
+  "exit_code": 0,
+  "raw_log_path": "vitalia/docs/product/stories/vitalia-slice-1-marketing/gate-logs/audit-2-marketing.log",
+  "gates": [
+    {
+      "name": "ruff-check",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": []
+    },
+    {
+      "name": "ruff-format",
+      "status": "PASS",
+      "errors_count": 0,
+      "summary": "152 files already formatted"
+    },
+    {
+      "name": "pytest-architecture",
+      "status": "PASS",
+      "errors_count": 0,
+      "summary": "270 passed, 2 warnings in 2.88s",
+      "first_5_errors": []
+    },
+    {
+      "name": "pytest-marketing-module",
+      "status": "PASS",
+      "errors_count": 0,
+      "summary": "157 passed, 1 skipped, 3 warnings in 1.06s (marketing + connections + workers)",
+      "first_5_errors": []
+    },
+    {
+      "name": "tsc",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": []
+    },
+    {
+      "name": "eslint",
+      "status": "PASS",
+      "errors_count": 0,
+      "first_5_errors": []
+    },
+    {
+      "name": "vitest-marketing",
+      "status": "PASS",
+      "errors_count": 0,
+      "summary": "19 test files, 116 tests passed (1.62s total)",
+      "first_5_errors": []
+    }
+  ],
+  "overall": {
+    "any_fail": false,
+    "fail_gate_names": [],
+    "summary": "7 gates executed: all PASS. 157 backend module tests (marketing + connections + workers), 270 arch fitness tests, 116 frontend tests. No lint/format violations. Ready for merge post auditor review."
+  },
+  "notes": "Story vitalia-slice-1-marketing audit-2 post AUDITOR_AUTO_FIX_LOOP (commit ac8ec6f3). Backend: ruff lint/format (0 errors) + arch fitness (270 tests) + marketing module tests (157 tests) all PASS. Frontend: tsc type-check + eslint + vitest marketing feature (116 tests) all PASS. No deferred gates. All scoped paths green (vitalia/{marketing,connections,agentic} + vitalia/frontend/src/features/marketing + related)."
+}

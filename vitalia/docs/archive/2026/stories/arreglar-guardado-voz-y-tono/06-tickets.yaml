@@ -1,0 +1,94 @@
+# 06-tickets.yaml (lite · bugfix) — arreglar-guardado-voz-y-tono
+# 3 tickets · todo brand-local vitalia · sin agentic · sin engine edit.
+
+story_id: arreglar-guardado-voz-y-tono
+brand: vitalia
+type: bugfix
+
+tickets:
+  - id: T-1
+    title: "BE fix root cause — repoint sanitize_payload → sanitize_phi_payload (audit + telemetry)"
+    surface: BE
+    production_code: true
+    module: audit
+    repro_verified: true
+    repro_evidence:
+      command: "curl -s -w '%{http_code}' -X PATCH http://127.0.0.1:8002/api/v1/lisa/marca/personality -H 'X-Tenant-ID: 00000000-0000-0000-0000-000000000000' -H 'X-User-ID: 00000000-0000-0000-0000-000000000000' -H 'X-User-Role: owner' -H 'Content-Type: application/json' -d '{\"archetype\":\"sage\"}'"
+      output: |
+        500 Internal Server Error
+        marca_service.py:486 → audit_writer.py:90/186
+        TypeError: sanitize_payload() got an unexpected keyword argument 'compliance_level'
+      diagnosis_validates_handoff: true
+    deliverables:
+      - "vitalia/backend/src/modules/vitalia/audit/audit_writer.py — write_audit_log_sync (~90) + AsyncAuditWriter.write (~186): import sanitize_phi_payload; reemplazar sanitize_payload(payload, compliance_level='hipaa_lite') por sanitize_phi_payload(payload or {})"
+      - "vitalia/backend/src/modules/vitalia/_shared/telemetry/growth_studio_emitter.py (~147): idem sanitize_phi_payload(raw_props)"
+      - "Re-redactar docstrings que citan sanitize_payload(..., compliance_level='hipaa_lite') → sanitize_phi_payload"
+      - "vitalia/backend/tests/modules/vitalia/audit/test_audit_writer_sanitize.py (NEW): RED reproduce TypeError → GREEN; + test_phi_redacted (PHI fields → REDACTED)"
+    depends_on: []
+    blocks: [T-3]
+    acceptance:
+      validator_ids: [be_regression_audit_sanitize, arch_no_dead_compliance_kwarg, arch_tenant_isolation_personality, be_lint]
+    gherkin_coverage: [audit-write-no-typeerror, audit-personality-sin-phi, voz-arquetipo-autosave-persiste]
+    assignment:
+      primary_agent: builder-backend
+      model_preference: sonnet
+      must_load_skills: [backend-expert, tessl__pytest-api-testing, ".claude/rules/tdd-mandatory.md", ".claude/rules/test-design-doctrine.md", "vitalia/.claude/rules/hipaa-lite.md"]
+      forbidden_to_touch: ["core/luana-core-*/src/", "*/frontend/src/components/ui/", "{other_brand}/", "vitalia/frontend/src/lib/api/fetchClient.ts"]
+      rationale: "Fix BE mecánico (repoint a wrapper existente) + test regresión. Sonnet sweet spot. PHI redaction → cargar hipaa-lite."
+
+  - id: T-2
+    title: "BE fix contrato — camelCase alias en BrandPersonalityDTO + BrandPersonalityPatchDTO"
+    surface: BE
+    production_code: true
+    module: brand_studio
+    repro_verified: true
+    repro_evidence:
+      command: "curl -s -w '%{http_code}' -X PATCH .../personality -d '{\"soISpeak\":\"hola\"}' (headers owner)"
+      output: |
+        422 {"detail":[{"type":"extra_forbidden","loc":["body","soISpeak"],"msg":"Extra inputs are not permitted"}]}
+      diagnosis_validates_handoff: true
+    deliverables:
+      - "vitalia/backend/src/modules/vitalia/brand_studio/api/dtos/marca_dtos.py: BrandPersonalityDTO.model_config += populate_by_name=True, alias_generator=to_camel (from pydantic.alias_generators import to_camel)"
+      - "marca_dtos.py: BrandPersonalityPatchDTO.model_config += populate_by_name=True, alias_generator=to_camel (mantener extra='forbid')"
+      - "vitalia/backend/tests/modules/vitalia/brand_studio/test_patch_personality_audit.py (NEW): camelCase voice block (soISpeak) → 200; snake_case sigue aceptado; enum inválido → 422; campo genuinamente extra → 422; archetype 'sage' → 200; cross-tenant → 403/404; response emite camelCase (by_alias)"
+    depends_on: []
+    blocks: [T-3]
+    acceptance:
+      validator_ids: [be_patch_personality, be_lint, fe_typecheck, be_arch_fitness]
+    gherkin_coverage: [voz-bloque-edita-no-422, arquetipo-invalido-validacion, cross-tenant-personality-bloqueado, voz-arquetipo-autosave-persiste]
+    assignment:
+      primary_agent: builder-backend
+      model_preference: sonnet
+      must_load_skills: [backend-expert, tessl__pytest-api-testing, tessl__fastapi, ".claude/rules/tdd-mandatory.md", ".claude/rules/tenant-isolation.md"]
+      forbidden_to_touch: ["core/luana-core-*/src/", "{other_brand}/", "vitalia/frontend/src/", "vitalia/backend/src/modules/vitalia/brand_studio/api/dtos/marca_dtos.py::otros DTOs (solo los 2 personality)"]
+      rationale: "Alias camelCase localizado a 2 DTOs (fix request+response). No tocar FE. Sonnet."
+
+  - id: T-3
+    title: "E2E Playwright voz-y-tono autosave (backend real) + wire cap e2e_test"
+    surface: FE
+    production_code: false
+    module: lisa
+    deliverables:
+      - "vitalia/frontend/e2e/regression/arreglar-guardado-voz-y-tono/poms/voz-tono-section.pom.ts (NEW)"
+      - "vitalia/frontend/e2e/regression/arreglar-guardado-voz-y-tono/voz-arquetipo-autosave.spec.ts (NEW) — cambio arquetipo → saved + persiste (NO mock del API)"
+      - "vitalia/frontend/e2e/regression/arreglar-guardado-voz-y-tono/voz-bloque-autosave.spec.ts (NEW) — edita bloque → saved + persiste"
+      - "vitalia/frontend/e2e/regression/arreglar-guardado-voz-y-tono/voz-autosave-error.spec.ts (NEW) — mock route 5xx → badge error"
+      - "vitalia/frontend/e2e/a11y/arreglar-guardado-voz-y-tono.spec.ts (NEW) — axe wcag2aa + aria-live"
+      - "Ampliar vitalia/frontend/src/features/lisa/hooks/__tests__/usePersonalityAutosave.test.ts: cubrir camelCase payload (no solo mock genérico)"
+    depends_on: [T-1, T-2]
+    blocks: []
+    acceptance:
+      validator_ids: [e2e_voz_arquetipo_autosave, e2e_voz_bloque_autosave, e2e_voz_autosave_error, a11y_autosave_badge, fe_typecheck]
+    gherkin_coverage: [voz-arquetipo-autosave-persiste, voz-bloque-edita-no-422, autosave-error-muestra-badge, autosave-badge-aria-live]
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: sonnet
+      must_load_skills: [playwright-expert, frontend-expert, ".claude/rules/test-design-doctrine.md", "vitalia-design-system"]
+      forbidden_to_touch: ["core/luana-core-*/src/", "{other_brand}/", "vitalia/frontend/src/components/ui/", "vitalia/frontend/src/lib/api/fetchClient.ts"]
+      rationale: "E2E real (no mock del API → verde honesto, verification-real). Sonnet. Carga playwright-expert (Clerk auth, network mock)."
+
+dag: "T-1 ∥ T-2 (independientes) → T-3 (depende ambos)"
+
+# Nota merge (Fase F.3): wire e2e_test del scenario 'admin-define-voz-y-tono' (cap lisa-marca, hoy null) a
+# voz-arquetipo-autosave.spec.ts → cap pasa declared-live → verified-live. Si se agrega scenario nuevo
+# 'voz-arquetipo-autosave-persiste' al cap → reclasificar cap_change_type a 'extend'.

@@ -1,0 +1,24 @@
+"""Connections API dependencies — cross-module DI wiring.
+
+Centralizes imports of concrete adapters from other modules so that
+individual endpoint files depend only on shared port ABCs.
+
+Lift origin: backend/src/modules/connections/api/dependencies/__init__.py
+Story 7 T-16: resolves Stories 4+6 deferral — both luana_core_copilot AND
+luana_core_sales_agent now exist in luana-platform, enabling real
+ChatOrchestrator wiring.
+"""
+
+# DDD exception (intentional): this file IS the composition root for connections.
+# Its sole job is to wire ChatOrchestrator as the concrete MessageHandlerPort
+# implementation. The import of sales_agent here is correct DI wiring.
+from luana_core_platform.links.ports.message_handler import MessageHandlerPort
+from luana_core_sales_agent.application.orchestrator.chat import ChatOrchestrator
+
+# Singleton — ChatOrchestrator is stateless (no DB session in __init__).
+_message_handler: MessageHandlerPort = ChatOrchestrator()
+
+
+def get_message_handler() -> MessageHandlerPort:
+    """Return the message handler (ChatOrchestrator) singleton."""
+    return _message_handler

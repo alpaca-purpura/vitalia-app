@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>F2-S1 · CrearCita dropdown + form — Vitalia</title>
+<link rel="stylesheet" href="_shared.css">
+<style>
+  .demo-frame { padding: 24px; max-width: 1280px; margin: 0 auto; }
+  .demo-card {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  .form-section-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 12px;
+    margin-top: 16px;
+  }
+  .form-section-title:first-child { margin-top: 0; }
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .form-grid-full { grid-column: 1 / -1; }
+  .autocomplete-result {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .autocomplete-result:hover { background: var(--bg-hover); }
+  .autocomplete-result:last-child { border-bottom: none; }
+  .autocomplete-name { font-weight: 600; font-size: 13px; }
+  .autocomplete-meta { font-size: 11px; color: var(--text-muted); }
+  .form-cols-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+</style>
+</head>
+<body>
+
+<button class="theme-btn" onclick="toggleTheme()" style="position:fixed;top:16px;right:16px;z-index:200">🌓 Tema</button>
+
+<div class="demo-frame">
+  <div class="mockup-header">
+    <div>
+      <div class="mockup-title">CrearCita · dropdown + form unificado</div>
+      <div class="mockup-subtitle">3 opciones origen · paciente autocomplete crm.patient API · form pre-cargado por origen</div>
+    </div>
+  </div>
+
+  <!-- Dropdown abierto -->
+  <div class="demo-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div>
+        <h3 style="font-size:13px;font-weight:700">1) Dropdown abierto (click "+ Crear cita ▾")</h3>
+        <p class="muted text-xs">3 opciones origen · cada una abre el form pre-cargado con <code>origin</code> field</p>
+      </div>
+    </div>
+    <div style="position:relative;display:inline-block">
+      <button class="btn btn-primary">+ Crear cita ▾</button>
+      <div class="dropdown-content" style="position:static;margin-top:8px;display:block;min-width:280px">
+        <div class="dropdown-item">
+          <span class="dropdown-item-icon" style="font-size:18px">👤</span>
+          <div>
+            <div style="font-weight:600">Paciente walk-in (nuevo)</div>
+            <div class="muted text-xs">Llegó a clínica · datos manualmente</div>
+          </div>
+        </div>
+        <div class="dropdown-item">
+          <span class="dropdown-item-icon" style="font-size:18px">📞</span>
+          <div>
+            <div style="font-weight:600">Reserva telefónica (nuevo)</div>
+            <div class="muted text-xs">Llamó por teléfono · paciente sin ficha aún</div>
+          </div>
+        </div>
+        <div class="dropdown-item">
+          <span class="dropdown-item-icon" style="font-size:18px">🔍</span>
+          <div>
+            <div style="font-weight:600">Desde paciente existente</div>
+            <div class="muted text-xs">Autocomplete <code>crm.patients</code> · PHI masked</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Form: 3 variants side by side -->
+  <h2 style="font-size:14px;font-weight:700;margin:24px 0 12px">Form unificado (3 modos)</h2>
+  <div class="form-cols-3">
+
+    <!-- Variant A: Walk-in -->
+    <div class="demo-card">
+      <h3 style="font-size:12px;font-weight:700;margin-bottom:4px"><span style="font-size:16px">👤</span> Walk-in</h3>
+      <p class="muted text-xs" style="margin-bottom:16px">origin=walk_in · paciente nuevo · datos manualmente</p>
+
+      <div class="form-section-title">Paciente nuevo</div>
+      <div class="form-field">
+        <label class="form-label">Nombre completo</label>
+        <input class="form-input" placeholder="Ej: María García" />
+      </div>
+      <div class="form-field">
+        <label class="form-label">DNI / documento</label>
+        <input class="form-input" placeholder="12345678" />
+      </div>
+      <div class="form-field">
+        <label class="form-label">Teléfono</label>
+        <input class="form-input" placeholder="+51 9XX XXX XXX" />
+      </div>
+
+      <div class="form-section-title">Turno</div>
+      <div class="form-field">
+        <label class="form-label">Doctor</label>
+        <select class="form-select">
+          <option>Dr. García</option><option>Dr. Ríos</option><option>Dra. Vega</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Servicio</label>
+        <select class="form-select">
+          <option>Limpieza dental</option><option>Endodoncia</option><option>Blanqueamiento</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Fecha y hora</label>
+        <input class="form-input" type="datetime-local" value="2026-05-26T09:00" />
+      </div>
+
+      <button class="btn btn-primary" style="width:100%;margin-top:12px">Crear cita</button>
+    </div>
+
+    <!-- Variant B: Teléfono -->
+    <div class="demo-card">
+      <h3 style="font-size:12px;font-weight:700;margin-bottom:4px"><span style="font-size:16px">📞</span> Teléfono</h3>
+      <p class="muted text-xs" style="margin-bottom:16px">origin=telefono · paciente nuevo · captura llamada</p>
+
+      <div class="form-section-title">Paciente nuevo</div>
+      <div class="form-field">
+        <label class="form-label">Nombre completo</label>
+        <input class="form-input" placeholder="Ej: Carlos Mendoza" />
+      </div>
+      <div class="form-field">
+        <label class="form-label">Teléfono (llamó desde)</label>
+        <input class="form-input" placeholder="+51 9XX XXX XXX" />
+      </div>
+      <div class="form-field">
+        <label class="form-label">DNI (opcional ahora · confirmará en clínica)</label>
+        <input class="form-input" placeholder="opcional" />
+      </div>
+
+      <div class="form-section-title">Turno</div>
+      <div class="form-field">
+        <label class="form-label">Doctor</label>
+        <select class="form-select"><option>Dr. García</option></select>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Servicio</label>
+        <select class="form-select"><option>Consulta inicial</option></select>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Fecha y hora</label>
+        <input class="form-input" type="datetime-local" value="2026-05-28T15:00" />
+      </div>
+      <div class="form-field">
+        <label class="form-label">Notas llamada</label>
+        <textarea class="form-textarea" placeholder="Ej: paciente prefiere tardes, primera consulta"></textarea>
+      </div>
+
+      <button class="btn btn-primary" style="width:100%;margin-top:12px">Crear cita</button>
+    </div>
+
+    <!-- Variant C: Desde paciente existente -->
+    <div class="demo-card">
+      <h3 style="font-size:12px;font-weight:700;margin-bottom:4px"><span style="font-size:16px">🔍</span> Desde existente</h3>
+      <p class="muted text-xs" style="margin-bottom:16px">origin=walk_in (sin lead capture) · autocomplete crm.patient</p>
+
+      <div class="form-section-title">Paciente existente</div>
+      <div class="form-field">
+        <label class="form-label">Buscar paciente</label>
+        <input class="form-input" value="hern" />
+        <div class="form-helper">Buscando "hern" · PHI masked en resultados</div>
+      </div>
+
+      <div style="border:1px solid var(--border);border-radius:var(--r-sm);overflow:hidden;margin-bottom:12px">
+        <div class="autocomplete-result" style="background:var(--bg-hover)">
+          <div class="avatar avatar-sm">PH</div>
+          <div style="flex:1">
+            <div class="autocomplete-name">P. Hernández</div>
+            <div class="autocomplete-meta">DNI 12.***.*** · última cita 21 May</div>
+          </div>
+        </div>
+        <div class="autocomplete-result">
+          <div class="avatar avatar-sm" style="background:var(--c-lisa-soft);color:var(--c-lisa)">RH</div>
+          <div style="flex:1">
+            <div class="autocomplete-name">R. Hernández</div>
+            <div class="autocomplete-meta">DNI 76.***.*** · última cita 14 Feb</div>
+          </div>
+        </div>
+        <div class="autocomplete-result">
+          <div class="avatar avatar-sm" style="background:var(--c-camila-soft);color:var(--c-camila)">JH</div>
+          <div style="flex:1">
+            <div class="autocomplete-name">J. Hernández</div>
+            <div class="autocomplete-meta">DNI 88.***.*** · última cita 03 Abr</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section-title">Turno</div>
+      <div class="form-field">
+        <label class="form-label">Doctor</label>
+        <select class="form-select"><option>Dr. García (último doctor del paciente)</option></select>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Servicio</label>
+        <select class="form-select"><option>Limpieza dental</option></select>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Fecha y hora</label>
+        <input class="form-input" type="datetime-local" />
+      </div>
+
+      <button class="btn btn-primary" style="width:100%;margin-top:12px">Crear cita para P. Hernández</button>
+    </div>
+
+  </div>
+
+  <!-- Mobile FAB ref -->
+  <div class="demo-card">
+    <h3 style="font-size:13px;font-weight:700;margin-bottom:4px">Mobile (&lt;768px) · FAB position</h3>
+    <p class="muted text-xs" style="margin-bottom:16px">Bottom-right floating · dropdown abre UP-direction</p>
+    <div style="position:relative;background:var(--bg-elevated);height:160px;border:1px solid var(--border);border-radius:var(--r-sm);overflow:hidden">
+      <div style="padding:12px;font-size:11px;color:var(--text-muted)">[Calendar día rendering · slots placeholders]</div>
+      <button class="btn btn-primary" style="position:absolute;bottom:12px;right:12px;border-radius:50%;width:48px;height:48px;padding:0;font-size:20px;justify-content:center" aria-label="Crear cita">+</button>
+    </div>
+  </div>
+
+</div>
+
+<div style="text-align:center;padding:24px">
+  <a href="agenda-cockpit-grid.html" class="muted text-sm">← Volver al cockpit índice</a>
+</div>
+
+<script>
+function toggleTheme() {
+  const html = document.documentElement;
+  const current = html.getAttribute('data-theme');
+  html.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark');
+}
+</script>
+
+</body>
+</html>

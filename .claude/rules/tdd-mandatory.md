@@ -1,0 +1,1 @@
+../../core-harness/rules/tdd-mandatory.md

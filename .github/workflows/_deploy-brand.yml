@@ -1,0 +1,105 @@
+name: "_deploy-brand (reusable)"
+
+# Workflow reutilizable: build imagen Docker → push GHCR → kubectl apply.
+# Invocado por cd-prod.yml (deploy a producción) y cd-staging.yml (deploy a staging).
+#
+# Anti-duplication: ESTE es el único lugar donde vive la lógica de build+push+kubectl.
+# PROHIBIDO duplicar estos steps en cd-prod.yml, cd-staging.yml ni en workflows por brand.
+# Ref: .claude/rules/anti-duplication.md + S-CICD-DEPLOY 05-guidelines.md § F5
+#
+# Arch ref: S-CICD-DEPLOY 03-arch.md § _deploy-brand.yml
+
+on:
+  workflow_call:
+    inputs:
+      brand:
+        description: "Brand slug (nicolify | vitalia | comunify | lupulo)"
+        required: true
+        type: string
+      version:
+        description: "Versión de imagen sin prefijo 'v' (ej: 0.3.0 para prod, git sha para staging)"
+        required: true
+        type: string
+      environment:
+        description: "Nombre del GitHub Environment (ej: vitalia-prod | vitalia-staging)"
+        required: true
+        type: string
+    secrets:
+      KUBECONFIG:
+        required: true
+      GHCR_TOKEN:
+        required: true
+
+jobs:
+  build-image:
+    name: "Build + push imagen (${{ inputs.brand }}:${{ inputs.version }})"
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_TOKEN }}
+
+      - name: Build y push imagen
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ inputs.brand }}/
+          file: ${{ inputs.brand }}/backend/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/alpacapurpura/${{ inputs.brand }}-backend:${{ inputs.version }}
+            ghcr.io/alpacapurpura/${{ inputs.brand }}-backend:latest
+          labels: |
+            org.opencontainers.image.source=${{ github.repositoryUrl }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ inputs.version }}
+
+  deploy-k8s:
+    name: "Deploy a K8s (${{ inputs.environment }})"
+    needs: build-image
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # GitHub Environment — controla gating manual y secretos por ambiente
+    # prod: requiere aprobación de Chris. staging: auto-deploy.
+    environment: ${{ inputs.environment }}
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Configurar kubeconfig desde secret base64
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBECONFIG }}" | base64 -d > ~/.kube/config  # generated from secret
+          chmod 600 ~/.kube/config
+
+      - name: Aplicar manifests K8s (idempotente)
+        run: |
+          kubectl apply -f ${{ inputs.brand }}/deploy/k8s/ -n ${{ inputs.brand }}
+
+      - name: Actualizar imagen del deployment
+        run: |
+          kubectl set image deployment/${{ inputs.brand }}-app \
+            ${{ inputs.brand }}-backend=ghcr.io/alpacapurpura/${{ inputs.brand }}-backend:${{ inputs.version }} \
+            -n ${{ inputs.brand }}
+
+      - name: Verificar rollout exitoso
+        run: |
+          kubectl rollout status deployment/${{ inputs.brand }}-app \
+            -n ${{ inputs.brand }} \
+            --timeout=120s

@@ -1,0 +1,182 @@
+---
+capability_id: vitalia-public-clinic-landing
+module: public_landing
+slug: public-clinic-landing
+status: live
+date_introduced: 2026-05-15
+story_introduced: luana-vitalia-bootstrap
+package_version: 0.1.0
+package_path: vitalia/frontend/src/app/public
+license: proprietary
+
+# v3 cement 2026-05-27 · 4 dimensiones + dev_preview (ADR-vitalia-005)
+tech_module: public_landing
+agent_owner: lisa
+functional_area: lisa.landing_public
+user_visible: true
+nature: feature
+ui_paradigm: public-landing  # T-3 reconcile 2026-05-29
+
+user_facing_name: "Landing pública de la clínica"
+user_facing_description: >
+  Página pública (sin necesidad de iniciar sesión) con la información de la clínica:
+  identidad, equipo médico, servicios ofrecidos y testimonio de pacientes.
+  Se genera automáticamente desde los datos configurados en el Brand Studio y el
+  catálogo de servicios. Incluye botón de reserva que lleva al flujo de booking.
+
+dev_preview:
+  route: "/public/{clinic-slug}"
+  how_to_navigate: "Navegar directamente a /public/aurora-dental-ba (sin login) · reemplazar el slug por el de la clínica del fixture"
+  main_component: "vitalia/frontend/src/app/public/[clinic-slug]/page.tsx"
+  api_endpoints:
+    - "GET /api/v1/vitalia/bookings (public, resolved by clinic_slug)"
+  e2e_test: null
+  fixtures_required: ["3-clinic-fixture-latam"]
+  storybook_url: null
+  loom_demo: null
+
+# Capability ledger v2 (cement 2026-05-27)
+created_in_story: luana-vitalia-bootstrap   # v2 cement · mirror of story_introduced
+created_date: 2026-05-15   # v2 cement · mirror of date_introduced
+parent_cap: null   # v2 cement · mirror of extends_capability
+derives_capabilities: []   # v2 cement · initial empty list
+
+# Capability ledger v2 (cement 2026-05-27)
+
+# Capability change log v2 (cement 2026-05-27)
+change_log:
+  - story_id: vitalia-bootstrap-inventory-2026-05-15
+    date: 2026-05-15
+    type: new
+    summary: "Implementación inicial · migración legacy a schema v2"
+    merge_sha: null
+    status: done
+  - story_id: vitalia-stub-caps-scenario-backfill
+    date: 2026-05-30
+    type: extend
+    summary: "backfill scenario+e2e → verified-live (deployed-visible); WRITE-thin spec para ruta pública sin auth"
+    added_in_story: vitalia-stub-caps-scenario-backfill
+    status: done
+
+last_modified: 2026-05-30
+
+access:
+  entry_points:
+    - path: "/public/{clinic-slug}"
+      navigation: "Navegar directamente a /public/aurora-dental-ba sin login · reemplazar el slug por el de la clínica del fixture"
+      requires_role: []
+      requires_clinic_scope: false
+      entry_type: ui
+    - path: "/public/{clinic-slug}/booking"
+      navigation: "Desde la landing pública · clic en botón 'Reservar turno' → flujo de booking embeddable o standalone"
+      requires_role: []
+      requires_clinic_scope: false
+      entry_type: ui
+  forbidden_roles: []
+  authentication: none
+
+scenarios:
+  - id: paciente-ve-landing-clinica
+    name: "Paciente sin cuenta accede a la landing pública de una clínica"
+    actor: patient
+    status: live
+    given: "Paciente llega a /public/aurora-dental-ba desde un enlace externo o búsqueda"
+    when: "Carga la página sin sesión Clerk activa"
+    then: "Ve identidad de la clínica · equipo médico · testimonios · servicios activos · botón 'Reservar turno' habilitado"
+    e2e_test: null
+    story_spec_ref: "vitalia/docs/archive/2026/stories/luana-vitalia-bootstrap/01-spec.md"
+    atomic_ref: null
+    edge_cases:
+      - "Slug de clínica inexistente → 404 page con mensaje amigable"
+      - "Clínica sin oferta activa → landing visible pero botón de reserva deshabilitado con mensaje 'sin disponibilidad'"
+      - "Clínica con logo no configurado → avatar placeholder institucional"
+    added_in_story: luana-vitalia-bootstrap
+    added_date: 2026-05-15
+  - id: paciente-inicia-reserva-desde-landing
+    name: "Paciente inicia el flujo de reserva desde la landing pública"
+    actor: patient
+    status: live
+    given: "Paciente en /public/aurora-dental-ba con servicios disponibles"
+    when: "Hace clic en el botón 'Reservar turno'"
+    then: "Navega a /public/aurora-dental-ba/booking · flujo de booking inicia sin requerir cuenta · tenant_id resuelto desde clinic_slug vía luana-core-iam"
+    e2e_test: null
+    story_spec_ref: "vitalia/docs/archive/2026/stories/luana-vitalia-bootstrap/01-spec.md"
+    atomic_ref: null
+    edge_cases:
+      - "Widget embebido en sitio web de la clínica: misma lógica vía UMD iframe"
+      - "Slot seleccionado ya ocupado por otro paciente concurrente → advisory lock devuelve error de disponibilidad"
+    added_in_story: luana-vitalia-bootstrap
+    added_date: 2026-05-15
+  - id: ruta-publica-carga-sin-auth
+    name: "Ruta /public/{slug} es accesible sin sesión Clerk (middleware lista la ruta como pública)"
+    actor: patient
+    status: live
+    given: "Paciente sin sesión Clerk activa accede a /public/aurora-dental-ba"
+    when: "Browser carga la URL directamente (sin token)"
+    then: "No hay redirección a /sign-in · la respuesta HTTP es 200 · el elemento <main> es visible · el slug aparece en la página (ruta pública per proxy.ts createRouteMatcher)"
+    e2e_test: "vitalia/frontend/e2e/public/public-clinic-landing.smoke.spec.ts"
+    verification_method: dev-app
+    story_spec_ref: "vitalia/docs/product/capabilities/public_landing/public-clinic-landing.yaml"
+    atomic_ref: null
+    added_in_story: vitalia-stub-caps-scenario-backfill
+    added_date: 2026-05-30
+
+business_rules:
+  - id: public-route-no-auth
+    rule: "Las rutas /public/* no requieren sesión Clerk · tenant_id se resuelve desde clinic_slug vía luana-core-iam sin token"
+    enforcement:
+      - ".claude/rules/tenant-isolation.md"
+    code_ref: "vitalia/frontend/src/proxy.ts"
+    severity: critical
+    audit_trail: false
+  - id: no-phi-in-public-landing
+    rule: "La landing pública no expone PHI de pacientes · solo información pública de la clínica (identidad, equipo, servicios, testimonios genéricos)"
+    enforcement:
+      - "vitalia/.claude/rules/hipaa-lite.md"
+    code_ref: "vitalia/frontend/src/app/public/[clinic-slug]/page.tsx"
+    severity: critical
+    audit_trail: false
+
+related_capabilities:
+  depends_on:
+    - auth.clerk-middleware
+    - iam.luana-core-adoption
+    - brand_studio.lisa-marca
+  enables:
+    - booking.prepaid-booking-advisory-locks
+  similar: []
+  obsoletes: []
+map_box: lisa
+
+---
+
+# vitalia-public-clinic-landing
+
+Landing page pública (sin auth) por clínica con slug propio. Renderiza identity + team + testimonials + ofertas activas + CTA de booking. Página dedicada `/public/{slug}/booking` para reserva embeddable o standalone.
+
+## Surface (`vitalia/frontend/src/app/public/`)
+
+- **`[clinic-slug]/page.tsx`** — landing pública (server component, sin auth)
+- **`[clinic-slug]/booking/page.tsx`** — flujo de booking público
+
+### Backend
+
+- Consume mismas APIs `/api/v1/vitalia/bookings/*` pero con autenticación pública por `clinic_slug` (sin Clerk session — tenant_id resuelto desde slug)
+
+## Test coverage
+
+- E2E smoke: cubierto indirectamente por `booking-prepaid-sanare.smoke.spec.ts`, `booking-deposit-aurora.smoke.spec.ts`, `booking-full-prepay-mindful.smoke.spec.ts` (estos flows arrancan desde landing pública)
+
+## Dependencies
+
+- `core/luana-core-iam` (resolución `clinic_slug → tenant_id` sin Clerk session)
+- `core/luana-core-brand-studio` (engine — render sections identity/team/testimonials)
+- `vitalia.application.services.booking_service`
+
+## Scenarios live
+
+- Paciente busca clínica → llega a `vitalia.com/public/aurora-dental-ba`
+- Ve identity + team + testimonials + ofertas activas
+- Click "Reservar turno" → flow `/public/aurora-dental-ba/booking`
+- Reserva sin necesidad de cuenta → MercadoPago redirect → confirmación email
+- Alternativa: clínica embebe widget UMD (ver capability `booking-widget-embed`)

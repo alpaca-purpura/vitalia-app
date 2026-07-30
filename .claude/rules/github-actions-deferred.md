@@ -1,0 +1,1 @@
+../../core-harness/rules/github-actions-deferred.md

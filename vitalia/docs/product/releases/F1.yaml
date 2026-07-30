@@ -1,0 +1,43 @@
+---
+# Release schema (v2 cement 2026-05-27)
+# Doc: docs/process/release-protocol.md
+# Path canónico: vitalia/docs/product/releases/F1.yaml
+
+release_id: F1
+brand: vitalia
+name: "Shell esqueleto · ribbon + routing + tokens + layout + empty"
+description: "Fase 1 shell-organism · 11 stories cementadas (F1-S0 stack-stability → F1-S10 empty-states). Topbar global + ribbon 6 tabs + sub-tabs + routing shell + design tokens + tenant switcher + Valeria rail/chat + layout 5050 + empty states."
+status: shipped
+target_date: null
+shipped_date: "2026-05-26"
+order: 1
+created_at: 2026-05-27T18:25:23-05:00
+created_by: scripts/migrate_to_release_schema.py
+
+stories:
+  - vitalia-fase1-shell-layout-5050-race-fix
+  - vitalia-fase1-design-tokens-theme
+  - vitalia-fase1-empty-states
+  - vitalia-fase1-ribbon-6-tabs
+  - vitalia-fase1-routing-shell
+  - vitalia-fase1-shell-layout-5050
+  - vitalia-fase1-stack-stability
+  - vitalia-fase1-sub-tabs-line2
+  - vitalia-fase1-tenant-switcher
+  - vitalia-fase1-topbar-global
+  - vitalia-fase1-valeria-chat-skeleton
+  - vitalia-fase1-valeria-rail-history
+
+---
+
+# F1 · Shell esqueleto · ribbon + routing + tokens + layout + empty
+
+> Fase 1 shell-organism · 11 stories cementadas (F1-S0 stack-stability → F1-S10 empty-states). Topbar global + ribbon 6 tabs + sub-tabs + routing shell + design tokens + tenant switcher + Valeria rail/chat + layout 5050 + empty states.
+
+## Stories incluidas
+
+<!-- Auto-poblado durante migración Phase 3 desde checkpoints reales -->
+
+## Notas del release
+
+(libre · Chris escribe aquí contexto adicional · decisiones · gotchas)

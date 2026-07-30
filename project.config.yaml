@@ -1,0 +1,286 @@
+# ════════════════════════════════════════════════════════════════════════
+#  project.config.yaml — THE SEAM (DIP contract for the harness CORE)
+# ════════════════════════════════════════════════════════════════════════
+#
+#  STATUS: ★ RATIFIED by Chris 2026-06-09 (W5a) — F1 = CENTRALIZED (per-brand facets nest
+#          here under brands[], = PROCESS-MODEL §4 shape) · F2/F3 defaults stand (root yaml,
+#          full roster/value_stream in the seam). ★ LIVE root file since W5b (2026-06-09):
+#          moved here from docs/process/harness-refactor-w5/project.config.PROPOSED.yaml;
+#          loader scripts/harness_config.py reads it; consumers (bash/python/cockpit) wired.
+#
+#  WHAT THIS IS: the single store of every PROJECT/BRAND/TECH-specific value the
+#  harness CORE (core-harness/) is written against. The CORE names ZERO concrete
+#  tech/brand/locale/engine/dev-app; it reads these abstract SLOTS. This file fills
+#  them for THIS product (luana-platform). A different product writes a different
+#  project.config.yaml — the CORE is unchanged. (charter §0.5 north-star · §3 seam)
+#
+#  HOW IT IS READ (verified date-aware against official Claude Code docs 2026-06-09):
+#    · bash / git-hooks  → `${WS}/.venv/bin/python -m harness_config <dotted.slot>`
+#    · python scripts    → `from harness_config import load` (same module, one parser)
+#    · cockpit TS        → server-only `lib/project-config.ts` (js-yaml, typed)
+#    · markdown (rules/skills/agents/templates, loaded as CONTEXT) → CONVENTION:
+#        the file writes `{slot}` + "(resolved from project.config.yaml)" and the
+#        MODEL Reads this yaml on demand. There is NO native interpolation for bare
+#        rules/CLAUDE.md/agents (confirmed: code.claude.com/docs/en/{memory,skills}).
+#        Optional skill-ONLY native upgrade: `` !`python -m harness_config <slot>` ``
+#        (never a hard dependency — `disableSkillShellExecution` can kill it).
+#
+#  EXTRACTION (the program DoD): drop core-harness/ + this file (every value
+#  __FILL_ME__) into a fresh repo → `python -m harness_config --doctor` lists the
+#  unfilled slots → fill them → idea→done runs without editing the CORE.
+#
+#  Sentinel for an unfilled slot: __FILL_ME__   (the doctor flags these)
+# ════════════════════════════════════════════════════════════════════════
+
+meta:
+  product: vitalia-app
+  config_version: 1
+  description: "Vitalia — SaaS multitenant Salud + Bienestar (standalone, extraído de luana-platform 2026-07-30; engine core/ vendored)"
+
+# ── SLOT 1 ──────────────────────────────────────────────────────────────
+#  brands[]  ·  replaces: `for B in nicolify vitalia comunify lupulo` hardcoded loops,
+#               UNIVERSES, BRAND_SLUGS, cockpit/dev-app port maps, the 10-brand loops.
+#  Per-brand facets (ports/dev_app/compliance/roster/value_stream) nest under each
+#  brand. live_verify_infra / agent_roster / value_stream CROSS-REFERENCE these
+#  (DRY — a port/dev-app lives here ONCE).
+#  ⚠ design fork flagged in W5-OUTPUT §F1: centralize here (this draft, = PROCESS-MODEL §4
+#    ratified shape) vs delegate per-brand facets to {brand}/config/brand.yaml (BRAND layer).
+brands:
+  cockpit_main_port: 4000          # cross-brand consolidated cockpit (worktree PRINCIPAL)
+  # canonical order for cross-brand loops (cleanup-session.sh:109 order)
+  loop_order: [vitalia]
+
+  # ── per-brand facets (F1 centralized): cap_gate = is the bidirectional cap-gate HARD
+  #    (blocks push/commit) or advisory for this brand? Consumed by pre-push + the pre-commit
+  #    05e-cap-gates check (derive the HARD set via `harness_config.py brands.active slug
+  #    --where cap_gate=hard`). Adding a brand's policy = config here, never editing the gate.
+  active:                          # have docs/, ports, dev-app, a build surface
+    - slug: vitalia
+      vertical: "Salud + Bienestar"
+      status: shipped
+      ports: { backend: 8002, frontend: 3002, cockpit: 4002 }
+      dev_app_url: dev-app.vitalialat.com
+      compliance: hipaa-lite       # brand-tier facet (PHI handling)
+      cap_gate: hard
+
+  pending_bootstrap: []            # repo standalone single-brand — sin marcas pendientes
+
+# ── SLOT 2 ──────────────────────────────────────────────────────────────
+#  toolchain  ·  replaces: ruff/pytest/mypy/tsc/eslint/vitest/alembic/`.venv/bin` literals.
+#  ${WS} = $(git rev-parse --show-toplevel). Native-First HARD: NEVER lint/test/typecheck
+#  inside Docker (host only); Docker only for runtime/migrations/ci-parity.
+toolchain:
+  python_version: "3.12"
+  package_manager_py: uv                 # [tool.uv.workspace], 27 members editable
+  package_manager_fe: "pnpm@9.15.9"      # node 20 LTS via nvm
+  venv_path: "${WS}/.venv"               # venv AT WORKSPACE ROOT
+  postgres_port: 5435                    # shared dev postgres
+  # Cockpit = binario externo del repo prenter-harness (NO vendored — se consume POR VERSIÓN; el código
+  # de prenter jamás se copia a luana). Pin = la release tag de prenter contra la que luana fue probada.
+  # cockpit-daemon.sh avisa (NO bloquea) si el repo prenter local difiere. Subir el pin = deliberado,
+  # tras testear una release nueva. Boundary completo: .claude/rules/cockpit-boundary.md
+  cockpit_min_version: "0.4.0"           # prenter git tag (proxy: el cockpit no expone -version flag)
+  backend:
+    cwd: "{brand}/backend"
+    lint:      "${WS}/.venv/bin/ruff check ."          # line-length 120, py312
+    format:    "${WS}/.venv/bin/ruff format --check"   # double quotes, spaces
+    typecheck: "${WS}/.venv/bin/mypy --strict"         # DoD technical gate
+    test:      "${WS}/.venv/bin/pytest --cov=src"      # arch-first; fail_under=43%
+    arch_test: "${WS}/.venv/bin/pytest tests/architecture/ -v"
+    migrate:   "docker exec luana-dev-{brand}_backend_dev-1 bash -c \"cd /workspace/{brand}/backend && /workspace/.venv/bin/alembic upgrade head\""
+    audit:     "${WS}/.venv/bin/pip-audit"
+  frontend:
+    cwd: "{brand}/frontend"
+    typecheck: "npx tsc --noEmit"                      # strict
+    lint:      "npx eslint src/ --cache"               # 0 errors
+    test:      "npx vitest run --coverage"             # 20% threshold per-brand
+    e2e_smoke: "E2E_BASE_URL=http://localhost:{fe_port} npx playwright test --project=smoke"
+  ci_gate: "make ci-parity"                            # mandatory pre-push-to-main
+  etl_contract_regen: "make extraction-contract"
+
+# ── SLOT 3 ──────────────────────────────────────────────────────────────
+#  locale  ·  replaces: the voseo / Spanish-neutro gate as a hard step.
+locale:
+  identifier: "es-LATAM-neutro"
+  rule: tuteo                              # PROHIBIDO voseo (vos/sos/tenés/podés/mirá/dejá)
+  excludes_dialects: [MX, CO, PE, CL, EC]
+  scope: ["frontend UI", "agentic output"] # acotado 2026-06-01: SOLO user-facing
+  scope_excludes: [".claude/", "docs/", "*.md", "scripts/", "tools/", "tests", "comments", "variables"]
+  enforcement: "scripts/git-hooks/pre-commit §1 (escanea solo .py/.ts/.tsx producto)"
+  agentic_validation: "core/ arch tests (test_*_voseo_compliance.py, test_system_prompt_neutro_latam.py)"
+  magic_comment_escape: "# voseo-allowed"  # variant: <!-- voseo-allowed -->
+  exception: "sales_agent output respeta voz tenant (puede ser voseo si tenant AR)"
+  glossary_full: "docs/rules-detail/spanish-glossary.md"
+
+# ── SLOT 4 ──────────────────────────────────────────────────────────────
+#  engine_prefix  ·  replaces: `core/luana-core-*` path literals in process logic.
+engine_prefix:
+  python_glob: "core/luana-core-*"         # internal: core/luana-core-*/src/luana_core_*/
+  python_module_prefix: "luana_core_"
+  ts_scope: "@luana/*"                      # core/@luana/<pkg> consumed via import @luana/...
+  python_package_count: 27                  # ⚠ CLAUDE.md header says "26" — STALE (real dirs = 27)
+  lift_gate: "/pm-luana promotion (brand→core) — docs/promotion-protocol/"
+  # full list maintained for anti-dup / doctor; ts packages under core/@luana/
+  ts_packages: [api-client, design-tokens, eslint-config, extension-sdk, format, hooks, schemas, ui-kit]
+
+# ── SLOT 5 ──────────────────────────────────────────────────────────────
+#  live_verify_infra  ·  replaces: vitalia URLs/creds/ports in rule #37 normative body
+#  + (facet observability_evidence) the docker-logs/Sentry/trace sources for repro/diagnosis.
+#  NOTE (DRY): dev_app_url + ports live in brands[] (slot 1); this slot holds the verify
+#  MACHINERY only (creds, clerk mechanism, obs sources, per-brand arming).
+live_verify_infra:
+  mechanism: "cloudflared tunnel (locally-managed) → stack local localhost:{port} · deploy deferred"
+  localhost_fallback: "localhost:{fe_port}  (API proxy /api/* → backend :{be_port})"
+  tunnel_setup_script: "scripts/cloudflared-setup.sh {brand}"   # non-interactive, idempotent
+  test_creds:
+    location: "{brand}/.env.dev"            # gitignored, per-worktree
+    keys: [DEV_APP_TEST_EMAIL, DEV_APP_TEST_PASSWORD, DEV_APP_CHRIS_EMAIL, DEV_APP_CHRIS_PASSWORD,
+           "CLERK_TESTING_TOKEN_{BRAND}", CLERK_SECRET_KEY, NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY]
+    tunnel_api_keys: "{brand}/deploy/cloudflared/.credentials/cf-api.env"   # gitignored cfat_ token
+    nature: "DEV creds only (pk_test_); NUNCA pk_live_; NUNCA en archivo tracked"
+  clerk_verify:                             # verify-real before declaring a cred set
+    user_exists: "GET /v1/users?email_address={email} → existe + public_metadata(role/tenant)"
+    password_check: "POST /v1/users/{user_id}/verify_password → verified:true"
+    skill: clerk-backend-api
+  observability_evidence:                   # facet — repro/diagnosis evidence sources (D4)
+    sources: [docker-logs, sentry, copilot_trace_event, conversation-log]
+    schema: "trace_evidence: {source: <one-of-sources>, ref: <id/url/snippet>}"
+  per_brand:                                # arming status + test user (dev_app/ports from slot 1)
+    vitalia:  { arming: full,         test_user: "dr.demo@vitalialat.com",        up_cmd: "make dev-app-vitalia" }
+
+# ── SLOT 6 ──────────────────────────────────────────────────────────────
+#  design_system_ref  ·  replaces: the design-system-canon.md binding.
+design_system_ref:
+  canon_ssot: "docs/architecture/luana-platform/design-system-canon.md"
+  doctrine_adr: "docs/architecture/luana-platform/ADR-014-design-system-homologation.md"
+  ui_kit_package: "@luana/ui-kit"           # único lego del builder-frontend
+  design_tokens_package: "@luana/design-tokens"
+  shadcn_atoms: "components/ui/"
+  shared_molecules: "components/shared/"
+  binding: "HARD end-to-end (po-ux compose · architect refs · dev build-from · auditor reject-non-composed)"
+  shell_design_contract:                    # ⚠ PER-BRAND (not platform-level)
+    vitalia: "vitalia/docs/architecture/SHELL-DESIGN-CONTRACT.md"
+
+# ── SLOT 7 ──────────────────────────────────────────────────────────────
+#  domain_modules[]  ·  replaces: offer/copilot/analytics/… as process assumptions
+#  + the contract-guard.js RULES array. 3 categories (Brand→Core mapping).
+domain_modules:
+  conceptual: [brand, offer, landing, sales_agent, copilot, crm, scheduling, analytics,
+               connections, assets, tenant_domains, commercial_calendar, campaigns, iam]
+  core_full:               # identical cross-brand · core package · no brand-extension surface
+    [iam, crm, assets, commercial_calendar, tenant_domains, tenant_profile, social_proof,
+     idempotency, events, compliance, billing, channels, llm, observability, extension-sdk, extraction]
+  engine_brand_extension:  # engine + brand-specific CODE
+    - { module: copilot,     core_package: luana-core-copilot,     surface: "{brand}/backend/src/modules/{brand}/copilot/{extractors,tools,workflows,kb}/" }
+    - { module: sales_agent, core_package: luana-core-sales-agent, surface: "{brand}/backend/src/modules/{brand}/sales_agent/{tools,personas,goldens}/" }
+    - { module: scheduling,  core_package: luana-core-platform,    surface: "BookingPolicyDef per-brand" }   # luana-core-scheduling futuro
+    - { module: connections, core_package: luana-core-connections, surface: "ChannelAdapterDef per-brand" }
+  engine_brand_config:     # engine + brand-specific CONFIG (yaml/registry, no code)
+    - { module: brand,     core_package: luana-core-brand-studio,     surface: "{brand}/config/brand.yaml" }
+    - { module: offer,     core_package: luana-core-offer-studio,     surface: "preset packs via EP-2" }
+    - { module: analytics, core_package: luana-core-analytics-engine, surface: "enabled_metrics + channel_groups per-brand" }
+    - { module: campaigns, core_package: luana-core-campaigns,        surface: "CampaignTemplateDefs via EP-7" }
+    - { module: landing,   core_package: luana-core-landing,          surface: "LandingTemplateDefs via EP-12" }
+  contract_guard_watch:    # contract-guard.js SSoT-guard PostToolUse (Write|Edit|MultiEdit)
+    - { name: etl-contract,    regen: "make extraction-contract" }
+    - { name: metric-catalog,  regen: "pytest test_extraction_contract.py (catalog↔contract)" }
+    - { name: offer-catalogs,  regen: "bump _CATALOG_VERSION + arch tests" }
+    - { name: channel-registry, regen: "no duplicate STAGE_CHANNEL_MAP" }
+    - { name: copilot-registry, regen: "ModuleDescriptor entry required" }
+
+# ── SLOT 8 ──────────────────────────────────────────────────────────────
+#  agent_roster  ·  replaces: cockpit agent-meta.ts rosters + MapView VITALIA_ROLES +
+#  generate_capability_index VITALIA_AGENTS. Per brand: {slug,name,emoji,color,role,subtitle}.
+#  ⚠ comunify/lupulo have NO roster in code yet (sentinel). Sara (nicolify) ADR-nicolify-002
+#    not yet in agent-meta.ts. supervisor/orchestrator = sidebar (NOT a value-stream box).
+agent_roster:
+  common_boxes:            # cross-brand transversal boxes (not persona-agents)
+    - { slug: config, name: "Configurar", emoji: "⚙", color: "#64748b", subtitle: "tenant · iam · compliance" }
+    - { slug: infra,  name: "Infra",      emoji: "🔧", color: "#06b6d4", subtitle: "observability · platform · scaffolding" }
+  vitalia:
+    - { slug: valeria, name: Valeria, emoji: "🗓", color: "#a855f7", role: supervisor,   subtitle: "Mi Día" }
+    - { slug: lisa,    name: Lisa,    emoji: "🏥", color: "#10b981", role: especialista, subtitle: "Mi Clínica" }
+    - { slug: lucas,   name: Lucas,   emoji: "📣", color: "#f59e0b", role: especialista, subtitle: "Marketing / Atraer" }
+    - { slug: adrian,  name: Adrián,  emoji: "💼", color: "#3b82f6", role: especialista, subtitle: "Vender" }
+    - { slug: mateo,   name: Mateo,   emoji: "📅", color: "#FEE209", role: especialista, subtitle: "Operar / Mi Día" }
+    - { slug: camila,  name: Camila,  emoji: "🌟", color: "#ec4899", role: especialista, subtitle: "Reputación + cohortes" }
+
+# ── SLOT 9 ──────────────────────────────────────────────────────────────
+#  value_stream  ·  replaces: cockpit map-zones.ts VALUE_STREAM_STAGES.
+#  Per brand (the boxIds differ by vertical). Cross-brand canonical chain =
+#  Atraer→Vender→Operar→Retener (empleados-IA). vitalia = clinical GTM instance.
+value_stream:
+  canonical_stages: [atraer, vender, operar, retener]   # cross-brand empleados-IA chain
+  vitalia:
+    - { id: atraer,    name: Atraer,    order: 1, description: "Presencia pública + marketing que trae pacientes.", boxIds: [lisa, lucas] }
+    - { id: vender,    name: Vender,    order: 2, description: "Captar, calificar y cerrar al paciente.",          boxIds: [adrian] }
+    - { id: operar,    name: Operar,    order: 3, description: "Agenda, reservas prepagadas y día clínico.",        boxIds: [mateo] }
+    - { id: fidelizar, name: Fidelizar, order: 4, description: "Post-tratamiento, NPS, reputación y cohortes.",     boxIds: [camila] }
+
+# ── SLOT 10 (D1) ─────────────────────────────────────────────────────────
+#  wip_caps  ·  replaces: the CAP NUMBERS duplicated VERBATIM in
+#  validate_session_close.py:73 AND generate_backlog.py:84 (both comment "must match").
+#  D1 (ratified): keep the Stop hook a COARSE per-brand session-close net; seam the NUMBERS
+#  here so both scripts read ONE store. The CANONICAL module-scoped cap (developed≤1 per
+#  code:{module}) is a DIFFERENT concern living in story-closure-gate.md + the pre-commit
+#  story-closure gate — NOT seamed here (one-SSoT; do not duplicate the module rule).
+wip_caps:
+  coarse_session_net:        # the Stop hook + backlog gen (per-brand, gross over-accumulation)
+    refining_max: 3
+    refined_max: 5
+    ready_max: 5
+    developing_max: 3
+    developed_max: 10        # coarse net (NOT the module-scoped ≤1 — that's story-closure-gate)
+    reviewing_max: 2
+  staleness_days:            # generate_backlog.py CAPS
+    checkpoint_stale: 7
+    idea_stale: 90
+    refining_stale: 60
+    refined_stale: 30
+    done_rolling: 90
+  active_states: [refining, refined, ready, developing, developed, reviewing]
+  module_scoped_note: "developed/developing/reviewing ≤1 per code:{module} bucket — enforced by pre-commit story-closure gate (story-closure-gate.md WIP-cap v2), NOT this coarse net."
+
+# ── SLOT 12 ─────────────────────────────────────────────────────────────
+#  models  ·  SSoT de ruteo de modelos Claude del harness (pedido Chris 2026-06-12).
+#  REEMPLAZA: nombres de modelo hardcodeados en frontmatter `model:` de
+#  .claude/{agents,skills} (+ espejos .claude-shared/ y core-harness/agents/).
+#  CONVENCIÓN: la doctrina (rules/skills/templates) habla en TIERS
+#  (flagship/coordinator/workhorse/mechanical) — NUNCA nombres de modelo.
+#  El frontmatter `model:` es ARTEFACTO GENERADO: `make models-sync` lo parchea
+#  desde acá; machinery CHECK 31 (`scripts/sync_model_tiers.py --check`) bloquea drift.
+#  · Swap global (ej. opus→fable): editar 1 línea en tiers + `make models-sync`.
+#  · Override puntual por superficie: el valor en agents/skills puede ser un tier
+#    O un alias literal (fable|opus|sonnet|haiku) — "quiero que ESTE agente use X".
+models:
+  tiers:
+    flagship: opus         # estratégico + agentic prod (R23) + refinamiento (2026-06-14: fable deshabilitado → opus 4.8)
+    coordinator: opus      # PMs + orquestación git (commit-push/handoff)
+    workhorse: sonnet      # builders BE/FE no-agentic
+    mechanical: haiku      # gate-runner / context / grep workers
+  agents:                  # .claude/agents/{name}.md (+ espejo .claude-shared/agents/ y core-harness/agents/ si existen)
+    architect-orchestrator: flagship
+    auditor-agentic: flagship
+    auditor-backend: flagship
+    auditor-frontend: flagship
+    builder-agentic: flagship
+    builder-backend: workhorse
+    builder-frontend: workhorse
+    context-builder: mechanical
+    context-validator: mechanical
+    gate-runner: mechanical
+    grep-bot: mechanical
+  skills:                  # .claude/skills/{name}/SKILL.md (+ espejo .claude-shared/skills/ si existe)
+    architect: flagship
+    auditor: flagship
+    dev-team: flagship
+    po: flagship
+    po-ux: flagship
+    ux-agentico: flagship
+    pm: coordinator
+    pm-luana: coordinator
+    pm-vitalia: coordinator
+    _pm-sistema-template: coordinator
+    commit-push: coordinator
+    handoff: coordinator
+    harness-issue: mechanical

@@ -1,0 +1,231 @@
+---
+story_id: vitalia-fase2-adrian-embudo
+schema_version: v4.1
+architecture_pattern: ADR-vitalia-004
+generated_by: /architect
+generated_on: 2026-06-03
+autonomous_mode: true            # Chris ratificó
+ticket_count: 9                  # ≤10 (scope 1-story resuelto spec § Decisiones #3)
+---
+
+# 9 tickets cohesivos. DAG permite paralelismo BE/FE/agentic.
+# assignment block per ticket (NUNCA general-purpose). R23: AGENTIC production_code → Opus HARD.
+
+tickets:
+
+  # ── BE FOUNDATION ───────────────────────────────────────────────────────────
+  - id: T-BE-1
+    title: "Funnel domain + migration + repos (Lead extend + transition + activity)"
+    surface: backend
+    assignment:
+      primary_agent: builder-backend
+      model_preference: sonnet
+      must_load_skills: [backend-expert]
+      must_load_rules: [tenant-isolation, backend-ddd, backend-migrations, "vitalia/.claude/rules/hipaa-lite.md"]
+      must_load_artifacts: ["03-arch.md", "03-arch-be.md", "05-guidelines.md"]
+      forbidden_to_touch: ["core/luana-core-*/src/**", "vitalia/frontend/**", "vitalia/backend/src/modules/vitalia/sales_agent/**"]
+      production_code: true
+      rationale: "BE DDD funnel layer — Sonnet (no agentic). Domain+infra+migration son la base de todo."
+    owner_eligibility: builder-backend
+    deliverables:
+      - "EXTEND crm/domain/lead.py (18 campos funnel) + crm/domain/{lead_stage_transition,lead_activity,funnel_machine}.py"
+      - "EXTEND models/lead_model.py + NEW models/{lead_stage_transition,lead_activity}_model.py (SA 2.0)"
+      - "migration idempotent (ADD COLUMN IF NOT EXISTS + 2 CREATE TABLE + indexes + backfill status→stage)"
+      - "EXTEND lead_repository (update_stage optimistic lock + list_for_board sort) + NEW {transition,activity}_repository"
+    acceptance:
+      validator_ids: [NF-1, NF-2, NF-3, NF-6, F-9]
+      gherkin_coverage: [SC-5(repo lock), SC-board(sort)]
+    tests_first: ["test_funnel_machine.py", "test_lead_score_service.py(stub)", "test_lead_repository_stage.py", "test_lead_stage_transition_repository.py"]
+    depends_on: []
+    blocks: [T-BE-2, T-FE-2, T-FE-3]
+
+  - id: T-BE-2
+    title: "FunnelService + ScoreService + DiagnoseService + DTOs + API routes (board/stage/detail/transitions/frozen/diagnose/reactivate/reservado-stub)"
+    surface: backend
+    assignment:
+      primary_agent: builder-backend
+      model_preference: sonnet
+      must_load_skills: [backend-expert]
+      must_load_rules: [tenant-isolation, backend-ddd, currency-handling, master-data, pii-sanitisation]
+      must_load_artifacts: ["03-arch.md", "03-arch-be.md", "05-guidelines.md"]
+      forbidden_to_touch: ["core/luana-core-*/src/**", "vitalia/frontend/**", "vitalia/backend/src/modules/vitalia/sales_agent/**"]
+      production_code: true
+      rationale: "Application + API layer. Sonnet (no agentic). Emite evento lead_stage_overridden para wire agentic (T-AG-1)."
+    owner_eligibility: builder-backend
+    deliverables:
+      - "NEW services/{funnel_service,lead_score_service,diagnose_service}.py"
+      - "NEW DTOs {board,transition,lead_detail,frozen}_dto.py + EXTEND lead_dto.py"
+      - "EXTEND crm/api/router.py: 5 endpoints nuevos + extend existentes (response_model, 422/409/403)"
+      - "audit_log sync + telemetry growth_studio_event + outbox event lead_stage_overridden"
+    acceptance:
+      validator_ids: [F-1, F-2, F-4, F-5, F-8, F-10, NF-1, NF-3]
+      gherkin_coverage: [SC-1, SC-1c, SC-2, SC-4, SC-freeze, SC-board]
+    tests_first: ["test_funnel_service.py", "test_funnel_api.py", "test_cross_tenant_lead_block.py", "test_auto_freeze_and_reactivate.py", "test_stage_transition_optimistic_lock.py(API)"]
+    depends_on: [T-BE-1]
+    blocks: [T-FE-2, T-FE-3, T-AG-1]
+    notes_for_downstream: "FE consume board/stage/detail/frozen. AGENTIC consume evento lead_stage_overridden. Confirmar path servido (/api/v1/crm vs /api/v1/vitalia/crm) en dev-app antes de cablear FE (§ Open Questions #1)."
+
+  # ── AGENTIC (separate ticket, R23 Opus) ─────────────────────────────────────
+  - id: T-AG-1
+    title: "Override-context wire (RN-4.1) — subscriber sales_agent escribe contexto next-turn"
+    surface: agentic
+    assignment:
+      primary_agent: builder-agentic
+      model_preference: opus            # R23 HARD (AGENTIC production_code)
+      must_load_skills: [sales-agent-expert]
+      must_load_rules: [anti-duplication, tenant-isolation, backend-ddd]
+      must_load_artifacts: ["03-arch.md § 8", "05-guidelines.md § Agentic"]
+      forbidden_to_touch: ["core/luana-core-*/src/**", "vitalia/frontend/**", "agent_state_checkpoints schema", "sales_agent LangGraph/prompts/specialists"]
+      production_code: true
+      rationale: "R23: AGENTIC production_code → Opus obligatorio. Wire thin brand-local: subscriber de lead_stage_overridden escribe override_context donde el próximo turno del agente lo lee. NO modifica engine schema, NO crea grafo/tool/prompt."
+    owner_eligibility: builder-agentic
+    deliverables:
+      - "NEW sales_agent/application/services/override_context_wire.py + subscriber del evento lead_stage_overridden"
+      - "Persiste override_context (lead_stage_transition.reason ya escrito por T-BE-2) + lo expone al next-turn del agente vía read del checkpoint (metadata_info / lookup brand-local, NO columna nueva)"
+      - "asienta handover en lead_activity (🙋 → 🤖) — invoca LeadActivityRepository vía port/event, NO import directo crm"
+    acceptance:
+      validator_ids: [AE-1, RN-4.1]
+      gherkin_coverage: [SC-1b(persist+read)]
+    tests_first: ["test_manual_override_feeds_agent_context.py"]
+    depends_on: [T-BE-2]
+    blocks: []
+    notes_for_downstream: "FE OverrideReasonDialog (T-FE-2) dispara el PATCH que emite el evento; el efecto conversacional real solo observable cuando Inbox/sales_agent live (§ Open Questions #4)."
+
+  # ── FE SHARED PRIMITIVES (parallel-safe early) ──────────────────────────────
+  - id: T-FE-1
+    title: "channel-meta registry + ChannelBadge EXTEND + ScoreDonut + Lead type extend + shell-routes"
+    surface: frontend
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: sonnet
+      must_load_skills: [frontend-expert, vitalia-design-system]
+      must_load_rules: [frontend-fsd, frontend-visual-fidelity, spanish-text]
+      must_load_artifacts: ["03-arch.md", "03-arch-fe.md § REUSE/EXTEND/NEW", "05-guidelines.md"]
+      forbidden_to_touch: ["components/ui/**", "core/luana-core-*/**", "features/{lisa,mateo,valeria,lucas,camila}/**", "vitalia/backend/**"]
+      production_code: true
+      rationale: "Primitivas compartidas (channel-meta + ScoreDonut + ChannelBadge extend). Sin dep de BE → arranca temprano en paralelo. Sonnet (FE no agentic)."
+    owner_eligibility: builder-frontend
+    deliverables:
+      - "NEW lib/channels/channel-meta.ts (registro slug→color marca CSS var+glyph; lift candidate /pm-luana)"
+      - "EXTEND ChannelBadge.tsx (consume channel-meta; +meta/referido/tiktok; back-compat inbox)"
+      - "NEW components/shared/score/ScoreDonut.tsx (D.5)"
+      - "EXTEND crm-shared/types.ts Lead (stage/score/temperature/operatedBy/channel/...) + lib/shell-routes.ts (AGENT_SUBTABS.adrian += embudo,recuperar si falta)"
+      - "tokens canal en globals.css (CSS vars marca redes sociales — NO hardcode inline)"
+    acceptance:
+      validator_ids: [NF-3, "visual(ScoreDonut D.5, ChannelBadge D.6)"]
+      gherkin_coverage: []
+    tests_first: ["ScoreDonut.test.tsx", "ChannelBadge.test.tsx(extend)"]
+    depends_on: []
+    blocks: [T-FE-2, T-FE-3]
+
+  - id: T-FE-2
+    title: "Board (Kanban+Lista) + LeadCard + drag override + OverrideReasonDialog + header/filters/KPIs + hooks"
+    surface: frontend
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: sonnet
+      must_load_skills: [frontend-expert, vitalia-design-system]
+      must_load_rules: [frontend-fsd, frontend-visual-fidelity, tenant-isolation, currency-handling, spanish-text]
+      must_load_artifacts: ["03-arch.md", "03-arch-fe.md", "04-validators.yaml § visual/scenario", "05-guidelines.md"]
+      forbidden_to_touch: ["components/ui/**", "components/shared/shell-organism/{EntitySubNavBar,TopBarGlobal,Ribbon,SubTabsBar,ValeriaSidebar}.tsx", "core/luana-core-*/**", "features/{lisa,mateo,valeria,lucas,camila}/**", "vitalia/backend/**"]
+      production_code: true
+      rationale: "Vista board completa (V1/V2) + drag + override. Sonnet. Fiel a D.2/D.3/D.4/D.9/D.12/D.13."
+    owner_eligibility: builder-frontend
+    deliverables:
+      - "route adrian/embudo/page.tsx (Server Component + SSR) + AdrianEmbudoView client root"
+      - "KanbanBoard+PipelineColumn+LeadCard (@dnd-kit, D.3/D.4) + LeadsTable (D.9) + SortBySelect(RN-17)"
+      - "EmbudoHeader+EmbudoFilters+EmbudoMetrics (D.2) + OverrideReasonDialog (D.12)"
+      - "api: embudo-board.ts+embudo-server.ts+lead-stage-mutation.ts (optimistic, 409/422/timeout) + store/embudo-ui-store.ts (Zustand)"
+      - "RETIRAR EmbudoPlaceholder (sentinel) + MSW mocks/handlers/embudo.ts"
+    acceptance:
+      validator_ids: [F-1, F-3, F-4, F-5, F-9, NF-2, NF-4, NF-5, "visual(kanban,lead-card,lista,override-dialog)"]
+      gherkin_coverage: [SC-1, SC-1b, SC-2, SC-3, SC-5(FE), SC-6, SC-7, SC-8, SC-9, SC-11, SC-board]
+    tests_first: ["use-embudo-board.test.ts", "use-lead-stage-mutation.test.ts", "LeadCard.test.tsx", "KanbanBoard.test.tsx", "OverrideReasonDialog.test.tsx", "embudo-board.spec.ts", "embudo-override-drag.spec.ts"]
+    depends_on: [T-BE-2, T-FE-1]
+    blocks: []
+    notes_for_downstream: "OverrideReasonDialog dispara PATCH /stage que emite el evento del wire T-AG-1. Highlight post-create viene de T-FE-3 (nuevo lead)."
+
+  - id: T-FE-3
+    title: "Página lead (Resumen/Historial via EntitySubNavBar) + nuevo lead (ruta-hoja) + Recuperar sub-tab"
+    surface: frontend
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: sonnet
+      must_load_skills: [frontend-expert, vitalia-design-system]
+      must_load_rules: [frontend-fsd, frontend-visual-fidelity, tenant-isolation, spanish-text, pii-sanitisation]
+      must_load_artifacts: ["03-arch.md", "03-arch-fe.md", "04-validators.yaml", "05-guidelines.md"]
+      forbidden_to_touch: ["components/ui/**", "components/shared/shell-organism/{EntitySubNavBar,...}.tsx (reuse, no editar)", "core/luana-core-*/**", "features/{lisa,mateo,valeria,lucas,camila}/**", "vitalia/backend/**"]
+      production_code: true
+      rationale: "Workspace lead (opción C, 2 vistas en EntitySubNavBar) + alta ruta-hoja + Recuperar. Sonnet. Fiel D.7/D.8/D.10/D.11."
+    owner_eligibility: builder-frontend
+    deliverables:
+      - "routes embudo/[leadId]/{page(redirect),resumen,historial}/page.tsx + embudo/nuevo/page.tsx + adrian/recuperar/page.tsx"
+      - "LeadWorkspace(EntitySubNavBar reuse D.7)+ResumenView+HistorialView+LeadSummaryHeader+ScoreBreakdown (D.8)"
+      - "NewLeadPage (RHF+Zod D.10, redirect+highlight) + RecuperarView+FrozenLeadRow (D.11)"
+      - "api: lead.ts+frozen.ts+diagnose.ts+create-lead.ts + EntitySubNavBar workspace wiring"
+      - "features/adrian/index.ts public API (AdrianEmbudoView, RecuperarView)"
+    acceptance:
+      validator_ids: [F-6, F-7, F-8, RN-2, RN-16, "visual(lead-resumen,lead-historial,nuevo,recuperar)"]
+      gherkin_coverage: [SC-detalle, SC-deeplink, SC-nuevo, SC-freeze(FE), SC-10]
+    tests_first: ["LeadWorkspace.test.tsx", "embudo-lead-workspace.spec.ts", "embudo-nuevo-lead.spec.ts", "recuperar.spec.ts"]
+    depends_on: [T-BE-2, T-FE-1]
+    blocks: []
+    notes_for_downstream: "Historial NO renderiza datos clínicos (RN-2 firewall); link al Inbox PHI-gated. highlight post-create coordina con board T-FE-2."
+
+  # ── E2E / VISUAL GOLDENS (integration) ──────────────────────────────────────
+  - id: T-E2E-1
+    title: "Visual goldens (D.16 map light+dark) + axe + POMs + e2e integration full-stack"
+    surface: frontend
+    assignment:
+      primary_agent: builder-frontend
+      model_preference: sonnet
+      must_load_skills: [playwright-expert, vitalia-design-system]
+      must_load_rules: [frontend-visual-fidelity, e2e-testing]
+      must_load_artifacts: ["04-validators.yaml § visual", "03-arch-fe.md § playwright_visual_scope", "01-spec.md § D.16"]
+      forbidden_to_touch: ["components/ui/**", "core/luana-core-*/**", "features/{lisa,mateo,valeria,lucas,camila}/**"]
+      production_code: false
+      rationale: "Goldens + POMs + e2e integration. Tests, no production. Sonnet OK (no agentic). base.ts anti-burbuja."
+    owner_eligibility: builder-frontend
+    deliverables:
+      - "POMs e2e/pages/{EmbudoBoardPage,LeadWorkspacePage,NewLeadPage,RecuperarPage}.ts"
+      - "visual goldens D.16 (kanban/lead-card/lista/lead-resumen/lead-historial/nuevo/recuperar/override-dialog × light+dark)"
+      - "axe SC-10 + base.ts anti-burbuja en todos los specs"
+    acceptance:
+      validator_ids: ["visual(todos)", "a11y SC-10"]
+      gherkin_coverage: [SC-10]
+    tests_first: ["(goldens generan post-implementación)"]
+    depends_on: [T-FE-2, T-FE-3]
+    blocks: []
+
+  # ── DEMO + LIVE VERIFY (DoD #37) ────────────────────────────────────────────
+  - id: T-DEMO-1
+    title: "demo-script.md + dev-app live verification (DoD #37 / ADR-008) — evidencia para gate Chris"
+    surface: cross
+    assignment:
+      primary_agent: builder-frontend         # produce demo-script + ejerce live; dev-team coordina
+      model_preference: sonnet
+      must_load_skills: [chrome-devtools-verify, playwright-expert]
+      must_load_rules: [definition-of-done-live-verify, test-design-doctrine]
+      must_load_artifacts: ["04-validators.yaml § demo_script_outline", "ADR-vitalia-008"]
+      forbidden_to_touch: ["production code (solo verificación + demo-script.md)"]
+      production_code: false
+      rationale: "Ejercer la acción real en dev-app (PATCH/POST writes + leer logs BE + confirmar fila DB) + producir demo-script.md. Llena dev_app_verified.evidence. Gate humano final = demo_signoff Chris."
+    owner_eligibility: builder-frontend
+    deliverables:
+      - "demo-script.md (4 secciones: setup/happy/edge/teardown derivado de Gherkin)"
+      - "dev_app_verified.evidence en checkpoint.md (writes ejercidos + efecto observado)"
+      - "verify-no-backend-errors.sh corrido (0 traceback)"
+    acceptance:
+      validator_ids: [dev_app_verified, demo_required]
+      gherkin_coverage: "ejercer SC-1/SC-1b/SC-detalle/SC-nuevo/SC-freeze live"
+    depends_on: [T-FE-2, T-FE-3, T-BE-2, T-AG-1, T-E2E-1]
+    blocks: []
+    notes_for_downstream: "demo_signoff Chris = ÚNICO gate humano (autonomous_mode). /pm-vitalia REFUSE merge si evidence vacío o demo_signoff no APPROVED."
+
+# ── DAG resumen ──────────────────────────────────────────────────────────────
+dag:
+  parallel_early: [T-BE-1, T-FE-1]               # sin deps mutuas
+  after_be1: [T-BE-2]
+  after_be2_fe1: [T-FE-2, T-FE-3, T-AG-1]        # paralelos (FE board, FE workspace, AGENTIC wire)
+  after_fe2_fe3: [T-E2E-1]
+  final: [T-DEMO-1]                              # gate demo_signoff Chris
