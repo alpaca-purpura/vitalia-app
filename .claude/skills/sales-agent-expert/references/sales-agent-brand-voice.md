@@ -91,7 +91,7 @@ Domain event `PersonalityProfileUpdated` (en `brand/domain/events.py`):
 
 ## Voseo / léxico marcado
 
-`spanish-text.md` rule **NO aplica** al output del sales_agent. Aplica a UI propio de Nicolify.
+`spanish-text.md` rule **NO aplica** al output del sales_agent. Aplica a UI propio de vitalia.
 
 - El sales_agent habla con la voz del tenant. Si el tenant clona desde un chat con voseo argentino, el `system_instruction` resultante respeta voseo. Es feature, no bug.
 - Presets default usan tuteo neutro (warm_close, electric, serene, direct, narrative, minimalist) — todos hardcoded sin voseo.

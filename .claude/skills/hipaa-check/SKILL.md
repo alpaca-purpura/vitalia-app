@@ -67,7 +67,7 @@ contract:
 
 # hipaa-check — auditoría PHI de un cambio (rule hipaa-lite operacionalizada)
 
-Checklist bloqueante para todo cambio Vitalia que lea/escriba/transmita PHI. Ejercela ANTES de dar por bueno el diff. SSoT: `vitalia/.claude/rules/hipaa-lite.md`. La regla cardinal exige las 4 salvaguardas **simultáneamente** — una falla ⇒ el cambio NO cumple.
+Checklist bloqueante para todo cambio Vitalia que lea/escriba/transmita PHI. Ejercela ANTES de dar por bueno el diff. SSoT: `.claude/rules/hipaa-lite.md`. La regla cardinal exige las 4 salvaguardas **simultáneamente** — una falla ⇒ el cambio NO cumple.
 
 ## Cuándo
 
@@ -115,7 +115,7 @@ Precondición de entrada (`cambio-propuesto`): hay un diff de Vitalia listo para
 - **La caja no arregla.** Reporta y hace handoff; el fix vuelve a quien construyó el cambio.
 
 ## Referencias
-- `vitalia/.claude/rules/hipaa-lite.md` — SSoT de la doctrina (regla cardinal + constraints + anti-patterns)
+- `.claude/rules/hipaa-lite.md` — SSoT de la doctrina (regla cardinal + constraints + anti-patterns)
 - `vitalia/backend/src/modules/vitalia/compliance/domain/phi_fields.py` — lista canónica de campos PHI
 - `core/luana-core-observability/.../recording/sanitization.py` — `sanitize_payload`
 - `.claude/rules/tenant-isolation.md` — filtro tenant raíz (esta lo refuerza con `clinic_id`)

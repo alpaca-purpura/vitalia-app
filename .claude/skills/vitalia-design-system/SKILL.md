@@ -103,7 +103,7 @@ Cada agente especialista: `--agent-{slug}` + `--agent-{slug}-soft`. Cada dir de 
 
 ## 7 · Superficies PHI (HIPAA-lite)
 
-UI que muestra PHI → `PiiMaskedSpan` + `RequireRole` (roles `doctor`/`nurse`/`admin_clinic`). Nunca PHI en `localStorage`/`searchParams`. SSoT: `vitalia/.claude/rules/hipaa-lite.md`.
+UI que muestra PHI → `PiiMaskedSpan` + `RequireRole` (roles `doctor`/`nurse`/`admin_clinic`). Nunca PHI en `localStorage`/`searchParams`. SSoT: `.claude/rules/hipaa-lite.md`.
 
 ## 8 · Checklist "cómo construir una pantalla Vitalia"
 
@@ -123,5 +123,5 @@ UI que muestra PHI → `PiiMaskedSpan` + `RequireRole` (roles `doctor`/`nurse`/`
 - `vitalia/docs/architecture/SYSTEM-MAP.yaml` — mapa del sistema
 - `vitalia/frontend/src/app/globals.css` + `tailwind.config.ts` — tokens vivos (SSoT runtime)
 - `vitalia/frontend/src/lib/shell-routes.ts` — catálogo agentes/subtabs/subsubtabs
-- `vitalia/.claude/rules/{shell-mockup-per-component,shell-feature-architecture-mandatory,hipaa-lite}.md`
+- `.claude/rules/{shell-feature-architecture-mandatory,hipaa-lite}.md` (shell-mockup-per-component: SUPERSEDED, archivado en `vitalia/docs/archive/2026/superseded/`)
 - `.claude/rules/frontend-visual-fidelity.md` (regla 34) · `.claude/rules/frontend-fsd.md` · `.claude/rules/anti-duplication.md`

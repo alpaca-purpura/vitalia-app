@@ -13,8 +13,8 @@ CI and flakes share an underlying skill: reading traces, isolating non-determini
 File: `.github/workflows/e2e-tests.yml`
 
 ```
-push to wip/{brand} (paths: frontend/**) ─────┐
-PR to wip/{brand}|main (paths: frontend/**) ──┤
+push to story/* (paths: vitalia/frontend/**) ─┐
+PR to main (paths: vitalia/frontend/**) ──────┤
 workflow_dispatch (manual w/ suite selector) ─┘
                                               ▼
                               ┌─────────────────────────┐
@@ -236,12 +236,12 @@ If CI is broken at the workflow level (not test level), do not push fixes blind 
 
 ---
 
-## 10. Runbook — "smoke is failing on wip/{brand}"
+## 10. Runbook — "smoke is failing en CI"
 
 > **Nota:** GitHub Actions está en modo `deferred` — los workflows no corren automáticamente hasta contar con servidor staging. Este runbook aplica cuando se reactive o cuando se dispare manualmente via `workflow_dispatch`. Mientras tanto, correr la suite localmente con `make ci-parity` o `npx playwright test --project=smoke`. Ver `.claude/rules/github-actions-deferred.md`.
 
 ```
-1. gh run list --workflow=e2e-tests.yml --branch=wip/{brand} --limit=5
+1. gh run list --workflow=e2e-tests.yml --branch=main --limit=5
 2. gh run view <run-id> --log-failed | head -200
 3. gh run download <run-id> --name playwright-report-smoke
 4. cd /tmp && npx playwright show-report ./playwright-report
@@ -249,12 +249,12 @@ If CI is broken at the workflow level (not test level), do not push fixes blind 
 6. Reproduce locally:
    bash scripts/e2e-preflight.sh
    npm run test:e2e:fresh   # if auth was the failure
-   cd {brand}/frontend && npx playwright test path/to/file.spec.ts --project=smoke
+   cd vitalia/frontend && npx playwright test path/to/file.spec.ts --project=smoke
 7. Fix; commit; push; watch
 8. If still flaky → see Section 4 above
 ```
 
-For the on-call rotation: when smoke fails on the active wip/{brand} branch and CI is active, it blocks staging validation. Treat it as P1.
+For the on-call rotation: when smoke fails on main and CI is active, it blocks staging validation. Treat it as P1.
 
 ---
 

@@ -52,7 +52,7 @@ Agent({
   description: "Refresh context brief for audit story {brand}/{id}",
   subagent_type: "context-builder",
   model: "haiku",
-  prompt: "<brand>: {brand}                          # ★ REQUIRED — multibrand scope
+  prompt: "<brand>: {brand}                          # ★ REQUIRED — scope: vitalia (marca) | platform (engine/tooling)
            <pr_folder>: ${STORY_DIR} absolute;
            <modules>: <comma list from spec>;
            <phase>: auditor;
@@ -141,7 +141,7 @@ Spawn (1 sub-auditor por ticket — REQUIRED: pasá `<brand>: {brand}`):
 Agent({
   description: "Audit T-{n} {surface} brand={brand}",
   subagent_type: "auditor-{be|fe|agentic}",
-  prompt: "<brand>: {brand}                          # ★ REQUIRED — multibrand scope
+  prompt: "<brand>: {brand}                          # ★ REQUIRED — scope: vitalia (marca) | platform (engine/tooling)
            <pr_folder>: {brand}/docs/product/stories/{story-id}/
            ticket: T-{n}
            PRIORITY READ: {brand}/docs/product/stories/{story-id}/CONTEXT-BRIEF.md (Haiku-built, 5-8k tokens)
@@ -149,7 +149,7 @@ Agent({
            ★ proceso v5: el spec/arch están RECONCILIADOS (Fase R) + Chris firmó chris_verify.signoff. Un scope ratificado por Chris (en chris_verify.rounds) ES el spec — NO lo reviertas. Guardá invariantes (DDD/tenant/PHI/CONN/contrato BE↔FE), no '¿coincide con el spec pre-iteración?'. Un scope-delta FUERA de chris_verify.rounds = sí es finding.
            Run gate-runner if gate-output.json missing/stale.
            Score against your N categories.
-           Apply downstream regression scope (.claude/rules/auditor-downstream-regression.md) — cross-brand mirror detection cuando aplique.
+           Apply downstream regression scope (.claude/rules/auditor-downstream-regression.md) — mirror-del-engine detection cuando aplique.
            Verify all validators of ticket acceptance.validator_ids → GREEN
            Surface scope: code edits SOLO {brand}/. Si auditás cambios en core/luana-core-*/ fuera del scope declarado → flag CHANGES_REQUESTED + escalate /pm-vitalia.
            Produce T-{n}-review.md with verdict APPROVED|CHANGES_REQUESTED|ESCALATED.
@@ -288,7 +288,7 @@ Decision tree (por finding, lo aplica el sub-auditor en su surface):
 ¿El fix requiere ESCRIBIR un test NUEVO? (comportamiento NO cubierto por test existente)
 ├─ SÍ  → CARRIL B (Caso B) — spawn dev-team. Auditor NUNCA escribe tests.
 └─ NO  → ¿Categoría STAKE-ASIMÉTRICO? (security/auth/tenant_id/PII/migration/
-         prompt-slot/eval-goldens/state-machine/engine/cross-brand/meta-paradigm)
+         prompt-slot/eval-goldens/state-machine/engine/meta-paradigm)
         ├─ SÍ  → CARRIL C (Caso D) — ESCALATE Chris / /pm-vitalia.
         └─ NO  → CARRIL A — sub-auditor self-fix gate-verified (cita test existente que lo cubre)
                  → re-corre gate-runner → GREEN = audit-passed · RED tras cap → Caso B.
@@ -366,8 +366,8 @@ Aplica cuando finding ∈ lista NEVER self-fix (test new, branch lógico, refact
               - Edit ONLY files citados en T-{n}-review.md § Findings
               - NO scope creep (nueva feature, nuevo endpoint, etc.)
               - Spanish neutro respected (R: spanish-text.md)
-              - Push branch ACTUAL (wip/{brand}-{story-padre-id}), NUNCA 'origin development'
-              - Si finding requiere lift core o cross-brand edit → STOP, escalate orchestrator
+              - Push branch ACTUAL (story/{story-id}), NUNCA 'origin development'
+              - Si finding requiere lift/cambio en core/ (engine) → STOP, escalate orchestrator
 
               Last line: done -> T-{n}-result.md (sección 'Auto-fix loop iter {N} response')
                          O blocked -> T-{n}-impl-log.md (cap_reached internal, escalate)"
@@ -446,8 +446,8 @@ Aplica cuando finding NO necesita test nuevo + NO es stake-asimétrico (ver `aud
 Aplica cuando finding cae en estas categorías (lista exhaustiva — ver auditor-self-fix-policy.md):
 
 - **Security violation:** auth bypass, PII leak en logs/responses, tenant_id filter ausente, SQL injection, XSS, prompt injection vector
-- **Architecture drift fundamental:** DDD layer broken, cross-module imports prohibidos, anti-duplication mirror cross-brand
-- **Engine surface edit sin flujo engine:** PR toca `core/luana-core-*/src/` sin `docs/promotion-protocol/proposals/*-{pkg}-*.md` state ∈ {accepted, migrated}
+- **Architecture drift fundamental:** DDD layer broken, cross-module imports prohibidos, anti-duplication mirror del engine (o patrón duplicado entre módulos de vitalia)
+- **Engine surface edit sin flujo engine:** PR toca `core/luana-core-*/src/` sin declararlo como engine-change de `/pm-vitalia` (arch tests del paquete GREEN + semver bump + CHANGELOG del paquete)
 - **Out-of-scope pollution:** edits fuera de `vitalia/**` + story docs desde story brand-específica
 - **Spec ambiguity:** auditor NO puede decidir intent sin Chris
 - **`audit_iterations >= 4` exceeded:** loop dev-team/auditor no converge → spec o decomposition issue
@@ -481,7 +481,7 @@ Spawn nuevamente sub-auditor para verificación end-to-end del story (REQUIRED: 
 Agent({
   description: "Final review story {brand}/{id}",
   subagent_type: "auditor-{predominant-surface}",
-  prompt: "<brand>: {brand}                          # ★ REQUIRED — multibrand scope
+  prompt: "<brand>: {brand}                          # ★ REQUIRED — scope: vitalia (marca) | platform (engine/tooling)
            All tickets audit-passed. Run e2e verification of full story:
            - For ui-story: Playwright e2e suite — cd {brand}/frontend && E2E_BASE_URL=http://localhost:300X npx playwright test --grep '{story-id}'
            - For agentic-story: agentic eval suite — cd {brand}/backend && ../../.venv/bin/pytest --trials=3 tests/agentic_evals/
@@ -607,7 +607,7 @@ Post 2026-05-18 el handoff es DEFAULT auto, no Chris-trigger manual.
 
 Update `{brand}/docs/product/stories/{story-id}/checkpoint.md`:
 ```yaml
-brand: {brand}       # ★ REQUIRED — multibrand scope
+brand: {brand}       # ★ REQUIRED — scope: vitalia (marca) | platform (engine/tooling)
 state: reviewing     # mantener — /pm-vitalia transitiona a done en merge step
 phase: HANDOFF_TO_PM_MERGE
 last_artifact: CHECKPOINTS.md
@@ -647,7 +647,7 @@ C5: 6/6 ✅
      § 4 Modules MD refreshed (paths)
      § 5 How to verify (comandos reproducibles)
    Después update {brand}/docs/product/capabilities/{m}/{c}.yaml con verification.*
-   Después squash-merge wip/{brand}-{story-padre-id} → main
+   Después squash-merge story/{story-id} → main
    Después archive story → state=reviewing→done
 
    SSoT: .claude/rules/story-closure-gate.md + docs/specs/templates/07-merge-template.md)
@@ -701,7 +701,7 @@ El auditor es el **último adulto responsable del PR**. NO rebota hallazgos a de
 - **Carril A (mecánico)** — lint/format/typo/import/docstring (igual v4.2).
 - **Carril R (RESPONSABLE · default nuevo para bugs funcionales)** — bug funcional / build roto / wiring / live-verify faltante / test faltante → el auditor lo arregla él mismo siguiendo TDD (regression test RED que reproduce el bug → fix GREEN), re-corre gate-runner COMPLETO + live-verify dev-app (≥1 write real, leer logs, confirmar efecto en DB), y **OWNS el verde**. **PUEDE escribir tests** (override del "auditor NUNCA escribe tests" de v4.2 — Chris ratificó 2026-06-03): los escribe él mismo antes de aplicar el fix (TDD discipline), no los delega.
 - **Carril C (ESCALATE) — solo 2 casos:**
-  1. Categoría **stake-asimétrico** (security/auth/tenant_id/PII/migration/prompt-slot/eval-goldens/state-machine/engine-core/cross-brand/meta-paradigm) → ratificación Chris. **Invariante de seguridad, NO override.**
+  1. Categoría **stake-asimétrico** (security/auth/tenant_id/PII/migration/prompt-slot/eval-goldens/state-machine/engine-core/meta-paradigm) → ratificación Chris. **Invariante de seguridad, NO override.**
   2. El "fix" es una **feature entera nunca diseñada** (> ~2 archivos nuevos de producto o > ~120 LOC nuevas) → el auditor escribe el PLAN del fix + lo entrega CHANGES_REQUESTED a dev-team. NO reconstruye media feature.
 
 **Caps v5:** `responsible_fix_iter` ≤ 6 · `audit_iterations` ≤ 4 · wall-clock ≤ 40 min → si supera, escala a Chris con estado actual documentado.
@@ -771,12 +771,12 @@ Ref: `.claude/rules/auditor-self-fix-policy.md` + `.claude/rules/definition-of-d
 - ❌ Approve PR que cierra story state=done sin `git mv` a `{brand}/docs/archive/{year}/stories/` en mismo commit (R2 violation)
 - ❌ Approve PR que modifica `{brand}/docs/product/BACKLOG*.{md,yaml}` sin cambio correspondiente en source (checkpoint/outcomes/stories/capabilities) — R3 violation. BACKLOG es OUTPUT auto-gen.
 
-## Anti cross-brand pollution
+## Anti out-of-scope pollution
 
 - ❌ NUNCA auditar / approve edits en paths fuera de `vitalia/**` + story docs → flag CHANGES_REQUESTED + escalate `/pm-vitalia`.
 - ❌ NUNCA auditar / approve edits directos a `core/luana-core-*/src/`. Requiere lift via `/pm-vitalia` (flujo engine) ANTES del build.
 - ❌ NUNCA approve un trabajador agéntico que **reimplementa lógica de negocio** en vez de invocar la acción única (Plano 2), ni un **engine agéntico nuevo** per-brand (un solo engine compartido en `core/`). Categoría Connectivity: verificá que cada cap nueva tenga **caja/zona** válida del mapa (`SYSTEM-MAP.yaml`) — cap sin hogar = isla. Doctrina: `docs/architecture/luana-platform/PARADIGM.md` + `.claude/rules/{paradigm-arquitectura,anti-orphan-integration}.md`.
-- ❌ NUNCA escribir review/checkpoints en root `docs/product/stories/` — solo `<brand>: platform` cross-brand outcomes van ahí.
+- ❌ NUNCA escribir review/checkpoints en root `docs/product/stories/` — solo `<brand>: platform` (engine/tooling) outcomes van ahí.
 - ❌ NUNCA hardcodear paths absolutos `/home/chris/AISALESHT/...` o `/home/chalreme/Proyectos/luana-platform/...` — usar `${WS}` resuelto via `git rev-parse --show-toplevel`.
 
 ## Output format

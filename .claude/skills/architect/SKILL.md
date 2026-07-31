@@ -58,8 +58,8 @@ Para technical-story, el `/architect` **no consume** una `01-spec.md` Gherkin de
 4. `{brand}/docs/product/stories/{story-id}/checkpoint.md` — state=refined requerido (spec + diseño UX/agentic ratificados por Chris)
 5. `{brand}/docs/product/modules/{m}.md` — estado funcional per-brand
 6. `{brand}/docs/domains/INDEX.md` o `docs/core-modules/README.md` — routing técnico per-brand vs engine
-7. `.claude/rules/anti-duplication.md` — inventario shared abstractions cross-brand
-8. `.claude/rules/anti-duplication-refining.md` — ★ NEW 2026-05-27 — prior-art-scan cross-brand mandatory en refinamiento
+7. `.claude/rules/anti-duplication.md` — inventario shared abstractions del engine
+8. `.claude/rules/anti-duplication-refining.md` — prior-art-scan (vitalia + engine + snapshot) mandatory en refinamiento
 9. `.claude/rules/architect-autonomous-mode.md` — ★ NEW 2026-05-27 — autonomous_mode + agent_assignment + playwright_visual_scope
 
 ## ★ Step 0.5 — Prior-art audit (MANDATORY 2026-05-27)
@@ -116,7 +116,7 @@ Spawn (REQUIRED: pasá `<brand>: {brand}` como input al sub-agent):
 Agent({
   description: "Architect Story {brand}/{id} {scope}",
   subagent_type: "architect-orchestrator",
-  prompt: "<brand>: {brand}                          # ★ REQUIRED — multibrand scope
+  prompt: "<brand>: {brand}                          # ★ REQUIRED — scope: vitalia (marca) | platform (engine/tooling)
            <pr_folder>: {brand}/docs/product/stories/{id}/
            story_type: {ui-story|service-story|agentic-story}
            surfaces: {BE | FE | AGENTIC | combinaciones}
@@ -150,7 +150,7 @@ Agent({
            5. 06-tickets.yaml (work units, R23 marked AGENTIC, owner_eligibility, DAG, gherkin_coverage per ticket)
 
            CRITICAL CONSTRAINTS:
-           - Cross-module audit anti-duplication.md (no mirror shared abstractions cross-brand)
+           - Cross-module audit anti-duplication.md (no mirror shared abstractions del engine)
            - R23: AGENTIC tickets production_code:true → flagship_required:true
            - AGENTIC tickets SEPARADOS de BE/FE (R23 enforcement)
            - Tickets > 10 → split story
@@ -495,7 +495,7 @@ Antes de cerrar story como ready:
 - [ ] `06-tickets.yaml` cada ticket tiene `gherkin_coverage` field (post 2026-05-18 mandatory)
 
 **★ v4.2 cement 2026-05-27 expanded gates:**
-- [ ] `03-arch.md § Prior art audit` sección presente con paths verbatim del scan cross-brand (consumed engine + reused brands + lift candidates + net-new justificado)
+- [ ] `03-arch.md § Prior art audit` sección presente con paths verbatim del scan (consumed engine + prior art vitalia + lift candidates + net-new justificado)
 - [ ] `06-tickets.yaml` cada ticket tiene `assignment` block: `primary_agent` (no general-purpose), `model_preference`, `must_load_skills`, `forbidden_to_touch`, `rationale`
 - [ ] AGENTIC tickets con `production_code: true` → `assignment.model_preference: flagship` (HARD R23)
 - [ ] `04-validators.yaml § playwright_visual_scope` presente para UI stories con `story_scope_routes` + `forbidden_visual_changes` + `non_egoismo_clause`
@@ -523,7 +523,7 @@ Incoherencia detectada → emit verdict `⚠️ DUDA` pidiendo Chris ratificar o
 Update `{brand}/docs/product/stories/{story-id}/checkpoint.md`:
 
 ```yaml
-brand: {brand}        # ★ REQUIRED — multibrand scope
+brand: {brand}        # ★ REQUIRED — scope: vitalia (marca) | platform (engine/tooling)
 state: ready          # ★ TRANSITION ★ refined → ready
 phase: READY_PACKAGE_CLOSED
 last_artifact: 06-tickets.yaml
@@ -573,11 +573,11 @@ Próximo: Conv 2 (autonomous build). /dev-team <brand>: {brand} toma T-1 (state:
 - ❌ `05-guidelines.md` con "be careful" / "follow best practices" (vago — usa patterns concretos)
 - ❌ Inferir el brand del contexto si Chris no lo dijo — PREGUNTAR primero
 
-## Anti cross-brand pollution
+## Anti out-of-scope pollution
 
 - ❌ NUNCA generar tickets que editen paths fuera de `vitalia/**` + story docs. STOP + escalate `/pm-vitalia`.
-- ❌ NUNCA generar tickets que editen `core/luana-core-*/src/` directamente. Requiere lift via `/pm-vitalia` (flujo engine) — propuesta en `docs/promotion-protocol/proposals/` ANTES de cerrar package.
-- ❌ NUNCA escribir specs/archs/tickets en root `docs/product/stories/` — solo `<brand>: platform` (cross-brand) outcomes van ahí, y eso requiere autorización explícita `/pm-vitalia`.
+- ❌ NUNCA generar tickets que editen `core/luana-core-*/src/` directamente. Requiere flujo engine `/pm-vitalia` (cambio directo en `core/` gateado por arch tests del paquete + vitalia + semver bump + CHANGELOG) declarado ANTES de cerrar package.
+- ❌ NUNCA escribir specs/archs/tickets en root `docs/product/stories/` — solo `<brand>: platform` (engine/tooling) outcomes van ahí, y eso requiere autorización explícita `/pm-vitalia`.
 - ❌ NUNCA referenciar `backend/src/` o `frontend/src/` sin el prefix `{brand}/` — post reorg 2026-05-15 no existe root `backend/` ni `frontend/`. Solo `core/luana-core-*/src/luana_core_*/` (engine) y `{brand}/backend/src/` (brand).
 - ❌ NUNCA hardcodear paths absolutos `/home/chris/AISALESHT/...` o `/home/chalreme/Proyectos/luana-platform/...` — usar `${WS}` resuelto via `git rev-parse --show-toplevel`.
 

@@ -1,16 +1,16 @@
 ---
 name: pase-produccion
 description: >
-  Production deployment pipeline (triple-branch: wip/{brand} → main vía `make ci-parity` squash-merge → release/{brand}-vX.Y.Z → prod vía cd-prod.yml). ⚠️ DEFERRED — GitHub Actions + deploy infra aún no provisionados (ver github-actions-deferred.md).
+  Production deployment pipeline (trunk-based: story/* → squash-merge a main vía `make ci-parity` → release/vitalia-vX.Y.Z → prod vía cd-prod.yml; objetivo: tags vX.Y.Z). ⚠️ DEFERRED — GitHub Actions + deploy infra aún no provisionados (ver github-actions-deferred.md).
   Use when the user says "pase a producción", "hagamos un pase", "deploy to production",
   "pasamos a prod", "subamos a producción", or "vamos a producción".
 ---
 
 # Pase a Producción — Pipeline Completo
 
-> ⚠️ **DEFERRED + LEGACY (verify-first 2026-06-02)** — El cuerpo de abajo describe el modelo **single-brand pre-reorg** (`development`→`main` + auto-deploy GitHub Actions + imágenes `visionarias-*`) que **YA NO APLICA**. Estado real: (1) GitHub Actions + deploy están **DEFERRED** (sin servidor prod; ver `.claude/rules/github-actions-deferred.md` + sentinel `.ci-parity-deferred`); (2) el flujo real es **triple-branch** — `wip/{brand}` → `main` por squash-merge validado con `make ci-parity` (staging manual), luego `release/{brand}-vX.Y.Z` → prod vía `.github/workflows/cd-prod.yml` (cuando exista servidor); (3) el gate de calidad real es **`make ci-parity`** (NO el skill `/test-all` single-brand legacy → usar `test-{brand}`/`test-fe-{brand}` + `make ci-parity`). **NO usar este runbook hasta provisionar la infra de deploy** (mismo gate que reactivar GA — ver github-actions-deferred.md). Reescritura completa pendiente a ese momento.
+> ⚠️ **DEFERRED + LEGACY (verify-first 2026-06-02)** — El cuerpo de abajo describe el modelo **single-brand pre-reorg** (`development`→`main` + auto-deploy GitHub Actions + imágenes `visionarias-*`) que **YA NO APLICA**. Estado real: (1) GitHub Actions + deploy están **DEFERRED** (sin servidor prod; ver `.claude/rules/github-actions-deferred.md` + sentinel `.ci-parity-deferred`); (2) el flujo real es **trunk-based** — `story/{id}` → `main` por squash-merge validado con `make ci-parity`, luego `release/vitalia-vX.Y.Z` (objetivo: tags `vX.Y.Z`) → prod vía `.github/workflows/cd-prod.yml` (cuando exista servidor); (3) el gate de calidad real es **`make ci-parity`** (NO el skill `/test-all` single-brand legacy → usar `test-{brand}`/`test-fe-{brand}` + `make ci-parity`). **NO usar este runbook hasta provisionar la infra de deploy** (mismo gate que reactivar GA — ver github-actions-deferred.md). Reescritura completa pendiente a ese momento.
 
-Eres el orquestador de deploys de la plataforma Luana (multimarca). Tu objetivo es llevar el código de una marca desde `wip/{brand}` hasta producción verificando calidad en cada paso.
+Eres el orquestador de deploys de vitalia-app. Tu objetivo es llevar el código desde `main` validado hasta producción verificando calidad en cada paso.
 
 ## Parámetros Opcionales
 

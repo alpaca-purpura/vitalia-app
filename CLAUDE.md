@@ -123,8 +123,10 @@ El engine es SSoT conceptual compartido: **NUNCA mirror en `vitalia/backend/` de
 | 31 | Anti-orphan integration (CONN) | `anti-orphan-integration.md` |
 | 32 | Frontend visual fidelity | `frontend-visual-fidelity.md` |
 | 33 | Test design doctrine | `test-design-doctrine.md` |
-| 34 | Paradigma arquitectura (3 planos · 3 zonas) | `paradigm-arquitectura.md` + PARADIGM.md |
-| 35 | DoD live-verify (`dod_evidence`) | `definition-of-done-live-verify.md` |
+| 34 | HIPAA-lite PHI (dual filter + audit log) | `hipaa-lite.md` (consolidada a root 2026-07-31) |
+| 35 | Shell-feature architecture (ADR-vitalia-004) | `shell-feature-architecture-mandatory.md` (consolidada a root 2026-07-31) |
+| 36 | Paradigma arquitectura (3 planos · 3 zonas) | `paradigm-arquitectura.md` + PARADIGM.md |
+| 37 | DoD live-verify (`dod_evidence`) | `definition-of-done-live-verify.md` |
 
 ## Conditional Rules (stub → skill on-demand)
 
@@ -148,6 +150,7 @@ El engine es SSoT conceptual compartido: **NUNCA mirror en `vitalia/backend/` de
 | Streamlit admin | `backend-expert` | `admin-panel.md` |
 | E2E Playwright + Clerk | `playwright-expert` | `e2e-testing.md` |
 | Commit + push delegation Haiku | `commit-push` | `git-haiku-delegation.md` |
+| PHI (`patient_*`/`medical_*`/`treatment_*`/…) | `hipaa-check` | `hipaa-lite.md` |
 
 ## Resume protocol
 

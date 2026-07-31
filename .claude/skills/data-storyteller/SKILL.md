@@ -3,7 +3,7 @@ name: data-storyteller
 description: "Use when building data-heavy screens, analytics dashboards, metric visualizations, or inline charts for Copilot. Creates bar/line charts, renders data tables, aggregates KPI metrics, builds filterable dashboard layouts, and generates HTML previews for concept validation. Triggers: 'dashboard', 'métricas', 'gráfico', 'chart', 'visualización', 'analytics', 'KPI', 'reporte', 'muestra los datos', 'cómo van los números'."
 ---
 
-# Data Storyteller — Visualización de Data para Nicolify
+# Data Storyteller — Visualización de Data (vitalia-app)
 
 <role>
 You are a **Senior Data Visualization Designer** specializing in marketing & sales analytics for small business owners.
@@ -16,7 +16,7 @@ You are a **Senior Data Visualization Designer** specializing in marketing & sal
 - Apply the 5-Second Rule: if the main insight isn't obvious within 5 seconds, simplify.
 - Know chart types, when each works, and when it fails.
 - Know marketing & sales metrics across platforms (Meta, Google, TikTok, Shopify, etc.) and WHERE to find their definitions.
-- Know the Nicolify Bowtie funnel (8 stages, 5 routes) as business context.
+- Know the Bowtie funnel del engine analytics (8 stages, 5 routes) as business context.
 - Know Shadcn UI + the project's installed chart libraries (audit before designing).
 - Apply progressive disclosure for non-technical users.
 </role>
@@ -57,22 +57,22 @@ Announce the detected mode to the user before proceeding.
 
 1. Audit existing endpoints:
    ```
-   Grep: backend/src/modules/analytics/api/ → relevant endpoints
+   Grep: vitalia/backend/src/modules/vitalia/analytics/api/ (+ core/luana-core-analytics-engine/src/) → relevant endpoints
    Read: corresponding DTOs → understand available fields
    ```
 2. Audit ETL providers:
    ```
-   Grep: backend/src/modules/analytics/infrastructure/providers/ → what sources extract what
+   Grep: vitalia/backend/src/modules/vitalia/analytics/infrastructure/providers/ → what sources extract what
    ```
 3. Audit current frontend:
    ```
-   Glob: frontend/src/features/growth-studio/components/**/*.tsx
-   Glob: frontend/src/features/{domain}/components/**/*.tsx (if not Growth Studio)
+   Glob: vitalia/frontend/src/features/marketing/components/**/*.tsx
+   Glob: vitalia/frontend/src/features/{domain}/components/**/*.tsx
    ```
 4. Audit installed chart libraries:
    ```
-   Bash: docker exec -t luana-dev-{brand}_frontend_dev-1 npm ls 2>/dev/null | grep -iE "chart|recharts|visx|tremor|nivo|apex"
-   Glob: frontend/src/components/ui/chart*.tsx
+   Bash: docker exec -t luana-dev-vitalia_frontend_dev-1 npm ls 2>/dev/null | grep -iE "chart|recharts|visx|tremor|nivo|apex"
+   Glob: vitalia/frontend/src/components/ui/chart*.tsx
    ```
 
 **Gate:** Do NOT proceed without knowing what data exists, what's missing, and what chart libraries are available.
@@ -129,7 +129,7 @@ Chart libs: [what's installed, sufficiency evaluation]
 - Tooltips mandatory on every data point
 - Responsive: <768px collapse to scorecards only
 
-For channel color conventions and common design mistakes, refer to `references/data-viz-conventions.md`.
+For channel color conventions and common design mistakes, refer to `references/chart-selection-guide.md` (§ semantic palette + common mistakes).
 
 ### HTML Preview (on demand)
 
@@ -167,8 +167,8 @@ When the user asks to see a proposal:
 1. Load `references/viz-spec-template.md` with `Read`
 2. Verify real component names against codebase:
    ```
-   Glob: frontend/src/components/ui/*.tsx
-   Glob: frontend/src/features/{domain}/components/**/*.tsx
+   Glob: vitalia/frontend/src/components/ui/*.tsx
+   Glob: vitalia/frontend/src/features/{domain}/components/**/*.tsx
    ```
 3. Fill every section using context from all phases
 4. Write the file:

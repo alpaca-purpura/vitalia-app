@@ -9,7 +9,7 @@
 
 ---
 story_id: STORY_ID
-brand: BRAND_SLUG                     # vitalia | nicolify | comunify | lupulo | platform
+brand: BRAND_SLUG                     # vitalia | platform
 release: PARENT_RELEASE_ID            # release del brand (contenedor temporal)
 merged_at: 2026-05-18T20:00Z
 merged_by: /pm-{brand}

@@ -184,7 +184,7 @@ fi
 # 4e. cap-format gates G1-G6 HARD (HB-51 · enforcement determinístico)
 # ─────────────────────────────────────────────────────────────────
 # Bloquea push a main/release/* si un brand MADURO tiene deriva en G1-G6.
-# nicolify/lupulo ADVISORY (mid-rebuild / placeholder). Override: CAP_GATES_PUSH_OVERRIDE=1.
+# Brands con cap_gate!=hard quedan ADVISORY. Override: CAP_GATES_PUSH_OVERRIDE=1.
 # SSoT: docs/process/cap-deterministic-enforcement.md (Capa 4 + 7)
 # ─────────────────────────────────────────────────────────────────
 # HARD-cap-gate brands from the seam (project.config.yaml · brands.active where cap_gate=hard)

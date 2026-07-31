@@ -2,14 +2,5 @@
 # Baseline-ratchet SHRINK-ONLY: drená un ref (arreglá el puntero) → quitalo de acá.
 # NO agregués líneas a mano salvo que ratifiques un ref muerto deliberado.
 # Regen: python3 scripts/scan_harness_pointers.py --update-baseline
-.claude/agents/auditor-agentic.md :: core/luana-core-platform/src/luana_core_platform/config.py
-.claude/agents/auditor-backend.md :: core/luana-core-platform/src/luana_core_platform/config.py
-.claude/agents/auditor-backend.md :: docs/etl/extraction-contract.md
-.claude/agents/builder-agentic.md :: core/luana-core-platform/src/luana_core_platform/config.py
-.claude/agents/builder-backend.md :: core/luana-core-platform/src/luana_core_platform/config.py
-.claude/rules/backend-migrations.md :: docs/domains/migrations.md
-.claude/skills/backend-expert/SKILL.md :: docs/etl/extraction-contract.md
 .claude/skills/brand-expert/SKILL.md :: docs/domains/brand/INDEX.md
-.claude/skills/data-storyteller/SKILL.md :: references/data-viz-conventions.md
 .claude/skills/offer-expert/SKILL.md :: docs/domains/offer/INDEX.md
-.claude/skills/playwright-expert/SKILL.md :: .github/workflows/e2e-tests.yml

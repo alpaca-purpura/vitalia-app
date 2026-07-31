@@ -384,14 +384,13 @@ Al cierre de cada turn, MUST appendear una entry a la sección 💬 Conversació
 - `.claude/rules/story-closure-gate.md` — Fase F MERGE concreta R2 (archive como parte del 07-merge)
 - `references/engine-consumption-learnings.md` — anti-patterns catalogados de consumo del engine (AP1-AP7: IAM reinventado, hardcodes de marca en core config, .env quoting, migrations no aplicadas)
 - `.claude/skills/pm/SKILL.md` — alias delgado `/pm` (apunta acá)
-- `vitalia/.claude/rules/hipaa-lite.md` — overlay defensivo CONDICIONAL para datos sensibles paciente.
+- `.claude/rules/hipaa-lite.md` — rule defensiva para datos sensibles paciente (consolidada a root 2026-07-31).
   NO es claim de compliance HIPAA US (sin BAA / sin certificación) — framework de referencia para
   baseline defensiva. Evaluá scope al refinar story:
     - **Aplica full set** (dual filter tenant+clinic, audit log sync, encryption pgcrypto, retention 10y, RBAC PHI strict, channel guards): tenant US con paciente US, o cliente declara alcance HIPAA explícito, o medicina core (psiquiatría / endocrinología / oncología) con records sensibles.
     - **Aplica subset baseline** (tenant-isolation raíz + audit log + encryption at-rest + RBAC roles): default LatAm dental / belleza / estética / wellness — datos sensibles pero NO PHI US-HIPAA.
     - **Aplica regs locales** del país del paciente (Ley 25.326 AR / 1581 CO / 19.628 CL / 29733 PE / LGPD BR): cross-jurisdiction — jurisdicción paciente prevalece para datos personales.
     - **NO aplica** (solo tenant-isolation raíz basta): story toca únicamente `appointment_*`/`booking_*` sin tocar `patient_*`/`medical_*`/`treatment_*`.
-- `vitalia/.claude/rules/README.md` — index overlay rules de la marca
 - `vitalia/config/brand.yaml` — feature flags + opt-in core packages + `compliance_level: hipaa_lite`
 
 <!-- voseo-allowed: doc interno / buzón conversacional, no user-facing -->

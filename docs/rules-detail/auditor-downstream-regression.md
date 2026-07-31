@@ -148,7 +148,7 @@ cd ${WS}/core/luana-core-${PKG} && ${WS}/.venv/bin/pytest tests/architecture/ -x
 
 ## Brand overlay scope
 
-**Cuándo aplica:** PR toca `vitalia/.claude/rules/*.md` (brand-specific rule overlay) o `vitalia/.claude/skills/*.md` (brand-specific skill overlay, raro).
+**Cuándo aplica:** PR toca rules brand-specific en `.claude/rules/` (ej. `hipaa-lite.md`, `shell-feature-architecture-mandatory.md` — consolidadas a root 2026-07-31).
 
 **Verificación obligatoria:**
 

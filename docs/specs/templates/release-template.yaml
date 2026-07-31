@@ -4,7 +4,7 @@
 # Path canónico: {brand}/docs/product/releases/{release_id}.yaml
 
 release_id: RELEASE_ID                # ej "F2" · PK funcional · NO renombrar después
-brand: BRAND                          # vitalia | nicolify | comunify | lupulo | ...
+brand: BRAND                          # vitalia
 name: "Nombre corto del release"      # ej "Migración progresiva · primer valor Valeria + Lisa"
 description: "Descripción 1-2 líneas que explican el bloque de trabajo + outcome esperado"
 status: planning                       # planning | in_progress | ready_to_merge | shipped | backlog

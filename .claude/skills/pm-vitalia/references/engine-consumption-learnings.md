@@ -262,7 +262,7 @@ Admin auth: bcrypt single super-admin password `{SLUG}_ADMIN_PASSWORD_HASH` env 
 
 ### Step 7 — Brand overlay rules
 
-`{slug}/.claude/rules/{topic}.md` para reglas brand-specific (overlay, extiende `.claude/rules/` raíz). Mínimo: si compliance_level != standard, agregar rule `{compliance}-lite.md` (ver `vitalia/.claude/rules/hipaa-lite.md` como modelo).
+`{slug}/.claude/rules/{topic}.md` para reglas brand-specific (overlay, extiende `.claude/rules/` raíz). Mínimo: si compliance_level != standard, agregar rule `{compliance}-lite.md` (ver `.claude/rules/hipaa-lite.md` como modelo).
 
 ### Step 8 — Capabilities + outcomes esqueleto
 

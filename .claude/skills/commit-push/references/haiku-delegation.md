@@ -41,9 +41,9 @@ Todo Agent spawn que ejecute git workflow MUST contener estos guardrails verbati
 - Si push fails non-fast-forward → STOP, report. NO pull.
 - Si pre-commit hook fails → fix issue, create NEW commit (never `--amend` for pushed commits)
 
-## Destination branch (triple-branch policy — ver git-safety.md)
+## Destination branch (trunk-based — ver git-safety.md + docs/process/git-workflow.md)
 Orchestrator indica destino. Guardrails por destino:
-  wip/*      → push OK siempre que sea el branch de trabajo actual. No force.
+  story/*|fix/* → push OK siempre que sea el branch de trabajo actual. No force.
   main       → squash-merge previo requerido. Si non-fast-forward → STOP.
   release/*  → solo desde main validado. Verificar CI green antes push.
 NUNCA cambiar destino sin instrucción explícita del orchestrator.
@@ -62,7 +62,7 @@ NUNCA cambiar destino sin instrucción explícita del orchestrator.
 2. `git branch --show-current` — confirm current branch matches destination
 3. **Commit por pathspec** (índice compartido en hub único — ADR-009): `git commit <file1> <file2> ... -m "$(cat <<'EOF' … EOF)"`. El partial commit incluye SOLO esos paths, ignora lo que otra sesión haya dejado staged → cero contaminación. (Pre-commit hook corre sobre esos paths igual.)
 4. `git status --short` — verify other-session files still unstaged + intact
-5. `git push origin <CURRENT_BRANCH>` — push to current branch (wip/*, main, or release/*)
+5. `git push origin <CURRENT_BRANCH>` — push to current branch (story/*, fix/*, main, or release/*)
 6. `git log --oneline -2` — confirm commit pushed
 7. Report final commit SHA + push result
 
@@ -77,10 +77,10 @@ Antes de spawn Haiku worker, Opus orchestrator MUST:
    - Files MINE (modified/added by current session) → stage list
    - Files OTHERS (parallel session WIP) → leave-alone list
 2. **Verify branch type** (`git branch --show-current`) — determinar destino:
-   - `wip/*` → push autosave normal
+   - `story/*` / `fix/*` → push autosave normal
    - `main` → squash-merge previo requerido, verificar CI
    - `release/*` → verificar main validado, CI green
-   - Otro (legacy) → STOP, switch a wip/* o main primero
+   - Otro (legacy) → STOP, switch a story/* o main primero
 3. **Compose commit message** con:
    - Conventional Commits format (`feat:`, `fix:`, `refactor:`, `docs:`, `test:`, `chore:`, `perf:`, `ci:`)
    - Body explica "why" (1-3 lines), no "what"
@@ -88,7 +88,7 @@ Antes de spawn Haiku worker, Opus orchestrator MUST:
    - `Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>` line al cierre
 4. **Reject pre-spawn si:**
    - User pidió commit pero hay archivos secret-likely (`.env*`, `credentials*`, `*.pem`) en stage list → STOP, escalate
-   - Branch es legacy o desconocido (no wip/*, main, release/*) → STOP, switch first
+   - Branch es legacy o desconocido (no story/*, fix/*, main, release/*) → STOP, switch first
    - Tree completamente limpio (nada para commitear) → STOP, no spawn
 
 ## Spawn template (Opus copy-paste)
@@ -122,7 +122,7 @@ Haiku worker last-line:
   - "non-fast-forward" → STOP, escalate Chris (no pull). Aplica a main y release/*.
   - "pre-commit hook" → orchestrator inspecciona hook output, fix, re-spawn Haiku
   - "secret detected" → orchestrator escalates Chris immediately (security)
-  - "branch mismatch" → orchestrator verifica branch type (wip/*/main/release/*) y corrige
+  - "branch mismatch" → orchestrator verifica branch type (story/*|fix/*|main|release/*) y corrige
 
 ## Referencias
 

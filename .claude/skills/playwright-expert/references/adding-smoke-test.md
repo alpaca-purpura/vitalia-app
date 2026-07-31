@@ -1,6 +1,6 @@
 # Recipe — Adding a New Smoke Test
 
-> **Read when:** the user says "agreguemos un smoke", "necesito test E2E para X", "smoke de la nueva ruta", "test integral de Y", or any new UI page lands on `wip/{brand}`.
+> **Read when:** the user says "agreguemos un smoke", "necesito test E2E para X", "smoke de la nueva ruta", "test integral de Y", or any new UI page lands.
 >
 > **Nota:** en este repo la marca es vitalia — reemplazá `{brand}` por `vitalia` y `300X` por `3002` en todos los paths y URLs. Ver rule #37 para la infra dev-app (`dev-app.vitalialat.com`).
 
@@ -204,11 +204,11 @@ If your test passes in isolation but fails in parallel:
 Stage and commit ONLY your new files (per `git-safety.md`). Usá rutas por pathspec exacto; NUNCA `git add .`:
 
 ```bash
-git add {brand}/frontend/e2e/specs/smoke/<feature-name>.smoke.spec.ts
-git add {brand}/frontend/e2e/pages/<feature-name>.page.ts
+git add vitalia/frontend/e2e/specs/smoke/<feature-name>.smoke.spec.ts
+git add vitalia/frontend/e2e/pages/<feature-name>.page.ts
 git status   # confirm only your files are staged
 git commit -m "test(e2e): add smoke for <feature>"
-git push origin wip/{brand}
+git push origin story/{id}
 ```
 
 Watch CI:

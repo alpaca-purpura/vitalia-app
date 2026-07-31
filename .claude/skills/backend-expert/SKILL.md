@@ -14,10 +14,10 @@ Antes de escribir codigo, ubicar el modulo destino:
 > **⚠️ Si vas a tocar `{brand}/backend/src/modules/{brand}/analytics/` (cualquier provider, ETL pipeline, scheduler, workers, o `metric_catalog.py`):**
 >
 > 1. Leer `.claude/rules/etl-extraction-contract.md` ANTES de empezar.
-> 2. Consultar `docs/etl/extraction-contract.md` para entender qué dice el contrato del provider/canal que vas a tocar.
+> 2. Consultar `core/luana-core-analytics-engine/docs/extraction-contract.md` para entender qué dice el contrato del provider/canal que vas a tocar.
 > 3. Después de implementar, los 3 pasos finales son OBLIGATORIOS:
 >    - Actualizar `{brand}/backend/src/modules/{brand}/analytics/domain/extraction_contract.py` para reflejar el cambio (o el engine en `core/luana-core-analytics-engine/` si aplica).
->    - `make extraction-contract` para regenerar `docs/etl/extraction-contract.md`.
+>    - `make extraction-contract` para regenerar `core/luana-core-analytics-engine/docs/extraction-contract.md`.
 >    - `WS=$(git rev-parse --show-toplevel) && cd {brand}/backend && ${WS}/.venv/bin/pytest tests/architecture/test_extraction_contract.py -x -q`.
 > 4. El commit final incluye SIEMPRE: el código del provider/pipeline + la entrada del contrato + el Markdown regenerado, en un solo commit.
 >

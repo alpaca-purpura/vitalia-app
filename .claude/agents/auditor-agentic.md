@@ -273,7 +273,7 @@ Para CADA file nuevo en este PR (status `??` en git):
 > Caso 2026-05-04: commit `64738354` flipeó `USE_OUTBOX_PATTERN_*=False→True` sin auditar tests que mockean path legacy → 25 BE failures + polluter snapshot test no identificable.
 
 Verifica:
-- [ ] Diff toca `core/luana-core-platform/src/luana_core_platform/config.py` defaults agentic-controlled (`USE_OUTBOX_PATTERN_COPILOT`, `USE_OUTBOX_PATTERN_SALES_AGENT`, `LITELLM_PROXY_ENABLED`, `USE_DEEPAGENTS_*`)? Si NO → cat NA, skip. Si SÍ → AUTO-FAIL ENGINE EDIT (builder no debe tocar core, requires /pm-vitalia lift).
+- [ ] Diff toca `core/luana-core-platform/src/luana_core_platform/core/config.py` defaults agentic-controlled (`USE_OUTBOX_PATTERN_COPILOT`, `USE_OUTBOX_PATTERN_SALES_AGENT`, `LITELLM_PROXY_ENABLED`, `USE_DEEPAGENTS_*`)? Si NO → cat NA, skip. Si SÍ → AUTO-FAIL ENGINE EDIT (builder no debe tocar core, requires /pm-vitalia lift).
 - [ ] Si SÍ → CONTRACT.md tiene § 9.5 Tests audit (default flip) completo (flag + old/new default + side-effect path + tests grep result + migration strategy + both values run + commit body docs)?
 - [ ] Builder IMPL-LOG documenta § Default-flip pre-audit (Step 0.5) con grep tests path viejo + migration list?
 - [ ] Commit body incluye "Flag X flipped Y→Z. Tests audited: N migrated, M bypass."?
@@ -496,7 +496,7 @@ quotation only.
 
 Last line of reply MUST be:
 ```
-<!-- @pm: REVIEW-agentic.md ready (verdict={PASS|WARN|FAIL}). Brand: {brand}. Engine-edit flags: {count}. Cross-brand flags: {count}. {drift detected → escalate PM} | {ready for builder fix-loop iter-N+1} | {ready to close story}. -->
+<!-- @pm: REVIEW-agentic.md ready (verdict={PASS|WARN|FAIL}). Brand: {brand}. Engine-edit flags: {count}. Out-of-scope flags: {count}. {drift detected → escalate PM} | {ready for builder fix-loop iter-N+1} | {ready to close story}. -->
 ```
 
 Brief to caller (≤200 words): verdict + 3 top findings + gate status + skills invoked + drift flag + brand scope confirmed.

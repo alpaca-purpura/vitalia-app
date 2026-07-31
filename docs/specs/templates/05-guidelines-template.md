@@ -6,7 +6,7 @@
 
 ---
 story_id: STORY_ID
-brand: BRAND_SLUG                                  # vitalia | nicolify | comunify | lupulo
+brand: BRAND_SLUG                                  # vitalia | platform
 arch_version: 1
 last_modified: 2026-MM-DDTHH:MM:SSZ
 ---

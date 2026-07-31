@@ -1,12 +1,12 @@
 ---
 name: playwright-expert
-description: "Playwright E2E expert (multibrand Luana) — Clerk auth lifecycle (testing token + storageState + freshness gate), POMs, network mocking, multi-tenant fixture, sharding, flaky debugging via trace viewer, anti-patterns (NEVER make e2e* Docker — crashea)."
-when_to_use: "Use ANY time you write, debug, run, audit, extend, or think about Playwright E2E tests in the platform. Trigger when user mentions: 'smoke test', 'e2e', 'playwright', 'tests E2E', 'agreguemos un smoke', 'el smoke falla', 'auth de Clerk en tests', 'test:e2e', 'spec.ts', 'storageState', 'auth.fixture', 'POM', 'page object', 'browser test', 'test integral', 'preflight', 'test que abra el navegador', 'verificar el flujo X end-to-end', 'CI de Playwright', 'fixtures de Playwright', '/test-all flake', 'playwright report', 'trace viewer', 'visual regression Playwright', 'verify project', 'Clerk testing token', 'CLERK_TESTING_TOKEN', 'playwright/.clerk/user.json', 'Bot traffic detected', 'Clerk Frontend API URL is required', 'session expired Playwright'. Also trigger proactively before any commit/PR that touches `frontend/e2e/**` or any UI flow that could affect smoke tests, and before any GH Actions change to `e2e-tests.yml`. When in doubt, USE this skill — under-triggering Playwright knowledge is the #1 cause of broken E2E suites in Luana."
+description: "Playwright E2E expert (vitalia-app) — Clerk auth lifecycle (testing token + storageState + freshness gate), POMs, network mocking, multi-tenant fixture, sharding, flaky debugging via trace viewer, anti-patterns (NEVER make e2e* Docker — crashea)."
+when_to_use: "Use ANY time you write, debug, run, audit, extend, or think about Playwright E2E tests in the platform. Trigger when user mentions: 'smoke test', 'e2e', 'playwright', 'tests E2E', 'agreguemos un smoke', 'el smoke falla', 'auth de Clerk en tests', 'test:e2e', 'spec.ts', 'storageState', 'auth.fixture', 'POM', 'page object', 'browser test', 'test integral', 'preflight', 'test que abra el navegador', 'verificar el flujo X end-to-end', 'CI de Playwright', 'fixtures de Playwright', '/test-all flake', 'playwright report', 'trace viewer', 'visual regression Playwright', 'verify project', 'Clerk testing token', 'CLERK_TESTING_TOKEN', 'playwright/.clerk/user.json', 'Bot traffic detected', 'Clerk Frontend API URL is required', 'session expired Playwright'. Also trigger proactively before any commit/PR that touches `vitalia/frontend/e2e/**` or any UI flow that could affect smoke tests (GH Actions e2e workflow: deferred, no existe). When in doubt, USE this skill — under-triggering Playwright knowledge is the #1 cause of broken E2E suites."
 ---
 
-# Playwright Expert (Luana multibrand)
+# Playwright Expert (vitalia-app)
 
-Single source of truth for E2E testing in Luana (multibrand). Anchors on Playwright 1.59+, `@clerk/testing` 2.x, `@clerk/nextjs` 6.36+, native Linux (host) execution, and the multi-tenant + Clerk + Cloudflare Turnstile reality of this codebase.
+Single source of truth for E2E testing in vitalia-app (single-brand). Anchors on Playwright 1.59+, `@clerk/testing` 2.x, `@clerk/nextjs` 6.36+, native Linux (host) execution, and the multi-tenant + Clerk + Cloudflare Turnstile reality of this codebase.
 
 > **Mantra:** *"E2E tests are not flaky. Auth is flaky. Networks are flaky. Mocks are flaky. The test runner is deterministic — fix the substrate, not the test."*
 
@@ -14,7 +14,7 @@ Single source of truth for E2E testing in Luana (multibrand). Anchors on Playwri
 
 ## Stop. Read first, do not assume.
 
-Before changing anything in `frontend/e2e/**`, the architect-level mental model lives in:
+Before changing anything in `vitalia/frontend/e2e/**`, the architect-level mental model lives in:
 
 | Concern | SSoT | Read when |
 |---|---|---|
@@ -81,12 +81,12 @@ Run **in this exact order**. Skip steps and you waste 20 minutes.
    bash $(git rev-parse --show-toplevel)/scripts/e2e-preflight.sh
 
 3. Tail the failing trace:
-   cd frontend && npx playwright show-report --host 0.0.0.0
+   cd vitalia/frontend && npx playwright show-report --host 0.0.0.0
    # Click failing test → "Trace" tab → step through actions, screenshots, network
 
 4. Force fresh auth + rerun ONE failing test:
    npm run test:e2e:auth   # wipes user.json + reauthenticates
-   cd frontend && npx playwright test path/to/the-spec.ts --project=smoke --headed
+   cd vitalia/frontend && npx playwright test path/to/the-spec.ts --project=smoke --headed
 
 5. If still failing — load reference matching the actor (clerk-auth | pom | mocks).
 ```
@@ -97,7 +97,7 @@ Never debug "in general." Pick the failing actor, load that reference.
 
 ## Daily commands (memorize these)
 
-All commands run NATIVE in Linux (host) from `frontend/`. **NEVER** `make e2e*` (Docker, crashes the laptop).
+All commands run NATIVE in Linux (host) from `vitalia/frontend/`. **NEVER** `make e2e*` (Docker, crashes the laptop).
 
 ```bash
 # ─── happy path (cached auth ≤ 4h) ────────────────────────────────
@@ -108,15 +108,15 @@ npm run test:e2e:fresh               # wipe user.json + run smoke
 npm run test:e2e:auth                # wipe + run setup project ONLY (regenerate storageState)
 
 # ─── debugging ────────────────────────────────────────────────────
-cd frontend && npx playwright test --project=smoke --headed                # see browser
-cd frontend && npx playwright test --project=smoke --debug                 # step-by-step
-cd frontend && npx playwright test path/to/x.smoke.spec.ts --project=smoke # one file
-cd frontend && npx playwright show-report --host 0.0.0.0                   # HTML report + traces
-cd frontend && npx playwright test --ui --ui-host 0.0.0.0                  # watch mode
+cd vitalia/frontend && npx playwright test --project=smoke --headed                # see browser
+cd vitalia/frontend && npx playwright test --project=smoke --debug                 # step-by-step
+cd vitalia/frontend && npx playwright test path/to/x.smoke.spec.ts --project=smoke # one file
+cd vitalia/frontend && npx playwright show-report --host 0.0.0.0                   # HTML report + traces
+cd vitalia/frontend && npx playwright test --ui --ui-host 0.0.0.0                  # watch mode
 
 # ─── full suites ──────────────────────────────────────────────────
-cd frontend && npx playwright test --project=regression
-cd frontend && npx playwright test --project=verify   # AI-driven, 10min/test
+cd vitalia/frontend && npx playwright test --project=regression
+cd vitalia/frontend && npx playwright test --project=verify   # AI-driven, 10min/test
 
 # ─── preflight (run before every Playwright invocation) ───────────
 bash $(git rev-parse --show-toplevel)/scripts/e2e-preflight.sh
@@ -203,20 +203,21 @@ These are enforced by skill, code review, and the auditor. Violations get revert
 ## Files this skill owns (modify these freely; flag PR for review)
 
 ```
-frontend/playwright.config.ts
-frontend/e2e/setup/clerk.setup.ts
-frontend/e2e/fixtures/*.ts
-frontend/e2e/pages/*.ts
-frontend/e2e/specs/{smoke,regression,public,visual,verify,perf}/**/*.spec.ts
-frontend/package.json (only the test:e2e:* scripts block)
+vitalia/frontend/playwright.config.ts
+vitalia/frontend/e2e/setup/clerk.setup.ts
+vitalia/frontend/e2e/fixtures/*.ts
+vitalia/frontend/e2e/pages/*.ts
+vitalia/frontend/e2e/specs/{smoke,regression,public,visual,verify,perf}/**/*.spec.ts
+vitalia/frontend/package.json (only the test:e2e:* scripts block)
 scripts/e2e-preflight.sh
-.github/workflows/e2e-tests.yml
 .claude/rules/e2e-testing.md (it points HERE; keep the pointer)
 ```
 
+> E2E en CI: GitHub Actions está **deferred** (`.claude/rules/github-actions-deferred.md`) — no existe workflow `e2e-tests.yml`; el smoke corre NATIVE local (pre-push + `make ci-parity`).
+
 Files this skill **must not** modify:
-- `frontend/src/**` to "fix" a flaky test → fix the test, not the production code
-- `clerkMiddleware` config in `frontend/src/middleware.ts` without explicit Chris approval (auth blast radius is huge)
+- `vitalia/frontend/src/**` to "fix" a flaky test → fix the test, not the production code
+- `clerkMiddleware` config in `vitalia/frontend/src/proxy.ts` (edge middleware) without explicit Chris approval (auth blast radius is huge)
 - `.env` / `.env.e2e` → use `.env.e2e.example` as template for documentation; the real `.env` is hand-managed by Chris
 
 ---
@@ -228,9 +229,9 @@ If you are seeing this skill for the first time:
 1. Skim `references/architecture.md` (~10 min). Internalize: setup → smoke → regression → verify dependency graph.
 2. Run `bash scripts/e2e-preflight.sh && npm run test:e2e:smoke`. If green, the substrate is healthy.
 3. Read `references/clerk-auth-deep-dive.md` end-to-end. 90% of failures live there.
-4. Open `frontend/e2e/specs/smoke/navigation.smoke.spec.ts` and `frontend/e2e/pages/navigation.page.ts` side by side — they are the gold-standard pair.
+4. Open `vitalia/frontend/e2e/specs/smoke/marketing.smoke.spec.ts` and `vitalia/frontend/e2e/pages/marketing.page.ts` side by side — they are the gold-standard pair.
 5. The next time you write a test, follow `references/adding-smoke-test.md` literally for the first 5 tests.
-6. Subscribe to `.github/workflows/e2e-tests.yml` notifications — when smoke fails on `wip/{brand}`, page yourself.
+6. Smoke corre local (native host) — pre-push hook + `make ci-parity`. No hay workflow CI de e2e (GitHub Actions deferred).
 
 ---
 

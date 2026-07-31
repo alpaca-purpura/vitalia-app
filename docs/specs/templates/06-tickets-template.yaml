@@ -156,7 +156,7 @@
 #     reviewing | done | parked | dropped  → live in {brand}/docs/product/stories/{id}/checkpoint.md
 #     owned by /pm-{brand}. Do NOT confuse the two.
 story_id: STORY_ID
-brand: BRAND_SLUG                                  # ★ v4.1 — vitalia | nicolify | comunify | lupulo
+brand: BRAND_SLUG                                  # ★ v4.1 — vitalia | platform
 sprint: SN-SLUG                                    # DEPRECATED — legacy field (no PI/Sprint vocab; event-driven releases post pm-redesign)
 pi: PI-N                                           # DEPRECATED — legacy field idem; remove when creating real stories
 generated_at: 2026-05-04T15:00Z
@@ -233,7 +233,6 @@ T1:
     # must_load_skills + must_load_artifacts → campos `must_load_skills` + `inputs` arriba (NO duplicar)
     forbidden_to_touch:
       - "core/luana-core-*/src/"                    # engine → flujo engine /pm-vitalia
-      - "{other_brand}/"                            # cross-brand prohibido
       - "{brand}/backend/src/modules/{brand}/{copilot,sales_agent}/"  # agentic → builder-agentic
     rationale: "BE CRUD non-agentic — Sonnet sweet spot; flagship_required:false"
   deliverables:

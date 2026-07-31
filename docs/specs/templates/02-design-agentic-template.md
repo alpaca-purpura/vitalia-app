@@ -93,7 +93,7 @@ Turn 2
 
 ```
 SYSTEM PROMPT (cacheado, slot 1, TTL 1h)
-  ├─ identity preamble (nicolify_role, version)
+  ├─ identity preamble (brand_role, version)
   ├─ brand_voice (slot 5, cacheado, swap on tenant change)
   ├─ tool registry (slot 2, cacheado, regen on tool change)
   ├─ task-specific instructions (slot 3, NOT cached)

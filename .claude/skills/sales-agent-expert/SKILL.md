@@ -27,7 +27,7 @@ ANTES de crear archivo nuevo en `{brand}/backend/src/modules/{brand}/sales_agent
    - **LIFT-TO-ENGINE**: subir abstracción a `core/luana-core-observability/` vía `/pm-vitalia` flujo engine
    - **NEW** (último recurso): justificar path:line por qué existing no sirve
 
-NUNCA mirror `turn_envelope.py` / `callback_handler.py` / `cost_calculator.py` / `fx_resolver.py` / similar cross-brand ni cross-módulo. Si el engine lo tiene Y la brand extension lo necesita → consumir vía import `luana_core_observability.*`, no copiar.
+NUNCA mirror `turn_envelope.py` / `callback_handler.py` / `cost_calculator.py` / `fx_resolver.py` / similar del engine ni cross-módulo. Si el engine lo tiene Y la brand extension lo necesita → consumir vía import `luana_core_observability.*`, no copiar.
 
 ## §3 — NO se toca
 

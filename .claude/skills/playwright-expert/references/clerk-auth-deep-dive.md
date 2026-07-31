@@ -2,7 +2,7 @@
 
 > **Read when:** auth fails, "Bot traffic detected", "Clerk Frontend API URL is required", "signIn timed out", session expired mid-test, or before changing anything in `clerk.setup.ts` / `auth.fixture.ts` / `frontend/src/middleware.ts`.
 
-This document explains *exactly why* Clerk + Playwright is hard, and what the Nicolify-specific design decisions are. After reading this, the failure modes catalogued at the end should look obvious instead of cryptic.
+This document explains *exactly why* Clerk + Playwright is hard, and what the project-specific design decisions are. After reading this, the failure modes catalogued at the end should look obvious instead of cryptic.
 
 ---
 

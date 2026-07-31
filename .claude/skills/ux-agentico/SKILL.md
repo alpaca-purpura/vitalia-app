@@ -292,7 +292,7 @@ Próximo: /architect (con <brand>: {brand}) → spawn architect-orchestrator (ca
 
 Update `{brand}/docs/product/stories/{story-id}/checkpoint.md` (al ratificar diseño con Chris):
 ```yaml
-brand: {brand}         # ★ REQUIRED — multibrand scope
+brand: {brand}         # ★ REQUIRED — scope: vitalia (marca) | platform (engine/tooling)
 state: refined         # transición refining → refined cuando spec + diseño agentic ambos ratificados
 phase: AGENTIC_DESIGN_RATIFIED
 last_artifact: 02-design-agentic.md
@@ -318,11 +318,11 @@ next_action: "/architect <brand>: {brand} lee 01-spec + 02-design-agentic → sp
 
 Conversaciones en code blocks. Tablas para state machines, tools, recovery. Métricas en bullets. NUNCA dumps largos.
 
-## Anti cross-brand pollution
+## Anti out-of-scope pollution
 
 - ❌ NUNCA editar paths fuera de `vitalia/**` (+ story docs). STOP + escalate `/pm-vitalia`.
 - ❌ NUNCA editar `core/luana-core-*/src/` directamente (engine copilot/sales-agent). Requiere lift via `/pm-vitalia` (flujo engine). Brand-extension surface (`{brand}/backend/src/modules/{brand}/{copilot,sales_agent}/`) SÍ es editable per-brand.
-- ❌ NUNCA escribir specs/designs/tickets en root `docs/product/stories/` — solo `platform` (cross-brand) outcomes van ahí, y eso requiere `<brand>: platform` explícito + `/pm-vitalia` ratificación.
+- ❌ NUNCA escribir specs/designs/tickets en root `docs/product/stories/` — solo `platform` (engine/tooling) outcomes van ahí, y eso requiere `<brand>: platform` explícito + `/pm-vitalia` ratificación.
 - ❌ NUNCA reutilizar personas/rubrics de otro contexto sin verificar que la voz/contexto aplica. Default: usar core `docs/specs/` o crear bajo `vitalia/docs/specs/` si necesitás override.
 
 ## Output protocol · chris-input.md append

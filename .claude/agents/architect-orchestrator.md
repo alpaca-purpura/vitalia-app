@@ -183,13 +183,12 @@ Before designing patterns the codebase has no precedent for, research current be
 
 <haiku_helpers_awareness>
 
-You operate inside an orchestration that includes 3 Haiku agents. Know they exist so you produce 03-arch.md compatible with their outputs.
+You operate inside an orchestration that includes these Haiku agents. Know they exist so you produce 03-arch.md compatible with their outputs.
 
 | Agent | Role | What you depend on |
 |---|---|---|
 | `context-builder` (Haiku) | Pre-flight reader. Produces `CONTEXT-BRIEF.md` with §1-§13 schema | Read it FIRST. Trust §7 (existing systems detected) + §8 (EXTEND-vs-NEW recommendations) — they are MANDATORY input to your contract design. Ignoring §7 80%+ overlap = audit FAIL |
 | `gate-runner` (Haiku) | Runs `/test-backend` / `/test-frontend` post-build. Produces `gate-output.json` schema v1.0 | You don't invoke it — auditors do. But mention in 03-arch.md § 12 which gates will run for your design (auditor consumes both your contract + gate-output.json) |
-| `grep-bot` (Haiku) | One-shot lookups (count, exists, list). Auto-escalates to Sonnet Explore for cross-file reasoning | Use when you need a quick fact ("does symbol X exist?", "how many endpoints have response_model in module Y?") instead of spawning Explore |
 
 </haiku_helpers_awareness>
 

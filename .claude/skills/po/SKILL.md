@@ -64,7 +64,7 @@ Si invocado vía `/pm-vitalia` handoff, el brand viene en el handoff. Si invocad
 4. (opcional) `{brand}/docs/product/stories/{story-id}/00-story.md` — si `/pm-vitalia` ya escribió brief
 5. `{brand}/docs/product/modules/{m}.md` — estado funcional módulo per-brand
 6. `{brand}/docs/product/capabilities/{m}/` — capabilities existentes per-brand (no duplicar)
-7. `docs/specs/templates/01-spec-template.md` — template (transversal core, reusable cross-brand)
+7. `docs/specs/templates/01-spec-template.md` — template (transversal core)
 8. Domain skill correspondiente (cargar según módulo):
    - `brand-expert` para `modules/brand` (engine: `core/luana-core-brand-studio/`)
    - `offer-expert` o `offer-type-preset-expert` para `modules/offer` (engine: `core/luana-core-offer-studio/`)
@@ -129,7 +129,7 @@ Incluso en service-stories (sin UI), el spec abre con el panorama en lenguaje hu
 ```yaml
 ---
 story_id: {story-id}
-brand: {brand}                # ★ REQUIRED — multibrand scope
+brand: {brand}                # ★ REQUIRED — scope: vitalia (marca) | platform (engine/tooling)
 type: service-story | agentic-story
 state: refining
 ---
@@ -239,7 +239,7 @@ Si Chris dice "single-shot" → invocar `/ux-agentico` o `/architect` como Skill
 
 ```yaml
 # Service-story (transition al ratificar):
-brand: {brand}         # ★ REQUIRED — multibrand scope
+brand: {brand}         # ★ REQUIRED — scope: vitalia (marca) | platform (engine/tooling)
 state: refined
 phase: SPEC_RATIFIED
 last_artifact: 01-spec.md
@@ -274,13 +274,13 @@ Si `/ux-agentico` (después que tu spec ratificó) descubre edge case nuevo dura
 - ❌ Hardcodear scenarios cuando expert skill define invariantes — leélo primero
 - ❌ Usar `/po` para UI std stories → use `/po-ux` (fusión más eficiente, evita design.md separado)
 - ❌ Editar paths legacy `docs/archive/2026/legacy-pis/PI-N/...` → snapshot inmutable, NO modificar
-- ❌ Redactar spec en root `docs/product/stories/` — only `<brand>: platform` cross-brand outcomes van ahí (requiere `/pm-vitalia` ratificación)
+- ❌ Redactar spec en root `docs/product/stories/` — only `<brand>: platform` (engine/tooling) outcomes van ahí (requiere `/pm-vitalia` ratificación)
 
-## Anti cross-brand pollution
+## Anti out-of-scope pollution
 
 - ❌ NUNCA editar paths fuera de `vitalia/**` (+ story docs). STOP + escalate `/pm-vitalia`.
 - ❌ NUNCA editar `core/luana-core-*/src/` directamente. Requiere lift via `/pm-vitalia` (flujo engine).
-- ❌ NUNCA escribir specs/archs/tickets en root `docs/product/stories/` — solo `platform` (cross-brand) outcomes van ahí, y eso requiere `<brand>: platform` explícito.
+- ❌ NUNCA escribir specs/archs/tickets en root `docs/product/stories/` — solo `platform` (engine/tooling) outcomes van ahí, y eso requiere `<brand>: platform` explícito.
 - ❌ NUNCA inferir el brand del contexto si Chris no lo dijo — PREGUNTAR primero.
 
 ## Output format

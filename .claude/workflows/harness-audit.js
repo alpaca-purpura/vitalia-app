@@ -99,7 +99,7 @@ const inv = await agent(
   "- .claude/skills/*/SKILL.md -> category 'skill'\n" +
   "- .claude/agents/*.md -> category 'agent'\n" +
   "- .claude/rules/*.md -> category 'rule-root'\n" +
-  "- vitalia/.claude/rules/*.md -> category 'rule-brand'\n" +
+
   "- docs/rules-detail/*.md -> category 'rule-detail'\n" +
   "- .claude/hooks/* + .claude/settings.json + scripts/git-hooks/* -> category 'hook' (UN solo lote)\n" +
   "- tools/cockpit/README.md + tools/cockpit/*.md -> category 'cockpit' (UN solo lote)\n" +

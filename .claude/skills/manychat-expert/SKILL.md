@@ -66,7 +66,7 @@ These features are **NOT available** via the ManyChat API — do not attempt to 
 - No automation/rule creation API
 - No keyword/trigger setup API
 
-**Implication for Nicolify:** Pre-build flows and automations in ManyChat UI. Use the API for data sync (subscribers, tags, custom fields) and triggering pre-built flows.
+**Implication for vitalia:** Pre-build flows and automations in ManyChat UI. Use the API for data sync (subscribers, tags, custom fields) and triggering pre-built flows.
 
 ---
 
@@ -90,7 +90,7 @@ Read `references/connections-integration-map.md` for the full file map. Summary:
 - Tag management (assign tags from Sales Agent qualification)
 - Custom field sync (push deal stage, qualification score, etc.)
 - Flow triggering (trigger pre-built flows based on CRM events)
-- Webhook receiver (ManyChat → Nicolify for real-time subscriber events)
+- Webhook receiver (ManyChat → vitalia for real-time subscriber events)
 
 ---
 
@@ -141,13 +141,13 @@ When adding new ManyChat features, follow the established connections module arc
 
 ## Recommended Integration Strategy
 
-ManyChat works best as a **messaging execution layer** driven by Nicolify's intelligence. Apply these patterns in order of dependency:
+ManyChat works best as a **messaging execution layer** driven by the platform's intelligence. Apply these patterns in order of dependency:
 
 1. **Pre-build flows in ManyChat UI first** — The API cannot create flows; design all conversation trees in ManyChat's visual builder before writing any integration code.
 2. **Use tags as routing signals** — Have the Sales Agent assign tags (e.g., `qualified`, `hot-lead`, `booked`) via API; wire ManyChat automations to trigger the correct flow on each tag.
-3. **Use custom fields as the data bridge** — Push structured data (qualification score, deal stage, product interest) from Nicolify so ManyChat flows can personalise messages without additional API calls.
+3. **Use custom fields as the data bridge** — Push structured data (qualification score, deal stage, product interest) from vitalia so ManyChat flows can personalise messages without additional API calls.
 4. **Trigger flows for one-off actions** — Call `/fb/sending/sendFlow` to push a subscriber into a specific flow (e.g., post-purchase onboarding, abandoned cart recovery).
-5. **Configure webhooks for bidirectional sync** — Set ManyChat to POST to Nicolify on subscriber events (new subscriber, tag added, custom field changed) for real-time CRM updates.
+5. **Configure webhooks for bidirectional sync** — Set ManyChat to POST to vitalia on subscriber events (new subscriber, tag added, custom field changed) for real-time CRM updates.
 6. **Enforce rate limit discipline** — Respect per-endpoint limits (see table), apply exponential backoff on 429 responses, and never exceed 100 flow triggers per subscriber per hour.
 
 ---
@@ -155,7 +155,7 @@ ManyChat works best as a **messaging execution layer** driven by Nicolify's inte
 ## MCP Server Reference
 
 - **Biznomad/manychat-mcp** — Community MCP server with ~14 tools (subscriber CRUD, tags, custom fields, flows, send content); useful for prototyping.
-- For production Nicolify features, prefer direct API integration via `ManyChatConnector` to maintain control over error handling, rate limiting, and tenant isolation.
+- For production features, prefer direct API integration via `ManyChatConnector` to maintain control over error handling, rate limiting, and tenant isolation.
 
 ---
 

@@ -137,7 +137,7 @@ Agent({
   description: "Build context brief for ticket T-{n} brand={brand}",
   subagent_type: "context-builder",
   model: "haiku",
-  prompt: "<brand>: {brand}                          # ★ REQUIRED — multibrand scope
+  prompt: "<brand>: {brand}                          # ★ REQUIRED — scope: vitalia (marca) | platform (engine/tooling)
            <pr_folder>: <STORY_DIR absolute>;
            <modules>: <comma list from story spec>;
            <phase>: builder;
@@ -253,7 +253,7 @@ Builder prompts en Step 2A/2B/2C citan este gate verbatim. Si builder pushea con
 | backend-expert | ✅ loaded | Step 0 — DDD pattern check |
 | frontend-expert | n/a | surface=BE only |
 | .claude/rules/tenant-isolation.md | ✅ loaded | mid-build — verify query filter |
-| .claude/rules/anti-duplication.md | ✅ loaded | Step 0 grep cross-brand |
+| .claude/rules/anti-duplication.md | ✅ loaded | Step 0 grep cross-codebase (engine + vitalia) |
 | playwright-expert | ✅ loaded | mid-build — POM patterns |
 | ... | ... | ... |
 ```
@@ -315,9 +315,9 @@ Convenciones (.claude/rules/* — citados también en 05-guidelines.md):
 - tenant-isolation.md
 - spanish-text.md (Spanish neutro, no voseo)
 - backend-migrations.md (idempotente)
-- anti-duplication.md (cross-brand mirror ban)
+- anti-duplication.md (engine mirror ban)
 - tdd-mandatory.md
-- git-safety.md (triple-branch: wip/* | main | release/*; NO 'origin development')
+- git-safety.md (trunk-based: main + story/*|fix/* efímeros; NO 'origin development')
 
 Quality gates antes push (★ HARD — G5 pre-commit smoke gate):
 - TODOS validators de 04-validators.yaml asociados al ticket → GREEN antes commit
@@ -327,8 +327,8 @@ Quality gates antes push (★ HARD — G5 pre-commit smoke gate):
 - 05-guidelines.md "Files in scope" respected (no escape; SOLO ${BRAND}/ paths)
 - RED bloquea commit. Fix file → re-run validator → repeat hasta GREEN.
 
-Push destination (triple-branch policy):
-- git push origin "\$(git branch --show-current)"   # wip/{slug} autosave, main post squash, release/{brand}-vX.Y.Z
+Push destination (trunk-based):
+- git push origin "\$(git branch --show-current)"   # story/{id} trabajo, main post squash, release/vitalia-vX.Y.Z
 - NUNCA 'git push origin development' (branch eliminado en reorg 2026-05-15)
 
 Output al terminar:
@@ -369,7 +369,7 @@ Spawnás agent `builder-agentic` (tier flagship) via Agent tool. REQUIRED: pasá
 Agent({
   description: "Build agentic ticket T-{n} brand={brand}",
   subagent_type: "builder-agentic",
-  prompt: "<brand>: {brand}                          # ★ REQUIRED — multibrand scope
+  prompt: "<brand>: {brand}                          # ★ REQUIRED — scope: vitalia (marca) | platform (engine/tooling)
            <pr_folder>: {brand}/docs/product/stories/{story-id}/
            PRIORITY READ: {brand}/docs/product/stories/{story-id}/CONTEXT-BRIEF.md (Haiku-built, 5-8k tokens compresses spec+arch+rules+anti-dup+canonical docs)
            READY PACKAGE (todos bajo {brand}/docs/product/stories/{story-id}/): 01-spec.md + 02-design-agentic.md + 03-arch.md (★ v4.1: incluye § Test Construction Plan) + 03-arch-agentic.md + 04-validators.yaml (★ v4.1: 5 categorías + test_construction_plan + scenario_coverage sub-categorías) + 05-guidelines.md (★ v4.1: must_load_skills enforceable) + 06-tickets.yaml (gherkin_coverage por ticket)
@@ -397,7 +397,7 @@ Agent({
   description: "Build {surface} ticket T-{n} brand={brand}",
   subagent_type: "builder-{backend|frontend}",
   model: "sonnet",
-  prompt: "<brand>: {brand}                          # ★ REQUIRED — multibrand scope
+  prompt: "<brand>: {brand}                          # ★ REQUIRED — scope: vitalia (marca) | platform (engine/tooling)
            <pr_folder>: {brand}/docs/product/stories/{story-id}/
            Read {brand}/docs/product/stories/{story-id}/CONTEXT-BRIEF.md FIRST (saves 30-50k tokens vs raw docs).
            READY PACKAGE (todos bajo {brand}/docs/product/stories/{story-id}/): 01-spec.md + 03-arch.md (★ v4.1 § Test Construction Plan) + 04-validators.yaml (★ v4.1 5 categorías) + 05-guidelines.md (★ v4.1 must_load_skills) + 06-tickets.yaml
@@ -455,7 +455,7 @@ Cuando dev termina, leer `T-{n}-result.md` + verificar `gate-output.json`:
 
       Read JSON. Si `any_fail=true` → ticket vuelve a `tests-failing`, hand off `/dev-team` con findings.
 - [ ] Commit SHA presente + git log lo confirma?
-- [ ] Push exitoso (`git push origin "$(git branch --show-current)"` — wip/* | main | release/{brand}-vX.Y.Z. NUNCA 'origin development')?
+- [ ] Push exitoso (`git push origin "$(git branch --show-current)"` — story/*|fix/* | main | release/vitalia-vX.Y.Z. NUNCA 'origin development')?
 
 Si cualquier gap → ticket vuelve a `tests-failing` o `building`. Si dev itera ≥5x sin éxito → `blocked` + escala.
 
@@ -591,7 +591,7 @@ Si `autonomous_mode` NO es `true` y la story es funcional (`demo_required: true`
 
 ```yaml
 # {brand}/docs/product/stories/{story-id}/checkpoint.md
-brand: {brand}     # ★ REQUIRED — multibrand scope
+brand: {brand}     # ★ REQUIRED — scope: vitalia (marca) | platform (engine/tooling)
 state: developed   # ★ TRANSITION developing → developed ★
 phase: AWAIT_CHRIS_VERIFY        # ★ G · NO HANDOFF_TO_AUDITOR todavía
 chris_verify: { required: true, signoff: null, rounds: [] }
@@ -714,7 +714,7 @@ Si dev itera ≥10x sin GREEN (cap from `04-validators.yaml` `iteration.max_iter
 
 ```yaml
 # {brand}/docs/product/stories/{story-id}/checkpoint.md
-brand: {brand}     # ★ REQUIRED — multibrand scope
+brand: {brand}     # ★ REQUIRED — scope: vitalia (marca) | platform (engine/tooling)
 state: blocked     # NOT review — autonomous failed
 phase: BUILD_T{n}_BLOCKED
 last_artifact: T-{n}-impl-log.md
@@ -836,7 +836,7 @@ Orchestrator DELEGA via Agent tool:
 - ❌ `git commit --no-verify`
 - ❌ `git pull` antes commit (git-safety)
 - ❌ Push falla non-fast-forward → NO `git pull`. STOP, escala.
-- ❌ `git push origin development` — branch eliminado en reorg 2026-05-15. Triple-branch: wip/* | main | release/{brand}-vX.Y.Z.
+- ❌ `git push origin development` — branch eliminado en reorg 2026-05-15. Trunk-based: main + story/*|fix/* efímeros + release/vitalia-vX.Y.Z.
 - ❌ Marcar ticket pushed sin verify TODOS validators ticket-asociados → GREEN
 - ❌ Self-fix más de cap_reached iter sin escalar bloqueo
 - ❌ Dev tocando archivos out_of_scope (5-guidelines.md "Files in scope" hard)
@@ -847,11 +847,11 @@ Orchestrator DELEGA via Agent tool:
 - ❌ Hardcodear paths `/home/chris/AISALESHT/...` o `/home/chalreme/Proyectos/luana-platform/...` — usar `${WS}` resuelto via `git rev-parse --show-toplevel`
 - ❌ Inferir el brand del contexto si Chris no lo dijo — PREGUNTAR primero
 
-## Anti cross-brand pollution
+## Anti out-of-scope pollution
 
 - ❌ NUNCA editar paths fuera de `vitalia/**` (+ story docs). STOP + escalate `/pm-vitalia`.
 - ❌ NUNCA editar `core/luana-core-*/src/` directamente. Requiere lift via `/pm-vitalia` (flujo engine).
-- ❌ NUNCA escribir/leer archivos en root `docs/product/stories/` — solo `<brand>: platform` (cross-brand) outcomes van ahí, y eso requiere autorización explícita `/pm-vitalia`.
+- ❌ NUNCA escribir/leer archivos en root `docs/product/stories/` — solo `<brand>: platform` (engine/tooling) outcomes van ahí, y eso requiere autorización explícita `/pm-vitalia`.
 - ❌ Spawn sub-agent sin propagar `<brand>: {brand}` en el prompt — sub-agent puede editar fuera del scope brand.
 
 ## Output format

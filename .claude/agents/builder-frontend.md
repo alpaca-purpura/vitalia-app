@@ -77,8 +77,8 @@ test -d "${WS}/${BRAND}/frontend/src" || echo "WARN: brand frontend not found, v
 - `.claude/rules/frontend-quality.md` — ESLint 60+ rules ratchet, warning baselines (check-file 323 / jsdoc 616 / react-perf 1509 — shrink-only)
 - `.claude/rules/form-runtime-array.md` — cards (≤3 sub-fields) vs split (≥4 sub-fields) defaults, autosave on-change non-negociable
 - `.claude/rules/spanish-text.md` — Spanish neutro LatAm on user-facing strings (no voseo); exception: sales_agent output respects tenant voice
-- `.claude/rules/git-safety.md` — triple-branch (wip/* + main + release/*), NO git pull, stage por pathspec exacto
-- `.claude/rules/git-safety.md` — Conventional Commits, NUNCA `git add .` / `git add -A` / `git add -u`, triple-branch policy
+- `.claude/rules/git-safety.md` — trunk-based (main + story/*|fix/* efímeros), NO git pull, stage por pathspec exacto
+- `.claude/rules/git-safety.md` — Conventional Commits, NUNCA `git add .` / `git add -A` / `git add -u`
 - `.claude/rules/tdd-mandatory.md` — RED tests precede GREEN code (hook → component → store)
 - `.claude/rules/e2e-testing.md` — Playwright preflight obligatorio, NATIVE Linux (host), NUNCA `make e2e*` (Docker crashea)
 - `.claude/rules/master-data.md` — `useTenantLocale()` for currency/timezone, `formatTenantDate*()`, `formatMoneyDual()`. NEVER `toLocaleDateString()` / `currency || 'USD'`.
@@ -164,10 +164,10 @@ If `01-spec.md § Wireframes` introduces a UX pattern with no codebase precedent
 </step>
 
 <step name="claim_and_sync">
-Per `git-safety.md` + triple-branch policy (ADR-004):
+Per `git-safety.md` (trunk-based — SSoT `docs/process/git-workflow.md`):
 ```bash
 cd ${WS} && git status --short && git branch --show-current
-# Expected branch: wip/{story-id}-{ticket}. NO git pull — git-safety.md prohibits pull.
+# Expected branch: story/{story-id}. NO git pull — git-safety.md prohibits pull.
 ```
 Tree dirty with someone else's WIP → STOP, report, do NOT stage ajenos.
 </step>
@@ -508,7 +508,7 @@ className={cn("base-classes", isActive && "active-classes", className)}
 - Tuteo (`tú`), NO voseo (`vos/sos/tenés/podés/mirá/dejá/poné/usá/hacé/elegí/agregá/configurá/revisá/guardá/abrí/volvé/cambiá`)
 - Exception: sales_agent output respects tenant voice (read by `format_for_channel`, not your concern at FE)
 
-### Cross-brand and engine boundaries
+### Scope and engine boundaries
 - ✅ Brand-extension components live in `{brand}/frontend/src/features/{domain}/`
 - ❌ NEVER edit paths fuera de `vitalia/frontend/**` (+ story docs) — out-of-scope pollution banned
 - ✅ Engine shared TS packages (when they exist): import via `@luana/*` aliases per pnpm workspace
@@ -542,7 +542,7 @@ className={cn("base-classes", isActive && "active-classes", className)}
 - Adding feature flag / backwards-compat shim "for safety" — change the code, don't gate it
 - Editing paths fuera de `vitalia/frontend/**` (out-of-scope pollution banned)
 - Writing to root legacy `frontend/src/` (path does NOT EXIST post multibrand reorg)
-- Pushing to `origin development` (branch DOES NOT EXIST — use wip/{slug})
+- Pushing to `origin development` (branch DOES NOT EXIST — use story/{story-id})
 </forbidden>
 
 <anti_cross_brand_pollution>

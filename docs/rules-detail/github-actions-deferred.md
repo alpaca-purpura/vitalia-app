@@ -13,12 +13,12 @@ Hasta que haya servidor real con deploy automatizado, **GitHub Actions workflows
 | Workflow | Trigger | Status actual | Reactivar cuando |
 |---|---|---|---|
 | `.github/workflows/ci.yml` | push main + PR main | 🟡 deferred (existe, no monitoreado) | Deploy staging materializa → ci.yml gate hard merge |
-| `.github/workflows/ci-wip.yml` | push wip/** | 🟡 deferred | Idem |
 | `.github/workflows/cd-staging.yml` | push main | 🟡 deferred (placeholder, sin STAGING_HOST) | Server staging provisionado |
 | `.github/workflows/cd-prod.yml` | push release/** | 🟡 deferred | Server prod provisionado + release vX.Y.Z primera |
-| `.github/workflows/cleanup-wip.yml` | cron semanal | 🟡 deferred | Cuando equipo >1 dev (limpia branches obsoletas) |
 | `.github/workflows/release.yml` | push tags v*.*.* | 🟡 deferred | Cuando empezás a publishear luana-core-* en GH Packages |
 | `.github/workflows/_deploy-brand.yml` | reusable | 🟡 deferred | Idem cd-prod |
+
+> `ci-wip.yml` + `cleanup-wip.yml` fueron **RETIRADOS** (2026-07-31): targeteaban branches `wip/*` que el trunk-based eliminó — obsoletos, no deferred.
 
 **Comportamiento "deferred":** workflows NO se eliminan (queda código + config), pero no se considera blocker que fallen. Chris/Claude NO esperan GitHub Actions verde para mergear. La calidad la enforce pre-commit + pre-push local.
 
@@ -73,7 +73,7 @@ Triggers explícitos para mover de "deferred" → "active":
 
 1. **Provisionado server staging** (EC2 / Render / Railway / Fly.io) → ci.yml + cd-staging.yml gate hard
 2. **Primera release vX.Y.Z planeada** → release.yml + cd-prod.yml gate hard
-3. **Segundo developer onboarded** → cleanup-wip.yml + ci.yml gate hard (visibility cross-dev)
+3. **Segundo developer onboarded** → ci.yml gate hard (visibility cross-dev)
 4. **Customer-paying contract firmado** → cd-prod.yml gate hard + sentry/observability integrado
 5. **Auditor externo SOC2/ISO compliance request** → workflows full activos con audit logs
 

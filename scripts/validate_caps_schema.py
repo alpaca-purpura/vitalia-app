@@ -8,7 +8,7 @@ cap de un brand: campos required, tipos, enums (`status`, `change_log[].type`),
 formato `functional_area`. Es el gate que ataca "cap malformada llega silenciosa".
 
 Diseño (verify-first · data 2026-06-05):
-  · Las caps de comunify/nicolify NO tienen `functional_area` (predatan la dimensión v3).
+  · Caps legacy (pre-dimensión v3) pueden no tener `functional_area`.
     Por eso `functional_area` es OPCIONAL — pero si está, su FORMATO se valida.
   · `extra="allow"`: los bloques ricos (scenarios/access/business_rules/dev_preview/
     code_pointers) NO se modelan estrictamente acá (los validan los gates G1-G6 +

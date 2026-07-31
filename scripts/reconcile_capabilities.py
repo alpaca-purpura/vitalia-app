@@ -219,7 +219,7 @@ def check_capability_coverage(repo: Path, brand: str) -> CapCoverageGap | None:
     zero YAMLs found.
 
     Excluded statuses (no gap raised):
-      * ``placeholder`` — brand bootstrapped but no real features yet (lupulo)
+      * ``placeholder`` — brand bootstrapped but no real features yet
       * ``pending`` — brand not yet bootstrapped (saasora, inmoflow, etc.)
       * missing checkpoint — treated as placeholder (defensive)
 
@@ -621,7 +621,7 @@ def main() -> int:
         "--brand",
         type=str,
         default=None,
-        help="Brand slug to scope reconciliation (e.g. vitalia, nicolify). "
+        help="Brand slug to scope reconciliation (vitalia). "
         "Reads {repo}/{brand}/docs/product/. Default: root docs/product/ (legacy/platform).",
     )
     scope.add_argument(

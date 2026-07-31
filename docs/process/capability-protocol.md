@@ -400,7 +400,7 @@ access:
   authentication: required                # REQUIRED · required | optional | none
 ```
 
-**Roles canónicos vitalia** (per `vitalia/.claude/rules/hipaa-lite.md`):
+**Roles canónicos vitalia** (per `.claude/rules/hipaa-lite.md`):
 - `doctor` · `nurse` · `admin_clinic` · `marketing` · `receptionist` · `patient`
 - `staff_vitalia` (admin panel)
 
@@ -447,7 +447,7 @@ business_rules:
     rule: "Toda query a Appointment filtra tenant_id AND clinic_id (HIPAA dual filter)"  # REQUIRED · 1-2 líneas Spanish neutro
     enforcement:                          # REQUIRED · paths a rules/docs que enforce
       - ".claude/rules/tenant-isolation.md"
-      - "vitalia/.claude/rules/hipaa-lite.md"
+      - ".claude/rules/hipaa-lite.md"
     code_ref: "vitalia/backend/src/modules/vitalia/scheduling/infrastructure/repositories.py"  # OPTIONAL · path código que implementa
     severity: critical                    # REQUIRED · critical | high | medium | low
     audit_trail: true                     # OPTIONAL · default false · true = action genera audit_log row

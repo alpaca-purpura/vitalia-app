@@ -43,7 +43,7 @@ VITALIA_AGENTS: list[dict[str, Any]] = [
 
 BRAND_AGENTS = {
     "vitalia": VITALIA_AGENTS,
-    # nicolify, comunify, lupulo: catálogos pendientes ADR propio (lift candidate post-cement vitalia)
+    # single-brand: solo vitalia (catálogo agentes en project.config.yaml::agent_roster)
 }
 
 
@@ -285,7 +285,7 @@ def process_brand(brand: str, check: bool) -> bool:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--brand", help="Brand slug (vitalia, nicolify, comunify, lupulo)")
+    parser.add_argument("--brand", help="Brand slug (vitalia)")
     parser.add_argument("--all-brands", action="store_true", help="Iterate all brands with catálogo defined")
     parser.add_argument("--check", action="store_true", help="Exit 1 si content stale (no write)")
     args = parser.parse_args()

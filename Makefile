@@ -27,7 +27,7 @@ BRANDS := vitalia
 
 .PHONY: ci-parity $(BRANDS:%=ci-parity-%) ci-parity-be ci-parity-fe
 .PHONY: releases-vitalia capability-ledger-check migrate-vitalia-schema
-.PHONY: install-hooks help promote-to-main
+.PHONY: install-hooks help
 
 COMPOSE_BASE := docker compose -f docker-compose.dev.yml
 
@@ -48,10 +48,6 @@ dev-which:
 	@bash scripts/dev-lock-check.sh --which
 
 # ── main promotion (commit compartido core/harness desde wip/*) ──────────────
-promote-to-main:         ## Lift un commit compartido a main: make promote-to-main SHA="<sha> [<sha2>]"
-	@test -n "$(SHA)" || { echo 'Uso: make promote-to-main SHA="<sha> [<sha2> ...]"'; exit 1; }
-	@bash scripts/git/promote-to-main.sh $(SHA)
-
 # ── vitalia admin panel (Streamlit port 8502) ───────────────────────────────
 # Requires VITALIA_ADMIN_PASSWORD in vitalia/.env.dev
 # Access: http://127.0.0.1:8502
@@ -228,7 +224,6 @@ install-hooks:
 	 mkdir -p "$$HOOKS_DIR"; \
 	 ln -sf "$$CANONICAL/scripts/git-hooks/pre-commit" "$$HOOKS_DIR/pre-commit"; \
 	 [ -f "$$CANONICAL/scripts/git-hooks/pre-push" ] && ln -sf "$$CANONICAL/scripts/git-hooks/pre-push" "$$HOOKS_DIR/pre-push" || true; \
-	 [ -f "$$CANONICAL/scripts/git-hooks/post-commit" ] && ln -sf "$$CANONICAL/scripts/git-hooks/post-commit" "$$HOOKS_DIR/post-commit" || true; \
 	 echo "git hooks installed to $$HOOKS_DIR from $$CANONICAL"
 
 # ── help ─────────────────────────────────────────────────────────────────────
@@ -248,8 +243,7 @@ help:
 	@echo "  make lane-auth                Seed lane MCP Clerk session [FORCE=1]"
 	@echo ""
 	@echo "  Git:"
-	@echo "  make promote-to-main SHA=...  Lift a shared (core/harness) commit to main via cherry-pick"
-	@echo "  make install-hooks            Install git hooks (pre-commit, pre-push, post-commit)"
+	@echo "  make install-hooks            Install git hooks (pre-commit, pre-push)"
 	@echo ""
 	@echo "  CI parity:"
 	@echo "  make ci-parity                Run CI parity sweep (vitalia)"

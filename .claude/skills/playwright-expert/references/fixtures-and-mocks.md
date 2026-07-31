@@ -13,7 +13,7 @@ Fixtures are Playwright's dependency-injection mechanism. Mocks are how we keep 
 | **Test fixture** | Per test | Things every test in this scope needs: auth, tenant, mocked APIs, seeded data |
 | **Worker fixture** | Per worker process | Expensive, reusable resources: a custom database connection, a per-worker user session |
 
-Nicolify exclusively uses test-scope fixtures (no worker fixtures). The Clerk session is reused via `storageState` — not a worker fixture, but conceptually similar.
+This repo exclusively uses test-scope fixtures (no worker fixtures). The Clerk session is reused via `storageState` — not a worker fixture, but conceptually similar.
 
 ---
 
@@ -301,7 +301,7 @@ This is opt-in and only worth doing for high-traffic shapes. Most mocks don't ne
 
 ## 10. External service mocking (Meta, IG, YT, Email)
 
-These are mocked at the BACKEND boundary, not in Playwright. The test backend is configured to return canned responses for `/integrations/meta/...` etc. Playwright mocks Nicolify endpoints — never the third-party API directly.
+These are mocked at the BACKEND boundary, not in Playwright. The test backend is configured to return canned responses for `/integrations/meta/...` etc. Playwright mocks our backend endpoints — never the third-party API directly.
 
 If you find a test that does:
 
@@ -309,7 +309,7 @@ If you find a test that does:
 await page.route('https://graph.facebook.com/...', ...)   // ❌ wrong layer
 ```
 
-That's a mistake — fix it to mock the Nicolify endpoint that wraps it instead.
+That's a mistake — fix it to mock the backend endpoint that wraps it instead.
 
 ---
 

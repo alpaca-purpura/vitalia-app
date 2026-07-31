@@ -1064,7 +1064,7 @@ def main() -> int:
         "--brand",
         type=str,
         default=None,
-        help="Brand slug to scope generation (e.g. vitalia, nicolify). "
+        help="Brand slug to scope generation (vitalia). "
         "Reads {repo}/{brand}/docs/product/. Default: root docs/product/ (legacy/platform).",
     )
     scope.add_argument(

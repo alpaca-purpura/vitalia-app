@@ -1,6 +1,7 @@
 # Vitalia — HIPAA-lite Compliance
 
-**Overlay:** extiende `.claude/rules/` raíz Luana platform (refuerza `tenant-isolation.md` + `auditor-downstream-regression.md`).
+> **Consolidada a root 2026-07-31** (ex `vitalia/.claude/rules/` overlay — repo single-brand). Refuerza `tenant-isolation.md` + `auditor-downstream-regression.md`.
+
 **Brand:** vitalia (Salud + Bienestar — clínicas médicas, dentales, estéticas)
 **Scope:** salvaguardas defensivas para datos médicos sensibles. NO somos HIPAA covered entity full (sin BAA con AWS/Postgres provider, sin certificación), pero aplicamos best-practices HIPAA + compliance LatAm sobre PHI.
 

@@ -156,7 +156,7 @@ This is cleaner than a `CampaignsFlowPage` mega-class with 30 methods.
 
 ---
 
-## 5. Common locator recipes (Nicolify-specific)
+## 5. Common locator recipes (vitalia-specific)
 
 ### Tables (Shadcn `<Table>` + Tanstack)
 

@@ -1,6 +1,7 @@
 # Vitalia — Shell-Feature Architecture Mandatory
 
-**Overlay:** extiende `.claude/rules/` raíz Luana platform (refuerza `backend-ddd.md` + `frontend-fsd.md` + `tdd-mandatory.md`).
+> **Consolidada a root 2026-07-31** (ex `vitalia/.claude/rules/` overlay — repo single-brand). Refuerza `backend-ddd.md` + `frontend-fsd.md` + `tdd-mandatory.md`.
+
 **Brand:** vitalia
 **Scope:** stories Vitalia Fase 2 que construyen sub-tab dentro del shell-organism agéntico.
 **Cement-date:** 2026-05-26.
@@ -126,7 +127,7 @@ Arch fitness tests (`vitalia/backend/tests/architecture/` + `vitalia/frontend/sr
 ## Referencias
 
 - `vitalia/docs/architecture/ADR-vitalia-004-shell-feature-architecture.md` — autoridad arquitectónica brand-local (SSoT del patrón)
-- `vitalia/docs/product/stories/vitalia-fase2-valeria-agenda/03-arch.md` — source story que origina el patrón
+- `vitalia/docs/archive/2026/stories/vitalia-fase2-valeria-agenda/03-arch.md` — source story que origina el patrón
 - `vitalia/docs/architecture/SHELL-DESIGN-CONTRACT.md` — atomic design SSoT del shell
 - `vitalia/docs/architecture/ADR-vitalia-003-shell-mockup-per-component-protocol.md` — mockup gate (complementario)
 - `.claude/rules/backend-ddd.md` — DDD raíz
@@ -134,5 +135,5 @@ Arch fitness tests (`vitalia/backend/tests/architecture/` + `vitalia/frontend/sr
 - `.claude/rules/backend-migrations.md` — migrations idempotent
 - `.claude/rules/tdd-mandatory.md` — TDD raíz
 - `.claude/rules/tenant-isolation.md` — tenant filter raíz
-- `vitalia/.claude/rules/hipaa-lite.md` — overlay HIPAA-lite (dual filter, audit, retention)
-- `vitalia/.claude/rules/shell-mockup-per-component.md` — overlay mockup gate (ADR-003)
+- `.claude/rules/hipaa-lite.md` — HIPAA-lite (dual filter, audit, retention)
+- `vitalia/docs/archive/2026/superseded/shell-mockup-per-component-rule.md` — ex mockup gate ADR-003 (SUPERSEDED por Storybook SSoT visual)

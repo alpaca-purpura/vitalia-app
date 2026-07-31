@@ -12,13 +12,13 @@
 # v4.1 cement 2026-05-19:
 # - Nueva categoría `architectural_validation` separada (DDD/FSD boundaries, tenant grep, anti-dup, cross-module)
 # - Nueva sección `test_construction_plan` (architect dicta orden + POMs + fixtures + mapping)
-# - Paths brand-scoped (post multibrand reorg 2026-05-15): cd {brand}/backend, cd {brand}/frontend
+# - Paths brand-scoped: cd vitalia/backend, cd vitalia/frontend
 # - Workspace venv: ${WS}/.venv/bin/{ruff,pytest} (no backend/.venv)
 #
 # ─────────────────────────────────────────────────────────────────
 
 story_id: STORY_ID
-brand: BRAND_SLUG                                  # ★ v4.1 — vitalia | nicolify | comunify | lupulo
+brand: BRAND_SLUG                                  # ★ v4.1 — vitalia | platform
 schema_version: v4.1
 
 # ═══════════════════════════════════════════════════════════════
@@ -30,8 +30,8 @@ verification:
     baseline: [tsc_strict, mypy_strict, ruff, eslint_max_warnings_0, arch_fitness]   # SIEMPRE, bloqueante
     # ★ DS gates (Storybook-first · canon §5 · frontend-visual-fidelity.md § Storybook) — FE story:
     #   · eslint `no-arbitrary-value` (spacing/radius/font-size/color-hex) → corre dentro de eslint_max_warnings_0 (todas las marcas wired).
-    #   · arch-test `no-div-layout` + `no-native-select` (ratchet shrink-only) → corre dentro de arch_fitness. LIVE en vitalia + nicolify + comunify (HB-106 aplicado 2026-06-24).
-    #   · net-new shared → PROMOVER a @luana/ui-kit + story → gate mecánico `no-local-kit-primitive` (HB-107, ratchet baseline 0) en nicolify+comunify (vitalia parity diferida) + /auditor Cat 16. /architect: confirmá que cubren el surface FE.
+    #   · arch-test `no-div-layout` + `no-native-select` (ratchet shrink-only) → corre dentro de arch_fitness. LIVE en vitalia (HB-106 aplicado 2026-06-24).
+    #   · net-new shared → PROMOVER a @luana/ui-kit + story → gate mecánico `no-local-kit-primitive` (HB-107, ratchet baseline 0; parity vitalia diferida) + /auditor Cat 16. /architect: confirmá que cubren el surface FE.
     opt_in:                     # activar SOLO por naturaleza de la capability (NO en toda story)
       schemathesis: false       # true → endpoint nuevo (contrato FE↔BE antes del runtime de Next)
       hypothesis: false         # true → domain logic con invariantes (pricing/PHI/scheduling/validaciones)
@@ -191,7 +191,7 @@ validators:
     must_pass: true
     expect_min_tests: 1                              # ★ HB-45 — gate FALLA si Playwright corre <1 test (anti falso-verde)
     timeout_sec: 240
-    description: "Regression E2E, Clerk auth, full flow. {brand_port}: nicolify=3001 vitalia=3002 comunify=3003 lupulo=3004. El --project SIEMPRE coincide con el dir del spec (regression/smoke)."
+    description: "Regression E2E, Clerk auth, full flow. {brand_port}: vitalia=3002. El --project SIEMPRE coincide con el dir del spec (regression/smoke)."
 
   - id: live_verify
     category: functional
@@ -330,12 +330,12 @@ validators:
   - id: arch_anti_duplication_scan
     category: architectural_validation
     type: shell
-    # Mirror scan REAL (anti-duplication.md Step-0 grep) — basename del módulo colisionando cross-brand.
-    # NO hay scripts/scan_cross_brand_mirror.sh (era phantom · D-X3); el enforce vivo = auditor Cat 12 + architect pre-builder.
-    cmd: "! for B in nicolify vitalia comunify lupulo; do [ \"$B\" = {brand} ] && continue; comm -12 <(find {brand}/backend/src/modules/{brand}/{m} -name '*.py' -printf '%f\\n' 2>/dev/null | sort -u) <(find $B/backend/src -name '*.py' -printf '%f\\n' 2>/dev/null | sort -u); done | grep ."
+    # Mirror scan REAL (anti-duplication.md Step-0 grep) — basename del módulo colisionando con el engine.
+    # Single-brand: el mirror posible es vitalia↔engine (recrear abstracción de core/) — auditor Cat 12 + architect pre-builder.
+    cmd: "! comm -12 <(find vitalia/backend/src/modules/vitalia/{m} -name '*.py' -printf '%f\\n' 2>/dev/null | sort -u) <(find core/luana-core-*/src -name '*.py' -printf '%f\\n' 2>/dev/null | sort -u) | grep -vE '^(__init__|conftest|dtos|models|service|routes|repository)\\.py$' | grep ."
     must_pass: true
     timeout_sec: 30
-    description: "Detecta mirrors cross-brand del módulo (basename collision · anti-duplication.md). Match → auditor Cat 12 + spawn promotion proposal."
+    description: "Detecta mirrors vitalia↔engine del módulo (basename collision · anti-duplication.md). Match → auditor Cat 12 + evaluar consumo vía import / flujo engine."
 
   - id: arch_fsd_boundaries
     category: architectural_validation

@@ -209,7 +209,7 @@ LangGraph 2.0 integrates structured output into the model-to-tools loop — elim
 | `checkpoints` | Checkpoint metadata (audit trail) |
 | `custom` | User-emitted events (instrumentation) |
 
-For Nicolify chat UI: `messages` (token streaming) + `updates` (intermediate state) — separate SSE channels per `copilot-expert` channel format adapter.
+For the vitalia chat UI: `messages` (token streaming) + `updates` (intermediate state) — separate SSE channels per `copilot-expert` channel format adapter.
 
 ### Production checkpointing — NEVER MemorySaver
 ```python
@@ -262,7 +262,7 @@ agent = create_deep_agent(
 - `SubAgentMiddleware` MUST filter keys — never let parent state bleed into subagent
 - Async subagents have timeout + fallback (graceful-degradation: timeout+fallback+circuit breaker)
 - Stream provenance: deepagents emits `Command(update={"messages": [...]})` — DO NOT duplicate `ToolMessage` at parent level
-- Sub-agents can be local OR remote (LangGraph servers) — for Nicolify, always local unless explicit reason
+- Sub-agents can be local OR remote (LangGraph servers) — for vitalia, always local unless explicit reason
 
 ## Anthropic prompt caching (live docs reference)
 
@@ -357,7 +357,7 @@ Only justified for active conversations expected to span >5 min between turns. D
 <step name="step_0_5_default_flip_detection">
 **HARD GATE — origen PI-11 PR-3 anti-default-flip-audit rule.**
 
-Si tu cambio toca `core/luana-core-platform/src/luana_core_platform/config.py` defaults agentic-controlled (`USE_OUTBOX_PATTERN_COPILOT`, `USE_OUTBOX_PATTERN_SALES_AGENT`, `LITELLM_PROXY_ENABLED`, `USE_DEEPAGENTS_*`, etc.) Y la flag controla call path side-effect (events, persistence, observability, LLM routing):
+Si tu cambio toca `core/luana-core-platform/src/luana_core_platform/core/config.py` defaults agentic-controlled (`USE_OUTBOX_PATTERN_COPILOT`, `USE_OUTBOX_PATTERN_SALES_AGENT`, `LITELLM_PROXY_ENABLED`, `USE_DEEPAGENTS_*`, etc.) Y la flag controla call path side-effect (events, persistence, observability, LLM routing):
 
 > **NOTA:** flipping core engine defaults requiere lift `/pm-vitalia` primero — ese workflow está fuera del scope de este agent (brand-extension). Si necesitás flippear default core, STOP + escalate.
 
@@ -714,11 +714,11 @@ Agent({
 
 <step name="commit">
 
-Per `git-safety.md` + triple-branch policy (ADR-004):
+Per `git-safety.md` (trunk-based — SSoT `docs/process/git-workflow.md`):
 ```bash
 cd ${WS}
 git status --short
-git branch --show-current  # expected: wip/{story-id}-{ticket}
+git branch --show-current  # expected: story/{story-id}
 git add ${BRAND}/backend/src/modules/${BRAND}/copilot/workflows/planner_extension.py
 git add ${BRAND}/backend/tests/modules/copilot/integration/test_planner_extension.py
 # ... only files this session touched
@@ -735,10 +735,10 @@ feat({brand}/copilot): add planner subagent extension via EP-N
 Co-Authored-By: Claude <noreply@anthropic.com>
 EOF
 )"
-git push origin wip/{brand}    # the brand hub (in-place, HB-32/M9). NEVER push to main directly — squash-merge gate via /pm
+git push origin story/{story-id}   # branch de story (trunk-based). NEVER push to main directly — squash-merge gate via /pm
 ```
 
-**Push targets (triple-branch policy):** `wip/{slug}` (autosave normal) | `main` (only via squash-merge by /pm) | `release/{brand}-vX.Y.Z` (production). NEVER `origin development` — that branch does NOT exist.
+**Push targets (trunk-based):** `story/{story-id}` (branch de trabajo) | `main` (only via squash-merge by /pm) | `release/vitalia-vX.Y.Z` (production; objetivo tags). NEVER `origin development` — that branch does NOT exist.
 
 **Push failure (non-fast-forward) → STOP, escalate Chris. NO `git pull`.**
 

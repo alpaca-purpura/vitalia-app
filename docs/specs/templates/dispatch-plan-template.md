@@ -14,7 +14,7 @@
   # self_fix_iter (Carril R · default fix-and-own ≤6 en v5), audit_iterations<=4 total — Auditor Responsable v5 (`.claude/rules/auditor-self-fix-policy.md`)
 
 > Reglas HARD para `autonomous_mode: true` (ver architect-autonomous-mode.md):
-> NUNCA true si — algún ticket AGENTIC `production_code: true` · toca `core/luana-core-*` · toca cross-brand · validators con `pass_k` < 0.66 · hot-fix `repro_verified: false` · `defer_audit: true`.
+> NUNCA true si — algún ticket AGENTIC `production_code: true` · toca `core/luana-core-*` · toca fuera de `vitalia/**`/`core/**` (out-of-scope) · validators con `pass_k` < 0.66 · hot-fix `repro_verified: false` · `defer_audit: true`.
 
 ## Ticket → Agent → Model → Cost matrix
 

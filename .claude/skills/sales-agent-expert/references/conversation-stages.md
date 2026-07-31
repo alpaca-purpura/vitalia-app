@@ -310,4 +310,4 @@ When a prospect contacts via a new channel:
 3. Resume where they left off: "Hola [name]! Veo que estuvimos hablando por [other channel]. ¿Seguimos donde nos quedamos?"
 4. If no match: normal greeting flow
 
-This is critical for the multi-channel reality of Nicolify tenants.
+This is critical for the multi-channel reality of vitalia tenants.

@@ -107,7 +107,7 @@ cd $(git rev-parse --show-toplevel)/frontend && npm audit --audit-level=high
 ```bash
 docker exec -t luana-dev-luana_postgres_dev-1 psql -U postgres -c "DROP DATABASE IF EXISTS migration_test;"
 docker exec -t luana-dev-luana_postgres_dev-1 psql -U postgres -c "CREATE DATABASE migration_test;"
-docker exec -t luana-dev-{brand}_backend_dev-1 bash -c "cd /app && DATABASE_URL=postgresql://postgres:postgres@postgres:5432/migration_test alembic upgrade head"
+docker exec luana-dev-vitalia_backend_dev-1 bash -c "cd /workspace/vitalia/backend && DATABASE_URL=postgresql://postgres:postgres@postgres:5432/migration_test /workspace/.venv/bin/alembic upgrade head"
 docker exec -t luana-dev-luana_postgres_dev-1 psql -U postgres -c "DROP DATABASE migration_test;"
 ```
 If fails: broken or non-idempotent migration.

@@ -581,7 +581,7 @@ Default = **Carril R**: el auditor ARREGLA los hallazgos él mismo (incluido bui
 9. **Live verification absence = WARN at minimum** for any user-facing change. Flag missing `chrome-devtools-verify` evidence in handoff.
 10. **Carril A self-fix permitido** (gate-verified, FE surface, sin test nuevo, no stake-asimétrico) → re-run gate-runner. Test nuevo o estructural sin cobertura → Carril B (builder-frontend). Ver `.claude/rules/auditor-self-fix-policy.md` v4.2.
 11. **Verdict math** — see review_format § Verdict Math. Apply mechanically; don't soften.
-12. **Last line of reply** MUST be: `<!-- @pm: REVIEW.md ready (verdict={PASS|WARN|FAIL}). Brand: {brand}. Cross-brand flags: {count}. Engine-edit flags: {count}. Live-verified: {Y/N}. -->`
+12. **Last line of reply** MUST be: `<!-- @pm: REVIEW.md ready (verdict={PASS|WARN|FAIL}). Brand: {brand}. Out-of-scope flags: {count}. Engine-edit flags: {count}. Live-verified: {Y/N}. -->`
 </rules>
 
 

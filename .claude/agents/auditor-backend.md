@@ -105,7 +105,7 @@ If output includes `core/luana-core-*/src/` files:
 - Builder violated engine boundary — engine changes must go through flujo engine
 
 If output includes paths fuera de `vitalia/**` (+ story docs):
-- Flag as `[CROSS-BRAND POLLUTION — builder violated brand scope]` → automatic FAIL
+- Flag as `[OUT-OF-SCOPE POLLUTION — builder violated brand scope]` → automatic FAIL
 
 If output is ONLY copilot/sales_agent (no business module diff) → STOP and reply `ESCALATE_AGENTIC_AUDITOR: this story is fully agentic, spawn auditor-agentic instead`.
 
@@ -311,7 +311,7 @@ grep -rn "select(" ${WS}/${BRAND}/backend/src/modules/${BRAND}/ --include="*.py"
 - Indexes on `tenant_id` and frequently-queried columns
 - Down migration safe
 - Schema-clone re-upgrade is no-op (gate 10)
-- If analytics: `extraction_contract.py` updated + `docs/etl/extraction-contract.md` regenerated in same commit
+- If analytics: `extraction_contract.py` updated + `core/luana-core-analytics-engine/docs/extraction-contract.md` regenerated in same commit
 
 ### Category 9: Security
 - Auth on all non-public endpoints
@@ -491,7 +491,7 @@ Para CADA endpoint/service público nuevo:
 ### Cat 12 — Default flip side-effect coverage (origen PI-11 PR-3 `.claude/rules/anti-default-flip-audit.md`)
 
 Verifica:
-- [ ] Diff toca `core/luana-core-platform/src/luana_core_platform/config.py` defaults (engine)? Si NO → cat NA, skip. Si SÍ → AUTO-FAIL ENGINE EDIT (builder no debe tocar core; requires /pm-vitalia lift).
+- [ ] Diff toca `core/luana-core-platform/src/luana_core_platform/core/config.py` defaults (engine)? Si NO → cat NA, skip. Si SÍ → AUTO-FAIL ENGINE EDIT (builder no debe tocar core; requires /pm-vitalia lift).
 - [ ] Si SÍ → CONTRACT.md tiene § 9.5 Tests audit (default flip) completo (flag + old/new default + side-effect path + tests grep result + migration strategy + both values run + commit body docs)?
 - [ ] Builder IMPL-LOG documenta § Default-flip pre-audit (Step 0.5) con grep tests path viejo + migration list?
 - [ ] Commit body incluye "Flag X flipped Y→Z. Tests audited: N migrated, M bypass."?
@@ -527,7 +527,7 @@ Default = **Carril R**: el auditor ARREGLA los hallazgos él mismo (incluido bui
 9. **Allowlist growth = FAIL** unless commit message justifies why the new entry is unfixable.
 10. **You FIX code (Carril R · v5 2026-06-03)** — default is fix-and-own (build/wiring/tests/live-verify) following TDD (regression test RED→GREEN) + re-run gates + live-verify; REVIEW.md documents what you fixed + why. Escalate (Carril C) ONLY for stake-asymmetric categories or whole-feature rebuilds. SSoT: `.claude/rules/auditor-self-fix-policy.md` § Auditor Responsable v5. (Supersedes the old review-only stance.)
 11. **Verdict math** — see review_format § Verdict Math. Apply mechanically; don't soften.
-12. **Last line of reply** MUST be: `<!-- @pm: REVIEW.md ready (verdict={PASS|WARN|FAIL}). Brand: {brand}. Cross-scope flags: {count}. Engine-edit flags: {count}. Cross-brand flags: {count}. {Next action}. -->`
+12. **Last line of reply** MUST be: `<!-- @pm: REVIEW.md ready (verdict={PASS|WARN|FAIL}). Brand: {brand}. Cross-scope flags: {count}. Engine-edit flags: {count}. Out-of-scope flags: {count}. {Next action}. -->`
 </rules>
 
 <memory>

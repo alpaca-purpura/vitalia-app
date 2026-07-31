@@ -28,7 +28,7 @@ model: opus
 
 ```bash
 git status --short            # categorizar files MINE vs OTHERS
-git branch --show-current     # captura BRANCH; debe ser wip/* (branch de trabajo)
+git branch --show-current     # captura BRANCH; story/*|fix/* (trabajo) o main (solo docs/chores/config)
 git log --oneline -3          # contexto reciente
 ```
 
@@ -37,7 +37,7 @@ Categoriza output `git status --short`:
 - Files con prefix de otras sessions (deletions ajenas, untracked ajenos) → `OTHERS` list (leave alone)
 
 Reject pre-spawn si:
-- Branch no es `wip/*` (ej. estás en `main` / `release/*`) → STOP, no commitear acá
+- Branch desconocido (no `story/*`/`fix/*`/`main`/`release/*`) → STOP · en `main` solo docs/chores/config (código de producto → branch `story/{id}`)
 - Hay match `.env*` / `credentials*` / `*.pem` en MINE list → STOP, escalate Chris (security)
 - Tree limpio (nada para commitear) → STOP, no spawn
 
@@ -65,7 +65,7 @@ Agent({
 You are a git workflow worker. Perform commit + push for the Luana platform monorepo.
 
 ## Working directory
-$(git rev-parse --show-toplevel) (current branch: $(git branch --show-current) — debe ser wip/*)
+$(git rev-parse --show-toplevel) (current branch: $(git branch --show-current) — story/*|fix/* o main-docs)
 
 ## Critical safety rules (HARD — origen .claude/rules/git-haiku-delegation.md)
 - NEVER `git add .` / `git add -A` / `git add -u` — parallel sessions WIP en tree
@@ -76,7 +76,7 @@ $(git rev-parse --show-toplevel) (current branch: $(git branch --show-current) �
 - NEVER `git revert` sin aprobación explícita
 - Si `git push origin "$(git branch --show-current)"` fails non-fast-forward → STOP, report. NO pull.
 - Si pre-commit hook fails → fix and create NEW commit (never `--amend` pushed commits)
-- Working branch = `wip/*` (branch de trabajo). NUNCA push directo a `main` ni `release/*`.
+- Working branch = `story/*`/`fix/*` (trunk-based). Push a `main` SOLO docs/chores/config (política git-workflow.md); código de producto entra por squash-merge de story.
 
 ## Files to stage (exact names — these belong to MY session)
 <exact list from MINE>

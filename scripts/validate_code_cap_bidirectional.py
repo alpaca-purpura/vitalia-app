@@ -916,7 +916,7 @@ def gate_g8_user_visible_has_description(
 
     Sin ella el cockpit «✨ Qué puedo hacer» no tiene QUÉ decir y cae a un fallback vacío
     (HB-52/HB-56 · F2 cap-levels). Gate de PRESENCIA forward-looking: 0 violaciones hoy
-    (vitalia/comunify/nicolify limpias) → bloquea SOLO futuras regresiones (una cap nueva no
+    (baseline limpio) → bloquea SOLO futuras regresiones (una cap nueva no
     puede ir live+visible sin describir qué hace para el usuario)."""
     results: list[dict] = []
     total = passing = drift = 0

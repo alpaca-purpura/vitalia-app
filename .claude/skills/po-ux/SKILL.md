@@ -47,7 +47,7 @@ Si invocado vía `/pm-vitalia` handoff, el brand viene en el handoff. Si invocad
 2. Story creada por `/pm-vitalia` con state=`refining` en `{brand}/docs/product/stories/{story-id}/checkpoint.md` (idea ya pasó por trigger Chris "refinemos")
 3. `{brand}/docs/product/modules/{m}.md` — estado funcional módulo per-brand
 4. `{brand}/docs/product/capabilities/{m}/` — capabilities existentes per-brand (no duplicar)
-5. `docs/specs/templates/01-spec-template.md` — template (transversal core, reusable cross-brand)
+5. `docs/specs/templates/01-spec-template.md` — template (transversal core)
 6. UI primitives + patterns brand-scoped:
    - `{brand}/frontend/src/components/ui/` — Shadcn primitives DISPONIBLES (per-brand; pueden eventualmente lift a core)
    - `{brand}/frontend/src/components/shared/` — componentes compartidos cross-feature dentro del brand
@@ -224,7 +224,7 @@ Crear `{brand}/docs/product/stories/{story-id}/01-spec.md` con TODAS estas secci
 ```yaml
 ---
 story_id: {story-id}
-brand: {brand}                # ★ REQUIRED — multibrand scope
+brand: {brand}                # ★ REQUIRED — scope: vitalia (marca) | platform (engine/tooling)
 type: ui-story
 state: refining
 ---
@@ -503,7 +503,7 @@ Story state: refining → refined (transition al ratificar). /architect después
 
 Update `{brand}/docs/product/stories/{story-id}/checkpoint.md`:
 ```yaml
-brand: {brand}         # ★ REQUIRED — multibrand scope
+brand: {brand}         # ★ REQUIRED — scope: vitalia (marca) | platform (engine/tooling)
 state: refined
 phase: SPEC_RATIFIED
 last_artifact: 01-spec.md
@@ -549,11 +549,11 @@ Si durante mockup/iteración descubrís edge case que la story no contemplaba:
 - ❌ **★ W0.5-bis: preguntar en batches o sin reflejar primero** — la toma de requerimientos es 1 pregunta a la vez, reflejo-primero, sin cave
 - ❌ **★ W0.5-bis: aceptar el pedido sin contradecir** cuando se aleja de la visión o no aporta valor — el refiner no es escriba
 
-## Anti cross-brand pollution
+## Anti out-of-scope pollution
 
 - ❌ NUNCA editar paths fuera de `vitalia/**` (+ story docs). STOP + escalate `/pm-vitalia`.
 - ❌ NUNCA editar `core/luana-core-*/src/` directamente. Requiere flujo engine `/pm-vitalia`. Si el patrón UI es genérico → escalá como candidato a engine.
-- ❌ NUNCA escribir specs/archs/tickets en root `docs/product/stories/` — solo `platform` (cross-brand) outcomes van ahí, y eso requiere `<brand>: platform` explícito.
+- ❌ NUNCA escribir specs/archs/tickets en root `docs/product/stories/` — solo `platform` (engine/tooling) outcomes van ahí, y eso requiere `<brand>: platform` explícito.
 - ❌ NUNCA referenciar `frontend/src/` sin el prefix `{brand}/` — post reorg 2026-05-15 no existe root `frontend/`.
 
 ## Output format

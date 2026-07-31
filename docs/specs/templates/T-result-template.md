@@ -13,7 +13,7 @@ state: pushed
 finished_by: qwen-opencode
 finished_at: 2026-05-04T17:00Z
 push_commit_sha: abc1234
-push_branch: wip/{brand}-{story-padre-id}         # triple-branch policy — NUNCA 'development'
+push_branch: story/{story-id}                     # trunk-based — squash-merge a main, luego borrar
 schema_version: v4.1
 ---
 
@@ -106,9 +106,9 @@ abc1234 feat({m}): endpoint POST /{action} + DTOs + service stub
 
 Push status:
 ```
-$ git push origin "$(git branch --show-current)"      # wip/{brand}-{story-padre-id} — NUNCA 'development' (branch eliminado en reorg 2026-05-15)
+$ git push origin "$(git branch --show-current)"      # story/{story-id} — trunk-based (NUNCA branches permanentes fuera de main)
 To github.com:...
-   abc1234..def5678  wip/{brand}-{story-padre-id} -> wip/{brand}-{story-padre-id}
+   abc1234..def5678  story/{story-id} -> story/{story-id}
 ```
 
 ## Notas para /auditor

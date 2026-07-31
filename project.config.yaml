@@ -185,11 +185,10 @@ domain_modules:
 
 # ── SLOT 8 ──────────────────────────────────────────────────────────────
 #  agent_roster  ·  replaces: cockpit agent-meta.ts rosters + MapView VITALIA_ROLES +
-#  generate_capability_index VITALIA_AGENTS. Per brand: {slug,name,emoji,color,role,subtitle}.
-#  ⚠ comunify/lupulo have NO roster in code yet (sentinel). Sara (nicolify) ADR-nicolify-002
-#    not yet in agent-meta.ts. supervisor/orchestrator = sidebar (NOT a value-stream box).
+#  generate_capability_index VITALIA_AGENTS. {slug,name,emoji,color,role,subtitle}.
+#  supervisor/orchestrator = sidebar (NOT a value-stream box).
 agent_roster:
-  common_boxes:            # cross-brand transversal boxes (not persona-agents)
+  common_boxes:            # transversal boxes (not persona-agents)
     - { slug: config, name: "Configurar", emoji: "⚙", color: "#64748b", subtitle: "tenant · iam · compliance" }
     - { slug: infra,  name: "Infra",      emoji: "🔧", color: "#06b6d4", subtitle: "observability · platform · scaffolding" }
   vitalia:
@@ -202,10 +201,9 @@ agent_roster:
 
 # ── SLOT 9 ──────────────────────────────────────────────────────────────
 #  value_stream  ·  replaces: cockpit map-zones.ts VALUE_STREAM_STAGES.
-#  Per brand (the boxIds differ by vertical). Cross-brand canonical chain =
-#  Atraer→Vender→Operar→Retener (empleados-IA). vitalia = clinical GTM instance.
+#  Cadena canónica empleados-IA = Atraer→Vender→Operar→Retener; vitalia = clinical GTM instance.
 value_stream:
-  canonical_stages: [atraer, vender, operar, retener]   # cross-brand empleados-IA chain
+  canonical_stages: [atraer, vender, operar, retener]   # empleados-IA chain
   vitalia:
     - { id: atraer,    name: Atraer,    order: 1, description: "Presencia pública + marketing que trae pacientes.", boxIds: [lisa, lucas] }
     - { id: vender,    name: Vender,    order: 2, description: "Captar, calificar y cerrar al paciente.",          boxIds: [adrian] }
@@ -264,7 +262,6 @@ models:
     context-builder: mechanical
     context-validator: mechanical
     gate-runner: mechanical
-    grep-bot: mechanical
   skills:                  # .claude/skills/{name}/SKILL.md
     architect: flagship
     auditor: flagship
@@ -277,3 +274,4 @@ models:
     commit-push: coordinator
     handoff: coordinator
     harness-issue: mechanical
+    hipaa-check: flagship

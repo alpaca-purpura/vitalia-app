@@ -383,4 +383,4 @@ for p in OFFER_TYPE_PRESET_CATALOG.values():
 - [ ] `tests/test_catalogs_dag_smoke.py` passes.
 - [ ] `offer-type-preset-catalog.md` updated (distribution + decisions).
 - [ ] If you changed questions or flags: downstream consumers reviewed.
-- [ ] `working tree clean`, commits pushed to `wip/{brand}`.
+- [ ] `working tree clean`, commits pushed to `story/{id}` (o main si docs-only).

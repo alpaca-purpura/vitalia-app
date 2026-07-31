@@ -42,7 +42,7 @@ MetricKpiDTO(
 )
 ```
 
-## Common Currencies Nicolify
+## Common Currencies (LatAm)
 
 | Currency | Country | Tenant |
 |---|---|---|

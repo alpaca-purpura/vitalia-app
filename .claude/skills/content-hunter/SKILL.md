@@ -61,7 +61,7 @@ This phase is a HARD GATE. Do not proceed to Phase 2 without completing it.
 
 ### Step 1: Read Brand Domain Models
 
-Read these files to understand what data the system captures (engine schema — shared cross-brand, read-only; the user supplies the actual brand values). `WS=$(git rev-parse --show-toplevel)`:
+Read these files to understand what data the system captures (engine schema — read-only; the user supplies the actual brand values). `WS=$(git rev-parse --show-toplevel)`:
 
 ```
 ${WS}/core/luana-core-brand-studio/src/luana_core_brand_studio/domain/positioning.py        → UVP, discriminator, competitors, insight, benefits

@@ -216,9 +216,9 @@ expect(html).toContain('class="loaded"');
 await page.route('https://graph.facebook.com/...', ...);
 ```
 
-**Why bad:** Nicolify's FE doesn't call Facebook directly. It calls our backend, which calls Facebook. Mocking at FB level changes nothing.
+**Why bad:** our FE doesn't call Facebook directly. It calls our backend, which calls Facebook. Mocking at FB level changes nothing.
 
-**Fix:** mock the Nicolify endpoint that wraps it (`**/api/v1/integrations/meta/...`).
+**Fix:** mock the backend endpoint that wraps it (`**/api/v1/integrations/meta/...`).
 
 ### D3. Mocking with fake-shaped data
 

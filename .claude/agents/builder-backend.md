@@ -80,7 +80,7 @@ test -d "${WS}/${BRAND}/backend/src/modules/${BRAND}" || echo "WARN: brand path 
 2. `<pr_folder>/03-arch.md` (or `03-arch-be.md`) — your specification (from architect). Single source of truth for entities/DTOs/routes/test surfaces.
 3. `${WS}/{brand}/docs/product/modules/{module}.md` — what the module exposes today (user-facing). Confirm arch aligns; surface drift to PM if stale.
 4. `${WS}/{brand}/backend/tests/architecture/` + `${WS}/core/luana-core-*/tests/architecture/` — fitness gates relevant to your diff. Allowlists shrink only.
-5. `${WS}/docs/core-modules/README.md` — public contracts of the 26 `luana-core-*` packages (read-only — engine consumed via import, not edit)
+5. `${WS}/docs/core-modules/README.md` — public contracts of the 27 `luana-core-*` packages (read-only — engine consumed via import, not edit)
 
 ## Step 2 — Universal rule loading (always-on)
 
@@ -91,8 +91,8 @@ test -d "${WS}/${BRAND}/backend/src/modules/${BRAND}" || echo "WARN: brand path 
 - `.claude/rules/architectural-fitness.md` — 78 gates ratchet
 - `.claude/rules/tdd-mandatory.md` — RED tests precede GREEN code per layer
 - `.claude/rules/spanish-text.md` — Spanish neutro LatAm on user-facing strings (exception: sales_agent output respects tenant voice)
-- `.claude/rules/git-safety.md` — triple-branch (wip/* + main + release/*), NO git pull, stage por pathspec exacto (scope commits a archivos que esta sesión modificó)
-- `.claude/rules/git-safety.md` — Conventional Commits, NUNCA `git add .` / `git add -A` / `git add -u`, triple-branch policy
+- `.claude/rules/git-safety.md` — trunk-based (main + story/*|fix/* efímeros), NO git pull, stage por pathspec exacto (scope commits a archivos que esta sesión modificó)
+- `.claude/rules/git-safety.md` — Conventional Commits, NUNCA `git add .` / `git add -A` / `git add -u`
 - `.claude/rules/debugging.md` — root-cause fixes, regression test FIRST (RED reproduce bug → GREEN fix)
 - `response_model=` mandatorio en todo endpoint (PII allowlist — FastAPI canonical patterns)
 
@@ -123,7 +123,7 @@ For business module implementation apply these patterns:
 - graceful-degradation (timeout + fallback + circuit breaker) — every external call gets timeout + fallback + circuit breaker (Qdrant, GA4/Meta/Ads, scheduler, ManyChat, Clerk webhook). Naked HTTP call = anti-pattern.
 
 **Codebase reality (read before extending — never guess):**
-- Multibrand layout: `{brand}/backend/src/modules/{brand}/{m}/` per business module.
+- Brand layout: `vitalia/backend/src/modules/vitalia/{m}/` per business module.
 - DDD layout per module: `domain/{entities,interfaces,enums,exceptions}/` → `infrastructure/{models,repositories}/` → `application/services/` → `api/{dtos,routers}/`
 - Cross-module: NO direct imports across business modules. Use IDs + resolve in application layer. Domain events for cross-module signals.
 - Mirror del engine: PROHIBITED — pattern compartible must live in `core/luana-core-*/src/` (engine) y consumirse vía import. Mirror → audit FAIL.
@@ -165,7 +165,7 @@ If `CONTRACT.md` introduces a pattern with no codebase precedent (new agent topo
 <step name="step_0_5_default_flip_detection">
 **HARD GATE — origen PI-11 PR-3 anti-default-flip-audit rule.**
 
-Si tu cambio toca `core/luana-core-platform/src/luana_core_platform/config.py` defaults Y la flag controla call path side-effect (events, persistence, logging, observability, LLM routing):
+Si tu cambio toca `core/luana-core-platform/src/luana_core_platform/core/config.py` defaults Y la flag controla call path side-effect (events, persistence, logging, observability, LLM routing):
 
 > **NOTA:** flipping core engine defaults requiere lift `/pm-vitalia` primero — ese workflow está fuera del scope de business-module builder. Si ticket pide flip default core → STOP + ESCALATE.
 
@@ -190,10 +190,10 @@ Ver `.claude/rules/anti-default-flip-audit.md` (rule cardinal + 6 flags inventar
 </step>
 
 <step name="claim_and_sync">
-Per `git-safety.md` + triple-branch policy (ADR-004):
+Per `git-safety.md` (trunk-based — SSoT `docs/process/git-workflow.md`):
 ```bash
 cd ${WS} && git status --short && git branch --show-current
-# Expected branch: wip/{story-id}-{ticket}. NO git pull — git-safety.md prohibits pull.
+# Expected branch: story/{story-id}. NO git pull — git-safety.md prohibits pull.
 ```
 Tree dirty with someone else's WIP → STOP, report, do NOT stage ajenos. M8 rule: if you must extend an ajeno file, read it, append/extend, never replace.
 </step>
@@ -446,7 +446,7 @@ async def create(
 - `Any` type, raw `dict` params/returns, untyped responses
 - Business logic in `api/` (routers thin: validate → service → map exception)
 - Cross-module imports between business modules (use IDs + resolve in application layer; exception: `copilot` infra-like reads)
-- Cross-brand mirror — pattern repeated en `{brand1}/` y `{brand2}/` = audit FAIL (debe vivir en `core/luana-core-*/`)
+- Mirror duplicado — mismo pattern repetido en dos módulos de vitalia o recreando una abstracción del engine = audit FAIL (debe vivir en `core/luana-core-*/`)
 - Hard deletes (`DELETE FROM`, `session.delete()`)
 - `Session.query()` / `Column()` / `from_orm()` / inner `class Config` (legacy)
 - `print()` / stdlib `logging`
@@ -455,7 +455,7 @@ async def create(
 - `git push --force` / `--force-with-lease`
 - `git add .` / `git add -A` / `git add -u`
 - `git commit --no-verify`
-- Pushing to `origin development` (branch DOES NOT EXIST post multibrand reorg — use wip/{slug})
+- Pushing to `origin development` (branch DOES NOT EXIST — use story/{story-id})
 - `op.create_table()` / `op.add_column()` / `sa.Enum(create_type=True)` in migrations (non-idempotent)
 - `datetime.utcnow()`, `DateTime()` sin `timezone=True`, hardcoded `'USD'` in DTOs
 - New Qdrant clients (use core `KnowledgeService` from `luana_core_*`)

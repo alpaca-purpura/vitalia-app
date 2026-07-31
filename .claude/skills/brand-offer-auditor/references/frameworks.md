@@ -1,6 +1,6 @@
 # Framework Knowledge Base
 
-This document contains the atomic decomposition of each marketing/branding framework that Nicolify's Brand Studio and Offer Studio should capture. The auditor uses this as ground truth to validate schema completeness.
+This document contains the atomic decomposition of each marketing/branding framework that Brand Studio and Offer Studio (engine) should capture. The auditor uses this as ground truth to validate schema completeness.
 
 ## Table of Contents
 
@@ -21,7 +21,7 @@ This document contains the atomic decomposition of each marketing/branding frame
 ## 1. Brand Identity Model (Aaker)
 
 **Purpose:** Define what the brand IS — its essence as perceived by the market.
-**Use in Nicolify:** Drives visual design, tone of voice, and positioning consistency.
+**Use in the product:** Drives visual design, tone of voice, and positioning consistency.
 
 ### Atomic Elements
 
@@ -46,7 +46,7 @@ This document contains the atomic decomposition of each marketing/branding frame
 ## 2. Brand Resonance Model (Keller)
 
 **Purpose:** Build brand equity through a pyramid of customer relationship depth.
-**Use in Nicolify:** Ensures the brand captures data at every level of customer connection, from awareness to loyalty.
+**Use in the product:** Ensures the brand captures data at every level of customer connection, from awareness to loyalty.
 
 ### The Pyramid (bottom to top)
 
@@ -71,7 +71,7 @@ This document contains the atomic decomposition of each marketing/branding frame
 ## 3. 4D Branding Code (Thomas Gad)
 
 **Purpose:** Define the brand through four experiential dimensions to create a culture, not just a product.
-**Use in Nicolify:** Ensures the brand definition goes beyond features into community and identity territory.
+**Use in the product:** Ensures the brand definition goes beyond features into community and identity territory.
 
 ### The Four Dimensions
 
@@ -96,7 +96,7 @@ The intersection of all 4 dimensions produces a **Brand Code** — a single sent
 ## 4. The Onliness Statement (Marty Neumeier)
 
 **Purpose:** Force radical differentiation by filling in a single sentence template.
-**Use in Nicolify:** The ultimate test of whether the brand has a defensible position.
+**Use in the product:** The ultimate test of whether the brand has a defensible position.
 
 ### The Template
 
@@ -125,7 +125,7 @@ The intersection of all 4 dimensions produces a **Brand Code** — a single sent
 ## 5. Brand Love Key (Positioning Framework)
 
 **Purpose:** Map the brand's competitive position through emotional and rational lenses.
-**Use in Nicolify:** Already implemented as `BrandPositioning` — this is the primary positioning framework.
+**Use in the product:** Already implemented as `BrandPositioning` — this is the primary positioning framework.
 
 ### Atomic Elements (already in system)
 
@@ -150,7 +150,7 @@ The intersection of all 4 dimensions produces a **Brand Code** — a single sent
 ## 6. StoryBrand (Donald Miller)
 
 **Purpose:** Position the customer as the hero and the brand as the guide in a narrative framework.
-**Use in Nicolify:** Already implemented as `BrandNarrative`.
+**Use in the product:** Already implemented as `BrandNarrative`.
 
 ### Atomic Elements (already in system)
 
@@ -176,7 +176,7 @@ The intersection of all 4 dimensions produces a **Brand Code** — a single sent
 ## 7. Value Ladder (Russell Brunson)
 
 **Purpose:** Structure offers in ascending value/price to move customers through the funnel.
-**Use in Nicolify:** Implemented as `OfferValueLevel` (N0 through N6) with 21 offer types.
+**Use in the product:** Implemented as `OfferValueLevel` (N0 through N6) with 21 offer types.
 
 ### The Ladder
 
@@ -201,7 +201,7 @@ The intersection of all 4 dimensions produces a **Brand Code** — a single sent
 ## 8. Grand Slam Offer (Alex Hormozi)
 
 **Purpose:** Make the offer so good that people feel stupid saying no.
-**Use in Nicolify:** Partially implemented across offer fields. This is the most important framework for offer construction.
+**Use in the product:** Partially implemented across offer fields. This is the most important framework for offer construction.
 
 ### The Value Equation
 
@@ -242,7 +242,7 @@ Value = (Dream Outcome × Perceived Likelihood of Achievement) / (Time Delay × 
 ## 9. Impact & Critical Event (Winning by Design)
 
 **Purpose:** Understand what triggers a buyer to act NOW and what happens if they don't.
-**Use in Nicolify:** Critical for the SDR agent to know WHEN to push for a close.
+**Use in the product:** Critical for the SDR agent to know WHEN to push for a close.
 
 ### Atomic Elements
 
@@ -266,7 +266,7 @@ Value = (Dream Outcome × Perceived Likelihood of Achievement) / (Time Delay × 
 ## 10. Productization Architecture (Brian Casel)
 
 **Purpose:** Transform custom services into repeatable, scalable offerings with clear boundaries.
-**Use in Nicolify:** Essential for service-based offers (Levels 3-6) to avoid scope creep and enable AI selling.
+**Use in the product:** Essential for service-based offers (Levels 3-6) to avoid scope creep and enable AI selling.
 
 ### Atomic Elements
 

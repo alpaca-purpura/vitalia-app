@@ -1,10 +1,10 @@
 # ADR-004 — Git Branching Strategy + Environments (Triple-Branch + Worktrees)
 
-> **Status:** ACCEPTED
+> **Status:** SUPERSEDED (2026-07-31 — reorg standalone trunk-based, commit `268ae15`)
 > **Date:** 2026-05-15
 > **Decision-makers:** Chris (alpacapurpura@) + claude-opus-4-8 (advisory)
 > **Supersedes:** politica legacy "Single branch = development, main = prod only, no worktrees" (AGENTS.md pre-2026-05-15)
-> **Superseded by:** none
+> **Superseded by:** `docs/process/git-workflow.md` (trunk-based: `main` único permanente + `story/*` efímeros; worktrees/wip retirados)
 > **Related docs:**
 >
 > - `docs/product/outcomes/git-strategy-revised.md` — outcome doc con decisiones ratificadas
