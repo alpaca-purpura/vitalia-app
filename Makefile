@@ -417,7 +417,7 @@ cockpit-up: ## Prende el cockpit SDD leyendo ESTE workspace (:4002 · sobrevive 
 	@if [ -f .cockpit-local/cockpit.pid ] && kill -0 $$(cat .cockpit-local/cockpit.pid) 2>/dev/null; then \
 		echo "cockpit ya corre (pid $$(cat .cockpit-local/cockpit.pid)) → http://localhost:$(COCKPIT_PORT)"; \
 	else \
-		nohup $(COCKPIT_BIN) start -workspace $(CURDIR) -port $(COCKPIT_PORT) > .cockpit-local/cockpit.log 2>&1 & \
+		setsid nohup $(COCKPIT_BIN) start -workspace $(CURDIR) -port $(COCKPIT_PORT) > .cockpit-local/cockpit.log 2>&1 & \
 		echo $$! > .cockpit-local/cockpit.pid; \
 		sleep 1; echo "cockpit up (pid $$(cat .cockpit-local/cockpit.pid)) → http://localhost:$(COCKPIT_PORT)"; \
 	fi
