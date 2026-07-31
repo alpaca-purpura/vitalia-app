@@ -12,10 +12,7 @@
 set -euo pipefail
 
 DATABASES=(
-  "nicolify_dev"
   "vitalia_dev"
-  "comunify_dev"
-  "lupulo_dev"
 )
 
 for db in "${DATABASES[@]}"; do

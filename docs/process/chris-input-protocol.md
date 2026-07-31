@@ -219,4 +219,4 @@ Tabla de tipos de referencia en sección 📎 Referencias:
 - `.claude/rules/brand-docs-schema.md` § R4 — chris-input.md nace con la idea (mandatory desde `state: idea`)
 - `tools/luana-cockpit/lib/chris-input-parser.ts` — implementación parser markdown
 - `tools/luana-cockpit/app/api/chris-input/[storyId]/route.ts` — CRUD endpoint cockpit
-- `.claude/skills/{po-ux,po,ux-agentico,architect,auditor,pm-{brand},pm-luana,dev-team}/SKILL.md` § Output protocol — cómo cada skill appendea
+- `.claude/skills/{po-ux,po,ux-agentico,architect,auditor,pm-vitalia,dev-team}/SKILL.md` § Output protocol — cómo cada skill appendea

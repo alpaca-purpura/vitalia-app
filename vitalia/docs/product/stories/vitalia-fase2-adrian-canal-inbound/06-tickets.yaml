@@ -5,7 +5,7 @@ autonomous_mode: false   # agentic + PHI = stake-asimétrico; gate G (Chris-veri
 
 # ─────────────────────────────────────────────────────────────
 # DAG NOTE: 3 carriles.
-#   carril LIFT (T-LIFT-1) — /pm-luana, NO builder. Desbloquea T-AG-2/3/4/5.
+#   carril LIFT (T-LIFT-1) — /pm-vitalia, NO builder. Desbloquea T-AG-2/3/4/5.
 #   carril BE/FE (T-BE-*, T-FE-*) — buildable HOY, NO depende del lift.
 #   carril AGENTIC (T-AG-*) — T-AG-1 buildable; T-AG-2..5 BLOQUEADOS por T-LIFT-1.
 # El BUILD agentic tampoco arranca antes de confirmar deps duras done (lisa-servicios + adrian-inbox + lisa-doctores — confirmados archivados).
@@ -13,14 +13,14 @@ autonomous_mode: false   # agentic + PHI = stake-asimétrico; gate G (Chris-veri
 
 tickets:
 
-  # ═══════════════ LIFT (no builder — /pm-luana promotion gate) ═══════════════
+  # ═══════════════ LIFT (no builder — /pm-vitalia promotion gate) ═══════════════
   - id: T-LIFT-1
-    title: "/pm-luana — abrir engine sales_agent: scheduler per-tenant + extension-tool merge + stage-scope (ESC-1/2/3)"
+    title: "/pm-vitalia — abrir engine sales_agent: scheduler per-tenant + extension-tool merge + stage-scope (ESC-1/2/3)"
     surface: engine
     production_code: true
     blocked: true
-    blocker_reason: "Engine edit core/luana-core-sales-agent/src/ — REQUIERE promotion gate /pm-luana, NO builder"
-    owner_eligibility: ["/pm-luana"]
+    blocker_reason: "Engine edit core/luana-core-sales-agent/src/ — REQUIERE promotion gate /pm-vitalia, NO builder"
+    owner_eligibility: ["/pm-vitalia"]
     depends_on: []
     blocks: [T-AG-2, T-AG-3, T-AG-4, T-AG-5]
     acceptance:

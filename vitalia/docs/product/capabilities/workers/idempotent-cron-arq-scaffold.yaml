@@ -157,7 +157,7 @@ audit_log_retention_sweep_monthly: "0 1 1 * *" # monthly 1st 1am
 
 ## Promotion candidate (cross-brand)
 
-Status: **candidate** (ratificado /pm-vitalia 2026-05-18 — ping /pm-luana pending)
+Status: **candidate** (ratificado /pm-vitalia 2026-05-18 — ping /pm-vitalia pending)
 
 Razón: TODAS las brands eventualmente tendrán cron jobs. Wrapping `IdempotentStore` con OTel + Sentry + structlog es pattern repetible. Lift candidate a:
 - Nuevo package `core/luana-core-workers/` (greenfield), o

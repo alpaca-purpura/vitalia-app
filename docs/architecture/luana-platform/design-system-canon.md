@@ -1,6 +1,6 @@
 # Design System Canon — contratos RATIFICADOS (binding cross-brand)
 
-**Status:** ratified (Chris 2026-06-08, vía showcase `vitalia-ds-showcase`, 8 rondas `/po-ux`) · **Owner:** `/pm-luana` · **Scope:** platform-wide (todas las marcas) · **Home de los componentes:** `core/@luana/{design-tokens, ui-kit}`
+**Status:** ratified (Chris 2026-06-08, vía showcase `vitalia-ds-showcase`, 8 rondas `/po-ux`) · **Owner:** `/pm-vitalia` · **Scope:** platform-wide (todas las marcas) · **Home de los componentes:** `core/@luana/{design-tokens, ui-kit}`
 
 > **Qué es este doc:** el **contrato binding** del design system — las decisiones que `/po-ux` (mockups), `/architect` (ready package), `/dev-team` (build) y `/auditor` (review) DEBEN respetar **tal cual**, sin reinterpretar. Es el SSoT durable que sobrevive al archivado de la story que lo originó (`user-story-no-es-ssot`).
 >
@@ -139,7 +139,7 @@ Reemplaza el `<select>` nativo del browser (feo, no-tokenizado). Componente cust
 
 | Fase | Story | Estado | Contenido |
 |---|---|---|---|
-| **0+1+2** | **`core-ds-foundation`** (consolidada 2026-06-08) | refining (/pm-luana → /architect) | **TODO el build en una story:** escala tokens + eslint no-arbitrary (Fase 0) · ~10 layout-primitives + archetypes + `EntityWorkspaceLayout`/`EntitySubNavBar`/`EntityInfoCard`/`EntityPicker` + `/showcase` route (Fase 1) · arch-test FE + D1 mecánico (Fase 2). **Bindings de skills/rule = YA hechos 2026-06-08 (no re-armar).** `Select`/`tooltip`/`AutosaveBadge` = ya en `@luana/ui-kit` (consumir). |
+| **0+1+2** | **`core-ds-foundation`** (consolidada 2026-06-08) | refining (/pm-vitalia → /architect) | **TODO el build en una story:** escala tokens + eslint no-arbitrary (Fase 0) · ~10 layout-primitives + archetypes + `EntityWorkspaceLayout`/`EntitySubNavBar`/`EntityInfoCard`/`EntityPicker` + `/showcase` route (Fase 1) · arch-test FE + D1 mecánico (Fase 2). **Bindings de skills/rule = YA hechos 2026-06-08 (no re-armar).** `Select`/`tooltip`/`AutosaveBadge` = ya en `@luana/ui-kit` (consumir). |
 | 3 | `{brand}-ds-adoption` ×N | ⬜ a armar (aparte, por marca) | adopción COMPREHENSIVA por marca (vitalia→nicolify→comunify), migrar pantallas existentes + encender el lock |
 
 ---
@@ -154,7 +154,7 @@ El catálogo de los **componentes REALES** vive en **Storybook** (`core/@luana/u
 
 1. **Partir de Storybook.** `/po-ux` y `/ux-agentico`, al maquetar, **arrancan del set de Storybook** — el TSX se consume como **HTML renderizado** (`storybook-static/` o iframe `…/iframe.html?id=<story>&viewMode=story`) para componer el mockup desde la **misma base que el build**. NO se inventa CSS ni se copia `_shared.css`.
 2. **No limitarse (Storybook es el piso, no el techo).** Si falta una pieza, o existe algo genuinamente **mejor**, se **PROPONE** (mockup + justificación + test del 2º consumidor). El catálogo no congela el diseño: lo encauza.
-3. **Promover de vuelta.** Lo que se usa y prueba bien se **PROMUEVE a `@luana/ui-kit` + su story** (vía `core-ds-*` / promotion gate `/pm-luana`) para que **futuras historias lo reusen**. Cero "local" que driftee — una pieza net-new que queda en `features/{m}/` sin promover es deuda.
+3. **Promover de vuelta.** Lo que se usa y prueba bien se **PROMUEVE a `@luana/ui-kit` + su story** (vía `core-ds-*` / flujo engine `/pm-vitalia`) para que **futuras historias lo reusen**. Cero "local" que driftee — una pieza net-new que queda en `features/{m}/` sin promover es deuda.
 4. **`/architect` cita la story.** El ready package (`03-arch.md § FE` + `04-validators.yaml`) **nombra qué story usar + link**; una pieza net-new se marca `PROMOTE` (deliverable del ticket = crear el componente en `@luana/ui-kit` + su story ANTES del merge).
 5. **`builder-frontend` construye DESDE la story citada** (único lego = `@luana/ui-kit`) + promueve el net-new al kit con story. **`auditor-frontend` verifica composición** contra Storybook + que el net-new se promovió con story (no quedó local) → si no, CHANGES_REQUESTED.
 

@@ -12,20 +12,17 @@ cd ${WS} && bash scripts/e2e-preflight.sh
 
 **Execution NATIVE Linux (host)** (NUNCA Docker — `make e2e*` puede causar OOM en Docker local).
 
-Port allocation per brand (ver `docs/process/docker-dev-multibrand.md`):
+Port allocation per brand (ver `docs/process/docker-dev.md`):
 
 | Brand | Frontend port | Backend port |
 |---|---|---|
-| nicolify | 3001 | 8001 |
 | vitalia | 3002 | 8002 |
-| comunify | 3003 | 8003 |
-| lupulo | 3004 | 8004 |
 
 ```bash
 WS=$(git rev-parse --show-toplevel)
 
-# Per brand (ejemplo nicolify):
-cd ${WS}/nicolify/frontend && E2E_BASE_URL=http://localhost:3001 npx playwright test --project=smoke
+# Vitalia:
+cd ${WS}/vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test --project=smoke
 
 # Vitalia:
 cd ${WS}/vitalia/frontend && E2E_BASE_URL=http://localhost:3002 npx playwright test --project=smoke

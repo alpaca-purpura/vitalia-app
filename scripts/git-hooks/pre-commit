@@ -5,8 +5,8 @@
 #       preamble · explicit-order sourcing · staged-file collection) · project =
 #       check-list composition + sales_agent/venv exclusions → seam brands[]/toolchain (W5)
 #
-# Architecture: this file owns the shared PREAMBLE (REPO_ROOT, sweep-guard,
-# DoD gate, GATE_LEVEL/branch detection, staged-file collection) and then
+# Architecture: this file owns the shared PREAMBLE (REPO_ROOT, DoD gate,
+# GATE_LEVEL/branch detection, staged-file collection) and then
 # SOURCES each numbered gate from scripts/git-hooks/checks/NN-name.sh in an
 # EXPLICIT order. Every check inherits this preamble's env; a check `exit 1`
 # aborts the commit. To add/edit a gate, touch ONE small file in checks/ — not
@@ -58,18 +58,6 @@ REPO_ROOT="$(git rev-parse --show-toplevel)"
 cd "${REPO_ROOT}"
 
 # ─────────────────────────────────────────────────────────────────
-# MULTI-SESSION SWEEP GUARD (HB-31 · cement 2026-06-04)
-# Chris permitió paralelo de varias sesiones sobre el MISMO hub (aceleramos);
-# este guard impide la contaminación cross-sesión (una sesión que barre los
-# archivos de otra, típico de `git add -A/-u/.`). Bloquea si el set staged toca
-# el scope EXCLUSIVO de ≥2 sesiones VIVAS distintas. Fail-OPEN ante error propio.
-# Override intencional: MULTI_SESSION_ACK=1. SSoT: scripts/git/multi-session-scope-guard.sh
-# ─────────────────────────────────────────────────────────────────
-if [ -x "${REPO_ROOT}/scripts/git/multi-session-scope-guard.sh" ]; then
-  "${REPO_ROOT}/scripts/git/multi-session-scope-guard.sh" || exit 1
-fi
-
-# ─────────────────────────────────────────────────────────────────
 # DoD LIVE-VERIFY GATE (Layer 6 · Critical Rule #37 · cement 2026-06-04)
 # Backstop MECÁNICO del live-verify: bloquea commitear una TRANSICIÓN de checkpoint
 # a `state: developed|done` (story funcional) sin `dod_live_verified: true` +
@@ -82,7 +70,8 @@ fi
 
 # ─────────────────────────────────────────────────────────────────
 # BRANCH DETECTION — added T-9 S-GIT-STRATEGY-CORE (2026-05-15)
-# Triple-branch policy: wip/* → light gates, main/release/* → full gates.
+# Trunk-based (2026-07-31 · docs/process/git-workflow.md): story/* y wip/*
+# (legacy) → light gates, main y todo lo demás → full gates.
 #
 # GATE_LEVEL=light  → sections 1-3 only (voseo, ruff check, ruff format)
 # GATE_LEVEL=full   → all sections 1-9 (adds R3 SSoT, R32 capability,
@@ -93,16 +82,16 @@ fi
 # default in LIGHT; the comment is a documentation signal + future hook
 # extension point).
 #
-# Rationale: in wip/* branches, files are WIP — SSoT freshness gates and
-# capability reconcilers can give false positives on work-in-progress.
-# main/release/* squash-merge has final files → full gates are correct.
+# Rationale: in story/* (y wip/* legacy) branches, files are WIP — SSoT
+# freshness gates and capability reconcilers can give false positives on
+# work-in-progress. main squash-merge has final files → full gates correct.
 # ─────────────────────────────────────────────────────────────────
 
 CURRENT_BRANCH="$(git symbolic-ref --short HEAD 2>/dev/null || echo 'HEAD-detached')"
 
 GATE_LEVEL="full"
 case "${CURRENT_BRANCH}" in
-  wip/*)
+  story/* | wip/*)
     GATE_LEVEL="light"
     ;;
   main | release/*)
@@ -152,7 +141,7 @@ PRECOMMIT_CHECKS=(
   02-voseo 03-ruff 04-r3-ssot 05-r32-cap-story
   05b-cap-advisory 05c-code-cap-index 05d-bidirectional 05e-cap-gates
   06-backlog 07-checkpoint-enum 08-pii-seed 09-pii-goldens
-  10-infra-matrix 11-worktree 12-story-closure 13-scope-branch
+  12-story-closure
   14-brand-docs-schema 15-cap-ledger 15.5-system-map 16-chris-input
   17-checkpoint-dupkeys 18-machinery 19-docs-orphan
   20-story-yaml-valid 21-pathspec-transitive

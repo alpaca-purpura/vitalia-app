@@ -32,12 +32,12 @@ if [ "${GATE_LEVEL}" = "light" ] && [ "${CAP_ADVISORY_SKIP:-0}" != "1" ]; then
 
   # Detect staged capability YAML files (per-brand, not platform/legacy)
   CAP5B_STAGED=$(git diff --cached --name-only --diff-filter=ACMR 2>/dev/null \
-    | grep -E '^(vitalia|nicolify|comunify|lupulo|saasora|inmoflow|retailly|fixia|guestly|fitflow)/docs/product/capabilities/[^/]+/[^/]+\.yaml$' \
+    | grep -E '^(vitalia)/docs/product/capabilities/[^/]+/[^/]+\.yaml$' \
     || true)
 
   # Detect staged story checkpoint.md files (per-brand)
   CHECKPOINT5B_STAGED=$(git diff --cached --name-only --diff-filter=ACMR 2>/dev/null \
-    | grep -E '^(vitalia|nicolify|comunify|lupulo|saasora|inmoflow|retailly|fixia|guestly|fitflow)/docs/product/stories/[^/]+/checkpoint\.md$' \
+    | grep -E '^(vitalia)/docs/product/stories/[^/]+/checkpoint\.md$' \
     || true)
 
   if [ -n "${CAP5B_STAGED}" ] || [ -n "${CHECKPOINT5B_STAGED}" ]; then

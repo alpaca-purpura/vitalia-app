@@ -61,7 +61,7 @@ Esto reemplaza temporalmente el rol de `ci.yml` (corre local antes de push, aseg
 | Comando | Cuándo | Equivale a |
 |---|---|---|
 | `make ci-parity` | Antes de squash-merge wip→main | `ci.yml` completo |
-| `scripts/test-{vitalia,nicolify,comunify,lupulo}.sh` | Per brand quality suite | `ci.yml` parcial per brand |
+| `scripts/test-vitalia.sh` | Brand quality suite | `ci.yml` parcial |
 | `scripts/test-core-{pkg}.sh` | Per engine package | `ci.yml` engine scope |
 | `cd {brand}/backend && ${WS}/.venv/bin/pytest` | BE tests targeted | inline |
 | `cd {brand}/frontend && npx vitest run` | FE tests targeted | inline |

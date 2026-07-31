@@ -164,7 +164,7 @@ scenarios:
     then: "El servicio aparece en el output (data shape correcta · tabla engine products) · Adrián lo ofrece, lo cita y matchea al especialista"
     e2e_test: null
     story_spec_ref: "01-spec.md#§-gherkin §15 (AC-6)"
-    edge_cases: ["consume-only path unit-tested (test_keystone_offer_shape.py) + DB verificada live", "build_identity con contexto agente completo = Sub-phase B (RAG · engine-lift /pm-luana)"]
+    edge_cases: ["consume-only path unit-tested (test_keystone_offer_shape.py) + DB verificada live", "build_identity con contexto agente completo = Sub-phase B (RAG · engine-lift /pm-vitalia)"]
     added_in_story: vitalia-fase2-lisa-servicios
     added_date: 2026-06-19
   - id: cross-tenant-bloqueada
@@ -272,8 +272,8 @@ Ejercida por Chris en dev-app vitalia (tenant Sanaré · dr.demo@vitalialat.com)
 - BE serializa Decimal money como string JSON (precisión) → el FE parsea en el borde wire→form.
 
 ## Anti-objetivos cementados
-- NO tocar `core/luana-core-offer-studio` (lift vía /pm-luana).
-- RAG runtime (indexer Qdrant + tool retrieval) = Sub-phase B, engine-lift /pm-luana (STOP-2).
+- NO tocar `core/luana-core-offer-studio` (lift vía /pm-vitalia).
+- RAG runtime (indexer Qdrant + tool retrieval) = Sub-phase B, engine-lift /pm-vitalia (STOP-2).
 - A/B pricing · imports bulk · AI suggested-pricing · landing pública · analítica Stats = otras stories.
 
 ## Referencias

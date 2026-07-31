@@ -528,7 +528,7 @@ Status al 2026-05-26:
   - `vitalia/docs/specs/templates/01-spec-shell-template.md` — spec template (debe citar este ADR)
   - `.claude/rules/backend-ddd.md`, `frontend-fsd.md`, `backend-migrations.md`, `tdd-mandatory.md`
 - **Overlay enforcement rule:** `vitalia/.claude/rules/shell-feature-architecture-mandatory.md`
-- **Promotion candidate future:** si comunify/nicolify/lupulo adoptan shell-organism agéntico → lift pattern a `core/luana-core-shell-feature-pattern/` vía `/pm-luana` proposal.
+- **Promotion candidate future:** si comunify/nicolify/lupulo adoptan shell-organism agéntico → lift pattern a `core/luana-core-shell-feature-pattern/` vía `/pm-vitalia` proposal.
 
 ---
 

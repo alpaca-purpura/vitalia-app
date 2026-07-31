@@ -4,33 +4,33 @@
 
 ## Por qué
 
-<!-- Razón de negocio o técnica. Link a outcome / story / issue si aplica. -->
+<!-- Razón de negocio o técnica. Link a story / release si aplica. -->
 
 ## Módulos tocados
 
 <!-- Marca con [x] -->
-- [ ] core/copilot
-- [ ] core/sales-agent
-- [ ] core/shared
-- [ ] core/* (otro)
-- [ ] nicolify/*
-- [ ] vitalia/*
-- [ ] comunify/*
-- [ ] lupulo/*
+- [ ] vitalia/backend
+- [ ] vitalia/frontend
+- [ ] core/luana-core-* (engine)
 - [ ] docs/*
-- [ ] .github/* (CI o gobernanza)
+- [ ] scripts/ o .github/ (tooling / CI / gobernanza)
+
+## Checklist (gates locales — el enforcement primario son los hooks)
+
+- [ ] Gates locales corridos en verde (lint + typecheck + tests: `/test-all` o suites BE/FE nativas)
+- [ ] Tests nuevos/actualizados para el cambio (TDD — regression test primero si es bugfix)
+- [ ] Migraciones idempotentes (`IF NOT EXISTS` / `IF EXISTS`) — si aplica
+- [ ] Tenant isolation verificada (queries filtran `tenant_id`) — si toca datos
+- [ ] Live-verify ejercida contra el stack dev real (`dod_evidence`) — si la story es funcional
 
 ## ADR ref (si toca core/)
 
-<!-- Link al ADR en docs/architecture/ADR/ que justifica este cambio.
-     Sin ADR para cambios core/ → PR rechazado per anti-island gate #2. -->
+<!-- Link al ADR en docs/architecture/ que justifica el cambio al engine. -->
 
-ADR: docs/architecture/ADR/NNN-...
+ADR: docs/architecture/...
 
-## Outcome / story ref
+## Story ref
 
-<!-- Link a outcome o story en docs/product/.
-     Sin link → /pm SSoT discipline rota. -->
+<!-- Link a la story en vitalia/docs/product/stories/. -->
 
-Outcome: docs/product/outcomes/...
-Story:   docs/product/stories/...
+Story: vitalia/docs/product/stories/...

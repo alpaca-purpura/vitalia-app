@@ -102,7 +102,7 @@ $ /test-backend
 ### Cat 12 — Cross-brand mirror (anti-duplicación cross-marca)
 
 - ¿El diff replica un patrón que ya vive en `core/luana-core-*` (debió consumirse vía import) o en otra brand (`{brand}/backend|frontend/src`)?
-- Match >50% con código de otra brand → **FAIL** (lift a engine vía `/pm-luana`, no mirror).
+- Match >50% con código de otra brand → **FAIL** (lift a engine vía `/pm-vitalia` — flujo engine, arch tests como gate; no mirror).
 - Ver `.claude/rules/anti-duplication.md` + `.claude/rules/auditor-downstream-regression.md`.
 
 ### Cat 13 — Connectivity (anti-isla · Critical Rule #33)

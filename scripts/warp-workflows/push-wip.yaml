@@ -8,7 +8,6 @@ arguments:
 tags:
   - luana
   - git
-  - worktree
 shells:
   - bash
   - zsh

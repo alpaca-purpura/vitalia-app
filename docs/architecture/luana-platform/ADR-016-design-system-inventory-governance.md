@@ -1,6 +1,6 @@
 # ADR-016 — Gobernanza de inventario del design system (fidelidad mockup===resultado por inventario-espina)
 
-**Status:** accepted (ratificado por Chris 2026-06-25) · **Date:** 2026-06-25 · **Decider:** Chris · **Scope:** platform-wide (cross-brand · design system) · **Owner:** `/pm-luana`
+**Status:** accepted (ratificado por Chris 2026-06-25) · **Date:** 2026-06-25 · **Decider:** Chris · **Scope:** platform-wide (cross-brand · design system) · **Owner:** `/pm-vitalia`
 
 > **Ratificado por Chris (2026-06-25)** tras verificación adversarial (8 fixes de operacionalización aplicados). Producido en Fase 2 del programa DS sobre la evidencia dura de la auditoría de paridad (Fase 1). Dispara **Fase C** (plan de tramos en `core-ds-foundation/checkpoint.md` · ver § Programa + § Caveat para el orden y la última-milla de gates).
 

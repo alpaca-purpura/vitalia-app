@@ -379,7 +379,7 @@ Builder MUST escribir en `IMPL-LOG.md § Skills Consulted` lista verbatim de ski
 
 ## Cuándo invocar este checklist
 
-- ✅ `nicolify-backend` builder Step 4 (antes implement) + Step 7 (antes commit + spawn auditor)
-- ✅ `nicolify-backend-auditor` Phase audit (antes producir REVIEW.md)
+- ✅ `builder-backend` Step 4 (antes implement) + Step 7 (antes commit + spawn auditor)
+- ✅ `auditor-backend` Phase audit (antes producir REVIEW.md)
 - ✅ Bug fix BE (un check rápido pre-commit)
 - ✅ Cualquier cambio que toca `api/`, `application/services/`, repos, migrations, tests integration

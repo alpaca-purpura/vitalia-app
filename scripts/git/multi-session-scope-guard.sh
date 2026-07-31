@@ -1,1 +1,0 @@
-../../core-harness/scripts/git/multi-session-scope-guard.sh

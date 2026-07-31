@@ -9,7 +9,7 @@
 | Ratificado por | Chris (S-DOCKER-DEV-MULTIBRAND spec ratificada) |
 | Implementado en | S-DOCKER-DEV-MULTIBRAND T-1..T-10 |
 | Outcome padre | infra-dev-multibrand |
-| References | docs/process/docker-dev-multibrand.md, docs/portfolio/INFRA-MATRIX.md |
+| References | docs/process/docker-dev.md, docs/portfolio/INFRA-MATRIX.md |
 
 ## Contexto
 

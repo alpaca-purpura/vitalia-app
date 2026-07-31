@@ -2,11 +2,11 @@
 # claude-md-overlay-check — SessionStart hook
 #
 # tier: hybrid · core = overlay-walk advisory mechanism ·
-#       project = brand enum + 165-line cap + luana worktree paths → seam brands[] (W5)
+#       project = brand enum + 165-line cap → seam brands[] (W5)
 #
 # Advisory hook que verifica:
-#  - Si cwd cae dentro `{brand}/` o `~/Proyectos/luana-{brand}*/` PERO
-#    `{brand}/CLAUDE.md` overlay no existe → emite advisory.
+#  - Si cwd cae dentro `vitalia/` PERO `vitalia/CLAUDE.md` overlay
+#    no existe → emite advisory.
 #
 # NO carga el overlay (Claude Code lo hace built-in via walking ancestors).
 # Solo valida existencia + sugiere bootstrap si missing.
@@ -36,8 +36,8 @@ if [[ -z "${CWD}" ]]; then
 fi
 
 # Detectar brand desde cwd path
-# Pattern 1: cwd dentro de un worktree luana-{brand}*  (ej: ~/Proyectos/luana-vitalia)
-# Pattern 2: cwd dentro de una brand dir en root (ej: /path/to/luana-platform/vitalia/...)
+# Pattern: cwd dentro de la brand dir en root (ej: /path/to/vitalia-app/vitalia/...)
+# (el patrón legacy luana-{brand} se mantiene en la regex por backcompat, inofensivo)
 BRAND=""
 # Brand enum from the seam (project.config.yaml · harness_config.py) — no hardcoded list
 # (charter §3 DIP · W5b). Repo root resolved from this hook's own location (robust to the

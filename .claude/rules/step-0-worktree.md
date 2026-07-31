@@ -1,1 +1,0 @@
-../../core-harness/rules/step-0-worktree.md

@@ -27,7 +27,7 @@ Tags: `[BUG]`=defecto build · `[DIVERGE]`=build peor que mockup ratificado (`mo
 ### H3 · [DIVERGE] DayAvailabilityStrip quedó en barra pelada de 20px
 - **File:** `DayAvailabilityStrip.tsx` (reescritura del render) — comparar con `mockups/nueva-cita.html` L840-865 (`.miniday`).
 - **Falta vs ratificado:** header (médico + rango "09:00–18:00") · eje de horas (08..18/21) · leyenda (Atención / Ocupado / Cita nueva) · labels de hora en bloques ocupados · helper "Elegí una hora libre de un vistazo — la franja amarilla es la cita nueva."
-- **Fix:** construir el mini-día a la spec del mockup. La franja de color actual queda como track; agregar encima: fila de header, `aria-hidden` axis con labels de hora (reusar el grid de markers existente pero con `<span>` de hora), leyenda con swatches (success/destructive/agent-mateo) + helper. Mantener `role="img"` + `aria-label` descriptivo. Bloques `busy` con su hora (`block.start` → HH:MM en tz tenant, ver H1). Sin átomos nuevos salvo que algo amerite promover (entonces `/pm-luana`).
+- **Fix:** construir el mini-día a la spec del mockup. La franja de color actual queda como track; agregar encima: fila de header, `aria-hidden` axis con labels de hora (reusar el grid de markers existente pero con `<span>` de hora), leyenda con swatches (success/destructive/agent-mateo) + helper. Mantener `role="img"` + `aria-label` descriptivo. Bloques `busy` con su hora (`block.start` → HH:MM en tz tenant, ver H1). Sin átomos nuevos salvo que algo amerite promover (entonces `/pm-vitalia`).
 - **Test:** vitest — render con blocks working+busy + selected → assert que aparecen labels de eje + leyenda + el bloque busy con su hora. Visual: el spec e2e de mini-vista ya existe (regression mateo) — ajustar.
 
 ### H4 · [BUG] ServicePicker/DoctorPicker pintan "vacío" ante ERROR de fetch
@@ -57,7 +57,7 @@ Tags: `[BUG]`=defecto build · `[DIVERGE]`=build peor que mockup ratificado (`mo
 
 ### M4 · [BUG] Mobile: hint de la barra choca con el FAB de Valeria + se trunca
 - **File:** `FormActionBar` (`@luana/ui-kit`) — ⚠️ es engine. El hint se trunca y lo tapa el FAB de Valeria colapsada (avatar flotante bottom-left del shell).
-- **Fix:** en `<sm` ocultar el `hint` (o pasar a 2 filas la barra). Si el cambio es genérico del átomo `FormActionBar` → va por **`/pm-luana`** (promotion gate, beneficia toda marca). Si se puede resolver brand-local sin tocar el átomo (ej. no pasar `hint` en mobile desde `NuevaCitaActions`) → preferir eso. Decidir en el fix: lo más barato que no toque engine. Reproducir a 390px.
+- **Fix:** en `<sm` ocultar el `hint` (o pasar a 2 filas la barra). Si el cambio es genérico del átomo `FormActionBar` → va por **`/pm-vitalia`** (promotion gate, beneficia toda marca). Si se puede resolver brand-local sin tocar el átomo (ej. no pasar `hint` en mobile desde `NuevaCitaActions`) → preferir eso. Decidir en el fix: lo más barato que no toque engine. Reproducir a 390px.
 - **Test:** e2e/visual a 390 — hint no visible o no solapado.
 
 ### M5 · [DESIGN] Mobile: disponibilidad lejísimos del Médico

@@ -212,9 +212,9 @@ Hoy SOLO `public_name`, `category`, `modality`, `appointment_type` están en RHF
 
 ---
 
-## 7. Nota de promoción al canon platform (propuesta para `/pm-luana` — NO editar el canon acá)
+## 7. Nota de promoción al canon platform (propuesta para `/pm-vitalia` — NO editar el canon acá)
 
-> El patrón de § 2 es **React universal** (cross-brand): cualquier marca con hojas autosave (nicolify, comunify, lupulo) puede caer en el mismo bug. El canon platform `design-system-canon.md` §2.6/§6.7 codifica el hook + indicador pero **no enuncia la invariante del value-binding**. Propongo amendar el canon (vía `/pm-luana` promotion gate — el canon es core, no se edita brand-local).
+> El patrón de § 2 es **React universal** (cross-brand): cualquier marca con hojas autosave (nicolify, comunify, lupulo) puede caer en el mismo bug. El canon platform `design-system-canon.md` §2.6/§6.7 codifica el hook + indicador pero **no enuncia la invariante del value-binding**. Propongo amendar el canon (vía `/pm-vitalia` promotion gate — el canon es core, no se edita brand-local).
 
 **Texto propuesto del amendment a `design-system-canon.md` §2.6 (agregar una bullet):**
 

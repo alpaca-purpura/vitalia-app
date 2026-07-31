@@ -33,7 +33,7 @@ secuencia: C2-T2 (GREEN) → C2-T3
 ## Caps
 
 - `audit_iterations` ≤ 4 · `responsible_fix_iter` ≤ 6 · wall-clock ≤ 40 min/ticket (auditor-self-fix v5).
-- T-3 caveat: si el unwind revela que un consumer no tiene token canónico equivalente → NO inventar; promover a NAME del contrato (escala a T-2 / `/pm-luana`) o documentar override de identidad. NO forzar.
+- T-3 caveat: si el unwind revela que un consumer no tiene token canónico equivalente → NO inventar; promover a NAME del contrato (escala a T-2 / `/pm-vitalia`) o documentar override de identidad. NO forzar.
 - Engine-edit (T-2/T-4 tocan `core/@luana`): el auditor corre **downstream-regression** (cada marca consumidora: tsc + render-smoke/arch-suite) antes de APPROVE. NO requiere promotion proposal (ADR-016 = ratificación).
 
 ## Forbidden cross-cutting (todos los tickets)
@@ -46,4 +46,4 @@ secuencia: C2-T2 (GREEN) → C2-T3
 
 ## Handoff de cierre
 
-`/dev-team` cierra `developed` → **G** (Chris live-verify de T-3 en dev-app vitalia + firma) → **R** (`/pm-luana` reconcilia) → `/auditor` (auditor-frontend · gate-verifier + downstream-regression) → APPROVED → `/pm-luana` merge. `/pm-luana` maneja el state del checkpoint (story sigue `developing` con C2 como scope; no lo transiciona el architect).
+`/dev-team` cierra `developed` → **G** (Chris live-verify de T-3 en dev-app vitalia + firma) → **R** (`/pm-vitalia` reconcilia) → `/auditor` (auditor-frontend · gate-verifier + downstream-regression) → APPROVED → `/pm-vitalia` merge. `/pm-vitalia` maneja el state del checkpoint (story sigue `developing` con C2 como scope; no lo transiciona el architect).

@@ -1,7 +1,7 @@
 ---
 story_id: core-ds-foundation
 type: platform-engineering                          # engine @luana/ui-kit + harness (catálogo/mockup-kit/lint). NO brand UI.
-owner: /pm-luana
+owner: /pm-vitalia
 state: developing
 phase: AWAIT_CHRIS_VERIFY                            # ★ SET STORYBOOK COMPLETO: NO-shell (63) + 3 src bugs RESUELTOS + SHELL inc-1/2/3 + inc-4 (ShellLayout composite + SupervisorSidebar + AppPanelSlot). 247/247 render-smoke + Chrome cada estado. Precondición del harness-update CUMPLIDA (set 100%). Chris hace el review completo.
 next_action: "FASE C en curso (ADR-016 accepted). C1 DONE. C2 spine: T1+T2+T4 DONE · T3 DONE (tests passing, live-verify PENDING G-phase). AWAIT Chris: (1) live-verify C2-T3 con Chrome MCP (demo-script.md) → c2_vitalia_visual_parity · (2) review Storybook (:6007) · (3) promover commits platform-only (make promote-to-main + sync-all) · (4) arrancar C3+ (catálogo-generado en FE ui-kit · gate no-div-layout no-arbitrary · comunify eslint). Orchestrator → G-phase C2-T3 → auditor-frontend."
@@ -158,16 +158,16 @@ Chris levantó el `forbidden_to_touch: src/**` para estos bugs (son del kit, no 
 
 Polish menor (story-level, decisión de Chris en review · NO bug): los stories de `calendar`/`smart-datetime-picker` rendean labels de mes/semana en inglés (no se pasó `locale={es}`).
 
-## Handoffs requeridos (anti-creep — `/pm-luana` NO los ejecuta)
+## Handoffs requeridos (anti-creep — `/pm-vitalia` NO los ejecuta)
 
 - **/pm-vitalia** — parkear D11 (anotar soft-dep nueva → core-ds-foundation en `vitalia/.../vitalia-fase2-mateo-nueva-cita/checkpoint.md`) · ownear `AvailabilityStrip` vitalia-shared + `{brand}-ds-adoption`.
 - **/architect** (`<brand>: platform`) — ready package de core-ds-foundation tras ratificación de scope de Chris.
 - **/harness-issue** — capturar el hallazgo "inventario sin catálogo vivo + mockups driftean por copia" al CIL (no se toca `docs/process/harness-backlog.md` directo — lo tiene otra sesión).
 - **Deprecación AutosaveBadge (review Chris #3 · ratificado follow-up 2026-06-22)** — el canon §2.6 dejó al autoguardado como UNA `FloatingAutosaveIndicator` por hoja (flota); `AutosaveBadge` (per-panel) es anti-canon. La story ya se quitó del Storybook. La eliminación del *componente* queda como follow-up scoped (cross-brand + revierte ADR-012, no mid-review):
-  - **/pm-luana** — retirar el primitivo del kit (`core/@luana/ui-kit/src/AutosaveBadge.tsx` + `examples/AutosaveShowcase.tsx` + export en `src/index.ts`) + nota en `ADR-012-autosave-primitive-platform.md` (superseded por canon §2.6 — Floating-only).
+  - **/pm-vitalia** — retirar el primitivo del kit (`core/@luana/ui-kit/src/AutosaveBadge.tsx` + `examples/AutosaveShowcase.tsx` + export en `src/index.ts`) + nota en `ADR-012-autosave-primitive-platform.md` (superseded por canon §2.6 — Floating-only).
   - **/pm-vitalia** — limpiar los consumers de vitalia: `app/showcase/sections/AutosaveGroupSection.tsx` (sección AutosaveBadge inline), copia local `components/marca/shared/AutosaveBadge.tsx` + re-export en `features/lisa/index.ts`, sus tests, y los e2e POMs (`getAutosaveBadgeText`). Ordenar contra el FloatingAutosaveIndicator vivo.
 - **Cursor pointer en clickeables = contrato de comportamiento cross-brand (review Chris #5 · ratificado handoff 2026-06-22)** — Tailwind v4 quitó el `cursor:pointer` opinado de `<button>`. Auditoría: vitalia ✓ (regla en globals.css) · **nicolify/comunify/lupulo ✗ (0 ocurrencias — incumplen)** · Storybook ✓ (ya fixeado en preview.css). Chris pidió replicarlo + hacerlo cumplir en TODA la solución, como handoff (no cross-brand mid-review):
-  - **/pm-luana** — elevar la regla a **contrato del canon** (§0 comportamiento) + decidir el mecanismo **DRY** (servirla una vez desde un base compartido que toda marca importe — ej. `@luana/design-tokens` base.css — en vez de copiarla por marca) + arch-test que exija la afordancia. Regla canónica (espejo de vitalia): `button:not(:disabled):not([aria-disabled="true"]), [role=button|radio|tab]:not([aria-disabled]), label[for], summary, a[href] { cursor: pointer }`.
+  - **/pm-vitalia** — elevar la regla a **contrato del canon** (§0 comportamiento) + decidir el mecanismo **DRY** (servirla una vez desde un base compartido que toda marca importe — ej. `@luana/design-tokens` base.css — en vez de copiarla por marca) + arch-test que exija la afordancia. Regla canónica (espejo de vitalia): `button:not(:disabled):not([aria-disabled="true"]), [role=button|radio|tab]:not([aria-disabled]), label[for], summary, a[href] { cursor: pointer }`.
   - **/pm-nicolify · /pm-comunify · /pm-lupulo** — wirear el contrato en cada marca (importar el base compartido o, si no existe aún, la regla en globals.css) + verificar live que los botones muestran la manito.
 
 ## Bitácora

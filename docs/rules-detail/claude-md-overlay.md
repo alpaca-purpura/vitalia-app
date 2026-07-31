@@ -1,6 +1,6 @@
 # CLAUDE.md Hierarchy + Brand Overlay Auto-load — detail (moved from .claude/rules/ 2026-05-30, load on-demand)
 
-**Origen:** conversación 2026-05-27 — Chris pidió: (a) root `CLAUDE.md` liviano (agentic + topología + commands esenciales), (b) brand overlay `{brand}/CLAUDE.md` que extienda root cuando worktree está en esa brand, (c) auto-load según cwd path detection.
+**Origen:** conversación 2026-05-27 — Chris pidió: (a) root `CLAUDE.md` liviano (agentic + topología + commands esenciales), (b) brand overlay `vitalia/CLAUDE.md` que extienda root cuando el cwd está en la brand, (c) auto-load según cwd path detection.
 
 **Cement-date:** 2026-05-27. **Aplica a:** root `CLAUDE.md` + `{brand}/CLAUDE.md` (4 activas + 6 futuras bootstrap).
 
@@ -10,7 +10,7 @@
 
 1. **Root `/CLAUDE.md`** — siempre cargado. Contiene: filosofía agentic dev, topología 1-liner, comandos esenciales, paradigm v4 estados macro, tabla `.claude/rules/`, links a docs/. **≤270 líneas total.**
 
-2. **Brand overlay `/{brand}/CLAUDE.md`** — auto-cargado vía Claude Code's built-in path-based loading cuando cwd cae dentro `{brand}/`. Contiene: product vision pointer, verticales target, brand-specific gates (HIPAA-lite si vitalia, B2B si nicolify, etc.), brand-specific anti-patterns, brand-specific commands. **≤165 líneas total.**
+2. **Brand overlay `/{brand}/CLAUDE.md`** — auto-cargado vía Claude Code's built-in path-based loading cuando cwd cae dentro `{brand}/`. Contiene: product vision pointer, verticales target, brand-specific gates (HIPAA-lite), brand-specific anti-patterns, brand-specific commands. **≤165 líneas total.**
 
 Claude Code carga automáticamente cualquier `CLAUDE.md` que esté en el cwd o ancestros (working directory walking). Por eso colocar `{brand}/CLAUDE.md` hace que se cargue auto cuando sesión arranca en `{brand}/...` o `~/Proyectos/luana-{brand}/...`.
 
@@ -43,11 +43,11 @@ Secciones obligatorias (orden):
 1. **Header** — "Brand {Name} overlay — auto-cargado cuando cwd cae dentro `{brand}/`"
 2. **Product vision pointer** — link a `{brand}/docs/product/vision.md` + 3-5 bullets de qué es la brand
 3. **Verticales target** — tabla compacta (qué profesiones/industria específica)
-4. **Brand-specific gates** — HIPAA-lite si vitalia, B2B contracts si nicolify, Creator economy si comunify, Restauración KDS si lupulo
+4. **Brand-specific gates** — HIPAA-lite (vitalia)
 5. **Brand-specific anti-patterns** — qué NUNCA hacer en esta brand (regulación, voz, GTM, etc.)
 6. **Brand-specific commands** — port, dev-up, alembic, tests específicos
-7. **Brand-specific skills** — `/pm-{brand}` + skills que aplican
-8. **Cross-brand learning sources** — qué brand consultar para prior-art (nicolify default principal)
+7. **Brand-specific skills** — `/pm-vitalia` + skills que aplican
+8. **Prior-art sources** — engine + snapshot histórico (`docs/archive/2026/snapshot-pre-multibrand-pm-redesign/`)
 9. **Brand checkpoint pointer** — `{brand}/docs/product/checkpoint.md`
 10. **Bootstrap brand-specific** — env, .env.dev, migrations
 
@@ -60,7 +60,7 @@ Claude Code carga `CLAUDE.md` por **walking ancestors del cwd** (built-in). No r
 | Cwd | CLAUDE.md cargados | Notas |
 |---|---|---|
 | `~/Proyectos/luana-platform/` (principal, main) | `CLAUDE.md` (root) | sin overlay (estás en raíz) |
-| `~/Proyectos/luana-vitalia/` (canónico wip/vitalia) | `CLAUDE.md` (root) + `vitalia/CLAUDE.md` (overlay) | overlay aparece en worktree path |
+| cwd dentro de `vitalia/` | `CLAUDE.md` (root) + `vitalia/CLAUDE.md` (overlay) | overlay por walking ancestors |
 | `~/Proyectos/luana-vitalia/vitalia/backend/src/...` | root + `vitalia/CLAUDE.md` | walking ancestors |
 | `~/Proyectos/luana-vitalia-story-X/` (efímero) | root + `vitalia/CLAUDE.md` | si manifest brand=vitalia, overlay debería estar |
 | `~/Proyectos/luana-protocol/` (efímero protocol) | `CLAUDE.md` (root) | sin overlay (no brand) |
@@ -99,7 +99,7 @@ Hook NO carga overlay (Claude Code lo hace built-in) — sólo valida existencia
 
 ## Bootstrap de overlay para brand nueva
 
-Cuando user pide "bootstrap brand {slug}" (saasora, inmoflow, retailly, fixia, guestly, fitflow):
+Cuando user pide "bootstrap brand {slug}" (histórico — NO aplica en este repo single-brand):
 
 1. Tomar como referencia `vitalia/CLAUDE.md` (overlay canónico de ejemplo; no hay template dedicado aún) → crear `{slug}/CLAUDE.md`
 2. Reemplazar placeholders: `{BRAND_NAME}`, `{VERTICAL_SHORT}`, `{PORT_BE}`, `{PORT_FE}`, etc.
@@ -113,4 +113,3 @@ Cuando user pide "bootstrap brand {slug}" (saasora, inmoflow, retailly, fixia, g
 - `vitalia/CLAUDE.md` (ejemplo overlay)
 - `vitalia/CLAUDE.md` — overlay canónico de referencia para brands nuevas (no hay template dedicado aún)
 - `.claude/hooks/claude-md-overlay-check.sh` — advisory hook
-- `.claude/rules/parallel-safety.md` D2 — topology worktrees (consumer de overlay detection)

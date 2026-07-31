@@ -1,1 +1,0 @@
-../../core-harness/rules/worktree-dual-strategy.md

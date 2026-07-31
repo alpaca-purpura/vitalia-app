@@ -28,7 +28,7 @@ Cuando Chris dice **"aprendamos de esto"**, **"esto es un aprendizaje"**, **"cap
 
 1. STOP cualquier flujo en curso (no descartar contexto).
 2. Determinar tipo (técnico transversal | negocio per-brand | process | tooling) — preguntar a Chris si ambiguo.
-3. Determinar brand (si negocio per-brand) — inferir del worktree actual + confirmar.
+3. Si es negocio → `vitalia/docs/learnings/`.
 4. Proponer `slug` (kebab-case, ≤60 chars).
 5. Escribir archivo en path canónico siguiendo template (abajo).
 6. Agregar pointer a `MEMORY.md` (1 línea: `- [Slug](path) — hook ≤120 chars`).
@@ -50,7 +50,7 @@ Hook **NUNCA captura sin ratificación de Chris** — sólo sugiere via system-r
 
 ### Trigger 3 — Auditor descubre learning durante review
 
-Cuando `/auditor` finaliza una story y identifica un pattern recurrente (≥2 stories repiten mismo bug/issue/improvement), incluir en `T-{n}-review.md` sección "Suggested learning capture" → Chris ratifica al merge → `/pm-{brand}` ejecuta captura como parte del merge commit.
+Cuando `/auditor` finaliza una story y identifica un pattern recurrente (≥2 stories repiten mismo bug/issue/improvement), incluir en `T-{n}-review.md` sección "Suggested learning capture" → Chris ratifica al merge → `/pm-vitalia` ejecuta captura como parte del merge commit.
 
 ## Template canónico (técnico transversal)
 
@@ -59,7 +59,7 @@ Cuando `/auditor` finaliza una story y identifica un pattern recurrente (≥2 st
 title: "{Slug en title case}"
 date: 2026-MM-DD
 type: technical | business | process | tooling
-brands_affected: [vitalia, nicolify, comunify, lupulo]   # técnico transversal lista todas las que aplica
+brands_affected: [vitalia]
 brand: vitalia                                            # business per-brand: 1 sola brand
 origen: "story-id | bug-id | session-date | ADR-XXX | manual-capture"
 ratified_by: chris
@@ -116,7 +116,7 @@ Un learning se promueve a rule (`.claude/rules/*.md`) cuando:
 - Chris ratifica explícitamente "esto debe ser rule"
 
 Workflow promotion:
-1. `/pm-luana` o Chris identifica el learning como rule-candidate
+1. `/pm-vitalia` o Chris identifica el learning como rule-candidate
 2. Crear `.claude/rules/{slug}.md` (formato rule, no learning) referenciando learning original
 3. Marcar learning con `## Promoted to rule` section + link
 4. Agregar pointer rule a `CLAUDE.md` § Critical Rules (tabla actualizar)
@@ -153,7 +153,7 @@ Cada 6 meses Chris hace pass de cleanup:
 | 3 | `.claude/skills/auditor/SKILL.md` Phase D agrega "Suggested learning capture" si detecta pattern recurrente | ⏳ TBD |
 | 4 | `scripts/learning/capture.sh` CLI helper para captura ratificada Chris | ⏳ a crear |
 | 5 | Pre-commit hook detecta cambios `MEMORY.md` con bloques >5 líneas → bloquea + sugiere refactor | ⏳ TBD |
-| 6 | `/pm-luana` bootstrap Step 0.5 reporta nuevos learnings de los últimos 30 días | ⏳ TBD |
+| 6 | `/pm-vitalia` bootstrap Step 0.5 reporta nuevos learnings de los últimos 30 días | ⏳ TBD |
 
 ## Referencias
 

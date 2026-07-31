@@ -5,7 +5,7 @@
 > de que YO (humano) sepa qué hay — sin tener que narrarlo yo, saliendo de lo que se auto-construye
 > y auto-mantiene? Referencia: Diátaxis. Idea: más "niveles", casos de uso tipo RUP. Garantía dura:
 > **debo estar seguro de que Claude lo mantiene sin que yo se lo pida.**
-> **Owner:** `/pm-luana` (cross-cutting: cockpit + capability-protocol). **Estado:** propuesta para ratificar.
+> **Owner:** `/pm-vitalia` (cross-cutting: cockpit + capability-protocol). **Estado:** propuesta para ratificar.
 
 ## TL;DR (el reframe — antes de tomar literal lo que pediste)
 

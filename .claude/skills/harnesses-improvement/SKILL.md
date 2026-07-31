@@ -1,13 +1,13 @@
 ---
 name: harnesses-improvement
-description: "Stop semanal de mejora continua del harness — lee los 4 carriles del CIL (L1 harness-backlog · L2 learnings · L3 tech-debt · L4 capability-desfasada auto-detect), los muestra (reúsa el board /harness del cockpit), Chris remedia + marca aplicado. Para el barrido exhaustivo (schemas CC / staleness / punteros rotos / overlap) invoca el deep-sweep Workflow harness-audit-2026. Owner /pm-luana. Reemplaza al naming /mejora-semanal. Activa: '/harnesses-improvement', 'stop semanal', 'mejora del harness', 'revisemos los carriles', 'qué hay para reforzar', 'deep sweep del harness', 'auditá el harness'."
+description: "Stop semanal de mejora continua del harness — lee los 4 carriles del CIL (L1 harness-backlog · L2 learnings · L3 tech-debt · L4 capability-desfasada auto-detect), los muestra (reúsa el board /harness del cockpit), Chris remedia + marca aplicado. Para el barrido exhaustivo (schemas CC / staleness / punteros rotos / overlap) invoca el deep-sweep Workflow harness-audit-2026. Owner /pm-vitalia. Reemplaza al naming /mejora-semanal. Activa: '/harnesses-improvement', 'stop semanal', 'mejora del harness', 'revisemos los carriles', 'qué hay para reforzar', 'deep sweep del harness', 'auditá el harness'."
 when_to_use: "Ritual periódico (semanal o cuando Chris lo pida) para acumular + remediar mejoras del harness. NO mid-feature (HLP regla de oro). Usá el deep-sweep cuando quieras la auditoría exhaustiva del harness."
 user-invocable: true
 ---
 
 # /harnesses-improvement — stop semanal de mejora continua (CIL)
 
-> El ritual de **homologación** del CIL (`docs/process/continuous-improvement.md`). Owner `/pm-luana`, transversal `docs/process/`. **Regla de oro HLP:** NUNCA mid-feature — es la sesión/momento dedicado. SSoT del modelo de 4 carriles: `continuous-improvement.md`.
+> El ritual de **homologación** del CIL (`docs/process/continuous-improvement.md`). Owner `/pm-vitalia`, transversal `docs/process/`. **Regla de oro HLP:** NUNCA mid-feature — es la sesión/momento dedicado. SSoT del modelo de 4 carriles: `continuous-improvement.md`.
 
 ## Qué hace (no improvisa — lee los 4 carriles de sus hogares reales)
 
@@ -20,7 +20,7 @@ user-invocable: true
 
 ## Flujo del stop
 
-1. **Step 0** — worktree detection (`@.claude/rules/step-0-worktree.md`) · este ritual corre donde estés (homologa en merge→main→sync · sin worktree especial).
+1. **Step 0** — `git status` + branch check (`git-safety`) · este ritual corre donde estés.
 2. **Leer los 4 carriles** (tabla arriba). El cockpit `/harness` board (HB-26, extendido con badge de carril) es la pantalla del stop.
 2b. **Docs-graph (DOCS-SWEEP gate · 2026-06-10):** correr `make docs-graph` — reporta huérfanos nuevos bajo root `docs/` (reporte docs/process/DOCS-GRAPH.md — gitignored, lo genera el comando) + regenera `docs/process/HARNESS-DOCS.manifest`. Huérfano nuevo → mover a `legacy/` o citarlo desde su consumidor. Cuarentena borrable: `legacy/2026-06-10-docs-sweep/INVENTORY.md`.
 3. **Presentar** a Chris: OPEN por carril + severidad, candidatos a refuerzo, caps stale (L4), huérfanos docs-graph (2b).

@@ -1,6 +1,6 @@
 # Proceso v5 — Coherencia spec→done (DISEÑO · ✅ BUILT 2026-06-05)
 
-> **Estado:** ✅ **IMPLEMENTADO** (ver §10 · 5 waves, commits `21c141e3`→W5, CHECK 12-27). Registro único del rediseño. **Owner:** Chris + `/pm-luana`. **Fecha:** 2026-06-05. **Origen:** sesión harness-polish (Chris paró el dev para pulir el harness con el aprendizaje actual). **Naturaleza:** anti-Frankenstein — **re-secuencia + formaliza + hace-vivo** maquinaria existente; un solo artefacto nuevo (CIL) que **consolida** dispersión. **Backlog:** HB-52 · HB-53 · HB-54.
+> **Estado:** ✅ **IMPLEMENTADO** (ver §10 · 5 waves, commits `21c141e3`→W5, CHECK 12-27). Registro único del rediseño. **Owner:** Chris + `/pm-vitalia`. **Fecha:** 2026-06-05. **Origen:** sesión harness-polish (Chris paró el dev para pulir el harness con el aprendizaje actual). **Naturaleza:** anti-Frankenstein — **re-secuencia + formaliza + hace-vivo** maquinaria existente; un solo artefacto nuevo (CIL) que **consolida** dispersión. **Backlog:** HB-52 · HB-53 · HB-54.
 >
 > **Al aplicarse, este diseño se PLIEGA a** `lifecycle.md` · `.claude/rules/story-closure-gate.md`(+detalle) · `.claude/rules/definition-of-done-live-verify.md` (#37) · `capability-protocol.md` · skills `{dev-team, auditor, pm-{brand}, architect, po-ux}` · `04-validators` template · `harness-backlog.md`→CIL · cockpit. Después queda como **registro de diseño** (igual que `pm-redesign-2026-05.md`). **No introduce un eje nuevo** al modelo 4-ejes (shrink-only de `lifecycle.md` se respeta).
 
@@ -128,7 +128,7 @@ De Uncle Bob harness-sdd, robando la **disciplina** (no su mutador toy):
 - **Dónde vive:** `04-validators § technical_gates.mutation` (opt-in por nature) + `#37 §2` + `test-design-doctrine`.
 
 ### 5.7 · CIL · Ledger de Mejora Continua + stop semanal   `[NEW (1 artefacto) — CONSOLIDA dispersión]`
-El harness-backlog "es solo notas y no traslada aprendizajes". El CIL es su **evolución** (no un tracker que compite): owner `/pm-luana`, transversal `docs/process/`, se anota **donde estés**, se **homologa** en el stop semanal (merge→main→sync) — sin worktree especial.
+El harness-backlog "es solo notas y no traslada aprendizajes". El CIL es su **evolución** (no un tracker que compite): owner `/pm-vitalia`, transversal `docs/process/`, se anota **donde estés**, se **homologa** en el stop semanal (merge→main→sync) — sin worktree especial.
 
 **4 carriles:**
 | Carril | Qué | Origen |

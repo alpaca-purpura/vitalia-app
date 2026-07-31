@@ -5,20 +5,18 @@ Detalle del flujo + procedimiento de sync. La rule slim (`.claude/rules/git-safe
 ## Flujo completo (ejemplo)
 
 ```bash
-# 1. Nueva sesion paralela (cada sesion su worktree + branch wip/*)
-git worktree add ../luana-docker wip/docker-compose-multibrand
+# 1. Branch de trabajo wip/*
+git switch -c wip/docker-compose
 
-# 2. Trabajar + commitear frecuentemente en wip/*
-cd ../luana-docker
+# 2. Trabajar + commitear frecuentemente en wip/* (stage por pathspec exacto)
 git add scripts/docker-compose.dev.yml
-git commit -m "wip(docker): base compose multibrand services"
-git push origin wip/docker-compose-multibrand
+git commit -m "wip(docker): base compose servicios"
+git push origin wip/docker-compose
 
-# 3. Integrar a main via squash-merge (desde workdir principal)
-cd /home/chalreme/Proyectos/luana-platform
+# 3. Integrar a main via squash-merge
 git checkout main
-git merge --squash wip/docker-compose-multibrand
-git commit -m "feat(docker): compose multibrand servicios base"
+git merge --squash wip/docker-compose
+git commit -m "feat(docker): compose servicios base"
 git push origin main
 
 # 4. Produccion: branch release/* desde main validado
@@ -26,24 +24,11 @@ git checkout -b release/vitalia-v0.3.0
 git push origin release/vitalia-v0.3.0
 ```
 
-## Worktrees per sesion paralela
+> **Nota (2026-07-31):** la maquinaria de worktrees/multi-sesión fue retirada — una sola copia del repo, una sesión de trabajo. El flujo simplificado definitivo se redefine en una etapa posterior.
 
-```bash
-# Patron canonico (obligatorio para sesiones paralelas)
-git worktree add ../luana-{slug} wip/{slug}-{short-desc}
+## Sync `wip/*` con `main` post squash-merge
 
-# Limpiar worktree despues de merge a main
-git worktree remove ../luana-docker
-git branch -d wip/docker-compose-multibrand
-```
-
-Git bloquea automaticamente que dos worktrees tengan el mismo branch — colision de WIP imposible por diseno. El ban historico de worktrees fue revocado en 2026-05-15 (D2 S-GIT-STRATEGY-CORE).
-
-## Sync `wip/{brand}` con `main` post squash-merge
-
-**Origen:** caso 2026-05-27. Después de squash-merge `wip/vitalia → main`, los demás canónicos (`wip/comunify`, `wip/nicolify`, `wip/lupulo`) quedaban atrasados sin procedimiento explícito de re-sync. Lockfiles + reglas + arquitectura cementations vivían SOLO en main hasta que cada brand sincronizara → riesgo de drift cross-brand silencioso.
-
-**Regla cardinal:** después de cada squash-merge `wip/{brand_A} → main`, los demás canónicos brand activos **deben sincronizarse con main en la sesión siguiente** (no obligatorio inmediato, pero antes de arrancar trabajo nuevo en la brand).
+**Regla cardinal:** después de un squash-merge `wip/{slug} → main`, una branch `wip/*` que siga viva **debe sincronizarse con main antes de arrancar trabajo nuevo**.
 
 ### Decisión: qué hacer según commits propios del wip target
 
@@ -93,16 +78,15 @@ git push origin wip/{brand}
 SCOPE_GATE_SKIP=1 git commit -m "chore({brand}): sync wip/{brand} con main ..."
 ```
 
-Documentar override en commit body con razón. Override prohibido para edición LOCAL intencional de cross-cutting (eso requiere worktree dedicado `protocol`/`exp`).
+Documentar override en commit body con razón.
 
 ### Conflictos esperados típicos
 
 - `pnpm-lock.yaml` / `uv.lock` — workspace shared, auto-merge usualmente OK
 - `.claude/rules/*` — main suele tener versiones más nuevas, aceptar main
-- `comunify/docs/product/BACKLOG.{md,yaml,-TLDR.md}` — auto-gen R3 v2, `git rm`
 - `docs/portfolio/{PORTFOLIO,brand,luana}.md` — auto-gen R3 v2, `git rm`
 - `vitalia/.claude/rules/*` — brand overlay, resolver según overlay extiende root
-- `core/luana-core-*/src/` — engine shared, CRITICAL — escalate `/pm-luana` si conflict
+- `core/luana-core-*/src/` — engine shared, CRITICAL — escalate `/pm-vitalia` si conflict
 
 ### Excepciones revocando "PROHIBIDO"
 
@@ -110,7 +94,7 @@ Este procedimiento usa EXPLICITAMENTE comandos del bloque "PROHIBIDO". La autori
 
 | Comando | Por qué OK acá |
 |---|---|
-| `git reset --hard origin/main` | Cuando wip/{brand} tiene 0 commits propios, no destruye trabajo |
+| `git reset --hard origin/main` | Cuando wip/* tiene 0 commits propios, no destruye trabajo |
 | `git push --force-with-lease` | Lease check previene sobrescribir commits no vistos por agente |
 | `git merge origin/main` | Es el merge LEGITIMO main→wip, no es `git pull` (fetch + merge automático sin ratificación) |
 
@@ -118,15 +102,14 @@ Este procedimiento usa EXPLICITAMENTE comandos del bloque "PROHIBIDO". La autori
 
 ### Cuando NO sincronizar
 
-- Brand bootstrap pendiente (saasora, inmoflow, retailly, fixia, guestly, fitflow): sus wip/* no existen aún, N/A
-- Worktree con sesión activa en curso developing/reviewing: terminar la story primero, sync después
-- Conflict en `core/luana-core-*/src/`: STOP, escalate `/pm-luana` (engine boundary)
+- Sesión activa en curso developing/reviewing: terminar la story primero, sync después
+- Conflict en `core/luana-core-*/src/`: STOP, escalate `/pm-vitalia` (engine boundary)
 
 ## Fase solo-bootstrap — SCOPE_GATE_SKIP relajado (cement 2026-05-28) — detalle
 
-**Origen:** sesión 2026-05-28. Chris está construyendo activamente las propias reglas + cockpit, solo dev, sin CI activo. Exigir un worktree `protocol` dedicado para cada ajuste cross-cutting es fricción sin beneficio en esta fase. Mismo razonamiento + patrón que `github-actions-deferred` ("relajar ahora, endurecer cuando un trigger concreto aparezca").
+**Origen:** sesión 2026-05-28. Chris está construyendo activamente las propias reglas + cockpit, solo dev, sin CI activo. Exigir ceremonia extra para cada ajuste cross-cutting es fricción sin beneficio en esta fase. Mismo razonamiento + patrón que `github-actions-deferred` ("relajar ahora, endurecer cuando un trigger concreto aparezca").
 
-**Regla (mientras dure la fase):** `SCOPE_GATE_SKIP=1` está PERMITIDO para edición intencional cross-cutting Y cross-brand cuando Chris está seguro del cambio, con razón documentada en el commit body. El worktree `protocol` (y la sesión `/pm-{brand}` correcta para cross-brand) siguen siendo lo prolijo recomendado pero NO obligatorio.
+**Regla (mientras dure la fase):** `SCOPE_GATE_SKIP=1` está PERMITIDO para edición intencional cross-cutting cuando Chris está seguro del cambio, con razón documentada en el commit body.
 
 **Guardrails que se mantienen (no es barra libre):**
 - El scope gate sigue corriendo y bloqueando por default — pasar requiere tipear `SCOPE_GATE_SKIP=1`.
@@ -142,7 +125,7 @@ Este procedimiento usa EXPLICITAMENTE comandos del bloque "PROHIBIDO". La autori
 | Chris declara reglas + cockpit "fijos/estables" | Chris |
 | Se activa CI/CD real (server staging/prod) | Chris |
 
-Al re-endurecer: revertir el bloque a "PROHIBIDO para edición local intencional cross-cutting (requiere worktree protocol)" + crear ADR documentando el trigger + actualizar `parallel-safety.md` línea espejo + MEMORY.md pointer.
+Al re-endurecer: revertir el bloque a "PROHIBIDO para edición local intencional cross-cutting" + crear ADR documentando el trigger + MEMORY.md pointer.
 
 ## CI/CD workflows (referencia)
 

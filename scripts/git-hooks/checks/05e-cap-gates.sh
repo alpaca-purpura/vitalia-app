@@ -6,11 +6,10 @@
 # ─────────────────────────────────────────────────────────────────
 # 5e. cap-format gates G1-G6 HARD (HB-51 · enforcement determinístico)
 # ─────────────────────────────────────────────────────────────────
-# Bloquea el commit si un brand MADURO (vitalia · comunify) tiene deriva en los
+# Bloquea el commit si un brand MADURO (vitalia) tiene deriva en los
 # gates determinísticos de formato/estado de caps (G1 header-resuelve · G2 área-
 # viva-tiene-cap · G3 cap-tiene-hogar · G4 paths-existen · G5 superseded-válido ·
-# G6 map-coverage). nicolify/lupulo quedan ADVISORY (mid-rebuild / placeholder) —
-# su deriva la muestra la sección 5d. Backfill hecho 2026-06-05 (cap-doctor 0).
+# G6 map-coverage). Backfill hecho 2026-06-05 (cap-doctor 0).
 #
 # Trigger: code (.py/.ts/.tsx) O cap YAML O SYSTEM-MAP staged de un brand HARD.
 # Override (audit): CAP_GATES_SKIP=1 git commit ...

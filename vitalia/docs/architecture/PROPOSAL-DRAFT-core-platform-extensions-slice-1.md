@@ -1,12 +1,12 @@
 ---
 status: draft
-target_skill: /pm-luana
+target_skill: /pm-vitalia
 target_proposal_path: docs/promotion-protocol/proposals/2026-05-20-core-platform-extensions-slice-1.md
 created_at: 2026-05-20
 created_by: /pm-vitalia (ratified Chris 2026-05-20 sesión replan Slice 1)
 type: promotion-proposal-draft
 purpose: |
-  Draft de proposal combinado para /pm-luana levantar lift cementado en docs/promotion-protocol/proposals/.
+  Draft de proposal combinado para /pm-vitalia levantar lift cementado en docs/promotion-protocol/proposals/.
   Verify-first findings cementados (cron@idempotent ya está en core — sólo lift envelope).
 ---
 
@@ -14,7 +14,7 @@ purpose: |
 
 > **Target:** `core/luana-core-platform` 0.2.0 → 0.3.0
 > **Origen:** ratified Chris 2026-05-20 (sesión replan Slice 1 vitalia). Un proposal combinado en lugar de dos separados.
-> **Estado:** DRAFT — `/pm-vitalia` produce este insumo. `/pm-luana` levanta proposal real en `docs/promotion-protocol/proposals/`, ratifica, y migra.
+> **Estado:** DRAFT — `/pm-vitalia` produce este insumo. `/pm-vitalia` levanta proposal real en `docs/promotion-protocol/proposals/`, ratifica, y migra.
 
 ## § 1 — Findings verify-first (CRÍTICO)
 
@@ -131,7 +131,7 @@ Vitalia consumer tests:
 - Chris ratificó verify-first 2026-05-20: idempotent ya en core, lift solo envelope. Combinado en 1 proposal.
 - Bloqueo: Ola 1 Slice 1 vitalia NO arranca hasta este proposal state=migrated.
 
-## § 6 — Next steps `/pm-luana`
+## § 6 — Next steps `/pm-vitalia`
 
 1. Leer este draft.
 2. Crear proposal real en `docs/promotion-protocol/proposals/2026-05-20-core-platform-extensions-slice-1.md` con frontmatter `state: draft`.
@@ -139,4 +139,4 @@ Vitalia consumer tests:
 4. Bump version + CHANGELOG.
 5. Update proposal state: draft → accepted → migrated.
 6. Update vitalia learnings frontmatter: `promotable: yes` + `proposal_link:` field.
-7. `/pm-luana` ping `/pm-vitalia` cuando migrated → Ola 1 inicia /architect refresh.
+7. `/pm-vitalia` ping `/pm-vitalia` cuando migrated → Ola 1 inicia /architect refresh.

@@ -26,7 +26,7 @@ if [ "${BRAND_DOCS_SCHEMA_SKIP:-0}" != "1" ]; then
   while IFS= read -r f; do
     [[ -z "$f" ]] && continue
     # Detectar {brand}/docs/X.md (un solo nivel después de docs/)
-    if [[ "$f" =~ ^(vitalia|nicolify|comunify|lupulo|saasora|inmoflow|retailly|fixia|guestly|fitflow)/docs/[^/]+\.md$ ]]; then
+    if [[ "$f" =~ ^(vitalia)/docs/[^/]+\.md$ ]]; then
       BRAND_R1="${BASH_REMATCH[1]}"
       FILE_NAME=$(basename "$f")
       printf "\033[31m"

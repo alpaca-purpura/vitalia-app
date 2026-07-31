@@ -20,7 +20,7 @@ Auditor decision tree ante hallazgo en review:
         ├─ SÍ  → SPAWN dev-team autónomo.
         └─ NO  → ¿Está en la WHITELIST § self-fix permitido?
                 ├─ SÍ  → SELF-FIX (cap 4 iter) [v4.1 — v4.2: 5/4].
-                └─ NO  → ESCALATE Chris (o /pm-luana si cross-brand/engine).
+                └─ NO  → ESCALATE Chris (o /pm-vitalia si engine).
 ```
 
 Cap absoluto **3 audit_iterations** [v4.1 — v4.2: 5/4] (no 2, ampliado para forward-motion autonomy). Después → ESCALATE.
@@ -70,8 +70,8 @@ Auditor REFUSE editar (spawn dev-team autónomo en su lugar):
 | 11 | Modificar wireframe / mockup / spec gherkin scenario | escala /po-ux o /po (no auditor) |
 | 12 | Cualquier security fix (auth, PII sanitize, tenant_id filter) | escalate Chris |
 | 13 | Architecture refactor (boundary cross-module, DDD layer) | escalate Chris |
-| 14 | Touch `core/luana-core-*/src/` | requires /pm-luana promotion gate |
-| 15 | Touch `{other_brand}/...` | cross-brand outcome /pm-luana |
+| 14 | Touch `core/luana-core-*/src/` | flujo engine /pm-vitalia |
+| 15 | Touch paths fuera de `vitalia/**` | out-of-scope → Chris |
 | 16 | Touch `.claude/{skills,rules}/` o `docs/{process,architecture,specs}/` | meta-paradigm change, escalate |
 
 ## Workflow auditor — decisión + acción
@@ -271,7 +271,7 @@ Cuando el fix requiere un test nuevo → spawn dev-team `mode: AUDITOR_AUTO_FIX_
 
 ### Carril C — stake-asimétrico (escalate)
 
-NUNCA self-fix: security/auth · `tenant_id` filter · PII (`response_model` que expone) · migrations · prompt slots · eval goldens · state machine agéntica · `core/luana-core-*/src/` (→ `/pm-luana`) · `{other_brand}/...` · `.claude/{skills,rules}/` o `docs/{process,architecture,specs}/`. Acción: ESCALATE Chris. Opción: 2º auditor Opus independiente como verifier.
+NUNCA self-fix: security/auth · `tenant_id` filter · PII (`response_model` que expone) · migrations · prompt slots · eval goldens · state machine agéntica · `core/luana-core-*/src/` (→ `/pm-vitalia`) · paths fuera de `vitalia/**` · `.claude/{skills,rules}/` o `docs/{process,architecture,specs}/`. Acción: ESCALATE Chris. Opción: 2º auditor Opus independiente como verifier.
 
 ### Caps absolutos v4.2
 

@@ -721,47 +721,12 @@ def check_harness_pointers() -> None:
 
 
 
-# ── CHECK 29 — core-harness/ proxy-clean (W10 anti-rot · el "cheap W8" automatizado) ──
-# El kit extraíble NUNCA nombra tech/brand del producto-fuente (charter §0.5/§4 DoD).
-# Patrón verbatim del charter; única excepción blessed: grep-bot skip-dirs genéricos (W3).
-CORE_HARNESS_PROXY_TOKENS = re.compile(
-    r"vitalia|nicolify|comunify|lupulo|ruff|pytest|mypy|alembic|clerk|next\.js|"
-    r"tailwind|fastapi|sqlalchemy|core/luana-core|\.venv|dev-app|hipaa|phi"
-)
-CORE_HARNESS_PROXY_ALLOWED = {"agents/grep-bot.md"}  # build-artifact skip-dirs (.venv) — funcional, no smear
-
-
-def check_core_harness_proxy_clean() -> None:
-    root = WS / "core-harness"
-    bad: list[str] = []
-    if root.exists():
-        for f in sorted(root.rglob("*")):
-            if not f.is_file() or f.is_symlink():
-                continue
-            rel = str(f.relative_to(root))
-            if rel in CORE_HARNESS_PROXY_ALLOWED:
-                continue
-            try:
-                text = f.read_text(encoding="utf-8")
-            except (UnicodeDecodeError, OSError):
-                continue
-            for i, line in enumerate(text.splitlines(), 1):
-                if CORE_HARNESS_PROXY_TOKENS.search(line):
-                    bad.append(f"core-harness/{rel}:{i}: {line.strip()[:80]}")
-    check(
-        "CHECK 29 · core-harness/ proxy-clean (0 tech/brand tokens fuera de grep-bot)",
-        not bad,
-        "el kit dejó de ser extraíble — token de proyecto en CORE:\n      " + "\n      ".join(bad[:10]),
-    )
-
-
-# ── CHECK 30 — LSP sync template↔instancias PM (W10 anti-rot) ────────────────
-# Conceptos que _pm-sistema-template cementa y CADA pm-{brand} activa debe llevar
-# (drift real cazado 2026-06-09: pm-comunify/pm-lupulo sin § Auto-chain rule).
-# Concept-based (substring) como CHECK 9. Agregá un concepto al cementarlo en el template.
+# ── CHECK 30 — conceptos cementados del PM (W10 anti-rot · ex template↔instancias) ──
+# Conceptos que el skill PM fusionado debe conservar (fusión pm-vitalia+pm-luana 2026-07-31;
+# _pm-sistema-template retirado — repo standalone single-brand).
+# Concept-based (substring) como CHECK 9. Agregá un concepto al cementarlo en el PM.
 PM_TEMPLATE_CONCEPTS = ["Auto-chain rule", "story-closure-gate", "chris-input", "Step 0"]
 PM_SKILL_FILES = [
-    ".claude/skills/_pm-sistema-template/SKILL.md",
     ".claude/skills/pm-vitalia/SKILL.md",
 ]
 
@@ -880,7 +845,6 @@ def main() -> int:
     check_ledger_estado_column()
     check_ledger_producer_step()
     check_ledger_happy_floor()
-    check_core_harness_proxy_clean()
     check_pm_template_instance_sync()
     check_model_tier_sync()
     check_seam_gate_wired()

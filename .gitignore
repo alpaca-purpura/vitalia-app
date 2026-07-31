@@ -128,68 +128,23 @@ guestly/.env.prod
 fitflow/.env.dev
 fitflow/.env.prod
 
-# v2 worktree protocol — session locks per worktree (M14 N sesiones mismo cwd)
-.session-locks/
-
-# v2 worktree protocol — session log per canonical worktree (step-0 #12)
-.session-log
-
 # --- Auto-generated docs (regen via `make` / scripts — NUNCA commitear) ---
 # Cement 2026-05-20 — Chris ratificó "gitignore total" para evitar merge conflicts
 # crónicos en archivos derivados. SSoT vive en las sources; estos son views.
 #
-# Cómo regenerar localmente cuando los necesites:
-#   make portfolio          # docs/portfolio/{PORTFOLIO,brand,luana}.md cross-brand
-#   make infra-matrix       # docs/portfolio/INFRA-MATRIX.md
-#   .venv/bin/python scripts/generate_backlog.py --brand vitalia    # per-brand
-#   .venv/bin/python scripts/generate_backlog.py                    # legacy root
-#   make scan-promotables   # docs/promotion-protocol/scan-{date}.yaml
-#
-# Pre-commit hook Sections 6 + 10 siguen regenerando localmente (working tree
-# fresh) pero ya NO auto-stage. Ver `.claude/rules/brand-docs-schema.md` R3.
+# Regenerar: .venv/bin/python scripts/generate_backlog.py --brand vitalia
+# Ver `.claude/rules/sistema-docs-schema.md` R3.
 
-# Per-brand BACKLOG (10 brands: 4 active + 6 future templates)
+# BACKLOG per-brand (auto-gen)
 */docs/product/BACKLOG.md
 */docs/product/BACKLOG.yaml
 */docs/product/BACKLOG-TLDR.md
 
-# Legacy single-brand BACKLOG (pre-multibrand reorg, todavia generado)
-docs/product/BACKLOG.md
-docs/product/BACKLOG.yaml
-docs/product/BACKLOG-TLDR.md
-
-# Cross-brand portfolio (vistas auto-gen master + per-brand + INFRA-MATRIX)
-docs/portfolio/PORTFOLIO.md
-docs/portfolio/INFRA-MATRIX.md
-docs/portfolio/comunify.md
-docs/portfolio/fitflow.md
-docs/portfolio/fixia.md
-docs/portfolio/guestly.md
-docs/portfolio/inmoflow.md
-docs/portfolio/luana.md
-docs/portfolio/lupulo.md
-docs/portfolio/nicolify.md
-docs/portfolio/retailly.md
-docs/portfolio/saasora.md
-docs/portfolio/vitalia.md
-
-# Per-brand capabilities index user-facing (auto-gen scripts/generate_capability_index.py · ADR-vitalia-005 v3 cement 2026-05-27)
-docs/portfolio/comunify-capabilities.md
-docs/portfolio/fitflow-capabilities.md
-docs/portfolio/fixia-capabilities.md
-docs/portfolio/guestly-capabilities.md
-docs/portfolio/inmoflow-capabilities.md
-docs/portfolio/lupulo-capabilities.md
-docs/portfolio/nicolify-capabilities.md
-docs/portfolio/retailly-capabilities.md
-docs/portfolio/saasora-capabilities.md
-docs/portfolio/vitalia-capabilities.md
-
-# Per-brand areas/ user-facing (auto-gen scripts/generate_capability_index.py · 1 file por agent_owner)
+# areas/ user-facing (auto-gen scripts/generate_capability_index.py · 1 file por agent_owner)
 */docs/product/areas/*.md
 
-# Promotion-protocol dated scans (re-run cada vez con `make scan-promotables`)
-docs/promotion-protocol/scan-*.yaml
+# Screenshots ad-hoc de verificación manual (no baselines Playwright)
+vitalia/frontend/_shots/
 
 # Frontend generated code (offer-field-paths + futuros __generated__)
 **/__generated__/

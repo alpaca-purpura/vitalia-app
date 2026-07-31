@@ -21,7 +21,7 @@
 
 if [ "${CHRIS_INPUT_SKIP:-0}" != "1" ]; then
   STAGED_CHECKPOINTS=$(git diff --cached --name-only --diff-filter=AM 2>/dev/null \
-    | grep -E '^(vitalia|nicolify|comunify|lupulo|saasora|inmoflow|retailly|fixia|guestly|fitflow)/docs/product/stories/[^/]+/checkpoint\.md$' \
+    | grep -E '^(vitalia)/docs/product/stories/[^/]+/checkpoint\.md$' \
     || true)
 
   if [ -n "$STAGED_CHECKPOINTS" ]; then

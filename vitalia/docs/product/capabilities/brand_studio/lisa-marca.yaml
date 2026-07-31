@@ -388,7 +388,7 @@ Brand-extension consumer de engine `core/luana-core-brand-studio` (PersonalityPr
 
 - **app/[tenantId]/(shell-organism)/lisa/marca/{identidad,voz-y-tono,presencia}/page.tsx** — Server Components con SSR initial state via `getMarcaState`
 - **features/lisa/components/marca/{identidad,voz-y-tono,presencia}/** — 19 components total (8 + 6 + 5)
-  - Identidad: IdentidadView, IdentityCard, ClinicVerticalReadOnly, LogoDropZone, ColorTriadEditor, TypographyEditor, TeamPreviewRow, ExtractFromWebsiteButton (STUB disabled hasta /pm-luana proposal), AutosaveBadge
+  - Identidad: IdentidadView, IdentityCard, ClinicVerticalReadOnly, LogoDropZone, ColorTriadEditor, TypographyEditor, TeamPreviewRow, ExtractFromWebsiteButton (STUB disabled hasta /pm-vitalia proposal), AutosaveBadge
   - Voz y tono: VozTonoView, ArchetypeSelector (4 cards salud), VoiceCompilerBlocks (6 textareas), VoiceTextareaWithWarning (soft warning), TreatmentLanguageCard, BrandVoicePreview (footer único OQ-E)
   - Presencia: PresenciaView, InfoBannerLandingDescoped, WebsiteCard, SocialMediaLinksEditor (5 socials), TrustSignalsEditor (hybrid catalog OQ-D), LocationsCard
 - **features/lisa/api/** — marca-identity-api.ts, marca-voice-api.ts, marca-presence-api.ts (React Query + fetchClient)
@@ -420,7 +420,7 @@ Brand-extension consumer de engine `core/luana-core-brand-studio` (PersonalityPr
 - **D1-arch**: ADR-vitalia-004 v1.1 compliance:full
 - **D2-voice**: NUNCA `health_voice_validator.py`. Reuse compiler v2 sales-agent + tabla `vitalia_prohibited_phrases` soft warning
 - **D3-clinic**: `clinic_vertical` + `primary_specialties` read-only desde onboarding-clinica
-- **D4-extract**: Visual extraction = STUB disabled hasta /pm-luana proposal accept (`docs/promotion-protocol/proposals/2026-05-26-lift-brand-visual-extraction-to-core.md`)
+- **D4-extract**: Visual extraction = STUB disabled hasta /pm-vitalia proposal accept (`docs/promotion-protocol/proposals/2026-05-26-lift-brand-visual-extraction-to-core.md`)
 - **D5-archetype**: 4 archetypes salud (Caregiver default / Sage / Healer / Hero). Omit Outlaw/Magician/Lover/Innocent
 - **OQ-A → resolved v2**: N3-static SubSubTabsBar (ADR-004 v1.1)
 - **OQ-B → resolved**: 4 archetypes salud
@@ -475,7 +475,7 @@ Brand-extension consumer de engine `core/luana-core-brand-studio` (PersonalityPr
 - **Auto-fix loops**: 2 (1 partial API Overload + 1 successful + orchestrator polish)
 - **Verdict**: APPROVED per CHECKPOINTS.md C1-C5
 
-## Promotion candidates (ping /pm-luana)
+## Promotion candidates (ping /pm-vitalia)
 
 1. **Shell wrapper fidelity pattern** — `vitalia/docs/learnings/2026-05-27-shell-mockup-wrapper-fidelity.md` promotable:candidate
-2. **Visual extraction pipeline lift** — proposal `docs/promotion-protocol/proposals/2026-05-26-lift-brand-visual-extraction-to-core.md` awaiting /pm-luana review
+2. **Visual extraction pipeline lift** — proposal `docs/promotion-protocol/proposals/2026-05-26-lift-brand-visual-extraction-to-core.md` awaiting /pm-vitalia review

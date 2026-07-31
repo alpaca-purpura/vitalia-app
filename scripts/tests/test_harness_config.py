@@ -3,13 +3,14 @@
 
 Cubre las 4 facetas del contrato (RESEARCH-loader-mechanism.md): import python (load/get),
 CLI por slot (scalar/list/pluck), sentinel __FILL_ME__ → exit 3, slot inexistente → exit 4,
-y --doctor (el gate de extracción W8 — lista los slots sin llenar). Hermético: lee el
-project.config.yaml REAL del repo (es el contrato vivo).
+y --doctor (el gate de extracción W8). Lee el project.config.yaml REAL del repo (es el
+contrato vivo) — actualizado 2026-07-31 al seam single-brand de vitalia-app.
 """
 
 from __future__ import annotations
 
 import importlib.util
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -32,7 +33,7 @@ def _cli(*args: str) -> subprocess.CompletedProcess[str]:
 # ── import API (class B: python scripts) ────────────────────────────────
 def test_load_returns_product():
     cfg = _imp().load()
-    assert cfg["meta"]["product"] == "luana-platform"
+    assert cfg["meta"]["product"] == "vitalia-app"
 
 
 def test_get_scalar():
@@ -43,13 +44,12 @@ def test_get_scalar():
 
 def test_get_list():
     order = _imp().get("brands.loop_order")
-    assert order[0] == "vitalia"
-    assert "nicolify" in order
+    assert order == ["vitalia"]
 
 
 def test_pluck_active_slugs():
     slugs = _imp().get("brands.active", pluck="slug")
-    assert set(slugs) >= {"nicolify", "vitalia", "comunify", "lupulo"}
+    assert set(slugs) == {"vitalia"}
 
 
 def test_wip_caps_seam_D1():
@@ -69,31 +69,39 @@ def test_cli_scalar():
 def test_cli_list_newline():
     r = _cli("brands.loop_order")
     assert r.returncode == 0
-    lines = r.stdout.strip().splitlines()
-    assert lines[0] == "vitalia"
-    assert "nicolify" in lines
+    assert r.stdout.strip().splitlines() == ["vitalia"]
 
 
 def test_cli_pluck_active_slugs():
     r = _cli("brands.active", "slug")
     assert r.returncode == 0
-    assert {"vitalia", "nicolify", "comunify", "lupulo"} <= set(r.stdout.split())
+    assert set(r.stdout.split()) == {"vitalia"}
 
 
 def test_where_filter_cap_gate_hard():
     # Fork 3 (W5b): per-brand cap_gate facet → derive the HARD set.
     hard = _imp().get("brands.active", pluck="slug", where=("cap_gate", "hard"))
-    assert set(hard) == {"vitalia", "comunify"}
+    assert set(hard) == {"vitalia"}
 
 
 def test_cli_where_filter():
     r = _cli("brands.active", "slug", "--where", "cap_gate=hard")
     assert r.returncode == 0
-    assert set(r.stdout.split()) == {"vitalia", "comunify"}
+    assert set(r.stdout.split()) == {"vitalia"}
 
 
-def test_cli_unfilled_exit3():
-    r = _cli("agent_roster.comunify")
+def test_cli_unfilled_exit3(tmp_path: Path):
+    # El seam real está 100% lleno (single-brand) → el contrato exit-3 se prueba
+    # con una copia del loader junto a un config stub con __FILL_ME__.
+    shutil.copy(_HC, tmp_path / "harness_config.py")
+    (tmp_path / "project.config.yaml").write_text(
+        "meta:\n  product: stub\nslot_x: __FILL_ME__\n", encoding="utf-8"
+    )
+    r = subprocess.run(
+        [sys.executable, str(tmp_path / "harness_config.py"), "slot_x"],
+        capture_output=True,
+        text=True,
+    )
     assert r.returncode == 3
     assert "__FILL_ME__" in (r.stderr + r.stdout)
 
@@ -104,10 +112,8 @@ def test_cli_notfound_exit4():
 
 
 # ── --doctor (the W8 extraction gate) ───────────────────────────────────
-def test_doctor_lists_unfilled_and_exits_3():
+def test_doctor_all_filled_exits_0():
     r = _cli("--doctor")
-    # luana leaves comunify/lupulo rosters + 3 value_stream stages __FILL_ME__ (pending)
-    assert "agent_roster.comunify" in r.stdout
-    assert "agent_roster.lupulo" in r.stdout
-    assert "value_stream.nicolify" in r.stdout
-    assert r.returncode == 3  # unfilled present → loud fail (extraction gate)
+    # vitalia-app: todos los slots llenos → doctor OK (exit 0)
+    assert r.returncode == 0
+    assert "all slots filled" in r.stdout

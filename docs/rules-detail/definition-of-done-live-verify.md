@@ -16,16 +16,13 @@ Ninguna story con UI o endpoint alcanza `state: done` hasta que **Claude la haya
 
 > El verde de los gates (tsc/eslint/vitest/pytest/playwright) es **necesario pero nunca suficiente**. La DoD se cierra **ejerciendo la acción real del usuario en la app corriendo**.
 
-## Infra por brand (el entorno dev = cloudflared tunnel → stack local, NO servidor cloud)
+## Infra (el entorno dev = cloudflared tunnel → stack local, NO servidor cloud)
 
-El entorno canónico de live-verify es **`dev-app.{brand}lat.com`** = **cloudflared tunnel locally-managed → el stack local `localhost:300X`** (el deploy sigue deferred per `github-actions-deferred.md`; el túnel solo expone el stack que ya corre en tu máquina).
+El entorno canónico de live-verify es **`dev-app.vitalialat.com`** = **cloudflared tunnel locally-managed → el stack local `localhost:3002`** (el deploy sigue deferred per `github-actions-deferred.md`; el túnel solo expone el stack que ya corre en tu máquina).
 
 | Brand | dev-app | Levantar | localhost (FE/BE) | Backend logs | Estado |
 |---|---|---|---|---|---|
-| **vitalia** | `dev-app.vitalialat.com` | `make dev-app-vitalia` (idempotente · `scripts/dev-app-up.sh`) | `:3002` / `:8002` (`/api/*`→BE) | `docker logs luana-dev-vitalia_backend_dev-1` | ✅ **tunnel OPERATIVO** (verificado live 2026-06-02: `/`→307 sign-in + `/api/health`→200 vía dev-app.vitalialat.com). Locally-managed (connector docker + credencial gitignored per-worktree) |
-| **nicolify** | `dev-app.nicolify.com` | `make dev-nicolify` + `make dev-nicolify-tunnel` | `:3001` / `:8001` | `docker logs luana-dev-nicolify_backend_dev-1` | ✅ **tunnel provisto + connector docker UP** (`be33b8dd…`, credencial en worktree `luana-nicolify`, DNS routed). dev-app responde cuando el stack sirve (hoy skeleton → 000 si FE/BE no levanta) |
-| comunify | `dev-app.comunifyagents.com` | `make dev-comunify` + `make dev-comunify-tunnel` | `:3003` / `:8003` | `docker logs luana-dev-comunify_backend_dev-1` | ✅ **tunnel provisto + connector docker UP** (`999f4a24…`, zona `comunifyagents.com`, credencial en worktree `luana-comunify`, DNS routed) |
-| lupulo | `dev-app.lupulo.com` | `make dev-lupulo` + `make dev-lupulo-tunnel` | `:3004` / `:8004` | `docker logs luana-dev-lupulo_backend_dev-1` | ⚠️ verificar |
+| **vitalia** | `dev-app.vitalialat.com` | `make dev-app-vitalia` (idempotente · `scripts/dev-app-up.sh`) | `:3002` / `:8002` (`/api/*`→BE) | `docker logs luana-dev-vitalia_backend_dev-1` | ✅ **tunnel OPERATIVO** (verificado live 2026-06-02: `/`→307 sign-in + `/api/health`→200 vía dev-app.vitalialat.com). Locally-managed (connector docker + credencial gitignored) |
 
 **Vitalia (referencia — túnel OPERATIVO, verificado live 2026-06-02 vía dominio público):**
 
@@ -37,21 +34,17 @@ El entorno canónico de live-verify es **`dev-app.{brand}lat.com`** = **cloudfla
 | Password / token | `CLERK_TESTING_TOKEN_VITALIA` + `DEV_APP_TEST_PASSWORD` + `DEV_APP_CHRIS_*` (todos seteados 2026-06-02; password verificado vía Clerk `verify_password`→true) | en `vitalia/.env.dev` (**gitignored**) |
 | Clerk origins | `dev-app.vitalialat.com` + `localhost:3002` | ya seteados en la instancia (`allowed_origins`) |
 
-> **Provisión del túnel por brand:** `scripts/cloudflared-setup.sh {brand}` — **NO-INTERACTIVO** (reescrito 2026-06-02): usa un API token de cuenta (cfat_) en `{brand}/deploy/cloudflared/.credentials/cf-api.env` (gitignored, fallback `.env.dev`), sin login browser ni binario cloudflared host. Idempotente + no-destructivo: detecta tunnel existente (reusa) o crea locally-managed con secret + escribe credencial JSON + asegura el CNAME. `--recreate` fuerza recreación (DESTRUCTIVO). **Estado 2026-06-02:** los 3 túneles (vitalia/nicolify/comunify) están provistos + connector docker UP + DNS routed; las credenciales locally-managed viven **per-worktree** (cada marca en su worktree canónico — footgun cross-worktree abajo). El secret de un tunnel existente NO se recupera vía API → copiar el `dev-tunnel.json` del worktree origen o `--recreate`. **lupulo:** placeholder (sin deploy/cloudflared).
+> **Provisión del túnel:** `scripts/cloudflared-setup.sh vitalia` — **NO-INTERACTIVO** (reescrito 2026-06-02): usa un API token de cuenta (cfat_) en `vitalia/deploy/cloudflared/.credentials/cf-api.env` (gitignored, fallback `.env.dev`), sin login browser ni binario cloudflared host. Idempotente + no-destructivo: detecta tunnel existente (reusa) o crea locally-managed con secret + escribe credencial JSON + asegura el CNAME. `--recreate` fuerza recreación (DESTRUCTIVO). El secret de un tunnel existente NO se recupera vía API → `--recreate` si se perdió la credencial local.
 >
-> **Fallback localhost:** mientras el túnel de una brand no esté provisto, la live-verify se hace contra `localhost:300X` directo (mismo Chrome DevTools MCP / Playwright autenticado, misma acción real, mismos logs) — es verificación válida; lo único que falta es el dominio público + JWT Clerk del dominio real. Documentar en la evidencia que se verificó en localhost (no en dev-app) cuando aplique.
+> **Fallback localhost:** si el túnel no está disponible, la live-verify se hace contra `localhost:3002` directo (mismo Chrome DevTools MCP / Playwright autenticado, misma acción real, mismos logs) — es verificación válida; lo único que falta es el dominio público + JWT Clerk del dominio real. Documentar en la evidencia que se verificó en localhost (no en dev-app) cuando aplique.
 
-### ⚠️ Footgun cross-worktree (leer una vez)
+## Política de usuarios + claves de prueba (cement 2026-06-02)
 
-El compose usa project compartido `luana-dev`. El container `cloudflared` + FE/BE bind-montan el código del **worktree desde el que se corrió `up` por última vez**. Si construís en `~/Proyectos/luana-vitalia` pero el stack se levantó desde `~/Proyectos/luana-platform`, **dev-app puede estar sirviendo el código del otro worktree.** Regla: corré `make dev-app-{brand}` **desde el worktree donde estás construyendo** antes de verificar.
-
-## Política de usuarios + claves de prueba (cross-brand · cement 2026-06-02)
-
-**Compartida por TODAS las marcas** — cada marca tiene sus propios usuarios/roles/tenants, pero la **política de creación + almacenamiento + verificación es única**. Origen: Chris 2026-06-02.
+Origen: Chris 2026-06-02.
 
 ### Creación
-- Cada marca corre su **instancia Clerk dev propia** (`pk_test_…`, NUNCA `pk_live_`). Usuarios + roles + tenants son **brand-specific** (vitalia: owner/doctor/recepcion/super_admin sobre Sanaré-MX/Aurora-AR/Mindful-CL; nicolify/comunify/… definen los suyos).
-- Sembrar AL MENOS **un usuario de prueba primario** (rol más alto, ej. owner) con `public_metadata` completa que la marca necesite para auth real (mínimo `role` + `tenant_id`; vitalia agrega `clinicId`). Documentar la tabla de usuarios/roles/tenants seeded en `{brand}/docs/architecture/` (pre-flight checklist per brand).
+- La marca corre su **instancia Clerk dev propia** (`pk_test_…`, NUNCA `pk_live_`). Usuarios + roles + tenants de vitalia: owner/doctor/recepcion/super_admin sobre Sanaré-MX/Aurora-AR/Mindful-CL.
+- Sembrar AL MENOS **un usuario de prueba primario** (rol más alto, ej. owner) con `public_metadata` completa para auth real (mínimo `role` + `tenant_id`; vitalia agrega `clinicId`). Documentar la tabla de usuarios/roles/tenants seeded en `vitalia/docs/architecture/` (pre-flight checklist).
 - Naturaleza: creds de **DESARROLLO** (instancia `pk_test_`). OK en `.env.dev` gitignored + en el historial de sesión (ratificado Chris 2026-06-02 — son dev). **NUNCA** prod, **NUNCA** en archivo tracked.
 
 ### Almacenamiento (keys canónicas — MISMOS nombres cross-brand, VALORES per-brand)
@@ -80,16 +73,13 @@ Documentar en `dod_evidence` que la auth se ejerció con un usuario real verific
 - ❌ Declarar `DEV_APP_TEST_PASSWORD` seteado sin `verify_password`→true.
 - ❌ Nombres de key distintos por marca (los NOMBRES son cross-brand; los VALORES son per-brand).
 
-### Estado del arming por marca (2026-06-02)
+### Estado del arming (2026-06-02)
 
 | Marca | Test user | Chris cross-check | Estado | Nota |
 |---|---|---|---|---|
 | **vitalia** | `dr.demo@vitalialat.com` (role owner) | `hola@alpacapurpura.lat` | ✅ **full** | ambos `verify_password`→true; metadata real (role+clinicId+tenant_id); dev-app live (307+/api/health 200) |
-| **nicolify** | `owner.demo@nicolify.com` (role owner) | `hola@alpacapurpura.lat` | ✅ **full** | password seteado vía API + verified; metadata real (role+tenant_id `7f464ab7…`); creds en `luana-nicolify/.env.dev` |
-| **comunify** | `owner.demo@comunifyagents.com` (role owner) | `hola@alpacapurpura.lat` | 🟡 **Clerk-level (BLOQUEADO)** | usuarios creados + passwords verified. **BUG comunify-build:** seed corrido 2026-06-02 → falla `relation "tenants" does not exist`. La migración `001_comunify_initial_snapshot` NO crea la tabla `tenants` (schema comunify: slug/display_name/locale/plan/vertical) que el seed + el código esperan (nicolify/vitalia SÍ la crean en su migración). Login Clerk OK pero tenant resolution 500. **Fix = bugfix story comunify** (`/pm-comunify`): crear la tabla IAM en la migración → seed → setear `public_metadata.tenant_id`. NO hackear el schema a mano (drift) |
-| lupulo | — | — | ⬜ placeholder | sin bootstrap |
 
-`CLERK_TESTING_TOKEN_{BRAND}` (Playwright bot-bypass): presente en vitalia; nicolify/comunify lo mintean en runtime vía `@clerk/testing` con el `CLERK_SECRET_KEY` (no requiere setearlo a mano). El password-login (Chrome MCP + Playwright) funciona sin él.
+`CLERK_TESTING_TOKEN_VITALIA` (Playwright bot-bypass): presente. El password-login (Chrome MCP + Playwright) funciona sin él.
 
 ## Las dos herramientas (se usan AMBAS, según el momento)
 
@@ -172,7 +162,7 @@ chris_verify:              # ★ proceso v5 — el signoff vive acá (G), no en 
   rounds: [...]           # correcciones del loop = allowlist de scope ratificado (lo lee el auditor)
 ```
 
-`/pm-{brand}` Fase F: **REFUSE merge→done** si `demo_required: true` y `chris_verify.signoff.result ∉ {SATISFIED, SATISFIED_WITH_FOLLOWUPS(severity≤medium)}`. El sign-off de Chris (negocio · ejercido live en G) es SEPARADO del auditor (técnico) — **ambos** requeridos. SSoT del flujo G/R: `.claude/rules/story-closure-gate.md`.
+`/pm-vitalia` Fase F: **REFUSE merge→done** si `demo_required: true` y `chris_verify.signoff.result ∉ {SATISFIED, SATISFIED_WITH_FOLLOWUPS(severity≤medium)}`. El sign-off de Chris (negocio · ejercido live en G) es SEPARADO del auditor (técnico) — **ambos** requeridos. SSoT del flujo G/R: `.claude/rules/story-closure-gate.md`.
 
 ### 6 · MODIFICACIÓN de feature (no rehacer todo)
 
@@ -192,15 +182,15 @@ Blast radius por dependencias (TIA `tach`); `make ci-parity` sigue siendo el gat
 | **`/dev-team`** (builder-*) | **HARD gate developed-boundary**: REFUSE `developing→developed` sin `dod_live_verified` + `dod_evidence` (writes ejercidos + efecto observado). Corre los **gates técnicos** (§2); para superficies FE implementa/usa `base.ts` (**gate anti-burbuja** §3) + corre `verify-no-backend-errors.sh`; ejerce la acción real en dev-app con Chrome MCP **leyendo Console + Network + logs**; cubre cada **regla de negocio** (§4); en modificaciones respeta el `regression_guard` (§6); produce `demo-script.md` para stories funcionales. Registra `dod_evidence` en `checkpoint.md`. NO cierra por "tests verdes" mockeados. |
 | **`/auditor`** | Phase D: **auto-FAIL LIVE_VERIFY_MISSING** si falta `dod_evidence`; ejerce ≥1 write live (Chrome MCP) sobre el surface bajo prueba; produce la **gherkin-matrix** (cualquier `MISSING` bloquea); verifica que los specs importan `base.ts` (no `@playwright/test` directo), que el `regression_guard` quedó intacto, que los snapshots actualizados tienen diff revisado, y que existe `demo-script.md` si `demo_required`; verifica que la cap entrega **N0-N4 completos** (cap-levels · `capability-protocol.md` §14: N0 descripción/G8 · N1 scenarios/G9 + badge de verdad real · N2 reglas con enforcement · N3 access · N4 dev_preview+código). Finding **Upstream deficiency** (Carril R fix-and-own): si detecta que el gate de Critical Rule fue saltado, captura HB + learning antes de cerrar turn. Sin evidencia / con MISSING → CHANGES_REQUESTED. |
 | **`/po`, `/po-ux`** | Co-escriben la sección `## Business rules` (bullets) + `## Demo script` (lenguaje de usuario) del `01-spec.md`. Para revisar algo que ya corre → abrir dev-app con Chrome MCP (inspección, no gate). |
-| **`/pm-{brand}`** | Owner del **gate**: en `merge` REFUSE si falta `dod_evidence`, si la gherkin-matrix tiene `MISSING`, o si `demo_required: true` y `chris_verify.signoff.result ∉ {SATISFIED, SATISFIED_WITH_FOLLOWUPS(severity≤medium)}` (★ proceso v5 · firmado en G). No verifica él mismo; exige la evidencia de dev-team/auditor **+ el sign-off de Chris**. |
+| **`/pm-vitalia`** | Owner del **gate**: en `merge` REFUSE si falta `dod_evidence`, si la gherkin-matrix tiene `MISSING`, o si `demo_required: true` y `chris_verify.signoff.result ∉ {SATISFIED, SATISFIED_WITH_FOLLOWUPS(severity≤medium)}` (★ proceso v5 · firmado en G). No verifica él mismo; exige la evidencia de dev-team/auditor **+ el sign-off de Chris**. |
 
 ## Registro obligatorio (evidencia, no palabra)
 
-La verificación live se **registra** o no ocurrió. En `07-merge.md § Verificación live` (y `checkpoint.md` de la story). En vitalia el campo canónico es `dev_app_verified` (ADR-vitalia-008); el schema genérico cross-brand:
+La verificación live se **registra** o no ocurrió. En `07-merge.md § Verificación live` (y `checkpoint.md` de la story). El campo canónico es `dev_app_verified` (ADR-vitalia-008); el schema genérico:
 
 ```yaml
 dod_live_verified: true
-dod_env: "make dev-app-vitalia → dev-app.vitalialat.com (Chrome DevTools MCP)"   # o "make dev-nicolify → localhost:3001"
+dod_env: "make dev-app-vitalia → dev-app.vitalialat.com (Chrome DevTools MCP)"   # o "localhost:3002" fallback
 dod_evidence:
   - action: "PATCH personality voz/arquetipo + guardar (autenticado dr.demo@vitalialat.com)"
     observed: "toast OK + badge 'guardado', valor persiste al recargar"
@@ -220,16 +210,15 @@ Sin `dod_live_verified: true` + `dod_evidence` (writes ejercidos + efecto observ
 | Fase | Owner | Qué hace |
 |---|---|---|
 | `developed → reviewing` | `/auditor` | Phase D: ejerce los scenarios críticos live (Chrome DevTools MCP) o exige la evidencia. Sin evidencia live → CHANGES_REQUESTED (no APPROVED). |
-| `reviewing → done` | `/pm-{brand}` | Fase F: **REFUSE merge→done** si `dod_live_verified != true` o falta `dod_evidence`. El checkpoint NO se escribe `state: done`. |
+| `reviewing → done` | `/pm-vitalia` | Fase F: **REFUSE merge→done** si `dod_live_verified != true` o falta `dod_evidence`. El checkpoint NO se escribe `state: done`. |
 
 ## Si algo falla, NO se abandona — se diagnostica (mandato Chris)
 
 | Síntoma | Primer chequeo |
 |---|---|
-| dev-app no responde | `docker logs luana-dev-{brand}_cloudflared_dev-1 --tail 30` · re-correr `make dev-app-{brand}` |
-| Clerk rechaza login / bot | confirmar `allowed_origins` incluye dev-app · usar `CLERK_TESTING_TOKEN_{BRAND}` · `setupClerkTestingToken` |
-| sirve código viejo | footgun cross-worktree → re-`up` desde tu worktree |
-| falta credencial tunnel | copiar `{brand}/deploy/cloudflared/.credentials/dev-tunnel.json`, o `scripts/cloudflared-setup.sh {brand}` |
+| dev-app no responde | `docker logs luana-dev-vitalia_cloudflared_dev-1 --tail 30` · re-correr `make dev-app-vitalia` |
+| Clerk rechaza login / bot | confirmar `allowed_origins` incluye dev-app · usar `CLERK_TESTING_TOKEN_VITALIA` · `setupClerkTestingToken` |
+| falta credencial tunnel | `scripts/cloudflared-setup.sh vitalia` |
 
 Runbook completo (vitalia): `vitalia/docs/domains/dev-app/live-verification.md`.
 
@@ -240,9 +229,8 @@ Runbook completo (vitalia): `vitalia/docs/domains/dev-app/live-verification.md`.
 - ❌ e2e que mockea el backend presentada como live-verify (falso verde)
 - ❌ Correr e2e contra `next build`/standalone y llamarlo "verificación live" (no es el stack interactivo que usa el usuario)
 - ❌ `07-merge.md` con `state: done` y un box de DoD live **sin tildar** (auto-contradicción — caso origen nicolify-r0-shell)
-- ❌ `/pm-{brand}` mergeando a `done` sin `dod_live_verified: true` + `dod_evidence`
-- ❌ Responder "no pude levantar dev-app / no me dejó Clerk" sin correr `make dev-app-{brand}` y leer logs (la infra ya está provista para vitalia)
-- ❌ Verificar desde un worktree distinto al que tiene tu código sin chequear el footgun
+- ❌ `/pm-vitalia` mergeando a `done` sin `dod_live_verified: true` + `dod_evidence`
+- ❌ Responder "no pude levantar dev-app / no me dejó Clerk" sin correr `make dev-app-vitalia` y leer logs (la infra ya está provista)
 
 ## Enforcement layers
 
@@ -250,13 +238,13 @@ Runbook completo (vitalia): `vitalia/docs/domains/dev-app/live-verification.md`.
 |---|---|---|
 | 1 | Pointer en root `CLAUDE.md` § Critical Rules #37 (auto-load cada sesión) | ✅ 2026-05-31 |
 | 2 | `/auditor` Phase D: gherkin-matrix + verifica `base.ts` importado + `regression_guard` intacto + `demo-script.md` existe | ✅ 2026-06-03 (auto-FAIL LIVE_VERIFY_MISSING en auditor SKILL + auditor-frontend/backend.md; auditor ejerce ≥1 write live) |
-| 3 | `/pm-{brand}` Fase F REFUSE merge→done sin `dod_evidence` / con gherkin MISSING / sin `chris_verify.signoff` (★ proceso v5) | ✅ vitalia (ADR-008) · ⏳ resto |
+| 3 | `/pm-vitalia` Fase F REFUSE merge→done sin `dod_evidence` / con gherkin MISSING / sin `chris_verify.signoff` (★ proceso v5) | ✅ vitalia (ADR-008) · ⏳ resto |
 | 4 | `07-merge` § Verificación live + `04-validators`/`checkpoint`/`T-review` con campos DoD | ✅ Wave 2A (dc6a94fa) |
 | 5 | `chrome-devtools-verify` + `playwright-expert` skills = mecanismo canónico de live-verify | ✅ existe |
 | 6 | **Pre-commit MECÁNICO: bloquea commitear una transición a `state: developed|done` (story funcional) sin `dod_live_verified: true` + `dod_evidence`(≥1 action)** — `scripts/git/dod-evidence-gate.sh` cableado al pre-commit (symlink, activo). Exención: `dod_live_verified_skip_reason`. Fail-OPEN + `DOD_GATE_ACK=1`. 5/5 tests. **Es presence-enforcement, no truth** (la verdad la dan `chris_verify.signoff` humano en G + auditor live) | ✅ 2026-06-04 |
 | 7 | **Gate anti-burbuja**: `{brand}/frontend/e2e/fixtures/base.ts` (pageerror/console/response + Next overlay) + `scripts/verify-no-backend-errors.sh` | ⏳ vitalia (implementando) · resto hereda |
 | 8 | `04-validators` declara `verification_nature` (top-level) + `technical_gates` (opt-in) + `business_rules` matrix + `demo_required` + `regression_guard` | ✅ 2026-06-03 (playwright_visual_scope portado al template + architect hard-step) |
-| 9 | **Gate demo manual (en G · proceso v5)**: `demo-script.md` (4 secciones) + `chris_verify.signoff` (Chris) en checkpoint · `/pm-{brand}` REFUSE sin SATISFIED | ⏳ signoff hook TBD · `/dev-team` ya REQUIRE demo-script.md + pausa en G (2026-06-05) |
+| 9 | **Gate demo manual (en G · proceso v5)**: `demo-script.md` (4 secciones) + `chris_verify.signoff` (Chris) en checkpoint · `/pm-vitalia` REFUSE sin SATISFIED | ⏳ signoff hook TBD · `/dev-team` ya REQUIRE demo-script.md + pausa en G (2026-06-05) |
 | 10 | **Dev-team developed-boundary HARD gate**: REFUSE `developing→developed` sin `dod_live_verified` + `dod_evidence` + `demo-script.md` para stories funcionales (espejo del gherkin-Phase-D-local) | ✅ 2026-06-03 |
 | 11 | **Reflex de auto-hardening**: auditor (y dev-team/pm) que detecta un gate de Critical Rule saltado MUST auto-capturar HB en `docs/process/harness-backlog.md` + learning antes de cerrar turn | ✅ 2026-06-03 (auditor SKILL + self-fix-policy v5) |
 
@@ -272,7 +260,7 @@ Runbook completo (vitalia): `vitalia/docs/domains/dev-app/live-verification.md`.
 - `.claude/skills/chrome-devtools-verify/SKILL.md` — verificación live conversacional
 - `.claude/skills/playwright-expert/SKILL.md` + `clerk-testing` — golden persistido
 - caso lisa-marca (origen del bar, brand vitalia) — registrado en `docs/process/learnings.md` + MEMORY `verification-real-not-200` (la learning dedicada `vitalia/docs/learnings/cobertura-tests-vs-realidad-2026-05-29.md` nunca se materializó)
-- caso origen nicolify: `nicolify/docs/archive/2026/stories/nicolify-r0-shell/` (reabierta 2026-05-31)
+- caso origen histórico nicolify-r0-shell (repo luana-platform; anécdota — el path ya no existe en este repo)
 - `MEMORY.md` → `dod-live-verify` · `verification-real-not-200`
 
 <!-- voseo-allowed: doc interno de proceso, no user-facing -->

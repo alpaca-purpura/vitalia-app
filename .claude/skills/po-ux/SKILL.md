@@ -11,7 +11,7 @@ model: opus
 
 ## ★ Postura cardinal — el refinamiento es la fase #1 (W0.5-bis, ratificado Chris 2026-06-08)
 
-> SSoT del método cross-tipo: `docs/process/harness-refactor-w0.5/REQ-TAKING-DETAIL.md`. Sombrero acá = **Product Owner / PM, abogado del usuario**. Chris = cliente + stakeholder principal.
+> SSoT del método cross-tipo: `docs/archive/2026/multibrand-legacy/process/harness-refactor-w0.5/REQ-TAKING-DETAIL.md`. Sombrero acá = **Product Owner / PM, abogado del usuario**. Chris = cliente + stakeholder principal.
 
 El refiner **NUNCA es escriba** ("acepto y ya"). En todo momento:
 
@@ -24,9 +24,9 @@ El sombrero, la postura y el método de toma de requerimientos son **CORE** (por
 
 ## REQUIRED first input: `<brand>`
 
-`<brand>` ∈ `vitalia | nicolify | comunify | lupulo | platform`. Si Chris no lo provee, **PREGUNTAR antes de proceder**. `platform` = stories UI cross-brand que tocan engine (raro — requiere `/pm-luana` autorización).
+`<brand>` ∈ `vitalia | platform`. Si Chris no lo provee, **PREGUNTAR antes de proceder**. `platform` = stories UI que tocan engine (raro — requiere ratificación Chris vía `/pm-vitalia`).
 
-Si invocado vía `/pm-{brand}` handoff, el brand viene en el handoff. Si invocado directo por Chris → preguntar primero.
+Si invocado vía `/pm-vitalia` handoff, el brand viene en el handoff. Si invocado directo por Chris → preguntar primero.
 
 ## Cuándo usar — decision matrix
 
@@ -44,7 +44,7 @@ Si invocado vía `/pm-{brand}` handoff, el brand viene en el handoff. Si invocad
 ## Inputs obligatorios
 
 1. `<brand>` (REQUIRED, ver sección arriba)
-2. Story creada por `/pm-{brand}` con state=`refining` en `{brand}/docs/product/stories/{story-id}/checkpoint.md` (idea ya pasó por trigger Chris "refinemos")
+2. Story creada por `/pm-vitalia` con state=`refining` en `{brand}/docs/product/stories/{story-id}/checkpoint.md` (idea ya pasó por trigger Chris "refinemos")
 3. `{brand}/docs/product/modules/{m}.md` — estado funcional módulo per-brand
 4. `{brand}/docs/product/capabilities/{m}/` — capabilities existentes per-brand (no duplicar)
 5. `docs/specs/templates/01-spec-template.md` — template (transversal core, reusable cross-brand)
@@ -72,7 +72,7 @@ Si invocado vía `/pm-{brand}` handoff, el brand viene en el handoff. Si invocad
 
 **Antes de dibujar cualquier wireframe/mockup: (1) cargá el canon, (2) PARTÍ DE STORYBOOK** (`core/@luana/ui-kit` · `build-storybook` → `storybook-static/`, o dev `:6007` · cada story = el componente REAL). El mockup se **COMPONE del HTML renderizado de las stories** (iframe `…/iframe.html?id=<story>&viewMode=story`) — **NO se inventa CSS ni se copia `_shared.css`** (mecanismo MUERTO, canon §5). El mockup ratificado debe ser EXACTAMENTE lo que `/dev-team` construye ("lo que ves en Storybook = lo que se programa"). Aplica a TODAS las marcas.
 >
-> **No limitarse a Storybook:** si falta una pieza o hay algo genuinamente mejor, **PROPONELO** en el spec (mockup + justificación + test del 2º consumidor) → si se usa, se **PROMUEVE a `@luana/ui-kit` + story** (vía `core-ds-*`/`/pm-luana`) para reuso futuro. Storybook es el piso, no el techo.
+> **No limitarse a Storybook:** si falta una pieza o hay algo genuinamente mejor, **PROPONELO** en el spec (mockup + justificación + test del 2º consumidor) → si se usa, se **PROMUEVE a `@luana/ui-kit` + story** (vía `core-ds-*`/`/pm-vitalia`) para reuso futuro. Storybook es el piso, no el techo.
 
 Checklist canon (parte del gate Step 5 — sin esto NO `refined`):
 
@@ -89,29 +89,27 @@ Checklist canon (parte del gate Step 5 — sin esto NO `refined`):
 
 > SSoT: `.claude/rules/anti-duplication-refining.md`.
 
-ANTES de drafting `01-spec.md` / wireframes, ejecutar **prior-art-scan** cross-brand:
+ANTES de drafting `01-spec.md` / wireframes, ejecutar **prior-art-scan** (vitalia + engine + snapshot histórico):
 
 ```bash
 WS=$(git rev-parse --show-toplevel)
-BRAND="${BRAND}"           # provisto por handoff /pm-{brand}
+BRAND="${BRAND}"           # provisto por handoff /pm-vitalia
 KW="${STORY_KEYWORDS}"      # ej: "agenda paciente reserva slot"
 
 echo "=== Engine packages ==="
 ls ${WS}/core/ | grep -iE "$(echo $KW | tr ' ' '|')"
 
-echo "=== Brands shipped (nicolify es source principal) ==="
-for B in nicolify vitalia comunify lupulo; do
-  [ "$B" = "$BRAND" ] && continue
-  find ${WS}/${B}/frontend/src/features/ -maxdepth 1 -type d 2>/dev/null | grep -iE "$(echo $KW | tr ' ' '|')"
-done
+echo "=== Features shipped en vitalia ==="
+find ${WS}/vitalia/frontend/src/features/ -maxdepth 1 -type d 2>/dev/null | grep -iE "$(echo $KW | tr ' ' '|')"
 
 echo "=== Stories archivadas con feature paralelo ==="
-for B in nicolify vitalia comunify lupulo; do
-  find ${WS}/${B}/docs/archive/*/stories/ -maxdepth 1 -type d 2>/dev/null | grep -iE "$(echo $KW | tr ' ' '|')"
-done
+find ${WS}/vitalia/docs/archive/*/stories/ -maxdepth 1 -type d 2>/dev/null | grep -iE "$(echo $KW | tr ' ' '|')"
+
+echo "=== Snapshot histórico pre-multibrand (frozen, NO prod) ==="
+grep -rln -iE "$(echo $KW | tr ' ' '|')" ${WS}/docs/archive/2026/snapshot-pre-multibrand-pm-redesign/ 2>/dev/null | head -10
 
 echo "=== Learnings tags relacionados ==="
-grep -rln -iE "$(echo $KW | tr ' ' '|')" ${WS}/docs/learnings/ ${WS}/${BRAND}/docs/learnings/ ${WS}/nicolify/docs/learnings/ 2>/dev/null
+grep -rln -iE "$(echo $KW | tr ' ' '|')" ${WS}/docs/learnings/ ${WS}/vitalia/docs/learnings/ 2>/dev/null
 ```
 
 **Output mandatory en `01-spec.md` sección `## Prior art applied`**:
@@ -120,12 +118,11 @@ grep -rln -iE "$(echo $KW | tr ' ' '|')" ${WS}/docs/learnings/ ${WS}/${BRAND}/do
 ## Prior art applied
 
 - **Engine consumed:** `core/luana-core-X` (importé Y para Z)
-- **Reused from nicolify:** `nicolify/frontend/src/features/scheduling/components/SlotPicker.tsx` (componente base + adaptación HIPAA-lite)
+- **Reused from vitalia:** `vitalia/frontend/src/features/{m}/components/{Component}.tsx` (componente base existente)
 - **Learnings aplicados:**
-  - `docs/learnings/2026-04-15-tanstack-query-cache-invalidation.md` (cache key pattern)
-  - `nicolify/docs/learnings/2026-03-22-agenda-overbooking-edge-case.md` (concurrency lock)
-- **Lift candidates detectados:** patrón `SlotPicker` candidate engine — escalate /pm-luana para promotion proposal
-- **Net-new justificado:** sección `consentimiento informado paciente` HIPAA-lite — nicolify no aplica (B2B agencias)
+  - `docs/learnings/{date}-{slug}.md` (learning aplicado)
+- **Lift candidates detectados:** patrón `SlotPicker` candidato a engine — flujo engine /pm-vitalia
+- **Net-new justificado:** sección `consentimiento informado paciente` HIPAA-lite — sin prior art aplicable
 ```
 
 **SIN esta sección documentada con resultados verbatim del scan, `/po-ux` REFUSE cerrar state=refining→refined.** Auditor Cat 12 verifica que `## Prior art applied` exista.
@@ -165,7 +162,7 @@ grep -rln -iE "$(echo $KW | tr ' ' '|')" ${WS}/docs/learnings/ ${WS}/${BRAND}/do
 
 ```bash
 WS=$(git rev-parse --show-toplevel)
-BRAND={brand}                                                  # vitalia | nicolify | comunify | lupulo | platform
+BRAND={brand}                                                  # vitalia | platform
 cat ${WS}/${BRAND}/docs/product/BACKLOG.md                     # ver estado overall brand
 cat ${WS}/${BRAND}/docs/product/stories/{story-id}/chris-input.md   # idea origen (R4: nace con la story)
 cat ${WS}/${BRAND}/docs/product/modules/{m}.md                 # estado funcional per-brand
@@ -173,7 +170,7 @@ ls ${WS}/${BRAND}/docs/product/stories/                        # stories existen
 ls ${WS}/${BRAND}/docs/product/capabilities/{m}/               # capabilities live per-brand
 ```
 
-Si no hay idea origen → escala `/pm-{brand}`. NO redactes spec sin contexto outcome.
+Si no hay idea origen → escala `/pm-vitalia`. NO redactes spec sin contexto outcome.
 
 ### Step 2 — Cargar domain skill
 
@@ -372,7 +369,7 @@ Tabla (todos los paths brand-scoped):
 | `DataTable` | `{brand}/frontend/src/components/shared/data-table.tsx` | reuse |
 | `OfferCard` | `{brand}/frontend/src/features/offer/components/offer-card.tsx` | NEW (no existe equivalente) |
 
-Si proponés NEW componente → justificá por qué no existe equivalente. `frontend-expert` skill cargado debería bloquear duplication. **Cross-brand reuse:** si pattern aparece ≥2 brands → escalá `/pm-luana` (promotion candidate a `core/luana-core-ui/` futuro).
+Si proponés NEW componente → justificá por qué no existe equivalente. `frontend-expert` skill cargado debería bloquear duplication. **Reuso:** si el pattern es genérico (lo querría cualquier producto) → escalá `/pm-vitalia` (candidato a engine).
 
 #### § Data flow (conceptual, no técnico — el architect surface FE — `architect/references/fe.md` — lo concreta)
 
@@ -522,8 +519,8 @@ next_action: "/architect <brand>: {brand} lee 01-spec.md → produce ready packa
 Si durante mockup/iteración descubrís edge case que la story no contemplaba:
 
 - **Pequeño** (1 estado UI extra, 1 microcopy faltante) → agregar inline + bumpear `po_ux_version` en frontmatter spec.md
-- **Medio** (scenario nuevo necesario, refactoring scope) → STOP, escala `/pm-{brand}`: "scope crece, requiere ratificar alcance de la story"
-- **Grande** (story se vuelve épica, > 5d trabajo) → STOP, `/pm-{brand}` decompose en N stories
+- **Medio** (scenario nuevo necesario, refactoring scope) → STOP, escala `/pm-vitalia`: "scope crece, requiere ratificar alcance de la story"
+- **Grande** (story se vuelve épica, > 5d trabajo) → STOP, `/pm-vitalia` decompose en N stories
 
 ## Anti-patterns
 
@@ -554,8 +551,8 @@ Si durante mockup/iteración descubrís edge case que la story no contemplaba:
 
 ## Anti cross-brand pollution
 
-- ❌ NUNCA editar `{other_brand}/...` cuando trabajás en `{brand}`. Si la story necesita tocar otra brand → STOP, escalate `/pm-luana` (trabajo cross-brand).
-- ❌ NUNCA editar `core/luana-core-*/src/` directamente. Requiere lift via `/pm-luana` (promotion gate). Si el patrón UI aparece ≥2 brands → escalá como promotion candidate.
+- ❌ NUNCA editar paths fuera de `vitalia/**` (+ story docs). STOP + escalate `/pm-vitalia`.
+- ❌ NUNCA editar `core/luana-core-*/src/` directamente. Requiere flujo engine `/pm-vitalia`. Si el patrón UI es genérico → escalá como candidato a engine.
 - ❌ NUNCA escribir specs/archs/tickets en root `docs/product/stories/` — solo `platform` (cross-brand) outcomes van ahí, y eso requiere `<brand>: platform` explícito.
 - ❌ NUNCA referenciar `frontend/src/` sin el prefix `{brand}/` — post reorg 2026-05-15 no existe root `frontend/`.
 

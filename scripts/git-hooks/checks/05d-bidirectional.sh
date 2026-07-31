@@ -26,7 +26,7 @@ if [ "${BIDIRECTIONAL_SKIP:-0}" != "1" ]; then
 
   # Trigger: any code file OR cap YAML staged
   BIDIR_STAGED=$(git diff --cached --name-only --diff-filter=ACMR 2>/dev/null \
-    | grep -E '^(vitalia|nicolify|comunify|lupulo|saasora|inmoflow|retailly|fixia|guestly|fitflow)/(backend|frontend)/src/.*\.(py|ts|tsx)$|^(vitalia|nicolify|comunify|lupulo|saasora|inmoflow|retailly|fixia|guestly|fitflow)/docs/product/capabilities/[^/]+/[^/]+\.yaml$' \
+    | grep -E '^(vitalia)/(backend|frontend)/src/.*\.(py|ts|tsx)$|^(vitalia)/docs/product/capabilities/[^/]+/[^/]+\.yaml$' \
     || true)
 
   if [ -n "${BIDIR_STAGED}" ]; then

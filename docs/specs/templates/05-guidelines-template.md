@@ -148,11 +148,10 @@ reference_artifacts:
 - {brand}/frontend/e2e/a11y/{story-id}.spec.ts
 - {brand}/frontend/e2e/i18n/{story-id}.spec.ts
 
-## Files Builder NEVER touches (escalate to Chris / /pm-luana)
+## Files Builder NEVER touches (escalate to Chris / /pm-vitalia)
 
-- core/luana-core-*/src/luana_core_*/** (engine — requires lift via /pm-luana promotion gate; NUNCA en story brand-específica)
+- core/luana-core-*/src/luana_core_*/** (engine — cambios vía flujo engine /pm-vitalia, arch tests como gate; NUNCA en story brand-específica)
 - {brand}/backend/src/modules/{brand}/{copilot,sales_agent}/** runtime (agentic — solo via builder-agentic Opus; brand-extension surface OK con R23 check)
-- {other_brand}/** (cross-brand edit — escalate /pm-luana outcome platform)
 - {brand}/backend/src/core/config.py (default flag flips require R31 anti-default-flip-audit)
 - {brand}/frontend/src/components/ui/** (Shadcn primitives per-brand — extend via wrappers, no edit)
 - {brand}/frontend/src/lib/api/fetchClient.ts (cross-cutting per-brand — escalate)

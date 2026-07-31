@@ -113,4 +113,4 @@ componente `ValeriaAgendaView.tsx`(+`.test.tsx`)→`Mateo…`, mocks `usePathnam
 
 ## Notas de scope
 - Brand-local vitalia (cap doc + `features/mateo` FE + `scheduling` BE). No toca core ni otras marcas.
-- Si algún helper de actor-headers requiriera lift a `@luana/*` → escalar `/pm-luana`.
+- Si algún helper de actor-headers requiriera lift a `@luana/*` → escalar `/pm-vitalia`.

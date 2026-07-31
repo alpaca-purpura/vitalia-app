@@ -172,7 +172,7 @@ When the user asks to see a proposal:
    ```
 3. Fill every section using context from all phases
 4. Write the file:
-   - If inside a pipeline (nicolify-feature): write to the feature's working directory
+   - If inside a story pipeline: write to the story's working directory
    - If standalone: write to `docs/product/stories/{story-id}/01-spec.md` (sección charts inline — paradigm v4 post 2026-05-06). Legacy snapshots de PI-1..PI-12 viven en `docs/archive/2026/legacy-pis/` (read-only).
    - If Copilot-inline mode: output is direct HTML, not VIZ-SPEC
 
@@ -232,8 +232,7 @@ If neither MCP nor WebSearch confirms the metric:
 
 ## Integration Notes
 
-- **`ux-disruptivo`**: Complementary. ux-disruptivo for interaction screens (forms, wizards), data-storyteller for data-driven screens. Mixed screens: ux-disruptivo leads, data-storyteller consulted for data section only.
-- **`nicolify-feature`**: Can be invoked during UX phase for data-heavy features.
+- **`/po-ux`**: Complementary. /po-ux for interaction screens (forms, wizards), data-storyteller for data-driven screens. Mixed screens: /po-ux leads, data-storyteller consulted for data section only.
 - **`frontend-expert`**: Consumes VIZ-SPEC.md for implementation. The VIZ-SPEC is a superset of what frontend-expert needs.
 - **`builder-frontend` agent**: For mechanical data screens (simple tables), the standard FE builder is faster. data-storyteller is for visualization with story.
 - **Copilot inline**: Output is direct HTML, not VIZ-SPEC.

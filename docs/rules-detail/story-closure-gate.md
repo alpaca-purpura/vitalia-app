@@ -16,9 +16,9 @@ ready → developing → developed → reviewing → done
                                      └─ APPROVED ─→ merge ─→ done
 ```
 
-Default forward-motion: `/dev-team` al cerrar `developed` emite handoff AUTOMÁTICO a `/auditor`. `/auditor` al cerrar APPROVED emite handoff AUTOMÁTICO a `/pm-{brand}` para merge. Sin Chris-trigger manual obligatorio.
+Default forward-motion: `/dev-team` al cerrar `developed` emite handoff AUTOMÁTICO a `/auditor`. `/auditor` al cerrar APPROVED emite handoff AUTOMÁTICO a `/pm-vitalia` para merge. Sin Chris-trigger manual obligatorio.
 
-## Las 6 fases por worktree
+## Las 6 fases
 
 Una story = un ciclo end-to-end. Cada fase tiene owner explícito y artifact producido.
 
@@ -28,16 +28,16 @@ Una story = un ciclo end-to-end. Cada fase tiene owner explícito y artifact pro
 | **B — AUDIT** | `/auditor` (auto-handoff de A) | `T-{n}-result.md` · `gate-output.json` · `01-spec.md` (Gherkin) | `T-{n}-review.md` por ticket · `CHECKPOINTS.md` (C1-C5) | `developed → reviewing` |
 | **C — FIX-LOOP** | `/dev-team` (si CHANGES_REQUESTED) | `T-{n}-review.md` findings | fix commits · re-audit | cap 2 iter · si excede → ESCALATED |
 | **D — GHERKIN** | `/auditor` (Phase D dentro del audit) | `01-spec.md § Acceptance criteria` + `06-tickets.yaml::gherkin_coverage` | `06-audit/gherkin-matrix.md` (scenario → test path → status) | embedded en B |
-| **E — DOCS** | `/pm-{brand}` | story + audit artifacts | `{brand}/docs/product/capabilities/{m}/{c}.yaml` (créate/update con `verification.commands` + `verification.gherkin_evidence`) · `{brand}/docs/product/modules/{m}.md` (auto-list refresh) | embedded en F prep |
-| **F — MERGE** | `/pm-{brand}` | APPROVED CHECKPOINTS + Fase E docs | `07-merge.md` (5 secciones cementadas) · squash-merge `wip/* → main` · **archive story** (`git mv {brand}/docs/product/stories/{story-id}/ {brand}/docs/archive/{year}/stories/{story-id}/` en MISMO commit del 07-merge — R2 per `.claude/rules/brand-docs-schema.md`) | `reviewing → done` |
+| **E — DOCS** | `/pm-vitalia` | story + audit artifacts | `{brand}/docs/product/capabilities/{m}/{c}.yaml` (créate/update con `verification.commands` + `verification.gherkin_evidence`) · `{brand}/docs/product/modules/{m}.md` (auto-list refresh) | embedded en F prep |
+| **F — MERGE** | `/pm-vitalia` | APPROVED CHECKPOINTS + Fase E docs | `07-merge.md` (5 secciones cementadas) · squash-merge `wip/* → main` · **archive story** (`git mv {brand}/docs/product/stories/{story-id}/ {brand}/docs/archive/{year}/stories/{story-id}/` en MISMO commit del 07-merge — R2 per `.claude/rules/brand-docs-schema.md`) | `reviewing → done` |
 
-Solo después de F=done, otra story puede arrancar (en worktree nuevo si la convention "1 worktree = 1 story padre" aplica).
+Solo después de F=done, otra story del mismo módulo puede arrancar.
 
 **Cross-reference:** la acción "archive story" en Fase F está concretada como hard rule en `.claude/rules/brand-docs-schema.md` § R2. El path canónico es `{brand}/docs/archive/{year}/stories/{story-id}/` (immutable snapshot). El `git mv` debe ir en el MISMO commit que escribe `07-merge.md` — auditor escruta esto pre-merge (ver `.claude/skills/auditor/SKILL.md` § C5 + § Anti-patterns).
 
 ## Contrato `07-merge.md` (5 secciones cementadas)
 
-`/pm-{brand}` REHÚSA cerrar `reviewing → done` si `07-merge.md` no contiene las 5 secciones. Schema verbatim:
+`/pm-vitalia` REHÚSA cerrar `reviewing → done` si `07-merge.md` no contiene las 5 secciones. Schema verbatim:
 
 ```markdown
 # Merge artifact — {brand}/{story-id}
@@ -159,64 +159,46 @@ defer_audit_until: 2026-05-25                              # opcional, hint para
 
 Mientras `defer_audit: true`:
 - `/dev-team` NO auto-handoff a `/auditor` al cerrar `developed`
-- `/pm-{brand}` bootstrap PINGEA esta deuda en cada sesión (lista `deferred_audits` en `{brand}/docs/product/checkpoint.md`)
+- `/pm-vitalia` bootstrap PINGEA esta deuda en cada sesión (lista `deferred_audits` en `{brand}/docs/product/checkpoint.md`)
 - WIP cap relax: la story NO cuenta contra el cap `developed ≤ 1` (es excepción documentada)
-- Para arrancar nueva story con story-padre A con defer_audit, /pm-{brand} requiere ratify explícito Chris ("OK sigo, A queda parked manual hasta {fecha}")
+- Para arrancar nueva story con story-padre A con defer_audit, /pm-vitalia requiere ratify explícito Chris ("OK sigo, A queda parked manual hasta {fecha}")
 
 Sin `defer_audit: true` el gate es ABSOLUTO: refuse nueva story.
 
-## WIP cap post-decreto (hard rule)
+## WIP cap post-decreto (hard rule · v1 histórica — ver § WIP cap v2 module-scoped abajo)
 
 | Estado | Cap default | Razón |
 |---|---|---|
-| `developing` | ≤ 1 por worktree | Forward motion — una story padre activa por worktree |
-| `developed` | ≤ 1 por worktree | Pending audit — no acumular |
-| `reviewing` | ≤ 1 por worktree | Auditor en curso |
+| `developing` | ≤ 1 por módulo | Forward motion — una story activa por módulo |
+| `developed` | ≤ 1 por módulo | Pending audit — no acumular |
+| `reviewing` | ≤ 1 por módulo | Auditor en curso |
 | `done` | ∞ (rolling 90d archive) | Cerradas |
 
-Sub-stories del mismo outcome (estructura padre/hija) pueden compartir worktree pero pasan secuencialmente: sub-story A `done` ANTES de sub-story B arrancar.
+Sub-stories del mismo outcome (estructura padre/hija) pasan secuencialmente: sub-story A `done` ANTES de sub-story B arrancar.
 
 `defer_audit: true` documentado en checkpoint es la única excepción.
-
-## Naming convention worktree
-
-```bash
-# Convention:
-wip/{brand}-{story-padre-id}
-# Ejemplos:
-wip/vitalia-ux-discovery
-wip/nicolify-pi13-billing-overhaul
-wip/comunify-voice-cloning-rollout
-```
-
-**NO** `wip/{brand}-slice-N-shipping` ni `wip/{brand}-misc` (ambiguos — hospedaron historicamente >1 story).
-
-`scripts/git/new-session.sh` requiere `--story-id` flag y valida que la story exista en `{brand}/docs/product/stories/`. Branch derivado: `wip/{brand}-{story-id}`.
 
 ## Enforcement layers (defense-in-depth)
 
 | Layer | Mecanismo | Falla → |
 |---|---|---|
-| 1 — Skill `/pm-{brand}` bootstrap | Step 0 NEW: escanea `{brand}/docs/product/stories/*/checkpoint.md`. Si alguna state ∈ {developed, reviewing} en worktree activo Y sin defer_audit → REUSE THAT FIRST, refuse menu (a) nueva story | Mensaje claro a Chris con story-id pendiente |
-| 2 — Skill `/dev-team` Step 5 final | Auto-handoff explícito a `/auditor` con prompt verbatim cuando state=developed. Refuse pickup nuevo ticket si checkpoint worktree tiene >1 story en state ∈ {developing, developed, reviewing} sin defer_audit | STOP + emisor handoff line |
-| 3 — Skill `/auditor` Phase D + Step 5 | Phase D gherkin verification. Step 5 final auto-handoff a `/pm-{brand}` para merge con prompt verbatim cuando APPROVED | STOP + emisor handoff line |
-| 4 — Hook `scripts/git-hooks/pre-commit` Section 12 | Bloquea stage de archivos de story B si story A en mismo worktree state ∈ {developed, reviewing} sin defer_audit | Exit 1 con hint accionable |
-| 5 — `scripts/git/cleanup-session.sh` | Refuse remove worktree si ninguna story en él alcanzó state=done O todas las open tienen defer_audit ratificado | Mensaje "story X pending audit/merge, resolver antes cleanup" |
+| 1 — Skill `/pm-vitalia` bootstrap | Step 0 NEW: escanea `vitalia/docs/product/stories/*/checkpoint.md`. Si alguna state ∈ {developed, reviewing} sin defer_audit → REUSE THAT FIRST, refuse menu (a) nueva story | Mensaje claro a Chris con story-id pendiente |
+| 2 — Skill `/dev-team` Step 5 final | Auto-handoff explícito a `/auditor` con prompt verbatim cuando state=developed. Refuse pickup nuevo ticket si hay >1 story del mismo módulo en state ∈ {developing, developed, reviewing} sin defer_audit | STOP + emisor handoff line |
+| 3 — Skill `/auditor` Phase D + Step 5 | Phase D gherkin verification. Step 5 final auto-handoff a `/pm-vitalia` para merge con prompt verbatim cuando APPROVED | STOP + emisor handoff line |
+| 4 — Hook `scripts/git-hooks/pre-commit` Section 12 | Bloquea stage de archivos de story B si story A (mismo módulo) está en state ∈ {developed, reviewing} sin defer_audit | Exit 1 con hint accionable |
 | 6 — Template `06-tickets-template.yaml` | `gherkin_coverage` field documentado mandatory post-cement-date | Auditor Phase D FAIL si missing |
-| 7 — Template `07-merge-template.md` | 5 secciones cementadas (gherkin matrix · playwright · capabilities · modules · how to verify) | `/pm-{brand}` REFUSE merge si missing sections |
+| 7 — Template `07-merge-template.md` | 5 secciones cementadas (gherkin matrix · playwright · capabilities · modules · how to verify) | `/pm-vitalia` REFUSE merge si missing sections |
 
 ## Anti-patterns prohibidos
 
-- ❌ `/dev-team` cierra ticket final + state=developed + arranca otro ticket de story distinta en mismo worktree (este es el bug origen)
-- ❌ `/pm-{brand}` ofrece menú "nueva story" cuando hay story pendiente audit sin defer_audit
-- ❌ `/auditor` cierra APPROVED sin emitir handoff explícito a `/pm-{brand}` merge
-- ❌ `/pm-{brand}` transitions `reviewing → done` sin `07-merge.md` 5 secciones completas
+- ❌ `/dev-team` cierra ticket final + state=developed + arranca otro ticket de story distinta del mismo módulo (este es el bug origen)
+- ❌ `/pm-vitalia` ofrece menú "nueva story" cuando hay story pendiente audit sin defer_audit
+- ❌ `/auditor` cierra APPROVED sin emitir handoff explícito a `/pm-vitalia` merge
+- ❌ `/pm-vitalia` transitions `reviewing → done` sin `07-merge.md` 5 secciones completas
 - ❌ `06-tickets.yaml` post-cement-date sin `gherkin_coverage` field
-- ❌ Worktree branch nombrado ambiguo (`wip/vitalia-slice-1-shipping` hospedó 2 stories)
 - ❌ `defer_audit: true` en checkpoint sin razón documentada + ratificación Chris
 - ❌ `defer_audit: true` usado como atajo crónico para evitar auditar (es escape valve, no default)
 - ❌ Mergear story sin actualizar `{brand}/docs/product/capabilities/{m}/{c}.yaml` con `verification.commands`
-- ❌ `cleanup-session.sh` ejecutado en worktree con story pendiente
 
 ## Caso origen verbatim (2026-05-18 vitalia)
 
@@ -243,7 +225,7 @@ Post-decreto: el mismo escenario falla en Layer 2 (`/dev-team` refuse pickup) Y 
 
 > **★ v4 alignment (cement 2026-05-28):** `atomics` MUERTO — `scenario` es la unidad atómica de comportamiento. SSoT del schema cap: `docs/process/capability-protocol.md` + `docs/process/lifecycle.md`.
 
-`/pm-{brand}` aplica logic del `cap_change_type` (declarado en checkpoint.md de la story) al cap YAML target:
+`/pm-vitalia` aplica logic del `cap_change_type` (declarado en checkpoint.md de la story) al cap YAML target:
 
 | `cap_change_type` | Acción sobre cap YAML |
 |---|---|
@@ -275,18 +257,18 @@ Enforce: `scripts/validate_code_cap_bidirectional.py`. Pre-push hook HARD bloque
 
 Doc canónico: `docs/process/capability-protocol.md` § Sección 11 (v3.2) + § Sección 13 (bidirectional validator).
 
-## WIP cap v2 — module-scoped (cement 2026-05-28 · ADR-009)
+## WIP cap v2 — module-scoped (cement 2026-05-28)
 
-Bajo el modelo **hub único** (N sesiones / un worktree por marca), el cap es **por `code:{module}` bucket**: un build en vuelo por módulo. Stories de módulos distintos `developing` en paralelo = OK.
+El cap es **por módulo**: un build en vuelo por módulo. Stories de módulos distintos `developing` en paralelo = OK.
 
 | Estado | Cap default (v2) |
 |---|---|
-| `developing` | ≤ 1 por **`code:{module}`** (no por worktree) |
+| `developing` | ≤ 1 por **módulo** |
 | `developed` | ≤ 1 por módulo (cerrar antes de otra del mismo módulo) |
 | `reviewing` | ≤ 1 por módulo |
 | `done` | ∞ (rolling 90d) |
 
-Stories del MISMO módulo siguen secuenciales (A `done` ANTES de B del mismo módulo). `defer_audit: true` documentado es la única excepción. SSoT: `.claude/rules/parallel-safety.md` M14 + `docs/architecture/luana-platform/ADR-009-single-hub-worktree.md`.
+Stories del MISMO módulo siguen secuenciales (A `done` ANTES de B del mismo módulo). `defer_audit: true` documentado es la única excepción.
 
 ## defer_audit — schema verbatim en checkpoint.md
 
@@ -300,7 +282,7 @@ defer_audit_at: 2026-MM-DDTHH:MM:SS-05:00
 defer_audit_until: 2026-MM-DD   # opcional, hint bootstrap ping
 ```
 
-Mientras `defer_audit: true`: `/dev-team` NO auto-handoff · `/pm-{brand}` pingea deuda en bootstrap · WIP cap relax (no cuenta contra `developed ≤ 1`). Para arrancar nueva story requiere Chris ratify explícito. Sin `defer_audit: true` el gate es ABSOLUTO.
+Mientras `defer_audit: true`: `/dev-team` NO auto-handoff · `/pm-vitalia` pingea deuda en bootstrap · WIP cap relax (no cuenta contra `developed ≤ 1`). Para arrancar nueva story requiere Chris ratify explícito. Sin `defer_audit: true` el gate es ABSOLUTO.
 
 ## Referencias
 
@@ -311,7 +293,7 @@ Mientras `defer_audit: true`: `/dev-team` NO auto-handoff · `/pm-{brand}` pinge
 - `docs/specs/templates/04-tickets-template.yaml` — `gherkin_coverage` field
 - `.claude/skills/dev-team/SKILL.md` Step 5/6 — auto-handoff trigger
 - `.claude/skills/auditor/SKILL.md` Phase D + Step 5 — gherkin verification + merge handoff
-- `.claude/skills/pm-{brand}/SKILL.md` Bootstrap Step 0 — scan stories developed/reviewing
+- `.claude/skills/pm-vitalia/SKILL.md` Bootstrap Step 0 — scan stories developed/reviewing
 - `.claude/rules/brand-docs-schema.md` — R2 concreta el path archive + auto-move como hard rule (cement 2026-05-19)
 - `scripts/git-hooks/pre-commit` Section story-closure-gate — pre-commit guard
 - `scripts/git/new-session.sh` — `--story-id` required

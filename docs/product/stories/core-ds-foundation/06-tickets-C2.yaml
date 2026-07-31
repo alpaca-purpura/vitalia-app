@@ -4,7 +4,7 @@
 # Approach B1: incluye el unwind del dual-system de vitalia (T-3).
 # ENGINE BOUNDARY (T-2/T-4 tocan core/@luana): ADR-016 accepted = la ratificación · technical-story
 #   core-targeting → NO promotion proposal aparte (la story justifica el build de core).
-# Suffix -C2 (no clobbera Fase 0). Checkpoint lo maneja /pm-luana (story sigue developing).
+# Suffix -C2 (no clobbera Fase 0). Checkpoint lo maneja /pm-vitalia (story sigue developing).
 
 story_id: core-ds-foundation
 tramo: C2-SPINE

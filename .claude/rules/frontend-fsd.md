@@ -10,10 +10,10 @@ description: Frontend FSD-Lite (per-brand)
 
 > **Tier-2 `paths:` (W1-Phase2 2026-06-09 · tier: project).** Esta rule NO carga always-on — inyecta al leer un archivo que matchea `paths:` (test empírico #16299 OK — `harness-refactor-w1/W1-phase2-execution.md §3`; el viejo `globs:` era mecanismo MUERTO, CC lo ignora). Caveat #23478: no dispara en write puro de archivo nuevo — el gate mecánico (eslint/tsc/ruff/arch-tests) cubre ese hueco.
 
-Cada brand tiene su propio `{brand}/frontend/` independiente (nicolify, vitalia, comunify, lupulo).
+`vitalia/frontend/` sigue FSD-Lite.
 
 ```
-{brand}/frontend/src/
+vitalia/frontend/src/
   app/                 # Next.js App Router (thin)
   components/{ui,shared}/
   features/{domain}/   # api/, components/, hooks/, config/, context/, types/, utils/
@@ -21,7 +21,7 @@ Cada brand tiene su propio `{brand}/frontend/` independiente (nicolify, vitalia,
   hooks/               # Global hooks
 ```
 
-Shared TS packages cross-brand viven en `core/luana-core-*/` (TS) y se consumen vía `@luana/*` imports (registrados en `pnpm-workspace.yaml`).
+Shared TS packages del engine viven en `core/luana-core-*/` (TS) y se consumen vía `@luana/*` imports (registrados en `pnpm-workspace.yaml`).
 
 ## Boundary matrix (`boundaries/dependencies: error`, 0 violations)
 
@@ -41,15 +41,14 @@ Excepciones: `feature:own` → `feature` (sub-components context). `shared` → 
 - No `any` (`unknown` + type guards). No default exports (excepto Next pages).
 - `fetchClient` auto-inyecta `X-Tenant-ID`.
 
-## Cross-feature / cross-brand imports
-- Cross-feature dentro del mismo brand: Forbidden default. Excepción: `copilot` (infra-like). Shared → `components/shared/` o `lib/`.
-- Cross-brand: absolutamente prohibido (`vitalia/frontend/` NUNCA importa `nicolify/frontend/`). Compartir via `@luana/*` engine packages.
+## Cross-feature imports
+- Cross-feature: Forbidden default. Excepción: `copilot` (infra-like). Shared → `components/shared/` o `lib/`.
+- Lógica compartible con el engine → `@luana/*` engine packages (NUNCA duplicar en features).
 
 ## Studio section pages
-Patrón lazy-loading per-section (brand-studio, offer-studio, futuros) per brand. Detalle + arch tests + factory pattern → `frontend-expert` skill (`references/studio-section-pages.md`).
+Patrón lazy-loading per-section (brand-studio, offer-studio, futuros). Detalle + arch tests + factory pattern → `frontend-expert` skill (`references/studio-section-pages.md`).
 
-## Multibrand awareness (post reorg 2026-05-15)
+## Engine awareness
 
-- Engine TS packages (`@luana/*` exportados desde `core/luana-core-*/`) modificación requiere `/pm-luana` promotion gate.
-- Cada brand tiene su `next.config.ts`, `tailwind.config.ts`, `tsconfig.json` independiente.
-- Brands futuras (saasora, inmoflow, retailly, fixia, guestly, fitflow) heredan este FSD-Lite al bootstrap.
+- Engine TS packages (`@luana/*` exportados desde `core/luana-core-*/`) — modificar sigue el flujo engine de `/pm-vitalia` (cambio directo en `core/` con arch tests como gate).
+- `vitalia/frontend/` tiene su `next.config.ts`, `tailwind.config.ts`, `tsconfig.json` propios.

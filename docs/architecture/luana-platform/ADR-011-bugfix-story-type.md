@@ -1,6 +1,6 @@
 # ADR-011 — Story type `bugfix` (lightweight)
 
-**Status:** accepted · **Date:** 2026-05-30 · **Decider:** Chris (ratificado) · **Scope:** platform-wide (cross-brand) · **Owner del cambio:** `/pm-luana`
+**Status:** accepted · **Date:** 2026-05-30 · **Decider:** Chris (ratificado) · **Scope:** platform-wide (cross-brand) · **Owner del cambio:** `/pm-vitalia`
 
 ## Contexto
 

@@ -63,7 +63,7 @@ ratified_decisions:
   - "Picks canónicos confirmados: N3 nicolify-EWL · autosave vitalia (600ms+coalesce+indicador flotante) · átomos @luana/ui-kit merge · EntityInfoCard B sobre StaffCard"
   - "Mecanismo durable = /showcase route en la app real (R-FID por construcción)"
 
-next_action: "/pm-luana — cementar picks canónicos en inventario/ADR + construir ENFORCEMENT mecánico (templates + scripts + skill bindings) que /po-ux (mockups) y /dev-team (build) DEBEN respetar, de una vez por todas + reforzar /harnesses-improvement"
+next_action: "/pm-vitalia — cementar picks canónicos en inventario/ADR + construir ENFORCEMENT mecánico (templates + scripts + skill bindings) que /po-ux (mockups) y /dev-team (build) DEBEN respetar, de una vez por todas + reforzar /harnesses-improvement"
 
 chris_verify:
   required: true   # es user-reachable (Chris lo abre y ratifica)

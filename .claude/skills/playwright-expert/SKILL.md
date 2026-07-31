@@ -125,7 +125,7 @@ bash $(git rev-parse --show-toplevel)/scripts/e2e-preflight.sh
 **Always set `E2E_BASE_URL`** if you don't want Playwright to spawn its own `next dev`:
 
 ```bash
-E2E_BASE_URL=http://localhost:300X npx playwright test --project=smoke  # X = brand port (nicolify=1, vitalia=2, comunify=3, lupulo=4)
+E2E_BASE_URL=http://localhost:3002 npx playwright test --project=smoke  # vitalia=3002
 ```
 
 The `playwright.config.ts` will SKIP its `webServer` block when `E2E_BASE_URL` is set — this is what you want when the dev container is already running.

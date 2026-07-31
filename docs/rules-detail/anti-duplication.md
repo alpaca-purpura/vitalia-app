@@ -28,7 +28,7 @@ Patrón canónico vive en `core/luana-core-*/` packages. Brands consumen via Pyt
 | Domain events | `core/luana-core-events/src/luana_core_events/` | todos cross-module |
 | Cross-module ports | `core/luana-core-platform/src/luana_core_platform/links/ports/` | todos cross-domain |
 
-**Shrink-only:** registro NO duplica per-módulo ni per-brand. Patrón nuevo cross-agent → lift a core package primer commit (vía `/pm-luana` promotion gate, ver `docs/promotion-protocol/README.md`).
+**Shrink-only:** registro NO duplica per-módulo. Patrón nuevo cross-agent → lift a core package primer commit (flujo engine `/pm-vitalia`: cambio directo en `core/` + arch tests).
 
 ## Anti-patterns concretos (ejemplos stack-specific de la doctrina)
 

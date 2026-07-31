@@ -4,7 +4,7 @@
 
 Per .claude/rules/anti-duplication.md (cross-brand mirror scan) — these tools
 are vitalia-specific brand extensions. If a sibling tool pattern emerges in
-{nicolify, comunify, lupulo} → lift to engine via /pm-luana proposal first
+{nicolify, comunify, lupulo} → lift to engine via /pm-vitalia proposal first
 (NEVER mirror cross-brand).
 
 Tool inventory:

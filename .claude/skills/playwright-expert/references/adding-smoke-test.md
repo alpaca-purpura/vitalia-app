@@ -2,7 +2,7 @@
 
 > **Read when:** the user says "agreguemos un smoke", "necesito test E2E para X", "smoke de la nueva ruta", "test integral de Y", or any new UI page lands on `wip/{brand}`.
 >
-> **Nota multi-brand:** este doc es brand-agnostic. Reemplazá `{brand}` por la marca activa (vitalia/nicolify/comunify/lupulo) y `300X` por su puerto FE (vitalia=3002, nicolify=3001, comunify=3003, lupulo=3004) en todos los paths y URLs. Ver rule #37 para la tabla completa de puertos y URLs `dev-app.{brand}lat.com`.
+> **Nota:** en este repo la marca es vitalia — reemplazá `{brand}` por `vitalia` y `300X` por `3002` en todos los paths y URLs. Ver rule #37 para la infra dev-app (`dev-app.vitalialat.com`).
 
 This is the most common task this skill is invoked for. Follow the steps in order. Do not skip the preflight or the dry-run; they catch 80% of mistakes before they hit CI.
 
@@ -11,7 +11,7 @@ This is the most common task this skill is invoked for. Follow the steps in orde
 ## Pre-conditions
 
 Before starting:
-- [ ] The page/feature you want to test exists in `{brand}/frontend/src/app/**` and renders successfully under `dev-app.{brand}lat.com` or `localhost:300X` (vitalia=3002, nicolify=3001, comunify=3003, lupulo=3004). Ver rule #37 para infra dev-app por marca.
+- [ ] The page/feature you want to test exists in `{brand}/frontend/src/app/**` and renders successfully under `dev-app.vitalialat.com` or `localhost:3002`. Ver rule #37 para infra dev-app.
 - [ ] You can manually navigate to the URL in a browser (you know the route works).
 - [ ] You can describe in one sentence what the test asserts. ("The page renders with the expected H1 and the primary CTA is clickable.")
 - [ ] Dev container is running (`make dev-{brand}` or `docker compose ps` shows `luana-dev-{brand}_frontend_dev-1` healthy).
@@ -165,7 +165,7 @@ E2E_BASE_URL=http://localhost:300X npx playwright test \
   --project=smoke --headed
 ```
 
-Reemplazá `300X` por el puerto de la marca: vitalia=3002, nicolify=3001, comunify=3003, lupulo=3004.
+Reemplazá `300X` por el puerto de la marca: vitalia=3002.
 
 Watch:
 - Does the browser navigate to the right URL?
@@ -201,7 +201,7 @@ If your test passes in isolation but fails in parallel:
 
 ## Step 7 — Commit, push, watch CI
 
-Stage and commit ONLY your new files (per `parallel-safety.md`). Usá rutas por pathspec exacto; NUNCA `git add .`:
+Stage and commit ONLY your new files (per `git-safety.md`). Usá rutas por pathspec exacto; NUNCA `git add .`:
 
 ```bash
 git add {brand}/frontend/e2e/specs/smoke/<feature-name>.smoke.spec.ts

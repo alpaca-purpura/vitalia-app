@@ -276,7 +276,7 @@ Cuando builder spawnea auditor o auditor agent paused/killed → resume flagship
 
 ## Cuándo invocar este checklist
 
-- ✅ `nicolify-frontend` builder Phase 1 implement (mientras escribe código)
-- ✅ `nicolify-frontend` builder Phase 2 antes spawn auditor
-- ✅ `nicolify-frontend-auditor` Phase audit antes producir REVIEW.md
+- ✅ `builder-frontend` Phase 1 implement (mientras escribe código)
+- ✅ `builder-frontend` Phase 2 antes spawn auditor
+- ✅ `auditor-frontend` Phase audit antes producir REVIEW.md
 - ✅ Bug fix FE (un check rápido pre-commit)

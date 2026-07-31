@@ -158,8 +158,8 @@ Clerk instance: `moral-gator-27.clerk.accounts.dev` (test).
 
 ## § Bloque E — Core promotion lift (paralelo a D)
 
-- [ ] **E.1** — `/pm-vitalia` ping `/pm-luana` con draft `PROPOSAL-DRAFT-core-platform-extensions-slice-1.md`.
-- [ ] **E.2** — `/pm-luana` crea proposal real en `docs/promotion-protocol/proposals/2026-05-20-core-platform-extensions-slice-1.md`.
+- [ ] **E.1** — `/pm-vitalia` ping `/pm-vitalia` con draft `PROPOSAL-DRAFT-core-platform-extensions-slice-1.md`.
+- [ ] **E.2** — `/pm-vitalia` crea proposal real en `docs/promotion-protocol/proposals/2026-05-20-core-platform-extensions-slice-1.md`.
 - [ ] **E.3** — Engine implementation:
   - `core/luana-core-platform/src/luana_core_platform/workers/cron_envelope.py` + tests
   - `core/luana-core-platform/src/luana_core_platform/repositories/compound_scope_repository.py` + tests

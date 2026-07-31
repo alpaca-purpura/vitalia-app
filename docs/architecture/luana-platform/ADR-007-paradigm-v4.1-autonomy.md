@@ -36,7 +36,7 @@ Cementar **paradigm v4.1** que amplifica autonomy post-refinamiento Chris (`stat
 | Whitelist verbatim (17 categorías triviales) | Auditor self-fix | 4 iter |
 | TDD requerido (nuevo test RED→GREEN) | Spawn dev-team autónomo | dev-team interno 5 iter |
 | Refactor 2+ archivos o lógica de negocio | Spawn dev-team autónomo | idem |
-| Security / arch drift / cross-brand / engine | ESCALATE Chris o /pm-luana | n/a (manual) |
+| Security / arch drift / cross-brand / engine | ESCALATE Chris o /pm-vitalia | n/a (manual) |
 
 Auditor NUNCA escribe tests (preserva TDD discipline dev-team).
 

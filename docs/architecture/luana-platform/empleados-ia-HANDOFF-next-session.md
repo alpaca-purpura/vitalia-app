@@ -48,7 +48,7 @@
 
 ## 6. Items abiertos (no perder)
 
-- **Gap de proceso:** el roadmap de un **programa platform multi-story cross-brand** no tiene contenedor canónico (los `outcome` se deprecaron en la consolidación 4-ejes 2026-05-28, que es brand-scoped). Hoy el outcome cumple ese rol de facto. **Pendiente `/pm-luana`:** definir el hogar real (¿revivir outcome solo a nivel platform? ¿`program.md`? ¿sección del ADR?). NO bloquea la retoma.
+- **Gap de proceso:** el roadmap de un **programa platform multi-story cross-brand** no tiene contenedor canónico (los `outcome` se deprecaron en la consolidación 4-ejes 2026-05-28, que es brand-scoped). Hoy el outcome cumple ese rol de facto. **Pendiente `/pm-vitalia`:** definir el hogar real (¿revivir outcome solo a nivel platform? ¿`program.md`? ¿sección del ADR?). NO bloquea la retoma.
 - **Validators SSoT a corregir** (anotados en el `REVIEW-agentic.md` archivado): `v_downstream_comunify` cita `tests/modules/comunify/copilot/` (no existe) → real `tests/agentic_evals/workflows/`; `v_replay_safety -k` debe targetear el file (la colección whole-tree tiene errores pre-existentes).
 - **Backlog propio de Vitalia** (independiente de empleados-IA, del MEMORY): story B `vitalia-fase2-lisa-doctores` (developing, desbloqueada), C (push squash a main: ci-parity Dockerfile + migración 021 BYTEA), D (mirror nicolify `/pm-luana`).
 - **Pre-existente fuera de scope** (no tocar salvo story dedicada): `vitalia tests/unit/test_extensions_register_all.py::test_ep8_channel_adapters_count_three` (stale 3-vs-10, en HEAD).

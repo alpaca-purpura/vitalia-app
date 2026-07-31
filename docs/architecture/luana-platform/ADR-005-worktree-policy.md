@@ -8,7 +8,7 @@
 > **Builds on:** [ADR-004](./ADR-004-git-branching-and-environments.md) (triple-branch policy + worktrees revocó ban legacy)
 > **Related docs:**
 >
-> - `docs/process/parallel-sessions-protocol.md` — SSoT detallado del modelo (D1-D14)
+> - `docs/archive/2026/multibrand-legacy/process/parallel-sessions-protocol.md` — SSoT detallado del modelo (D1-D14)
 > - `.claude/rules/parallel-safety.md` — runtime rules sincronizadas con D1-D14
 > - `.claude/rules/step-0-worktree.md` — step 0 obligatorio skills `/pm-{brand}` y `/pm-luana`
 > - `scripts/git/new-session.sh` — creación worktree (mec. B)
@@ -47,7 +47,7 @@ una brand. Sin codificación explícita:
 
 ## 2. Decision
 
-Adoptar el modelo cementado en `docs/process/parallel-sessions-protocol.md` D1-D14. Resumen:
+Adoptar el modelo cementado en `docs/archive/2026/multibrand-legacy/process/parallel-sessions-protocol.md` D1-D14. Resumen:
 
 ### 2.1 Topología (D2)
 
@@ -197,8 +197,8 @@ Caso vitalia 2026-05-18 reveló 4 gaps del modelo v1:
 
 | Componente | Cambio | Path |
 |---|---|---|
-| Protocol doc | Update D2/D3/D4 + revision header v2 | `docs/process/parallel-sessions-protocol.md` |
-| Plan doc | Resumen ejecutivo 12 puntos | `docs/process/worktree-protocol-v2-plan.md` |
+| Protocol doc | Update D2/D3/D4 + revision header v2 | `docs/archive/2026/multibrand-legacy/process/parallel-sessions-protocol.md` |
+| Plan doc | Resumen ejecutivo 12 puntos | `docs/archive/2026/multibrand-legacy/process/worktree-protocol-v2-plan.md` |
 | Runtime rule | M12/M13/M14 NEW + sub-agent ban + N sesiones | `.claude/rules/parallel-safety.md` |
 | Hook scope gate | Section 13 NEW | `scripts/git-hooks/pre-commit` |
 | Sync script | NEW | `scripts/git/sync-from-main.sh` |

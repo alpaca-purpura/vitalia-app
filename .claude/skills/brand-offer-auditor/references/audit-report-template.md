@@ -41,7 +41,7 @@ Cada finding usa este bloque. Severidad: **CRITICAL** = el sales_agent queda cie
 - **Evidencia:** {qué se observó — cita el campo/prompt/label real}
 - **Por qué importa (SDR test):** {"si el SDR solo tuviera este campo, ¿podría cerrar?"}
 - **Recomendación (ejecutable):** EXTEND {campo existente} | FIX {prompt/label} | UNIFY {campos duplicados} — NUNCA "add new field" si uno existente ya cubre el concepto (Key Principle: one concept, one field).
-- **Owner sugerido:** /pm-luana (engine: core/luana-core-{brand,offer}-studio) | /pm-{brand} (brand extension EP-N)
+- **Owner sugerido:** /pm-vitalia (engine: core/luana-core-{brand,offer}-studio) | /pm-vitalia (brand extension EP-N)
 ```
 
 ## Cobertura por framework
@@ -62,7 +62,7 @@ Orden CRITICAL → HIGH → MEDIUM. Cada ítem mapea a un finding de arriba y de
 
 - No agregar campos redundantes (verificar overlap map § 11 antes de proponer "new field").
 - No auditar un offer-type simple contra el framework completo (match framework depth to offer complexity).
-- No tocar `core/luana-core-*` directo — cambios de engine van por `/pm-luana` promotion gate.
+- No tocar `core/luana-core-*` directo — cambios de engine van por `/pm-vitalia` flujo engine.
 
 ---
 

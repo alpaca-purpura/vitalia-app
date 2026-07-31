@@ -15,23 +15,12 @@ set -uo pipefail
 
 WS="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 
-BRAND="${1:-}"
-if [[ -z "${BRAND}" ]]; then
-  case "$(basename "${WS}")" in
-    luana-nicolify*) BRAND="nicolify" ;;
-    luana-vitalia*)  BRAND="vitalia"  ;;
-    luana-comunify*) BRAND="comunify" ;;
-    luana-lupulo*)   BRAND="lupulo"   ;;
-    *) echo "✗ No pude inferir la marca. Usá: scripts/e2e-preflight.sh <brand>" >&2; exit 2 ;;
-  esac
-fi
+# Single-brand standalone: default = vitalia
+BRAND="${1:-vitalia}"
 
 case "${BRAND}" in
-  nicolify) BE_PORT=8001; FE_PORT=3001 ;;
   vitalia)  BE_PORT=8002; FE_PORT=3002 ;;
-  comunify) BE_PORT=8003; FE_PORT=3003 ;;
-  lupulo)   BE_PORT=8004; FE_PORT=3004 ;;
-  *) echo "✗ Marca desconocida: ${BRAND}" >&2; exit 2 ;;
+  *) echo "✗ Marca desconocida: ${BRAND} (single-brand: vitalia)" >&2; exit 2 ;;
 esac
 
 echo "── e2e-preflight :: ${BRAND} ──────────────────────────────────────────"

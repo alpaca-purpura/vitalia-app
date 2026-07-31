@@ -34,8 +34,8 @@ WS = Path(__file__).resolve().parent.parent
 CONFIG = WS / "project.config.yaml"
 VALID_ALIASES = {"fable", "opus", "sonnet", "haiku"}
 
-AGENT_DIRS = [".claude/agents", ".claude-shared/agents", "core-harness/agents"]
-SKILL_DIRS = [".claude/skills", ".claude-shared/skills"]
+AGENT_DIRS = [".claude/agents"]
+SKILL_DIRS = [".claude/skills"]
 
 FRONTMATTER_RE = re.compile(r"\A---\n(.*?\n)---\n", re.DOTALL)
 MODEL_LINE_RE = re.compile(r"^model:\s*(\S+)\s*$", re.MULTILINE)

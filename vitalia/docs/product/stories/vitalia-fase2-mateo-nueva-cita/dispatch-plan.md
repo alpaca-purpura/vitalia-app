@@ -8,11 +8,11 @@
 autonomous_mode: false        # default — Chris opt-in al ratificar
 ```
 
-**Por qué false (HARD):** story funcional con writes PHI reales (citas + pacientes), constraint DB nuevo (anti-doble-booking), reconciliación de enum (origin), engine-boundary (EXCLUDE), y soft-dep de 4 atoms del canon que pasan por `/pm-luana`. Live-verify obligatoria (Rule #37) + demo Chris en G. NO es safe para autonomous end-to-end. El architect propone; Chris ratifica si quiere relajar.
+**Por qué false (HARD):** story funcional con writes PHI reales (citas + pacientes), constraint DB nuevo (anti-doble-booking), reconciliación de enum (origin), engine-boundary (EXCLUDE), y soft-dep de 4 atoms del canon que pasan por `/pm-vitalia`. Live-verify obligatoria (Rule #37) + demo Chris en G. NO es safe para autonomous end-to-end. El architect propone; Chris ratifica si quiere relajar.
 
-## Precursora P-0 (NO builder · /pm-luana)
+## Precursora P-0 (NO builder · /pm-vitalia)
 
-`/pm-luana` promotion proposal de los 4 atoms del canon → `@luana/ui-kit`:
+`/pm-vitalia` promotion proposal de los 4 atoms del canon → `@luana/ui-kit`:
 - `FormActionBar` · `Badge variant=success|warning` · `PageHeader back-pill` · `EntityPicker.createAction`
 - Contrato: `mockups/PROPOSED-CANON-ATOMS.md`
 - Proposal a crear: `docs/promotion-protocol/proposals/2026-06-22-ui-kit-nueva-cita-atoms.md`
@@ -23,7 +23,7 @@ autonomous_mode: false        # default — Chris opt-in al ratificar
 
 | Ticket | Surface | primary_agent | model | costo rel. | depende |
 |---|---|---|---|---|---|
-| P-0 | promote | `/pm-luana` | coordinator | bajo | — |
+| P-0 | promote | `/pm-vitalia` | coordinator | bajo | — |
 | T-BE-1 | offer DTO | builder-backend | workhorse | bajo | — |
 | T-BE-2 | migration EXCLUDE | builder-backend | workhorse | medio | — |
 | T-BE-3 | availability endpoints | builder-backend | workhorse | alto | T-BE-2 |
@@ -40,7 +40,7 @@ Auditores: `auditor-backend` (BE tickets), `auditor-frontend` (FE tickets) — f
 
 ```
                        ┌─ T-BE-1 ─────────────────────┐
-P-0 (/pm-luana) ╌╌soft╌┤                               ├─ T-FE-1 ─┬─ T-FE-2 ─┐
+P-0 (/pm-vitalia) ╌╌soft╌┤                               ├─ T-FE-1 ─┬─ T-FE-2 ─┐
                        ├─ T-BE-2 ─→ T-BE-3 ─→ T-BE-4 ──┤          ├─ T-FE-3 ─┼─→ T-FE-4
                        └─ T-BE-5 ─────────────────────┘          └──────────┘
 ```
@@ -71,7 +71,7 @@ Single-hub (ADR-009): bucket `code:scheduling` + `code:crm` + `code:mateo` — p
 
 ## Soft-dep de los 4 atoms del canon (recordatorio)
 
-Los tickets FE consumen `FormActionBar`, `Badge variant=success|warning`, `PageHeader back-pill`, `EntityPicker.createAction` desde `@luana/ui-kit`. Si P-0 no se completó, el builder-frontend NO los re-implementa local (driftea → auditor CHANGES_REQUESTED). Escalar a `/pm-luana` si el kit no los tiene al arrancar el FE.
+Los tickets FE consumen `FormActionBar`, `Badge variant=success|warning`, `PageHeader back-pill`, `EntityPicker.createAction` desde `@luana/ui-kit`. Si P-0 no se completó, el builder-frontend NO los re-implementa local (driftea → auditor CHANGES_REQUESTED). Escalar a `/pm-vitalia` si el kit no los tiene al arrancar el FE.
 
 ---
 
@@ -111,7 +111,7 @@ T-D2 (FE Fecha/Hora) ───┘
 
 ### Engine boundary (delta)
 
-- **DatePicker (date-only)** = PROMOTE a `core/@luana/ui-kit/src/DatePicker.tsx` + story — **deliverable de T-D2**, el ÚNICO core edit permitido (canon §5: net-new shared = al kit, no local). NO precursora `/pm-luana` separada.
+- **DatePicker (date-only)** = PROMOTE a `core/@luana/ui-kit/src/DatePicker.tsx` + story — **deliverable de T-D2**, el ÚNICO core edit permitido (canon §5: net-new shared = al kit, no local). NO precursora `/pm-vitalia` separada.
 - `TimePicker` ya en el kit (reuse). `DayAvailabilityStrip` = componente feature vitalia (extend in-feature; lift-candidate core NO ahora).
 - BE: todo brand-local (`vitalia/backend/src/modules/vitalia/scheduling/` + `offer_service_specialist_links`). **CERO** edit a `core/luana-core-*/src`.
 

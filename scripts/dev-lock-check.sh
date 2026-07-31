@@ -24,7 +24,7 @@ set -euo pipefail
 # Escape: FORCE_REBIND=1 make dev-{brand}   (rebindea ambos servicios a este worktree)
 # Fail-OPEN si docker no está disponible.
 
-BRANDS="nicolify vitalia comunify lupulo"
+BRANDS="vitalia"
 
 _mount_src() {  # echo el worktree root que el BACKEND bindea en /workspace ('' si no hay stack)
   docker inspect "luana-dev-${1}_backend_dev-1" \
@@ -84,9 +84,9 @@ if [[ "${1:-}" == "--which" ]]; then
     be_d="${be:-(no stack)}"; fe_d="${fe:-(no stack)}"
     note=""
     if [[ "$(_decide_pair "${be}" "${fe}")" == "MIXED" ]]; then
-      note="⚠ MIXTO — FE y BE sirven worktrees DISTINTOS (HB-87)"
-    elif [[ -n "${be}" && "$(basename "${be}")" != "luana-${b}" ]]; then
-      note="⚠ no es el hub (luana-${b})"
+      note="⚠ MIXTO — FE y BE sirven directorios DISTINTOS (HB-87)"
+    elif [[ -n "${be}" && "${be}" != "${current}" ]]; then
+      note="⚠ no es este repo (${current})"
     fi
     printf '%-10s %-42s %-42s %s\n' "${b}" "${be_d}" "${fe_d}" "${note}"
   done

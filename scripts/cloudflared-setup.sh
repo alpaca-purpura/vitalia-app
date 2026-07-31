@@ -7,7 +7,7 @@ set -uo pipefail
 # SSoT: .claude/rules/definition-of-done-live-verify.md § "Provisión del túnel"
 #
 # Usage:
-#   scripts/cloudflared-setup.sh <vitalia|nicolify|comunify|lupulo> [--recreate]
+#   scripts/cloudflared-setup.sh vitalia [--recreate]
 #
 # ✅ NO-INTERACTIVO — usa un API token de cuenta (cfat_) en lugar de login browser.
 #    NO requiere el binario cloudflared en el host (el container docker corre el túnel).
@@ -30,7 +30,7 @@ set -uo pipefail
 #   --recreate: borra el tunnel existente y crea uno nuevo (DESTRUCTIVO, explícito).
 
 WS="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
-BRAND="${1:?Usage: cloudflared-setup.sh <vitalia|nicolify|comunify|lupulo> [--recreate]}"
+BRAND="${1:?Usage: cloudflared-setup.sh vitalia [--recreate]}"
 RECREATE=0; [[ "${2:-}" == "--recreate" ]] && RECREATE=1
 
 CF_DIR="${WS}/${BRAND}/deploy/cloudflared"

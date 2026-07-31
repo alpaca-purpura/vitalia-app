@@ -11,7 +11,7 @@
 #
 # Regex captura cualquier Python en workspace member backend o core:
 #   - backend/                  (legacy single-target, mantenido por backcompat)
-#   - {brand}/backend/          (vitalia, nicolify, comunify, lupulo, + futuras)
+#   - {brand}/backend/          (vitalia)
 #   - core/luana-core-{pkg}/    (26 packages engine compartido)
 #
 # Venv canónico: ${REPO_ROOT}/.venv/bin/ruff (uv workspace root, instala TODOS

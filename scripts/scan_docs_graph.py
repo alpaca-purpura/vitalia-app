@@ -40,7 +40,7 @@ from scan_harness_pointers import WS as DEFAULT_WS  # noqa: E402 — reuse, no d
 
 # Superficies vivas (dirs rglob + files sueltos). git-hooks viven dentro de
 # scripts/ y core-harness/hooks/ — cubiertos por los dirs.
-SURFACE_DIRS = (".claude", "core-harness", "scripts", "tools/luana-cockpit/src")
+SURFACE_DIRS = (".claude", "scripts", "tools/cockpit/ui/app")
 SURFACE_FILES = ("Makefile", "CLAUDE.md", "AGENTS.md", "project.config.yaml")
 SURFACE_EXTS = {".md", ".py", ".sh", ".js", ".mjs", ".ts", ".tsx", ".yaml", ".yml", ".json", ".toml"}
 SKIP_DIR_NAMES = {"__pycache__", "node_modules", ".venv", ".next", "dist", ".git"}
@@ -252,9 +252,7 @@ def classify_docs(ws: Path, graph: Graph) -> dict[str, str]:
     classes: dict[str, str] = {}
     for rel, info in graph.docs.items():
         base = posixpath.basename(rel)
-        if rel.startswith("docs/rules-detail/") and (
-            (ws / ".claude/rules" / base).exists() or (ws / "core-harness/rules" / base).exists()
-        ):
+        if rel.startswith("docs/rules-detail/") and (ws / ".claude/rules" / base).exists():
             classes[rel] = "detail-pareado"  # rule viva ⇒ detail vivo, sin excepción
         elif PROGRAM_RECORD_RE.search(rel):
             classes[rel] = "program-record"

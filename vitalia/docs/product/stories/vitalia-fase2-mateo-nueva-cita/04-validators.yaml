@@ -181,7 +181,7 @@ playwright_visual_scope:
 # ── Engine boundary / promotion gate (4 atoms PROMOTE) ───────────────────────
 promotion_dependency:
   proposal: "docs/promotion-protocol/proposals/2026-06-22-ui-kit-nueva-cita-atoms.md"
-  gate: "/pm-luana"
+  gate: "/pm-vitalia"
   atoms: [FormActionBar, "Badge variant=success|warning", "PageHeader back-pill", "EntityPicker.createAction"]
   contract: "mockups/PROPOSED-CANON-ATOMS.md"
   soft_dep: true
@@ -298,5 +298,5 @@ delta_availability:
   # ── Engine boundary (delta) ─────────────────────────────────────────────────
   promotion_dependency:
     atom: "DatePicker (date-only · Calendar+Popover wrapper)"
-    gate: "deliverable de T-D2 (FE) — se crea en core/@luana/ui-kit/src/DatePicker.tsx + story ANTES del merge (canon §5). NO precursora /pm-luana separada."
+    gate: "deliverable de T-D2 (FE) — se crea en core/@luana/ui-kit/src/DatePicker.tsx + story ANTES del merge (canon §5). NO precursora /pm-vitalia separada."
     note: "Net-new shared = PROMOTE al kit, NUNCA re-implementación local-y-olvidada. TimePicker ya existe (reuse)."

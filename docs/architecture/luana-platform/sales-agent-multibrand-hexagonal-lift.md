@@ -1,6 +1,6 @@
 # Sales-Agent Multibrand — Hexagonal Lift (architecture + staged plan)
 
-> **Status:** design ratification pending (Chris). **Owner:** /pm-luana (engine). **Origin:** the
+> **Status:** design ratification pending (Chris). **Owner:** /pm-vitalia (engine). **Origin:** the
 > `vitalia-fase2-adrian-canal-inbound` G live-verify (2026-06-22) — first time the sales_agent graph
 > ran inside a brand process. It crashed on a cascade of walls (ESC-4..16). This doc is the deep
 > architectural review Chris requested before doing the lift properly (real migrations + dep fixes +

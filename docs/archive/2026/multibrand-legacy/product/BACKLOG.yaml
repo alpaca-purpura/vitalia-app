@@ -1,0 +1,166 @@
+# docs/product/BACKLOG.yaml — auto-generated SSoT machine-readable
+# DO NOT EDIT MANUALLY — modify source artifacts instead.
+# Regenerate: python scripts/generate_backlog.py
+# Generated at: 2026-05-20T01:36:31+00:00
+
+generated_at: '2026-05-20T01:36:31+00:00'
+brand: platform
+caps:
+  refining_max: 3
+  refined_max: 5
+  ready_max: 5
+  developing_max: 3
+  developed_max: 10
+  reviewing_max: 2
+  idea_stale_days: 90
+  refining_stale_days: 60
+  refined_stale_days: 30
+  done_rolling_days: 90
+warnings: []
+stale_ideas: []
+stale_refining: []
+stale_refined: []
+buckets:
+  idea: []
+  refining:
+  - id: admin-iam-adoption-platform
+    kind: outcome
+    state: refining
+    title: admin-iam-adoption-platform
+    tags: []
+    last_touched: 2026-05-19
+    extra:
+      story_ids: []
+      why_now: 'Vitalia auth-base-functional cerró state=done sin que admin Streamlit fuese realmente
+
+        ejercitado durante validators. Smoke post-merge reveló que admin tenants.py + users.py
+
+        hacen SQL a tablas phantom (vitalia_clinics, vitalia_user_profiles, vitalia_tenants)
+
+        que NO existen en ninguna migration vitalia. Causa raíz: vitalia reinventó el modelo
+
+        IAM en lugar de consumir luana-core-iam que YA existe (44 .py + 14 tests, modelos
+
+        User/Tenant/UserTenant completos + Clerk JWT verification + webhook sync + repos).
+
+        Sin fix: (a) admin no funciona, (b) violación anti-duplication rule, (c) cuando vengan
+
+        los 6 brands futuros (saasora/inmoflow/retailly/fixia/guestly/fitflow) hay riesgo
+
+        alto de repetir el error si no documentamos el patrón canónico ahora.
+
+        '
+      why_next: null
+      target_end: null
+      priority: HIGH
+      success_metrics: []
+  - id: cicd-multibrand-deploy
+    kind: outcome
+    state: refining
+    title: cicd-multibrand-deploy
+    tags: []
+    last_touched: 2026-05-15
+    extra:
+      story_ids: []
+      why_now: '3 brands shipped (nicolify, vitalia, comunify) con K8s manifests pero kubectl apply manual.
+
+        Sin workflow declarativo el deploy es propenso a error humano + no escala a 10 brands.
+
+        '
+      why_next: null
+      target_end: null
+      priority: HIGH
+      success_metrics: []
+  - id: dev-stack-cross-brand-fixes
+    kind: outcome
+    state: refining
+    title: dev-stack-cross-brand-fixes
+    tags: []
+    last_touched: 2026-05-16
+    extra:
+      story_ids: []
+      why_now: 'Tras configurar Clerk en las 3 brands activas (vitalia/nicolify/comunify) el 2026-05-16,
+
+        descubiertos 4 bugs cross-brand en el dev compose multibrand bootstrap S-DOCKER-DEV-MULTIBRAND.
+
+        2 ya fixed inline ese día (volume path + memory limit nicolify), 2 quedan abiertos
+
+        (uvicorn gap cross-brand + Dockerfile FE COPY core/@luana incompleto). Sin estos fixes,
+
+        no se puede llegar más allá del login Clerk en stack dev — backend autenticado falla.
+
+        Bloquea testing end-to-end de flows que pegan a backend.
+
+        '
+      why_next: null
+      target_end: null
+      priority: HIGH
+      success_metrics: []
+  - id: docker-dev-multibrand
+    kind: outcome
+    state: refining
+    title: docker-dev-multibrand
+    tags: []
+    last_touched: 2026-05-15
+    extra:
+      story_ids: []
+      why_now: 'docker-compose.dev.yml actual es legacy single-brand nicolify (solo postgres, sin redis/qdrant
+
+        ni multibrand). Imposible probar vitalia/comunify/lupulo en local de forma reproducible.
+
+        Bloquea Tema 1 (CI/CD necesita Dockerfiles consistentes para build images).
+
+        '
+      why_next: null
+      target_end: null
+      priority: HIGH
+      success_metrics: []
+  - id: git-strategy-revised
+    kind: outcome
+    state: refining
+    title: git-strategy-revised
+    tags: []
+    last_touched: 2026-05-15
+    extra:
+      story_ids: []
+      why_now: 'Política git heredada de single-brand Nicolify ("solo development, main = prod auto") en
+
+        contradicción con uso real (commits a main). Chris corre 2-3 sesiones Claude paralelas — pattern
+
+        legacy de "filesystem compartido sin worktrees" pone en riesgo WIP no-commiteado al pisarse
+
+        branches. Ambiente "volátil" (sistema crashea, cambio máquina) requiere safety net push frecuente.
+
+        '
+      why_next: null
+      target_end: null
+      priority: HIGH-CRITICAL
+      success_metrics: []
+  - id: infra-dev-multibrand
+    kind: outcome
+    state: refining
+    title: infra-dev-multibrand
+    tags: []
+    last_touched: 2026-05-15
+    extra:
+      story_ids: []
+      why_now: 'Sin esta infraestructura ningún deploy multimarca es viable. CI/CD manual hoy. Docker dev local
+
+        single-brand legacy. Política git heredada de single-brand Nicolify, en contradicción con uso real
+
+        (commits a main + multi-sesión Claude paralela + necesidad de WIP safety net).
+
+        '
+      why_next: null
+      target_end: null
+      priority: HIGH
+      success_metrics: []
+  refined: []
+  ready: []
+  developing: []
+  developed: []
+  reviewing: []
+  done: []
+  parked: []
+  dropped: []
+capabilities: []

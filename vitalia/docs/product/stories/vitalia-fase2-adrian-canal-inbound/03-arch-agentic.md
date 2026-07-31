@@ -5,13 +5,13 @@ doc: 03-arch-agentic
 owner_builder: builder-agentic (flagship)
 owner_auditor: auditor-agentic (flagship)
 consumes: 03-arch.md · 02-design-agentic.md (v3)
-lift_gated: true   # tools nuevos (book/match/share) BLOQUEADOS hasta lift /pm-luana ESC-1/2/3
+lift_gated: true   # tools nuevos (book/match/share) BLOQUEADOS hasta lift /pm-vitalia ESC-1/2/3
 ---
 
 # 03-arch-agentic — superficie agentic (Adrián)
 
 > **Frontera dura:** lo de abajo se divide en **buildable hoy** (cero engine) y **lift-gated** (requiere
-> `/pm-luana` ESC-1/2/3, ver 03-arch.md § Engine-boundary escalations). El `builder-agentic` arranca lo
+> `/pm-vitalia` ESC-1/2/3, ver 03-arch.md § Engine-boundary escalations). El `builder-agentic` arranca lo
 > buildable; los tools nuevos esperan el lift. **§3 protected del engine NO se toca** (sales-agent-expert).
 
 ## 1 · Buildable hoy (cero engine)
@@ -44,7 +44,7 @@ Voz = `personality_profiles` per-tenant (slot 5, cacheable 1h — **declarar `tt
 - rubrics: `voice-fidelity`, `vertical-medical-fidelity`, `no-hallucination`, `no-overpromise`,
   `tool-trajectory`, `ethical-persuasion(no-dark-patterns)`.
 
-## 2 · Lift-gated (requiere /pm-luana ESC-1/2/3 — NO generar ticket de builder hasta merge del lift)
+## 2 · Lift-gated (requiere /pm-vitalia ESC-1/2/3 — NO generar ticket de builder hasta merge del lift)
 
 ### 2.1 `VitaliaSchedulerProvider` (`infrastructure/scheduler/vitalia_scheduler_provider.py`)
 Impl del `SchedulerProvider` Protocol del engine (`runtime_checkable`):
@@ -87,7 +87,7 @@ instrucción, candidate_slots, tenant_name interpolado mid-block.
 - Cost: tokens + cache_creation/cache_read + cost_usd (LiteLLM Chinese-first). Target ≥60% cache_read. BudgetGuard SA pool.
 
 ## 4 · Anti-patterns (sales-agent-expert §3 — PARAR si se cruzan)
-- ❌ Editar `core/luana-core-sales-agent/src/` (orchestrator/graph/registry/providers/state). → `/pm-luana`.
+- ❌ Editar `core/luana-core-sales-agent/src/` (orchestrator/graph/registry/providers/state). → `/pm-vitalia`.
 - ❌ Migrar a deepagents / subagents deepagents. ❌ `from __future__ import annotations` en `graph.py`.
 - ❌ Bypass `sanitize_payload`. ❌ Mirror `turn_envelope`/`callback_handler`. ❌ Tocar `PromptVersionModel`.
 - ❌ Selección de slot con regex/parser/if-chain (bar no-`if`s). ❌ `BookingService`/`vitalia_bookings` (deprecado).

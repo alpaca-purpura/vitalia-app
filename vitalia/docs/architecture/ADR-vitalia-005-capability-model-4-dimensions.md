@@ -276,7 +276,7 @@ Hace 1 PR pequeño cockpit-only sin tocar YAML schema. Resuelve P1 mecánicament
 
 Este ADR es brand-local vitalia. Si nicolify, comunify o futuras brands quieren adoptar el modelo:
 
-1. `/pm-luana` evalúa promotion proposal post-Fase F cementada en vitalia
+1. `/pm-vitalia` evalúa promotion proposal post-Fase F cementada en vitalia
 2. Si accepted → lift `docs/process/capability-protocol.md` secciones 7-9 + template a engine
 3. Cada brand replica `areas/` con sus agentes propios (nicolify tiene agentes distintos: account_manager, project_lead, etc.)
 4. Cockpit MapView ya quedaría brand-agnostic (lee del YAML, no hardcoded)

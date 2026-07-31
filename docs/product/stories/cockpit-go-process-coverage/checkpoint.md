@@ -1,7 +1,7 @@
 ---
 story_id: cockpit-go-process-coverage
 
-# Platform tooling story (owner /pm-luana). Vehículo = HLP-lite (Harness Lifecycle Process):
+# Platform tooling story (owner /pm-vitalia). Vehículo = HLP-lite (Harness Lifecycle Process):
 # el cockpit es tooling cross-brand (tools/luana-cockpit-go), NO código de producto brand/core.
 # Diseño/SSoT = tools/luana-cockpit-go/ROADMAP.md (no se duplica architect ready-package pesado).
 # Gate entre fases = ratificación de Chris + live-verify en localhost:4002 (cockpit corriendo).

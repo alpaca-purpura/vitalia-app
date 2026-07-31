@@ -1,5 +1,7 @@
 # Harness Architecture Guide — el sistema completo, explicado a fondo
 
+> ⚠ **HISTÓRICO (2026-07-31):** el kit `core-harness/` fue **materializado** en `.claude/` — este repo standalone ya no tiene kit extraíble ni plugin: rules/skills/agents/hooks viven como archivos propios en `.claude/` + `scripts/` + `docs/process/`. Este doc describe la arquitectura previa (kit/símlinks/plugin/re-exposición); sigue útil como referencia de diseño del harness.
+
 > **Para:** Chris. **Fecha:** 2026-06-09 (cierre del programa harness-refactor W0→W10). **Qué es esto:** el deep-dive de CÓMO está armado tu sistema de desarrollo agéntico — las 3 capas, la costura, cómo se parte cada superficie, el mecanismo de re-exposición, el ciclo idea→done, los gates, el loop de mejora continua y el cockpit — con los ejemplos reales de luana. Leélo una vez entero; después usalo como mapa.
 >
 > **SSoT relacionados:** charter (`harness-refactor-charter-2026-06-08.md`) · outputs por workstream (`harness-refactor-w{n}/`) · kit (`core-harness/README.md` + `ADOPTING.md`) · proceso (`core-harness/process/harness-lifecycle.md`, `continuous-improvement.md`).

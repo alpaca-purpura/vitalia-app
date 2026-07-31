@@ -11,8 +11,8 @@ name: "CD — Produccion multibrand"
 #   3. deploy: llama al workflow reutilizable _deploy-brand.yml con gating via GitHub Environment.
 #   4. extract-changelog: extrae notas de la seccion [Sin lanzar] y crea el GitHub Release.
 #
-# Branching convention: release/{brand}-vX.Y.Z
-# Ejemplos: release/vitalia-v0.3.0, release/nicolify-v1.2.0, release/comunify-v1.0.0-rc1
+# Branching convention: release/{brand}-vX.Y.Z (single-brand: brand = vitalia)
+# Ejemplos: release/vitalia-v0.3.0, release/vitalia-v1.0.0-rc1
 #
 # PROHIBIDO modificar release.yml (publish luana-core-* a GH Packages).
 # Ref: S-CICD-DEPLOY 05-guidelines.md § F1 + .claude/rules/git-safety.md
@@ -45,7 +45,7 @@ jobs:
           echo "Branch de release: ${BRANCH}"
 
           # Validar formato general: release/{brand}-vX.Y.Z (SemVer con prerelease opcional)
-          # Acepta: release/vitalia-v0.3.0, release/comunify-v1.0.0-rc1
+          # Acepta: release/vitalia-v0.3.0, release/vitalia-v1.0.0-rc1
           # Rechaza: release/invalido-vbroken, release/vitalia-1.2.3, release/-v1.0.0
           if [[ ! "${BRANCH}" =~ ^release/([a-z][a-z0-9-]*)-v([0-9]+\.[0-9]+\.[0-9]+.*)$ ]]; then
             echo "::error::Branch format invalido: ${BRANCH}."
@@ -63,8 +63,8 @@ jobs:
             exit 1
           fi
 
-          # Validar whitelist de brands conocidas
-          KNOWN_BRANDS="nicolify vitalia comunify lupulo"
+          # Validar whitelist de brands conocidas (single-brand standalone)
+          KNOWN_BRANDS="vitalia"
           BRAND_VALID=false
           for KNOWN in ${KNOWN_BRANDS}; do
             if [ "${BRAND}" = "${KNOWN}" ]; then

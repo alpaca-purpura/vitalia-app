@@ -29,7 +29,7 @@ Anti-duplication audit (per .claude/rules/anti-duplication.md):
     brand-specific to Vitalia Valeria wizard onboarding. The engine
     `core/luana-core-copilot/` has no per-tenant onboarding wizard equivalent.
     If a second brand emerges with similar wizard surface, lift to engine via
-    /pm-luana promotion proposal.
+    /pm-vitalia promotion proposal.
 """
 
 # Wave 2 — treatment followup

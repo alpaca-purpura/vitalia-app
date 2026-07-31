@@ -1,1 +1,0 @@
-../../core-harness/rules/parallel-safety.md

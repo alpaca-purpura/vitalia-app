@@ -14,7 +14,7 @@ nparents=$(( $(git rev-list --parents -n1 HEAD 2>/dev/null | wc -w) - 1 ))
 files="$(git diff-tree --no-commit-id --name-only -r HEAD 2>/dev/null || true)"
 [ -z "${files}" ] && exit 0
 
-BRAND_DIRS="vitalia nicolify comunify lupulo saasora inmoflow retailly fixia guestly fitflow"
+BRAND_DIRS="vitalia"
 while IFS= read -r f; do
   [ -z "${f}" ] && continue
   seg="${f%%/*}"
@@ -24,8 +24,7 @@ done <<< "${files}"
 # Cero rutas de marca → commit compartido (core/harness/docs/root)
 sha="$(git rev-parse --short HEAD)"
 echo ""
-echo "📤 post-commit: commit COMPARTIDO (cero {brand}/**) — ${sha}"
-echo "   Promovelo así las demás marcas no quedan atrás:"
-echo "     make promote-to-main SHA=\"${sha}\" && make sync-all"
-echo "   (ver drift sin riesgo: make sync-check)"
+echo "📤 post-commit: commit COMPARTIDO (cero vitalia/**) — ${sha}"
+echo "   Promovelo a main cuando corresponda:"
+echo "     make promote-to-main SHA=\"${sha}\""
 exit 0

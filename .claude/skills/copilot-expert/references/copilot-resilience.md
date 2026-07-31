@@ -146,8 +146,8 @@ Copilot es un módulo **ENGINE + BRAND-EXTENSION** (ver CLAUDE.md tabla mapping)
 
 | Surface | Path | Owner |
 |---|---|---|
-| Engine runtime (read-only, requiere lift gate) | `core/luana-core-copilot/src/luana_core_copilot/` | `/pm-luana` promotion gate |
-| Brand extensions (extractors, tools, workflows, kb) | `{brand}/backend/src/modules/{brand}/copilot/{extractors,tools,workflows,kb}/` | `/pm-{brand}` |
+| Engine runtime (read-only, requiere lift gate) | `core/luana-core-copilot/src/luana_core_copilot/` | `/pm-vitalia` flujo engine |
+| Brand extensions (extractors, tools, workflows, kb) | `{brand}/backend/src/modules/{brand}/copilot/{extractors,tools,workflows,kb}/` | `/pm-vitalia` |
 
 Trigger: tocas `core/luana-core-copilot/**` o `{brand}/backend/src/modules/{brand}/copilot/**` o user reporta bug copilot. Invoca skill antes coding.
 
@@ -155,6 +155,6 @@ Trigger: tocas `core/luana-core-copilot/**` o `{brand}/backend/src/modules/{bran
 
 ### Multibrand awareness (post reorg 2026-05-15)
 
-- Modificar engine `core/luana-core-copilot/` → afecta a todas las brands activas (nicolify, vitalia, comunify, lupulo). Requiere `/pm-luana` promotion proposal (ver `docs/promotion-protocol/README.md`).
+- Modificar engine `core/luana-core-copilot/` → afecta al consumer vitalia. Flujo engine `/pm-vitalia` (cambio directo en `core/` + arch tests).
 - Extensión brand: `{brand}/backend/src/modules/{brand}/copilot/extensions.py` registra via Extension SDK EP-1..EP-18.
 - Cross-brand mirror prohibido (ver `anti-duplication.md`) — si dos brands replican extractor/tool/workflow → lift a engine.

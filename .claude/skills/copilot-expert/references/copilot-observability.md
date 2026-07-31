@@ -162,8 +162,8 @@ Split engine + brand-extension:
 
 | Surface | Path | Owner |
 |---|---|---|
-| Engine observability shared base | `core/luana-core-observability/src/luana_core_observability/` (recording, cost, persistence base classes) | `/pm-luana` |
-| Copilot engine observability | `core/luana-core-copilot/src/luana_core_copilot/observability/` (callback handler + recorders) | `/pm-luana` |
+| Engine observability shared base | `core/luana-core-observability/src/luana_core_observability/` (recording, cost, persistence base classes) | `/pm-vitalia` |
+| Copilot engine observability | `core/luana-core-copilot/src/luana_core_copilot/observability/` (callback handler + recorders) | `/pm-vitalia` |
 | Tablas `copilot_llm_call` + `model_pricing_snapshot` mirror | `{brand}/backend/src/modules/{brand}/copilot/persistence/models/` (per backend-ddd.md schema-mirror exception) | `/dev-team` builder-backend OK |
 
 Trigger: tocas `core/luana-core-copilot/src/**/observability/**` o `core/luana-core-observability/src/**` o `{brand}/backend/src/modules/{brand}/copilot/observability/**` o queries de costo/billing/cycle.
@@ -172,5 +172,5 @@ Trigger: tocas `core/luana-core-copilot/src/**/observability/**` o `core/luana-c
 
 ### Multibrand awareness (post reorg 2026-05-15)
 
-- Engine cambios (`core/luana-core-{copilot,observability}/`) → impactan todas las brands. Requieren `/pm-luana` promotion gate.
+- Engine cambios (`core/luana-core-{copilot,observability}/`) → impactan al consumer vitalia. Flujo engine `/pm-vitalia`.
 - Cada brand consumer tiene su mirror de tablas observability en `{brand}/backend/src/modules/{brand}/copilot/persistence/models/` (schema-mirror exception, ver `backend-ddd.md`).

@@ -28,9 +28,9 @@ La postura + bar no-`if`s + método son **CORE**; LangGraph/deepagents/Anthropic
 
 ## REQUIRED first input: `<brand>`
 
-`<brand>` ∈ `vitalia | nicolify | comunify | lupulo | platform`. Si Chris no lo provee, **PREGUNTAR antes de proceder**. `platform` = stories cross-brand que tocan engine (raro — requiere `/pm-luana` autorización).
+`<brand>` ∈ `vitalia | platform`. Si Chris no lo provee, **PREGUNTAR antes de proceder**. `platform` = stories que tocan engine (raro — requiere ratificación Chris vía `/pm-vitalia`).
 
-Si el skill es invocado vía `/pm-{brand}` handoff, el brand viene en el handoff. Si invocado directo por Chris → preguntar.
+Si el skill es invocado vía `/pm-vitalia` handoff, el brand viene en el handoff. Si invocado directo por Chris → preguntar.
 
 **Engine vs brand-extension scope (CRÍTICO para agentic):**
 
@@ -38,12 +38,12 @@ Post multibrand reorg 2026-05-15, los módulos agentic son SPLIT engine + brand 
 
 | Surface | Path canónico | Quién diseña |
 |---|---|---|
-| Engine copilot (runtime, state machine, slot architecture base) | `core/luana-core-copilot/src/luana_core_copilot/` | requiere `/pm-luana` (promotion gate) |
+| Engine copilot (runtime, state machine, slot architecture base) | `core/luana-core-copilot/src/luana_core_copilot/` | requiere `/pm-vitalia` (flujo engine) |
 | Brand extension copilot (extractors, tools, workflows, kb) | `{brand}/backend/src/modules/{brand}/copilot/{extractors,tools,workflows,kb}/` | libre per-brand vía este skill |
-| Engine sales-agent (runtime, callback handler, slot architecture base) | `core/luana-core-sales-agent/src/luana_core_sales_agent/` | requiere `/pm-luana` (promotion gate) |
+| Engine sales-agent (runtime, callback handler, slot architecture base) | `core/luana-core-sales-agent/src/luana_core_sales_agent/` | requiere `/pm-vitalia` (flujo engine) |
 | Brand extension sales-agent (tools, personas, goldens) | `{brand}/backend/src/modules/{brand}/sales_agent/{tools,personas,goldens}/` | libre per-brand vía este skill |
 
-Si el flow diseñado requiere modificar engine (`core/luana-core-*/`) → STOP, escalá `/pm-luana`. Este skill SOLO diseña sobre brand extensions a menos que `<brand>: platform` esté explícito.
+Si el flow diseñado requiere modificar engine (`core/luana-core-*/`) → STOP, escalá `/pm-vitalia`. Este skill SOLO diseña sobre brand extensions a menos que `<brand>: platform` esté explícito.
 
 **Paradigma (cement 2026-05-30 · `docs/architecture/luana-platform/PARADIGM.md`):** hay **un solo engine** por audiencia (`copilot` interno habla al dueño · `sales_agent` externo habla a leads). El trabajador agéntico se diferencia por **scope + persona + guardrails**, NUNCA por un engine nuevo (eso es Plano 3 sobre Plano 2: invoca acciones únicas, no reimplementa). **Valeria = supervisora** (orquesta + compone multi-paso); especialistas scoped; la pestaña web es **sesgo de ruteo**, no un chat aislado. **Adrián = bifronte** (interno+externo). Árbol caja/zona: `.claude/rules/paradigm-arquitectura.md`.
 
@@ -320,10 +320,10 @@ Conversaciones en code blocks. Tablas para state machines, tools, recovery. Mét
 
 ## Anti cross-brand pollution
 
-- ❌ NUNCA editar `{other_brand}/...` cuando trabajás en `{brand}`. Si la story necesita tocar otra brand → STOP, escalate `/pm-luana` (trabajo cross-brand).
-- ❌ NUNCA editar `core/luana-core-*/src/` directamente (engine copilot/sales-agent). Requiere lift via `/pm-luana` (promotion gate). Brand-extension surface (`{brand}/backend/src/modules/{brand}/{copilot,sales_agent}/`) SÍ es editable per-brand.
-- ❌ NUNCA escribir specs/designs/tickets en root `docs/product/stories/` — solo `platform` (cross-brand) outcomes van ahí, y eso requiere `<brand>: platform` explícito + `/pm-luana` ratificación.
-- ❌ NUNCA reutilizar personas/rubrics de `{other_brand}/docs/specs/` sin verificar que la voz/contexto aplica. Default: usar core `docs/specs/` o crear bajo `{brand}/docs/specs/` si necesitás override.
+- ❌ NUNCA editar paths fuera de `vitalia/**` (+ story docs). STOP + escalate `/pm-vitalia`.
+- ❌ NUNCA editar `core/luana-core-*/src/` directamente (engine copilot/sales-agent). Requiere lift via `/pm-vitalia` (flujo engine). Brand-extension surface (`{brand}/backend/src/modules/{brand}/{copilot,sales_agent}/`) SÍ es editable per-brand.
+- ❌ NUNCA escribir specs/designs/tickets en root `docs/product/stories/` — solo `platform` (cross-brand) outcomes van ahí, y eso requiere `<brand>: platform` explícito + `/pm-vitalia` ratificación.
+- ❌ NUNCA reutilizar personas/rubrics de otro contexto sin verificar que la voz/contexto aplica. Default: usar core `docs/specs/` o crear bajo `vitalia/docs/specs/` si necesitás override.
 
 ## Output protocol · chris-input.md append
 

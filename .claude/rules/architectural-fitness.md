@@ -10,7 +10,7 @@ Tests viven en dos niveles:
 | Nivel | Path | Scope |
 |---|---|---|
 | Engine | `core/luana-core-*/tests/architecture/` | Reglas internas de cada package + contratos Extension SDK |
-| Brand | `{brand}/backend/tests/architecture/` | DDD boundaries brand, registros Extension SDK válidos, no mirrors cross-brand |
+| Brand | `vitalia/backend/tests/architecture/` | DDD boundaries brand, registros Extension SDK válidos, no mirrors del engine |
 
 Enforzan reglas estructurales que linters no catch (DDD boundaries, API contracts, conventions). **Ratchet pattern** — `KNOWN_*` allowlists shrink only.
 
@@ -23,8 +23,8 @@ cd ${WS}/{brand}/backend && ${WS}/.venv/bin/pytest tests/architecture/ -x -q --t
 # Per core package:
 cd ${WS}/core/luana-core-{pkg} && ${WS}/.venv/bin/pytest tests/architecture/ -x -q --tb=short
 
-# Full cross-brand (todos los activos) — NO existe `make arch-test`; usar:
-make ci-parity    # engine + nicolify + vitalia + comunify + lupulo (equivalente a CI; corre tests/architecture/ por marca)
+# Full (engine + vitalia) — NO existe `make arch-test`; usar:
+make ci-parity    # engine + vitalia (equivalente a CI; corre tests/architecture/)
 ```
 
 Auto vía gate-runner shortcuts `arch-test-{brand}` / `test-{brand}` (corren `tests/architecture/`) + `make ci-parity` (mandatory pre-push-to-main) + `/pase-produccion`.
@@ -33,8 +33,8 @@ Common fixes (cross-module/domain framework imports/missing response_model/hard 
 
 **No-skip:** new violation = build fail. Allowlists shrink only — fix + remove. Add to allowlist requiere justificación commit.
 
-## Multibrand awareness (post reorg 2026-05-15)
+## Engine awareness
 
-- Engine arch tests cubren reglas del paquete + contracts cross-brand (Extension SDK).
-- Brand arch tests cubren registros válidos + no mirrors (ver `anti-duplication.md`).
+- Engine arch tests cubren reglas del paquete + contracts del Extension SDK.
+- Brand arch tests (vitalia) cubren registros válidos + no mirrors (ver `anti-duplication.md`).
 - Allowlists per package — no compartir allowlist file entre core y brand (cada uno tiene su `KNOWN_*`).

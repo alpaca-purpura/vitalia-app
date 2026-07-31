@@ -357,7 +357,7 @@ Checklist (in order):
 
 **"I want to see all presets for a business type":**
 ```bash
-# vitalia=8002, nicolify=8001, comunify=8003, lupulo=8004
+# vitalia=8002
 curl 'http://localhost:8002/api/v1/offer/type-presets/catalog?business_types=profesional_salud' | jq '.presets[] | {preset_id, label_es, archetype}'
 ```
 

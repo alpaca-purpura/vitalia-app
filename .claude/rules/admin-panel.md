@@ -4,4 +4,4 @@
 
 Trigger: tocás `{brand}/backend/src/modules/{brand}/admin/**` (opcional per brand).
 
-No-skip 1-liner: lógica SOLO en `modules/` (pages = wrappers thin) · `st.set_page_config` solo en `app.py` · sin import cruzado entre modules (salvo `_shared`) · admin común cross-brand → lift `/pm-luana`.
+No-skip 1-liner: lógica SOLO en `modules/` (pages = wrappers thin) · `st.set_page_config` solo en `app.py` · sin import cruzado entre modules (salvo `_shared`) · admin común compartible → lift a engine (flujo `/pm-vitalia`).

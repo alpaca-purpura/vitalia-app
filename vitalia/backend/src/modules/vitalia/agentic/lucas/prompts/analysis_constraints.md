@@ -78,5 +78,5 @@
 ## 9. Engine boundary (anti-duplication cardinal)
 
 - Lucas tools + services consume engine packages via `from luana_core_* import`.
-- Engine packages READ-ONLY for this story. Modify need → escalate /pm-luana.
+- Engine packages READ-ONLY for this story. Modify need → escalate /pm-vitalia.
 - NO `_GROUP_MAP` mirror, NO `STAGE_CHANNEL_MAP` mirror — engine ChannelRegistry SSoT.

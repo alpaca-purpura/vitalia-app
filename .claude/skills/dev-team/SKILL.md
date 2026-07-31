@@ -9,13 +9,13 @@ model: opus
 
 # /dev-team — Developer Team Router (Conv 2 autonomous build)
 
-> Owner: `T-{n}-impl-log.md` + `T-{n}-result.md` en `{brand}/docs/product/stories/{story-id}/`. Toma 1 ticket → ejecuta TDD + iteración contra `04-validators.yaml` → push. On pickup: state=ready→developing. On GREEN all tickets → state=developing→developed. **★ proceso v5:** default = **PAUSA en G (Chris-verify)** `phase: AWAIT_CHRIS_VERIFY` (NO auto-handoff); `autonomous_mode: true` → corre a `/auditor` sin pausa (story-closure-gate Fase G). Escape valve: `checkpoint.md::defer_audit: true` (razón + Chris). **REFUSE pickup si otra story DEL MISMO MÓDULO está en state ∈ {developing, developed, reviewing} sin `defer_audit: true` NI `phase: AWAIT_CHRIS_VERIFY`** (story en G no bloquea — exención WIP-cap; defense-in-depth Layer 2, ★ v2 module-scoped post ADR-009: stories de OTROS módulos developing en paralelo = OK). Build-claim: Step 0 hace `session-lock.sh acquire code:{module}` → cockpit pinta 🔨 lane.
+> Owner: `T-{n}-impl-log.md` + `T-{n}-result.md` en `{brand}/docs/product/stories/{story-id}/`. Toma 1 ticket → ejecuta TDD + iteración contra `04-validators.yaml` → push. On pickup: state=ready→developing. On GREEN all tickets → state=developing→developed. **★ proceso v5:** default = **PAUSA en G (Chris-verify)** `phase: AWAIT_CHRIS_VERIFY` (NO auto-handoff); `autonomous_mode: true` → corre a `/auditor` sin pausa (story-closure-gate Fase G). Escape valve: `checkpoint.md::defer_audit: true` (razón + Chris). **REFUSE pickup si otra story DEL MISMO MÓDULO está en state ∈ {developing, developed, reviewing} sin `defer_audit: true` NI `phase: AWAIT_CHRIS_VERIFY`** (story en G no bloquea — exención WIP-cap; defense-in-depth Layer 2, ★ v2 module-scoped post ADR-009: stories de OTROS módulos developing en paralelo = OK).
 
 ## REQUIRED first input: `<brand>`
 
-`<brand>` ∈ `vitalia | nicolify | comunify | lupulo | platform`. Si Chris no lo provee, **PREGUNTAR antes de proceder**. `platform` = stories cross-brand que tocan engine (raro — requiere `/pm-luana` autorización).
+`<brand>` ∈ `vitalia | platform`. Si Chris no lo provee, **PREGUNTAR antes de proceder**. `platform` = stories que tocan engine (raro — requiere ratificación Chris vía `/pm-vitalia`).
 
-Si invocado vía `/pm-{brand}` o `/architect` handoff, el brand viene en el handoff. Si invocado directo por Chris → preguntar primero.
+Si invocado vía `/pm-vitalia` o `/architect` handoff, el brand viene en el handoff. Si invocado directo por Chris → preguntar primero.
 
 ## Inputs obligatorios (ready package)
 
@@ -49,7 +49,7 @@ Todo ticket que toca `{brand}/frontend/src/**` (TODAS las marcas) **construye DE
 
 ```bash
 WS=$(git rev-parse --show-toplevel)
-BRAND={brand}                                                # vitalia | nicolify | comunify | lupulo | platform
+BRAND={brand}                                                # vitalia | platform
 STORY_DIR=${WS}/${BRAND}/docs/product/stories/{story-id}
 cat ${STORY_DIR}/checkpoint.md      # verify state=ready (o state=developing si retomas)
 cat ${STORY_DIR}/06-tickets.yaml    # pila tickets
@@ -64,7 +64,7 @@ state: developing   # ★ TRANSITION ready → developing ★
 phase: BUILD_T1
 ```
 
-WIP cap check (★ v2 2026-05-28 · ADR-009 single-hub): bajo el modelo hub único, N builds corren en el MISMO worktree sobre módulos distintos. Por eso el cap `developing` ya **NO es por worktree** — es **≤ 1 por `code:{module}` bucket** (un build en vuelo por módulo). Stories `developing` concurrentes en módulos DISTINTOS = OK (lo que Chris busca paralelizar). El bucket lock serializa solo el mismo módulo. SSoT: `.claude/rules/parallel-safety.md` M14 + `worktree-dual-strategy.md` § Regla cardinal v2.
+WIP cap check (★ v2 2026-05-28): el cap `developing` es **≤ 1 por módulo** (un build en vuelo por módulo). Stories `developing` concurrentes en módulos DISTINTOS = OK. SSoT: `.claude/rules/story-closure-gate.md` § WIP cap v2.
 
 ### Step 0.4 — Build-claim + story-closure gate module-scoped (story-closure-gate.md Layer 2 · ADR-009)
 
@@ -94,32 +94,24 @@ for cp in ${WS}/${BRAND}/docs/product/stories/*/checkpoint.md; do
   fi
 done
 
-# (c) Build-claim: lock module-scoped + registra story_id + lane → cockpit pinta 🔨.
-#     Si el bucket está tomado por otra sesión (mismo módulo) → serializa (esperar/escalar).
-bash ${WS}/scripts/git/session-lock.sh acquire code:${MODULE} dev-team {story-id} \
-  || { echo "Bucket code:${MODULE} ocupado por otra sesión — build del mismo módulo en vuelo. Esperar o escalar Chris."; exit 1; }
 ```
-
-`$LUANA_LANE` (export opcional por terminal, ej. `export LUANA_LANE=A`) da nombre humano a la sesión en el cockpit; sin él, cae a `pid<PID>`.
 
 Si encuentro otra story open del **mismo módulo** (developing/developed/reviewing) SIN `defer_audit: true` → REFUSE pickup. Output verbatim:
 
 ```
 ❌ Story closure gate (module-scoped): cannot pickup ticket T-{n} de story {new-story-id}
    porque story {open-story-id} del MISMO módulo {module} está en state={state} sin defer_audit.
-   (Stories de OTROS módulos developing en paralelo = OK bajo ADR-009 single-hub.)
+   (Stories de OTROS módulos developing en paralelo = OK.)
 
    Acciones disponibles:
    1. Continuar story {open-story-id} hasta state=done (default forward-motion)
    2. Ratificar defer_audit:true en {open-story-id}/checkpoint.md con razón + Chris explícito
-   3. Tomar una story de OTRO módulo (bucket code:{otro} libre)
+   3. Tomar una story de OTRO módulo
 
-   SSoT regla: .claude/rules/story-closure-gate.md (Layer 2) + ADR-009 § 2.2
+   SSoT regla: .claude/rules/story-closure-gate.md (Layer 2)
 ```
 
 NO arrancar el ticket si el gate bloquea. Esperar acción explícita Chris.
-
-**Release del build-claim:** al cerrar la story (transition `developing → developed`, handoff `/auditor`) o si se aborta el pickup, ejecutar `bash ${WS}/scripts/git/session-lock.sh release code:${MODULE}` para liberar el módulo. Si la sesión muere, el lock auto-libera por PID muerto en el próximo `acquire`.
 
 ## Step 0.5 — Phase 0: Context pre-flight (MANDATORY antes Step 1)
 
@@ -188,13 +180,13 @@ Si `{brand}/docs/product/stories/{story-id}/dispatch-plan.md` existe (producido 
 
 2. **`autonomous_mode` en `checkpoint.md`**:
    - `false` (default) → `/dev-team` para después de cada ticket completo + espera ratificación Chris para próximo. Auto-handoff a `/auditor` cuando ALL tickets GREEN (story-closure-gate Layer 1).
-   - `true` (Chris opt-in explícito) → encadenar TODOS los tickets seguidos sin pausa + auto-handoff `/auditor` + auto-handoff `/pm-{brand}` merge si APPROVED. Respetar `autonomous_mode_caps` (max_iterations, max_audit_iterations, max_total_cost_usd, max_wall_clock_minutes).
+   - `true` (Chris opt-in explícito) → encadenar TODOS los tickets seguidos sin pausa + auto-handoff `/auditor` + auto-handoff `/pm-vitalia` merge si APPROVED. Respetar `autonomous_mode_caps` (max_iterations, max_audit_iterations, max_total_cost_usd, max_wall_clock_minutes).
    - Si caps excedidos durante autonomous_mode → halt + state=blocked + escalate Chris (NO continuar a ciegas).
 
 3. **`playwright_visual_scope` en `04-validators.yaml`**:
    - `story_scope_routes` + `story_scope_components` definen DÓNDE puede tocar visualmente
    - `forbidden_visual_changes.paths` definen DÓNDE NO (Shadcn primitives, shared, app shell)
-   - Si builder necesita cambio visual fuera scope → STOP + documentar en `T-{n}-impl-log.md § Cross-story observed bugs` + escalate Chris (anti-egoísmo per `.claude/rules/worktree-dual-strategy.md`)
+   - Si builder necesita cambio visual fuera scope → STOP + documentar en `T-{n}-impl-log.md § Cross-story observed bugs` + escalate Chris (anti-egoísmo: no arreglar fuera de scope sin ratificar)
 
 **Si `dispatch-plan.md` NO existe** (architect skill viejo pre-2026-05-27): inferir assignments del `06-tickets.yaml` legacy + warning al user "story produced sin dispatch-plan — usando defaults (puede ser sub-óptimo)". NO bloquear.
 
@@ -274,12 +266,12 @@ Construir prompt para qwen invocando opencode CLI. **Paths brand-scoped + worksp
 
 ```bash
 WS=$(git rev-parse --show-toplevel)
-BRAND={brand}                                                # vitalia | nicolify | comunify | lupulo | platform
+BRAND={brand}                                                # vitalia | platform
 STORY_DIR=${WS}/${BRAND}/docs/product/stories/{story-id}
 
 cat > /tmp/T-{n}-qwen-prompt.md <<EOF
 Eres developer Luana ({brand} brand) ejecutando T-{n} de story {story-id}.
-Brand scope: ${BRAND} — TODO edit debe respetar paths bajo ${BRAND}/. NO editar ${WS}/core/luana-core-*/src/ (engine, requires /pm-luana promotion gate). NO editar {other_brand}/... (cross-brand).
+Brand scope: ${BRAND} — TODO edit debe respetar paths bajo ${BRAND}/. NO editar ${WS}/core/luana-core-*/src/ (engine, requires /pm-vitalia flujo engine). NO editar paths fuera de ${BRAND}/.
 
 PRIORITY READ — CONTEXT-BRIEF (Haiku-built, 5-8k tokens, contiene spec+arch+rules+anti-dup+canonical docs):
 - ${STORY_DIR}/CONTEXT-BRIEF.md
@@ -383,7 +375,7 @@ Agent({
            READY PACKAGE (todos bajo {brand}/docs/product/stories/{story-id}/): 01-spec.md + 02-design-agentic.md + 03-arch.md (★ v4.1: incluye § Test Construction Plan) + 03-arch-agentic.md + 04-validators.yaml (★ v4.1: 5 categorías + test_construction_plan + scenario_coverage sub-categorías) + 05-guidelines.md (★ v4.1: must_load_skills enforceable) + 06-tickets.yaml (gherkin_coverage por ticket)
            ★ MUST_LOAD SKILLS (v4.1 enforceable): <list extracted from 05-guidelines.md § must_load_skills resolved per ticket surface — typical agentic: copilot-expert/sales-agent-expert + LangGraph canonical docs + claude-api + graceful-degradation (timeout+fallback+circuit breaker) + auditor-self-fix-policy.md + tenant-isolation.md + spanish-text.md>
            ★ MUST DELIVER in T-{n}-result.md: sección "Skills consulted (must_load enforcement v4.1)" con tabla skill/rule + status + when. Auditor flag CHANGES_REQUESTED si missing.
-           Surface scope: SOLO {brand}/backend/src/modules/{brand}/{copilot,sales_agent}/{tools,extractors,workflows,personas,goldens,kb}/ (brand-extension). NUNCA core/luana-core-*/src/ (engine — requires /pm-luana lift).
+           Surface scope: SOLO {brand}/backend/src/modules/{brand}/{copilot,sales_agent}/{tools,extractors,workflows,personas,goldens,kb}/ (brand-extension). NUNCA core/luana-core-*/src/ (engine — requires /pm-vitalia lift).
            AUTONOMOUS LOOP: implement → run validators (acceptance.validator_ids) → fix → repeat hasta GREEN o cap_reached
            TDD: eval goldens RED first, integration tests, tools tests, etc.
            ★ G5 PRE-COMMIT SMOKE GATE: validators GREEN + lint + format + env-gated tests con env real + case-sensitivity match — TODO antes commit.
@@ -411,7 +403,7 @@ Agent({
            READY PACKAGE (todos bajo {brand}/docs/product/stories/{story-id}/): 01-spec.md + 03-arch.md (★ v4.1 § Test Construction Plan) + 04-validators.yaml (★ v4.1 5 categorías) + 05-guidelines.md (★ v4.1 must_load_skills) + 06-tickets.yaml
            ★ MUST_LOAD SKILLS (v4.1 enforceable): <list extracted from 05-guidelines.md § must_load_skills resolved>
            ★ MUST DELIVER in T-{n}-result.md: sección "Skills consulted (must_load enforcement v4.1)".
-           Surface scope: SOLO {brand}/backend/src/ + {brand}/frontend/src/. NUNCA core/luana-core-*/src/ (engine). NUNCA {other_brand}/...
+           Surface scope: SOLO vitalia/backend/src/ + vitalia/frontend/src/. NUNCA core/luana-core-*/src/ (engine).
            AUTONOMOUS LOOP: implement → run validators → fix → repeat
            TDD obligatorio.
            ★ G5 PRE-COMMIT SMOKE GATE: validators GREEN + lint + format + env-gated tests con env real + case-sensitivity match — TODO antes commit. RED bloquea commit.
@@ -604,18 +596,17 @@ state: developed   # ★ TRANSITION developing → developed ★
 phase: AWAIT_CHRIS_VERIFY        # ★ G · NO HANDOFF_TO_AUDITOR todavía
 chris_verify: { required: true, signoff: null, rounds: [] }
 last_artifact: T-{N}-result.md (last ticket)
-next_action: "Chris ejerce el kit live → firma chris_verify.signoff → /pm-{brand} reconcile (R) → /auditor"
+next_action: "Chris ejerce el kit live → firma chris_verify.signoff → /pm-vitalia reconcile (R) → /auditor"
 ```
 
-Liberá el build-claim + EMITIR el KIT verbatim (el kit ya lo produjo el developed-boundary, #37 Layer 10):
+EMITIR el KIT verbatim (el kit ya lo produjo el developed-boundary, #37 Layer 10):
 
 ```
 ✅ Story {brand}/{story-id} all tickets pushed · validators GREEN · live-verify OK.
 Story state: developing → developed · phase: AWAIT_CHRIS_VERIFY (G · Chris-verify).
 
-→ Release build-claim: bash ${WS}/scripts/git/session-lock.sh release code:{module}
-  (libera el módulo + saca el badge 🔨 del cockpit. WIP cap: phase AWAIT_CHRIS_VERIFY
-   NO cuenta contra developed≤1 → otra story del módulo puede avanzar mientras verificás.)
+(WIP cap: phase AWAIT_CHRIS_VERIFY NO cuenta contra developed≤1 → otra story
+ del módulo puede avanzar mientras verificás.)
 
 🧪 KIT para que ejerzas vos (antes del auditor):
 - demo-script.md: {path}
@@ -628,10 +619,10 @@ Story state: developing → developed · phase: AWAIT_CHRIS_VERIFY (G · Chris-v
   funcionalidad nueva → core/happy-path construido sí o sí. Cada corrección entra a
   chris_verify.rounds. Cuando estés satisfecho → firmás chris_verify.signoff.
 
-⏸  PAUSA en G. NO auto-handoff a /auditor hasta tu signoff + /pm-{brand} reconcile (R).
+⏸  PAUSA en G. NO auto-handoff a /auditor hasta tu signoff + /pm-vitalia reconcile (R).
 ```
 
-STOP la sesión `/dev-team` aquí (G). Tras `chris_verify.signoff` → `/pm-{brand}` reconcile (R) → `/auditor`.
+STOP la sesión `/dev-team` aquí (G). Tras `chris_verify.signoff` → `/pm-vitalia` reconcile (R) → `/auditor`.
 
 ### Caso autonomous_mode: true — corre a `/auditor` (G se salta)
 
@@ -647,7 +638,6 @@ next_action: "/auditor <brand>: {brand} toma story {id} para Conv 3 (AUTONOMOUS 
 ✅ Story {brand}/{story-id} all tickets pushed · validators GREEN.
 Story state: developing → developed · AUTONOMOUS (G saltada por opt-in Chris).
 
-→ Release build-claim: bash ${WS}/scripts/git/session-lock.sh release code:{module}
 → AUTO-HANDOFF /auditor <brand>: {brand} story={story-id}
   (el auditor procede por la rama autonomous: reconciled=false PERO autonomous_mode=true.
    Lee T-{n}-result.md + Phase D gherkin + CHECKPOINTS.md C1-C5.)
@@ -666,7 +656,7 @@ defer_audit: true (razón: "{defer_audit_reason}", ratified_by: {defer_audit_rat
 
 ⏸  AUDIT DEFERRED.
 
-  /pm-{brand} bootstrap pingeará esta deuda en cada sesión futura hasta
+  /pm-vitalia bootstrap pingeará esta deuda en cada sesión futura hasta
   resolución. Cuando Chris quiera reanudar, dice "audita {story-id}" y
   /auditor toma el handoff con full context del defer.
 ```
@@ -676,7 +666,7 @@ STOP la sesión `/dev-team`.
 ### Anti-pattern bloqueado (caso vitalia 2026-05-18 origen)
 
 ```
-❌ NUNCA: cerrar state=developed + pickup ticket de otra story DEL MISMO MÓDULO en el mismo worktree.
+❌ NUNCA: cerrar state=developed + pickup ticket de otra story DEL MISMO MÓDULO.
    Layer 2 enforcement (★ v2 module-scoped · ADR-009): si Step 0.4 detecta otra story
    abierta DEL MISMO módulo sin defer_audit, REFUSE pickup. Una story developed del módulo X
    debe llegar a state=done (auditor → merge → archive) antes de arrancar otra del módulo X.
@@ -842,9 +832,9 @@ Orchestrator DELEGA via Agent tool:
 - ❌ Spawn nuevo agent cuando uno stalled — si tree tiene partial progress, continúa via SendMessage o continuation prompt explícito
 - ❌ Restart from scratch tras API Overload — preserve partial work first
 - ❌ Skip TDD (escribir código sin validators RED primero)
-- ❌ `git add .` / `git add -A` / `git add -u` (parallel-safety)
+- ❌ `git add .` / `git add -A` / `git add -u` (git-safety)
 - ❌ `git commit --no-verify`
-- ❌ `git pull` antes commit (parallel-safety)
+- ❌ `git pull` antes commit (git-safety)
 - ❌ Push falla non-fast-forward → NO `git pull`. STOP, escala.
 - ❌ `git push origin development` — branch eliminado en reorg 2026-05-15. Triple-branch: wip/* | main | release/{brand}-vX.Y.Z.
 - ❌ Marcar ticket pushed sin verify TODOS validators ticket-asociados → GREEN
@@ -859,9 +849,9 @@ Orchestrator DELEGA via Agent tool:
 
 ## Anti cross-brand pollution
 
-- ❌ NUNCA editar `{other_brand}/...` cuando trabajás en `{brand}`. Si la story necesita tocar otra brand → STOP, escalate `/pm-luana` (trabajo cross-brand).
-- ❌ NUNCA editar `core/luana-core-*/src/` directamente. Requiere lift via `/pm-luana` (promotion gate).
-- ❌ NUNCA escribir/leer archivos en root `docs/product/stories/` — solo `<brand>: platform` (cross-brand) outcomes van ahí, y eso requiere autorización explícita `/pm-luana`.
+- ❌ NUNCA editar paths fuera de `vitalia/**` (+ story docs). STOP + escalate `/pm-vitalia`.
+- ❌ NUNCA editar `core/luana-core-*/src/` directamente. Requiere lift via `/pm-vitalia` (flujo engine).
+- ❌ NUNCA escribir/leer archivos en root `docs/product/stories/` — solo `<brand>: platform` (cross-brand) outcomes van ahí, y eso requiere autorización explícita `/pm-vitalia`.
 - ❌ Spawn sub-agent sin propagar `<brand>: {brand}` en el prompt — sub-agent puede editar fuera del scope brand.
 
 ## Output format
@@ -885,7 +875,7 @@ Al cierre de cada turn, MUST appendear una entry a la sección 💬 Conversació
 - `.claude/rules/anti-duplication.md` — inventario shared abstractions
 - `docs/architecture/luana-platform/PARADIGM.md` + `.claude/rules/paradigm-arquitectura.md` — ★ 3 planos: el trabajador invoca la acción única (Plano 2), no reimplementa; un solo engine; no cruzar de plano sin escalar
 - `.claude/rules/hotfix-repro-mandatory.md` — R26 hot-fix gate
-- `.claude/rules/parallel-safety.md` — M1-M8 multi-session
+- `.claude/rules/git-safety.md` — prohibiciones git + stage por pathspec
 - `.claude/agents/builder-{backend,frontend,agentic}.md` — sub-builders specs
 - `.claude/agents/gate-runner.md` — gate-output.json producer (Haiku)
 - `.claude/agents/context-builder.md` — CONTEXT-BRIEF.md producer (Haiku)

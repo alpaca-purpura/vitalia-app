@@ -351,7 +351,7 @@ validators:
     cmd: "! grep -rn 'from {other_brand}' {brand}/backend/src/ {brand}/frontend/src/ 2>/dev/null"
     must_pass: true
     timeout_sec: 10
-    description: "Cross-brand import detection (HARD ban — lift via /pm-luana)"
+    description: "Cross-brand import detection (HARD ban — lift vía /pm-vitalia flujo engine)"
 
 # ═══════════════════════════════════════════════════════════════
 # Scenario coverage matrix — 1 scenario maps to N validators

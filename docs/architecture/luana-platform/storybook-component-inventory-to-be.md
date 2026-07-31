@@ -3,7 +3,7 @@
 > **★ DISUELTO 2026-06-25 → [ADR-016](ADR-016-design-system-inventory-governance.md) (accepted) + `design-system-canon.md`.** Este doc fue el DRAFT-norte que Chris pidió cerrar; su doctrina viva (ejes ortogonales · reuse/extend/create · toolkit de extensión · inventario-espina · contrato de fidelidad mockup===resultado) se **consolidó en ADR-016 + el canon** tras la auditoría de paridad (Fase 1). **No usar como fuente** — queda como génesis histórica. Plan de ejecución = `core-ds-foundation/checkpoint.md` (Fase C).
 >
 > ~~**Estado:** DRAFT to-be · pendiente de refinar + ratificar Chris en sesión dedicada.~~ (resuelto: ratificado vía ADR-016)
-> **Owner:** `/pm-luana` (platform/core) + Chris como UI-senior decisor.
+> **Owner:** `/pm-vitalia` (platform/core) + Chris como UI-senior decisor.
 > **Origen:** sesión 2026-06-24/25 — Chris pidió fijar el norte del design system multimarca porque **es solo Chris + Claude, Claude es el único que programa**; sin disciplina técnica + norte explícito, el inventario degenera en componentes de 1-solo-uso inútiles + drift cross-brand.
 > **Complementa (no reemplaza aún):** `design-system-canon.md` · `ADR-014-design-system-homologation.md` · `.claude/rules/frontend-visual-fidelity.md`. Este doc es el **target**; al ratificarse, su doctrina se cementa EN esos archivos + en los skills/agents.
 

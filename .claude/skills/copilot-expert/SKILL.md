@@ -51,7 +51,7 @@ Queries esenciales: ver `.claude/rules/copilot-resilience.md` §"Debug copilot".
 
 ## Arquitectura inmutable — NO tocar sin entender
 
-**Topología F0-F11 (cementada · post-reorg multibrand 2026-05-15 el módulo canónico = ENGINE `core/luana-core-copilot/src/luana_core_copilot/`; brand extensions en `{brand}/backend/src/modules/{brand}/copilot/` — superficie exclusiva `builder-agentic`, engine requiere `/pm-luana` lift gate):**
+**Topología F0-F11 (cementada · post-reorg multibrand 2026-05-15 el módulo canónico = ENGINE `core/luana-core-copilot/src/luana_core_copilot/`; brand extensions en `{brand}/backend/src/modules/{brand}/copilot/` — superficie exclusiva `builder-agentic`, engine requiere `/pm-vitalia` lift gate):**
 
 | Capa (base = `luana_core_copilot/`) | Owns | Editar = riesgo |
 |---|---|---|
@@ -231,7 +231,7 @@ Block types canónicos: `text`, `image`, `audio`, `document`, `video`, `citation
 | Nuevo subagent | (1) `subagents/{name}.py` con `SubAgent` TypedDict. (2) **Declarar `tools=[explicit_list]`** — sandbox. (3) Exportar desde `subagents/__init__.py`. (4) `deep_agent.py` lo agrega via `extend()`. |
 | Nuevo `[COPILOT-*]` anchor | Agregar a `tests/architecture/test_copilot_anchors.py::ANCHOR_REGISTRY`. Cap actual 36 — bumpear si supera. |
 | Nuevo dominio event | `copilot/domain/events.py` subclass `DomainEvent` + classmethod `create()` + literal `EVENT_*`. Publish via `event_bus.publish(..., session=None)` (no `db=`). Subscriber opcional en `observability/recording/domain_subscribers.py`. |
-| Nuevo chunk de KB | Agregá el `.md` (front-matter válido) al pack en `{brand}/backend/src/modules/{brand}/copilot/kb/{pack_id}/` (listado en su `manifest.yaml`). Re-seed: `python {brand}/backend/scripts/seed_{vertical}_kb.py` (ej. `seed_medical_kb.py` vitalia, `seed_creator_economy_kb.py` comunify). |
+| Nuevo chunk de KB | Agregá el `.md` (front-matter válido) al pack en `{brand}/backend/src/modules/{brand}/copilot/kb/{pack_id}/` (listado en su `manifest.yaml`). Re-seed: `python vitalia/backend/scripts/seed_medical_kb.py`. |
 
 ---
 
@@ -317,7 +317,7 @@ Block types canónicos: `text`, `image`, `audio`, `document`, `video`, `citation
 
 ```bash
 WS=$(git rev-parse --show-toplevel)
-BRAND=vitalia   # brand con extensión copilot (vitalia/comunify; nicolify reseteada)
+BRAND=vitalia
 
 # Suite ENGINE completa (el módulo canónico vive en core/luana-core-copilot)
 cd ${WS}/core/luana-core-copilot && ${WS}/.venv/bin/pytest tests/ -q -o addopts="" --timeout=120

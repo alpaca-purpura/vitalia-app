@@ -50,7 +50,7 @@ own copilot routes to dodge the eager legacy `Settings`). One engine, one mount 
 
 - **EP-4 / EP-7 / EP-14** — copilot brand extensions (tools, workflows, channels) registered via
   the Extension SDK. A brand extends `{brand}/backend/src/modules/{brand}/copilot/` (never mirrors
-  the engine; engine edits go via `/pm-luana` promotion gate).
+  the engine; engine edits go via `/pm-vitalia` flujo engine — arch tests como gate).
 
 ## Brands consumidoras
 

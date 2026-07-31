@@ -16,8 +16,8 @@
 #   - 2º developer en el repo
 #   - contrato customer-paying / auditoría SOC2/ISO
 #
-# Pre-requisito al reactivar: agregar stage `test` a los Dockerfiles de cada
-# brand (hoy ausente — base/dev/final), y alinear el nombre del marker entre
-# ci-parity.sh (`ci-parity-passed-<brand>-<sha>`) y el hook (`ci-parity-passed-<sha>`).
+# Pre-requisito al reactivar: agregar stage `test` al Dockerfile de vitalia
+# (hoy ausente — base/dev/final). El nombre del marker ya está alineado
+# (2026-07-31): ci-parity.sh y el hook usan `ci-parity-passed-vitalia-<sha>`.
 #
 # Cement: 2026-06-01 (sesión sync cross-worktree · /pm-luana).

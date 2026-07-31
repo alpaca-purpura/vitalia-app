@@ -21,7 +21,7 @@
 
 if [ "${CAP_LEDGER_SKIP:-0}" != "1" ]; then
   STAGED_CAPS=$(git diff --cached --name-only --diff-filter=AM 2>/dev/null \
-    | grep -E '^(vitalia|nicolify|comunify|lupulo|saasora|inmoflow|retailly|fixia|guestly|fitflow)/docs/product/capabilities/[^/]+/[^/]+\.yaml$' \
+    | grep -E '^(vitalia)/docs/product/capabilities/[^/]+/[^/]+\.yaml$' \
     || true)
 
   if [ -n "$STAGED_CAPS" ]; then

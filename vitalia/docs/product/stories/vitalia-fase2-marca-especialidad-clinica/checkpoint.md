@@ -21,7 +21,7 @@ dependencies:
 blocks_hard: []
 blocks_soft:
   - vitalia-fase2-lisa-servicios
-reuse_map_summary: 'EXTEND lisa-marca (done) con un atributo de marca "especialidad(es) de la clínica" + EXTEND onboarding-clinica con el paso que lo declara al alta (set once). El atributo vive a nivel tenant/brand; lo consumen lisa-servicios (seed presets + ejemplos del rung-picker + opciones del dropdown de categoría per-servicio) y la capa agéntica de Lisa (ejemplos/sugerencias condicionados a la especialidad). Posible refinamiento engine: expandir OFFER_LADDER_HINTS (hoy fila genérica PROFESIONAL_SALUD) a filas por sub-vertical → /pm-luana si aplica.'
+reuse_map_summary: 'EXTEND lisa-marca (done) con un atributo de marca "especialidad(es) de la clínica" + EXTEND onboarding-clinica con el paso que lo declara al alta (set once). El atributo vive a nivel tenant/brand; lo consumen lisa-servicios (seed presets + ejemplos del rung-picker + opciones del dropdown de categoría per-servicio) y la capa agéntica de Lisa (ejemplos/sugerencias condicionados a la especialidad). Posible refinamiento engine: expandir OFFER_LADDER_HINTS (hoy fila genérica PROFESIONAL_SALUD) a filas por sub-vertical → /pm-vitalia si aplica.'
 spawned_at: 2026-06-07T01:20:00Z
 spawned_from: vitalia-fase2-lisa-servicios
 created_by: /po-ux (capture — pendiente formalizar /pm-vitalia)
@@ -54,7 +54,7 @@ En `lisa-servicios` (round 3) Chris preguntó dónde se genera "la especialidad"
 - **Crear (Onboarding):** paso en `vitalia-fase2-onboarding-clinica` — "¿qué tipo de clínica eres?" (multi-select). *(/pm-vitalia decide si se implementa dentro de onboarding-clinica o de esta story.)*
 - **Editar (Lisa → Marca):** campo en la identidad de marca (extiende `lisa-marca`, done).
 - **Consumir:** `lisa-servicios` (read-only) + capa agéntica de Lisa.
-- **Engine (posible, /pm-luana):** expandir `OFFER_LADDER_HINTS` de la fila genérica `PROFESIONAL_SALUD` a filas por sub-vertical, para mejores hints del rung-picker.
+- **Engine (posible, /pm-vitalia):** expandir `OFFER_LADDER_HINTS` de la fila genérica `PROFESIONAL_SALUD` a filas por sub-vertical, para mejores hints del rung-picker.
 
 ## AC tentativos
 

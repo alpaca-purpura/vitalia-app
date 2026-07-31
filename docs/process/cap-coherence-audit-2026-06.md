@@ -1,6 +1,6 @@
 # Cap Coherence Audit — vitalia + nicolify (2026-06)
 
-> **Sweep del carril L4 del CIL** (`docs/process/continuous-improvement.md`). Owner: `/pm-luana`.
+> **Sweep del carril L4 del CIL** (`docs/process/continuous-improvement.md`). Owner: `/pm-vitalia`.
 > **Objetivo:** que al entrar al cockpit se vea el efecto del harness bien ejecutado
 > (proceso v5 + cap-deterministic HB-51 + cap-display HB-52, ya BUILT).
 > **Método:** verify-first — diagnóstico sobre el FS real, NO sobre el audit viejo.

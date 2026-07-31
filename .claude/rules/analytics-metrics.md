@@ -4,4 +4,4 @@
 
 Trigger: `core/luana-core-analytics-engine/**` · `{brand}/backend/src/modules/{brand}/analytics/**` · `{brand}/frontend/src/features/marketing/**`.
 
-No-skip 1-liner: stage services = SSoT data (MetricsService NO computa stage metrics) · `_GROUP_MAP` solo en engine `constants.py` · channels via `ChannelRegistry` engine · brand opt-in via Extension SDK — NUNCA mirror per-brand. Engine change → `/pm-luana` promotion gate.
+No-skip 1-liner: stage services = SSoT data (MetricsService NO computa stage metrics) · `_GROUP_MAP` solo en engine `constants.py` · channels via `ChannelRegistry` engine · brand opt-in via Extension SDK — NUNCA mirror per-brand. Engine change → flujo engine `/pm-vitalia` (arch tests como gate).

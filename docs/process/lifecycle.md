@@ -1,6 +1,6 @@
 # Lifecycle — SSoT del ciclo de vida de producto (Luana platform)
 
-**Cement-date:** 2026-05-28. **Owner:** Chris + `/pm-luana`. **Estado:** canónico.
+**Cement-date:** 2026-05-28. **Owner:** Chris + `/pm-vitalia`. **Estado:** canónico.
 
 Este doc es la **fuente única de verdad** del modelo de producto y su ciclo de vida. **Supersede** los fragmentos contradictorios de `pm-redesign-2026-05.md`, `release-protocol.md`, `capability-protocol.md` y los skills `/pm-*` donde difieran. Si otro doc contradice a este → este gana, y el otro se corrige.
 

@@ -33,13 +33,13 @@ grep -rn "<kw>" ${WS}/${BRAND}/backend/src/modules/${BRAND}/
 grep -rn "from luana_core_" ${WS}/${BRAND}/backend/src/modules/${BRAND}/
 find ${WS}/core ${WS}/${BRAND}/backend/src -name "*.py" \( -path "*<kw>*" -o -path "*provider*" -o -path "*adapter*" \)
 # Detectar mirror en OTRA brand (lift candidate):
-for B in vitalia nicolify comunify lupulo; do [ "$B" = "$BRAND" ] && continue; grep -rln "<kw>" ${WS}/$B/backend/src 2>/dev/null; done
+grep -rln "<kw>" ${WS}/core/luana-core-*/src ${WS}/vitalia/backend/src 2>/dev/null | head -10
 ```
 
 Decisión (ver `.claude/rules/anti-duplication.md` § Inventario engine abstractions SSoT):
 - Match en `core/luana-core-*` 80%+ overlap → **EXTEND vía import** `from luana_core_*` (default)
 - Match 40-79% → **EXTEND con caveat** (architect orchestrator decide)
-- Match en OTRA brand → **ESCALATE `/pm-luana`** (lift candidate brand→core, NUNCA mirror)
+- Match en el engine → **CONSUMIR vía import** (o `/pm-vitalia` flujo engine si necesita extensión — NUNCA mirror)
 - No match → **NEW** (justificar en 03-arch-be.md sección "Por qué los existentes no sirven")
 
 Cita paths + lines en `03-arch-be.md § Existing systems audit`.

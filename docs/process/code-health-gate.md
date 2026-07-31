@@ -1,6 +1,6 @@
 # Code Health Gate — mantenibilidad BE + FE (dead-code · duplicación · docstrings · vuln)
 
-**Origen:** HB-61 (2026-06-08) — consulta de Chris sobre `fallow` (dead-code/dup detector TS). Auditoría honesta destapó que las tools de mantenibilidad estaban **declaradas pero nunca cableadas**: FE corría 3/8 gates (jscpd/knip/madge sin config/deps/scripts), BE declaraba jscpd/interrogate/pip-audit (gates 11-13) pero el shortcut `test-{brand}` solo corría pytest/ruff/format/mypy, y BE **no tenía ninguna detección de dead-code** (ruff solo caza unused imports/vars, no funcs/clases/módulos). Este gate cierra el gap. **Owner:** `/pm-luana` (tooling cross-brand = plataforma).
+**Origen:** HB-61 (2026-06-08) — consulta de Chris sobre `fallow` (dead-code/dup detector TS). Auditoría honesta destapó que las tools de mantenibilidad estaban **declaradas pero nunca cableadas**: FE corría 3/8 gates (jscpd/knip/madge sin config/deps/scripts), BE declaraba jscpd/interrogate/pip-audit (gates 11-13) pero el shortcut `test-{brand}` solo corría pytest/ruff/format/mypy, y BE **no tenía ninguna detección de dead-code** (ruff solo caza unused imports/vars, no funcs/clases/módulos). Este gate cierra el gap. **Owner:** `/pm-vitalia` (tooling cross-brand = plataforma).
 
 ## Qué corre (decidido sobre evidencia real, no teoría)
 

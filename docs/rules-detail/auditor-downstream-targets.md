@@ -5,7 +5,7 @@
 >
 > **Convención paths:**
 > - `${WS}` = `/home/chalreme/Proyectos/luana-platform/`
-> - `${BRANDS}` = `{vitalia, nicolify, comunify, lupulo}` (4 activos). Cuando aplique, expandir cada brand.
+> - `${BRANDS}` = `{vitalia}` (única marca del repo).
 > - Engine packages: `core/luana-core-{pkg}/src/luana_core_{pkg}/` (tests en `core/luana-core-{pkg}/tests/`)
 > - Brand consumers: `{brand}/backend/tests/...` per brand listada
 > - Pre-multibrand legacy paths (`backend/src/shared/...`, `backend/tests/modules/...`) NO aparecen en surfaces vivas — solo en ejemplos marcados `LEGACY:` al final del rule principal.
@@ -123,7 +123,6 @@
 Cuando agregás:
 - Nueva surface en `core/luana-core-X/src/luana_core_X/` cross-consumer → MUST add row en sección apropiada (A-I) con downstream_test_targets incluyendo engine tests + `{brand}/...` ∀ brand consumer
 - Nuevo módulo importer engine de surface listada → MUST add path a downstream_test_targets row existente
-- Nueva brand activa (bootstrap saasora/inmoflow/etc.) → MUST expand `{brand}` template ∀ row applicable (sed-friendly: `{brand}` → `<new-brand>`)
 - Cambia downstream test path (rename) → update row mismo commit
 - Lift brand → engine (promotion proposal merged) → remove brand row + add engine row + add ∀ brand consumer rows
 

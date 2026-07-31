@@ -1,4 +1,4 @@
-// harness-audit-2026 — workflow reutilizable de auditoría del harness Claude Code de luana-platform.
+// harness-audit-2026 — workflow reutilizable de auditoría del harness Claude Code de vitalia-app.
 // Promovido a comando permanente 2026-06-01 (HLP §8). Invocar: Workflow({name: 'harness-audit-2026'})
 // (== meta.name abajo; el filename queda harness-audit.js por compat con refs en HLP/backlog).
 // ★ proceso v5 (2026-06-05): este workflow es el DEEP-SWEEP del ritual /harnesses-improvement
@@ -9,7 +9,7 @@
 
 export const meta = {
   name: 'harness-audit-2026',
-  description: 'Auditoría exhaustiva del harness Claude Code de luana-platform (skills/agents/rules/hooks/cockpit/process/templates/adr) vs schemas CC junio-2026 VERIFICADOS + consistencia interna + staleness + punteros rotos + overlap. Produce catálogo ratificable. NO edita nada.',
+  description: 'Auditoría exhaustiva del harness Claude Code de vitalia-app (skills/agents/rules/hooks/cockpit/process/templates/adr) vs schemas CC junio-2026 VERIFICADOS + consistencia interna + staleness + punteros rotos + overlap. Produce catálogo ratificable. NO edita nada.',
   phases: [
     { title: 'Enumerate', detail: 'glob + chunk de todos los archivos del harness', model: 'haiku' },
     { title: 'Audit', detail: 'auditoría paralela por lote vs schema verificado + consistencia', model: 'sonnet' },
@@ -95,14 +95,14 @@ const CATALOG_SCHEMA = {
 
 phase('Enumerate');
 const inv = await agent(
-  "Enumera los archivos del harness Claude Code de luana-platform para auditoria exhaustiva. Corre desde el repo root (cwd actual). Usa bash/glob. Arma lotes de ~6 archivos (NUNCA >8). Cubri EXACTAMENTE estas superficies (archivos PRIMARIOS — para skills lista el SKILL.md, NO references/*):\n" +
+  "Enumera los archivos del harness Claude Code de vitalia-app para auditoria exhaustiva. Corre desde el repo root (cwd actual). Usa bash/glob. Arma lotes de ~6 archivos (NUNCA >8). Cubri EXACTAMENTE estas superficies (archivos PRIMARIOS — para skills lista el SKILL.md, NO references/*):\n" +
   "- .claude/skills/*/SKILL.md -> category 'skill'\n" +
   "- .claude/agents/*.md -> category 'agent'\n" +
   "- .claude/rules/*.md -> category 'rule-root'\n" +
-  "- {vitalia,nicolify,comunify,lupulo}/.claude/rules/*.md -> category 'rule-brand'\n" +
+  "- vitalia/.claude/rules/*.md -> category 'rule-brand'\n" +
   "- docs/rules-detail/*.md -> category 'rule-detail'\n" +
   "- .claude/hooks/* + .claude/settings.json + scripts/git-hooks/* -> category 'hook' (UN solo lote)\n" +
-  "- tools/luana-cockpit/README.md + tools/luana-cockpit/*.md -> category 'cockpit' (UN solo lote)\n" +
+  "- tools/cockpit/README.md + tools/cockpit/*.md -> category 'cockpit' (UN solo lote)\n" +
   "- docs/process/*.md -> category 'process'\n" +
   "- docs/specs/templates/* -> category 'template'\n" +
   "- docs/architecture/luana-platform/*.md -> category 'adr'\n" +
@@ -127,7 +127,7 @@ const findings = await parallel((inv.batches || []).map((b) => () =>
 phase('Synthesize');
 const valid = findings.filter(Boolean);
 const catalog = await agent(
-  "Sos el lead de sintesis de una auditoria exhaustiva del harness Claude Code de luana-platform. Recibis hallazgos de " + valid.length + " lotes cubriendo TODO el harness. Produci un CATALOGO RATIFICABLE (markdown) para que Chris apruebe ANTES de cualquier edit.\n" +
+  "Sos el lead de sintesis de una auditoria exhaustiva del harness Claude Code de vitalia-app. Recibis hallazgos de " + valid.length + " lotes cubriendo TODO el harness. Produci un CATALOGO RATIFICABLE (markdown) para que Chris apruebe ANTES de cualquier edit.\n" +
   "Hallazgos (JSON): " + JSON.stringify(valid) + "\n" +
   "Tareas: deduplicar hallazgos solapados; agrupar por superficie (skills/agents/rules/hooks/cockpit/process/templates/adr); dentro de cada grupo ordenar por severity. Cada entrada del catalogo = {issue/oportunidad -> archivo(s) afectado(s) -> cambio propuesto concreto -> risk -> effort}. Incluir seccion '## Quick wins (bajo riesgo, alto impacto)' al frente y '## Necesita decision de Chris (stake/criterio)'. Incluir al final un '## Roadmap de adopcion priorizado' mapeado a features CC-2026 (workflows, isolation:worktree, hook events nuevos, plugin packaging, cost-routing, skill-listing budget). Denso y escaneable. Devolve catalog_markdown (el doc completo, en español neutro) + summary stats.",
   { schema: CATALOG_SCHEMA, label: 'synthesize', phase: 'Synthesize', model: 'opus' }

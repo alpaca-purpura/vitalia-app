@@ -37,7 +37,7 @@ See [docs/compliance.md](docs/compliance.md) for full compliance documentation.
 Copy the example env file and fill in your credentials:
 
 ```bash
-cp /home/chris/luana-platform/vitalia/config/.env.example /home/chris/luana-platform/vitalia/.env
+cp vitalia/.env.dev.template vitalia/.env.dev
 ```
 
 Required variables:
@@ -71,15 +71,15 @@ QDRANT_PORT=6333
 ### 2. Install backend dependencies
 
 ```bash
-cd /home/chris/luana-platform/vitalia/backend
+cd vitalia/backend
 uv sync
 ```
 
 ### 3. Run database migrations
 
 ```bash
-cd /home/chris/luana-platform/vitalia/backend
-docker exec visionarias_brain_dev alembic upgrade head
+cd vitalia/backend
+docker exec luana-dev-vitalia_backend_dev-1 bash -c "cd /workspace/vitalia/backend && /workspace/.venv/bin/alembic upgrade head"
 ```
 
 ### 4. Seed fixture clinics (dev/test only)
@@ -87,7 +87,7 @@ docker exec visionarias_brain_dev alembic upgrade head
 Inserta las 3 clínicas fixture LatAm para testing del flujo de onboarding:
 
 ```bash
-cd /home/chris/luana-platform/vitalia/backend
+cd vitalia/backend
 
 # Validar definición sin DB (CI check — V-F-15)
 .venv/bin/python scripts/seed_fixture_clinics.py --check
@@ -112,18 +112,18 @@ Fixtures disponibles:
 Ingesta el contenido médico de referencia en Qdrant (dental + psychology + psychiatry packs):
 
 ```bash
-cd /home/chris/luana-platform/vitalia/backend
+cd vitalia/backend
 uv run python -m scripts.seed_medical_kb
 ```
 
 ### 6. Start dev server
 
 ```bash
-cd /home/chris/luana-platform
+cd "$(git rev-parse --show-toplevel)"
 make dev-vitalia   # o: docker compose -f vitalia/docker-compose.yml up -d
 ```
 
-La API estará disponible en `http://localhost:8001/api/v1/vitalia/`.
+La API estará disponible en `http://localhost:8002/api/v1/vitalia/`.
 
 ---
 
@@ -167,7 +167,7 @@ vitalia/backend/
 ## Running tests
 
 ```bash
-cd /home/chris/luana-platform/vitalia/backend
+cd vitalia/backend
 
 # Lint + format
 .venv/bin/ruff check src/ tests/ --no-cache

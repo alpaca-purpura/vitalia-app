@@ -194,7 +194,7 @@ Antes de cerrar el merge commit, `/pm-{brand}` MUST verificar que el `change_log
 
 - ❌ Editar `scenarios[]` manualmente desde un commit que no sea Fase F MERGE de la story que los introduce
 - ❌ Story sin `cap_target` declarado pasa `refining → refined` (skill /architect debe rechazar)
-- ❌ Cross-brand mirror cap: dos brands replican el mismo cap → debe vivir en `core/luana-core-*/` (lift gate `/pm-luana`)
+- ❌ Cross-brand mirror cap: dos brands replican el mismo cap → debe vivir en `core/luana-core-*/` (flujo engine `/pm-vitalia` — arch tests como gate)
 - ❌ `change_log[]` modificado (no append) — viola append-only ledger
 - ❌ Scenario con `added_in_story` que NO existe en `change_log[]` → inconsistencia (pre-commit hook bloquea)
 - ❌ Cap nuevo con `parent_cap` declarado pero padre NO tiene este cap en `derives_capabilities[]` → inconsistencia
@@ -258,7 +258,7 @@ Todo cap declara `change_log[]` + scenarios + **4 dimensiones de clasificación*
 | `plataforma-tecnica` | `plataforma-tecnica.platform` · `plataforma-tecnica.payment` · `plataforma-tecnica.shell` · `plataforma-tecnica.map` · `plataforma-tecnica.reconciliation` · … |
 | `motor-agentico` | `motor-agentico.copilot` · `motor-agentico.agentic-engine` · `motor-agentico.sales-agent-engine` |
 
-Otras brands declaran su propio `SYSTEM-MAP.yaml` por zonas (lift del modelo propuesto via `/pm-luana` — ver `docs/promotion-protocol/proposals/2026-05-30-lift-zone-model.md`).
+Nota histórica multibrand: otras brands declaraban su propio `SYSTEM-MAP.yaml` por zonas (el lift del modelo vivió en el promotion protocol, hoy archivado en `docs/archive/2026/multibrand-legacy/`).
 
 ### Zona del mapa (5ª dimensión DERIVADA — cement 2026-05-30)
 

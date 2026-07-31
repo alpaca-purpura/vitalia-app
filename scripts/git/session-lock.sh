@@ -1,1 +1,0 @@
-../../core-harness/scripts/git/session-lock.sh

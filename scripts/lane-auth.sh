@@ -11,10 +11,7 @@
 # and closes — the persistent context flushes cookies to disk natively. The MCP then opens that
 # profile already signed in.
 #
-# RAM NOTE (host-infra, out of scope for this script): when running a live-verify, prefer a
-# single-brand FE to avoid OOM — `make dev-active BRAND=<brand>` stops the other brands' FE.
-#
-# Usage:  bash scripts/lane-auth.sh <vitalia|nicolify|comunify> [--force]
+# Usage:  bash scripts/lane-auth.sh vitalia [--force]
 #   LUANA_LANE selects the lane profile (default "solo"). Re-seeds if the profile marker is
 #   >4h old; --force re-seeds unconditionally.
 set -euo pipefail
@@ -31,12 +28,12 @@ for arg in "$@"; do
 done
 
 case "$BRAND" in
-  vitalia|nicolify|comunify) ;;
+  vitalia) ;;
   "")
-    echo "Uso: bash scripts/lane-auth.sh <vitalia|nicolify|comunify> [--force]" >&2
+    echo "Uso: bash scripts/lane-auth.sh vitalia [--force]" >&2
     exit 2 ;;
   *)
-    echo "lane-auth: brand inválida '$BRAND' (esperado: vitalia|nicolify|comunify)" >&2
+    echo "lane-auth: brand inválida '$BRAND' (esperado: vitalia)" >&2
     exit 2 ;;
 esac
 
@@ -73,13 +70,9 @@ set -a
 . "$ENV_FILE"
 set +a
 
-# Default E2E_BASE_URL per brand if not provided by .env.dev.
+# Default E2E_BASE_URL if not provided by .env.dev.
 if [ -z "${E2E_BASE_URL:-}" ]; then
-  case "$BRAND" in
-    vitalia)  E2E_BASE_URL="http://localhost:3002" ;;
-    nicolify) E2E_BASE_URL="http://localhost:3001" ;;
-    comunify) E2E_BASE_URL="http://localhost:3003" ;;
-  esac
+  E2E_BASE_URL="http://localhost:3002"
   export E2E_BASE_URL
 fi
 

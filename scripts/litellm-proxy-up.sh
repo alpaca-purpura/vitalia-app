@@ -10,7 +10,7 @@
 # Keys:    deploy/litellm/.env              (gitignored: DEEPSEEK/MOONSHOT/OPENAI/MASTER)
 #
 # Reversible: `docker rm -f luana_litellm_dev`.
-# NOTE (deferred, /pm-luana): fold this into root docker-compose.dev.yml as a
+# NOTE (deferred, /pm-vitalia): fold this into root docker-compose.dev.yml as a
 # first-class shared service. Standalone script today keeps the close in-lane.
 set -euo pipefail
 

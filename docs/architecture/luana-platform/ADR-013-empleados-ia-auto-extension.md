@@ -49,7 +49,7 @@ Las acciones son verbos transaccionales sin estado; un **flujo (#7)** es orquest
 ### D6 · Techo de auto-extensión + separación de poderes (refinamientos del estrés-test)
 
 - **Read/write split (CQRS):** reads/vistas = dueño por vantage/decisión, componibles cross-dominio vía **read-models publicados**; writes/flujos = dueño por outcome.
-- **Techo:** la auto-extensión runtime topa en la superficie brand-extension; lo que toca el **core invariante** (compliance, cifrado, contratos cross-brand) NO se auto-construye → escala al gate humano `/pm-luana`.
+- **Techo:** la auto-extensión runtime topa en la superficie brand-extension; lo que toca el **core invariante** (compliance, cifrado, contratos cross-brand) NO se auto-construye → escala al gate humano `/pm-vitalia`.
 - **Separación de poderes:** un agente NO se auto-otorga autonomía; la gobierna el humano vía Configuración (el agente pide, el humano concede).
 - **T0 inteligente:** un remove/cambio que viola compliance se rechaza CON razón + re-rutea al objetivo legítimo.
 

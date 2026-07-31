@@ -1,6 +1,6 @@
 # Brand Docs Schema — R1+R2+R3+R4
 
-> **Slim pointer (W1-Phase2 eviction 2026-06-09 · tier: project — el modelo 4-ejes es CORE en `lifecycle`).** Detalle completo (schema ASCII, how-to-apply, gitignored inventory, enforcement) en `docs/rules-detail/brand-docs-schema.md`. Aplica a `{brand}/docs/` (4 brands activas + bootstrap).
+> **Slim pointer (W1-Phase2 eviction 2026-06-09 · tier: project — el modelo 4-ejes es CORE en `lifecycle`).** Detalle completo (schema ASCII, how-to-apply, gitignored inventory, enforcement) en `docs/rules-detail/brand-docs-schema.md`. Aplica a `vitalia/docs/`.
 
 4 reglas hard (1-liners — atomics/outcomes MUERTOS, no reintroducir):
 - **R1** — `{brand}/docs/` raíz = SOLO sub-directorios; ningún `.md` suelto.

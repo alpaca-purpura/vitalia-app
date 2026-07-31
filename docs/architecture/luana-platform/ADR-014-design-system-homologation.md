@@ -1,6 +1,6 @@
 # ADR-014 — Homologación del design system (UI consistente cross-brand por enforcement mecánico)
 
-**Status:** accepted (ratificado por Chris 2026-06-07) · **Date:** 2026-06-07 · **Decider:** Chris · **Scope:** platform-wide (cross-brand · design system) · **Owner:** `/pm-luana`
+**Status:** accepted (ratificado por Chris 2026-06-07) · **Date:** 2026-06-07 · **Decider:** Chris · **Scope:** platform-wide (cross-brand · design system) · **Owner:** `/pm-vitalia`
 
 > **Reconciliación (Chris pidió revisar trabajo previo):** completa — NO duplica — el outcome [`luana-core-ui-foundation`](../../product/outcomes/luana-core-ui-foundation.md) (umbrella design-system, refining) + `tech-baseline-homologation-platform`. Esos cubren package/átomos/shell-organism/theme-tokens (lifts `ui-extraction` + `lift-shell-organism` **accepted**). Esta ADR agrega las 3 piezas que faltaban: **(1) capa de layout-primitives de contenido**, **(2) enforcement mecánico** (lock arbitrary), **(3) homologación comprehensiva (todas las hojas)**. Plan: `docs/promotion-protocol/proposals/2026-06-07-design-system-homologation.md`.
 >
@@ -54,7 +54,7 @@ Homologar la UI como **un design system de 5 capas, compartido cross-brand en `c
 
 ### Dónde vive + ownership
 
-Todo en `core/@luana/{design-tokens, ui-kit}` (cross-brand). Es jurisdicción **`/pm-luana`** (promotion gate). Las marcas **adoptan** (opt-in por brand, vitalia primero por ser el peor drift). Mismo carril que los lifts ya aceptados: `2026-06-01-lift-shell-organism-to-core`, `2026-05-21-luana-core-ui-extraction`, `2026-05-30-lift-zone-model`.
+Todo en `core/@luana/{design-tokens, ui-kit}` (cross-brand). Es jurisdicción **`/pm-vitalia`** (flujo engine — arch tests como gate). Las marcas **adoptan** (opt-in por brand, vitalia primero por ser el peor drift). Mismo carril que los lifts ya aceptados: `2026-06-01-lift-shell-organism-to-core`, `2026-05-21-luana-core-ui-extraction`, `2026-05-30-lift-zone-model`.
 
 ## Consecuencias
 

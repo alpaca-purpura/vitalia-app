@@ -686,7 +686,7 @@ debe ser ~100% autónomo sin trigger Chris (salvo ESCALATE explícito).
 **D1 — Auditor decision policy HÍBRIDO por naturaleza del fix:**
 - Whitelist verbatim 17 categorías triviales → self-fix cap 4
 - TDD requerido / refactor 2+ archivos / lógica → spawn dev-team autónomo
-- Security / cross-brand / engine → ESCALATE Chris o /pm-luana
+- Security / cross-brand / engine → ESCALATE Chris o /pm-vitalia
 - Auditor NUNCA escribe tests (preserva TDD discipline)
 - Cap absoluto `audit_iterations: 3` (ampliado de 2)
 - Después spawn dev-team, auditor re-corre gate-runner + Phase D sin trigger Chris

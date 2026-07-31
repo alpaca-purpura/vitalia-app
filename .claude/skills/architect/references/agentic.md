@@ -39,12 +39,12 @@ grep -rn "<keyword>" ${WS}/core/luana-core-llm/src/
 grep -rn "<keyword>" ${WS}/core/luana-core-copilot/src/ ${WS}/core/luana-core-sales-agent/src/
 grep -rn "<keyword>" ${WS}/${BRAND}/backend/src/modules/${BRAND}/{copilot,sales_agent}/
 # Detectar mirror en OTRA brand (lift candidate):
-for B in vitalia nicolify comunify lupulo; do [ "$B" = "$BRAND" ] && continue; grep -rln "<keyword>" ${WS}/$B/backend/src 2>/dev/null; done
+grep -rln "<keyword>" ${WS}/core/luana-core-*/src ${WS}/vitalia/backend/src 2>/dev/null | head -10
 ```
 
 **Inventario engine abstractions: NO duplicar acá — SSoT en `.claude/rules/anti-duplication.md` § "Inventario engine abstractions (SSoT)"** (turn envelope, callback handler, PII sanitization, FX/pricing resolver, LLM router+providers, tenant billing, channel format registry → todos en `core/luana-core-{observability,llm,channels,billing}/`). Consumir vía `from luana_core_*` import.
 
-Si tu propuesta requiere nuevo provider / nueva abstraction cross-module → EXTEND desde engine, NO mirror local. Match en OTRA brand → ESCALATE `/pm-luana` (lift gate brand→core).
+Si tu propuesta requiere nuevo provider / nueva abstraction cross-module → EXTEND desde engine, NO mirror local. Match en el engine → CONSUMIR vía import (o `/pm-vitalia` flujo engine si necesita extensión).
 
 ### Step 2 — Diseño técnico
 

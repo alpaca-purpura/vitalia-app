@@ -1,5 +1,5 @@
 ---
-globs: "{core/luana-core-analytics-engine/**,{nicolify,vitalia,comunify,lupulo}/backend/src/modules/*/analytics/**}/*.py"
+globs: "{core/luana-core-analytics-engine/**,vitalia/backend/src/modules/*/analytics/**}/*.py"
 description: ETL extraction contract workflow — read/update/verify cycle (multibrand)
 ---
 
@@ -26,7 +26,7 @@ Questions like "what ETL extracts for `<provider>`?", "where `<metric>` comes fr
 
 ## When UPDATING
 
-Trigger: any change to (engine paths require `/pm-luana` promotion gate; brand opt-ins are brand-scoped):
+Trigger: any change to (engine paths require `/pm-vitalia` flujo engine; brand opt-ins are brand-scoped):
 
 **Engine (cross-brand — `core/luana-core-analytics-engine/src/luana_core_analytics_engine/`):**
 - `.../infrastructure/providers/*.py`
@@ -60,14 +60,11 @@ Trigger: any change to (engine paths require `/pm-luana` promotion gate; brand o
    make extraction-contract
    # or: ${WS}/.venv/bin/python core/luana-core-analytics-engine/scripts/generate_extraction_contract_doc.py
    ```
-5. **Arch test** (engine + every brand consumer):
+5. **Arch test** (engine + vitalia consumer):
    ```bash
    WS=$(git rev-parse --show-toplevel)
-   cd ${WS}/core/luana-core-analytics-engine && ${WS}/.venv/bin/pytest tests/ (suite engine — el arch test dedicado de drift fue retirado en la reorg) -x -q
-   # also per brand:
-   for B in nicolify vitalia comunify lupulo; do
-     cd ${WS}/${B}/backend && ${WS}/.venv/bin/pytest tests/ (suite engine — el arch test dedicado de drift fue retirado en la reorg) -x -q 2>/dev/null || true
-   done
+   cd ${WS}/core/luana-core-analytics-engine && ${WS}/.venv/bin/pytest tests/ -x -q
+   cd ${WS}/vitalia/backend && ${WS}/.venv/bin/pytest tests/ -x -q
    ```
 
 ### Commit
@@ -160,8 +157,8 @@ Analytics es **ENGINE + BRAND-CONFIG** (ver CLAUDE.md tabla mapping):
 
 | Surface | Path | Owner |
 |---|---|---|
-| Engine ETL contract + catalog | `core/luana-core-analytics-engine/src/luana_core_analytics_engine/domain/{extraction_contract,metric_catalog}.py` | `/pm-luana` |
-| Brand opt-in (enabled_metrics, channel_groups) | `{brand}/config/brand.yaml` + `{brand}/backend/src/modules/{brand}/analytics/extensions.py` | `/pm-{brand}` |
+| Engine ETL contract + catalog | `core/luana-core-analytics-engine/src/luana_core_analytics_engine/domain/{extraction_contract,metric_catalog}.py` | `/pm-vitalia` |
+| Brand opt-in (enabled_metrics, channel_groups) | `{brand}/config/brand.yaml` + `{brand}/backend/src/modules/{brand}/analytics/extensions.py` | `/pm-vitalia` |
 | Auto-gen MD | `core/luana-core-analytics-engine/docs/extraction-contract.md` (NUNCA edit manual) | generator |
 
 **Antes ETL question:** leer `core/luana-core-analytics-engine/docs/extraction-contract.md` PRIMERO.
@@ -172,5 +169,5 @@ Analytics es **ENGINE + BRAND-CONFIG** (ver CLAUDE.md tabla mapping):
 
 ### Multibrand awareness (post reorg 2026-05-15)
 
-- Engine cambios → requieren `/pm-luana` promotion gate + revalidación en cada brand consumer activa.
+- Engine cambios → flujo engine `/pm-vitalia` + revalidación en vitalia consumer.
 - Brand-specific provider adapters viven en `{brand}/backend/src/modules/{brand}/analytics/providers/` (registrados via Extension SDK).

@@ -1,6 +1,6 @@
 # Vitalia — Brand overlay
 
-> **Auto-cargado** cuando cwd cae dentro `vitalia/...` o worktree `~/Proyectos/luana-vitalia*/`. Coexiste con root `CLAUDE.md` (no duplica — extiende).
+> **Auto-cargado** cuando cwd cae dentro `vitalia/...`. Coexiste con root `CLAUDE.md` (no duplica — extiende).
 
 **Brand:** Vitalia. **Vertical:** Salud + Bienestar electivo LatAm (clínicas que requieren marketing + captación, NO emergencias).
 
@@ -91,19 +91,17 @@ Skill `vitalia-design-system` = índice cargable del shell-organism + átomos/mo
 - `/dev-team` (con `<brand>: vitalia`) — autonomous build vitalia
 - `/auditor` (con `<brand>: vitalia`) — review vitalia
 
-## Cross-brand learning sources (prior-art para refining — actualizado 2026-05-27)
+## Prior-art sources (refining — actualizado 2026-07-31, repo standalone single-brand)
 
-Vitalia es **brand activa con mayor volumen** post-multibrand-reorg (27 done + 71 capabilities + 21 learnings). **Cross-brand prior-art OBLIGATORIO** (anti-duplication-refining), pero las fuentes correctas son:
+**Prior-art scan OBLIGATORIO** (anti-duplication-refining). Fuentes en ESTE repo (no hay otras marcas):
 
 | Source | Path | Cuándo consultar |
 |---|---|---|
-| `vitalia/` propio (archivos + capabilities + learnings) | `vitalia/docs/archive/*/stories/`, `vitalia/docs/product/capabilities/`, `vitalia/docs/learnings/` | SIEMPRE — applies previos aprendizajes propios |
-| `comunify/` live | `comunify/docs/{archive,product/capabilities,learnings}/` | SIEMPRE — 18 capabilities + 4 learnings + 2 archived stories pueden tener pattern paralelo |
 | `core/luana-core-*/` engine (27 packages) | `core/luana-core-*/src/luana_core_*/` | SIEMPRE — consumir vía import, NUNCA recrear |
-| `nicolify` snapshot (referencia arqueológica) | `docs/archive/2026/snapshot-pre-multibrand-pm-redesign/` | Como referencia histórica para patterns shipped pre-reorg (CRM ciclo largo, B2B agencias). NO live work — frozen 2026-05-15 |
-| `lupulo/` + 6 futuras | n/a | NO consultar (placeholder/bootstrap pendientes) |
-
-> **Corrección 2026-05-27:** la versión anterior citaba "nicolify ~80% features shipped" como source principal. Post-multibrand-reorg el brand-level `nicolify/docs/product/` está vacío (audit doc: `docs/process/audits/2026-05-27-stories-sweep.md` § Hallazgo CRÍTICO #0). Pattern principal live ahora es vitalia + comunify.
+| `vitalia/` propio (archive + capabilities + learnings) | `vitalia/docs/archive/*/stories/`, `vitalia/docs/product/capabilities/`, `vitalia/docs/learnings/` | SIEMPRE — aplicar aprendizajes propios |
+| Learnings transversales | `docs/learnings/` | SIEMPRE — patterns técnicos cross-engine |
+| Snapshot arqueológico (read-only) | `docs/archive/2026/snapshot-pre-multibrand-pm-redesign/` | Referencia histórica patterns shipped pre-reorg. NO live work — frozen 2026-05-15 |
+| Herencia multimarca archivada | `docs/archive/2026/multibrand-legacy/` | Referencia histórica docs multimarca (las otras marcas viven en luana-platform, no acá) |
 
 ## Brand checkpoint pointer
 
@@ -120,7 +118,7 @@ Toda story que toque `cap_change_type ∈ {new, extend}` sobre cap user_visible:
 
 ```bash
 # Levantar cockpit y abrir tab Functionality (vista narrada del producto)
-make -C ~/Proyectos/chris-corp cockpit-up          # http://localhost:4000/functionality
+make cockpit-up                                    # cockpit vendored (:4002) → http://localhost:4002/functionality
 
 # Crear una cap NUEVA (HB-51 · NUNCA hand-author el YAML)
 make new-cap BRAND=vitalia MODULE=inbox SLUG=adrian-inbox AREA=adrian.inbox
@@ -136,7 +134,7 @@ python3 scripts/validate_code_cap_bidirectional.py --brand vitalia   # G1-G6 HAR
 ls vitalia/docs/product/capabilities/_*.json       # status + code-index + bidirectional
 ```
 
-> **HB-51 (cement 2026-06-05):** el formato/estado de una cap está enforced por 8 capas determinísticas (resolver two-way `cap_id↔functional_area` + `make new-cap` generator + schema pydantic + 6 gates G1-G6 HARD en pre-commit/pre-push + `make cap-doctor`). Un header `# cap:` → cap inexistente, o una caja del cockpit vacía, ahora **fallan el commit** (vitalia/comunify HARD; nicolify/lupulo advisory). SSoT: `docs/process/cap-deterministic-enforcement.md`.
+> **HB-51 (cement 2026-06-05):** el formato/estado de una cap está enforced por 8 capas determinísticas (resolver two-way `cap_id↔functional_area` + `make new-cap` generator + schema pydantic + 6 gates G1-G6 HARD en pre-commit/pre-push + `make cap-doctor`). Un header `# cap:` → cap inexistente, o una caja del cockpit vacía, ahora **fallan el commit** (vitalia HARD). SSoT: `docs/process/cap-deterministic-enforcement.md`.
 
 SSoT: `docs/process/capability-protocol.md` § Sec 11-13 (v3.2 cement).
 
@@ -160,6 +158,6 @@ curl http://127.0.0.1:8002/health
 - `vitalia/docs/product/vision.md` — full vision (verticales + HIPAA-lite + competidores + personas + GTM)
 - `vitalia/docs/architecture/` — ADRs brand-specific
 - `vitalia/docs/learnings/` — captured learnings vitalia
-- `core/luana-core-compliance/` — HIPAA-lite engine (prior-art: § Cross-brand learning sources)
+- `core/luana-core-compliance/` — HIPAA-lite engine (prior-art: § Prior-art sources)
 - `.claude/rules/anti-duplication-refining.md` — enforcement prior-art scan
 - `.claude/rules/claude-md-overlay.md` — schema de este overlay

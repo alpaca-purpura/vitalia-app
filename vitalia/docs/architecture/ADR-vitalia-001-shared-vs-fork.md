@@ -144,7 +144,7 @@ sistema de tokens médicos**.
 
 Workflow Slice 2 (cuando aplique):
 1. Emitir promotion proposal en `docs/promotion-protocol/proposals/`
-2. `/pm-luana` ratifica — `/architect` diseña API pública del paquete
+2. `/pm-vitalia` ratifica — `/architect` diseña API pública del paquete
 3. Extraer componentes comunes a `core/luana-core-ui-medical/` (nuevo package)
 4. Vitalia + segunda brand consumen via `@luana/ui-medical`
 5. Eliminar fork en `vitalia/frontend/src/` (reemplazar con imports `@luana/ui-medical`)

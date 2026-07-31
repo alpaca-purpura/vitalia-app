@@ -24,36 +24,19 @@ set -uo pipefail
 
 WS="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 
-# ── 1. Resolver brand (arg explícito > inferir del worktree) ─────────────────
-BRAND="${1:-}"
-if [[ -z "${BRAND}" ]]; then
-  base="$(basename "${WS}")"            # ej. luana-vitalia, luana-platform
-  case "${base}" in
-    luana-nicolify*) BRAND="nicolify" ;;
-    luana-vitalia*)  BRAND="vitalia"  ;;
-    luana-comunify*) BRAND="comunify" ;;
-    luana-lupulo*)   BRAND="lupulo"   ;;
-    *)
-      echo "✗ No pude inferir la marca desde '${base}'." >&2
-      echo "  Usá: scripts/dev-app-up.sh <vitalia|nicolify|comunify|lupulo>" >&2
-      exit 2 ;;
-  esac
-fi
+# ── 1. Resolver brand (single-brand standalone: default vitalia) ─────────────
+BRAND="${1:-vitalia}"
 
-# ── 2. Mapa de puertos por marca ─────────────────────────────────────────────
+# ── 2. Puertos ───────────────────────────────────────────────────────────────
 case "${BRAND}" in
-  nicolify) BE_PORT=8001; FE_PORT=3001 ;;
   vitalia)  BE_PORT=8002; FE_PORT=3002 ;;
-  comunify) BE_PORT=8003; FE_PORT=3003 ;;
-  lupulo)   BE_PORT=8004; FE_PORT=3004 ;;
-  *) echo "✗ Marca desconocida: ${BRAND}" >&2; exit 2 ;;
+  *) echo "✗ Marca desconocida: ${BRAND} (single-brand: vitalia)" >&2; exit 2 ;;
 esac
 
 CF_CONFIG="${WS}/${BRAND}/deploy/cloudflared/dev-config.yml"
 CF_CREDS="${WS}/${BRAND}/deploy/cloudflared/.credentials/dev-tunnel.json"
 
-# Hostname público: se parsea del dev-config.yml (per-brand: vitalialat.com,
-# nicolify.com, etc. NO es uniforme).
+# Hostname público: se parsea del dev-config.yml (vitalialat.com).
 HOSTNAME=""
 if [[ -f "${CF_CONFIG}" ]]; then
   HOSTNAME="$(grep -oE 'hostname:[[:space:]]*dev-app[^[:space:]]+' "${CF_CONFIG}" | head -1 | sed -E 's/hostname:[[:space:]]*//')"

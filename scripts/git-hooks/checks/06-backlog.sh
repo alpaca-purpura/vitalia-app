@@ -11,8 +11,6 @@
 # ─────────────────────────────────────────────────────────────────
 # BACKLOG.{yaml,md} auto-generated por scripts/generate_backlog.py desde
 # sources (ideas-pool.yaml, outcomes/, stories/, capabilities/, modules/).
-# Cross-brand portfolio cement: docs/portfolio/PORTFOLIO.md via
-# scripts/generate_portfolio.py.
 #
 # Trigger: any staged change touching backlog source paths:
 #   - docs/product/(ideas-pool.yaml|outcomes/|stories/|capabilities/|modules/)
@@ -23,10 +21,8 @@
 #
 # Action por trigger:
 #   - Path raíz docs/product/... → invocar generator legacy (regen platform
-#     BACKLOG + auto-stage). Considerar también `make portfolio` para
-#     PORTFOLIO.md cross-brand (manual hoy, futuro auto-stage).
-#   - Path {brand}/docs/product/... → TODO --brand flag pendiente en generator;
-#     por ahora warning + nota TODO.
+#     BACKLOG + auto-stage).
+#   - Path {brand}/docs/product/... → generator con --brand.
 #
 # Note: pm-nico/pis/active/ removed Wave 2 (2026-05-06) — generator returns []
 # defensively. Path NOT included in trigger regex anymore.
@@ -101,10 +97,6 @@ Vista actualizada: cat ${BRAND}/docs/product/BACKLOG.md
 
 Generator output:
 $(tail -10 /tmp/backlog-regen-${BRAND}.txt)
-
-Nota: si la story tocada es candidata cross-brand (promotion to core),
-considerar también:
-  make portfolio   # regenera docs/portfolio/PORTFOLIO.md (también gitignored)
 ─────────────────────────────────────────────────────────────
 EOF
           printf "\033[0m"

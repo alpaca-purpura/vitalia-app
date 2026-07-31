@@ -10,7 +10,7 @@ adr_004_compliance: partial-with-rationale   # FE composer = sub-tab EXTEND (not
 consumes: 01-spec.md (v6) · 02-design-agentic.md (v3)
 cap_target: adrian.inbox
 cap_change_type: extend
-verdict: BLOCKED-PARTIAL    # brand-local surfaces buildable NOW; core agentic value (book/match via graph) requires /pm-luana lift — see § Engine-boundary escalations
+verdict: BLOCKED-PARTIAL    # brand-local surfaces buildable NOW; core agentic value (book/match via graph) requires /pm-vitalia lift — see § Engine-boundary escalations
 autonomous_mode: false     # agentic + PHI = stake-asimétrico; gate G (Chris-verify live Telegram) mandatory
 sota_reviewed: 2026-06-21
 ---
@@ -22,12 +22,12 @@ sota_reviewed: 2026-06-21
 > de engine-boundary que el diseño asumió resueltos y NO lo están:** (1) el resolver de scheduler del
 > engine hardcodea `"internal"` e ignora `tenant_id`; (2) el `TOOL_REGISTRY` del engine es un dict de
 > módulo que NO mergea tools de marca (EP-3); (3) `STAGE_TOOL_SCOPE` es un dict de engine hardcodeado.
-> Sin un **lift `/pm-luana`** que abra esos tres hooks, los tools NUEVOS de Adrián
+> Sin un **lift `/pm-vitalia`** que abra esos tres hooks, los tools NUEVOS de Adrián
 > (`book_appointment`, `match_service_and_specialist`, `share_doctor_profile`) **no se pueden cablear al
 > grafo** sin editar `core/luana-core-sales-agent/src/`. Lo que **SÍ es brand-local y buildable hoy**: el
 > canal Telegram (receiver+route+honor-modo+set-instruction), la plomería de `scheduling`
 > (marcar `availability_slot` + hold-TTL + sweep), y el composer FE en modo-instrucción. Este arch entrega
-> el ready package para esas superficies + escala el muro agentic a `/pm-luana`.
+> el ready package para esas superficies + escala el muro agentic a `/pm-vitalia`.
 
 ---
 
@@ -47,7 +47,7 @@ sota_reviewed: 2026-06-21
 | `vitalia/.../sales_agent/{tools,domain,application,prompts,personas,goldens}/` (agentic prod) | **`builder-agentic`** (flagship) | **`auditor-agentic`** (flagship) |
 | `vitalia/.../connections/telegram/` + `vitalia/.../api/webhook_routes.py` + `vitalia/.../scheduling/` (BE) | **`builder-backend`** (workhorse) | **`auditor-backend`** (flagship) |
 | `vitalia/frontend/src/features/{adrian,inbox}/...` (FE composer instrucción) | **`builder-frontend`** (workhorse) | **`auditor-frontend`** (flagship) |
-| `core/luana-core-sales-agent/src/**` (3 hooks: scheduler routing + extension-tool merge + stage-scope) | **`/pm-luana` promotion gate** (NOT a builder) | n/a → escalate |
+| `core/luana-core-sales-agent/src/**` (3 hooks: scheduler routing + extension-tool merge + stage-scope) | **`/pm-vitalia` promotion gate** (NOT a builder) | n/a → escalate |
 
 ### Skills consultados (decisión tomada de cada uno)
 
@@ -63,7 +63,7 @@ sota_reviewed: 2026-06-21
 - **`frontend-expert`**: composer del inbox = EXTEND (reusar `MessageInput` legacy effectiveMode pattern),
   no nuevo componente. Live-verify via `chrome-devtools-verify`.
 - **LangGraph canonical docs (WebSearch 2026-06-21):** supervisor StateGraph es el patrón del engine
-  (validado). `langgraph>=0.2` pin del engine es viejo pero estable; NO bumpear (engine = `/pm-luana`).
+  (validado). `langgraph>=0.2` pin del engine es viejo pero estable; NO bumpear (engine = `/pm-vitalia`).
 
 ### capability YAML files affected (post-merge, paradigma post 2026-05)
 
@@ -122,7 +122,7 @@ sota_reviewed: 2026-06-21
 **Conclusión de la auditoría:** el diseño v3 acierta en el 90% del *concepto*, pero su afirmación operativa
 "todo se consume por APIs existentes, cero engine" **no se sostiene en 3 puntos duros** (GAP-1/2/3). El loop
 nunca se cableó, así que estos muros nunca se ejercieron. Los GAP-4/5 SÍ tienen workaround brand-local
-(overlay). Los GAP-1/2/3 obligan a tocar engine → **STOP-flag `/pm-luana`** (§ Engine-boundary escalations).
+(overlay). Los GAP-1/2/3 obligan a tocar engine → **STOP-flag `/pm-vitalia`** (§ Engine-boundary escalations).
 
 ---
 
@@ -162,12 +162,12 @@ nunca se cableó, así que estos muros nunca se ejercieron. Los GAP-4/5 SÍ tien
 
 ---
 
-## § Engine-boundary escalations (★ STOP-flag → `/pm-luana` promotion gate)
+## § Engine-boundary escalations (★ STOP-flag → `/pm-vitalia` promotion gate)
 
 > **Estas son las razones del verdict `BLOCKED-PARTIAL`.** Tres hooks del engine `core/luana-core-sales-agent`
 > están cerrados; sin abrirlos, el valor agentic central (el agente AGENDA/MATCHEA por el grafo) no se cablea
 > sin editar `core/luana-core-sales-agent/src/`. **NO se genera ticket de builder para estos** — van a
-> `/pm-luana`. Cada uno trae el path:line del muro + el cambio mínimo propuesto + por qué es lift y no
+> `/pm-vitalia`. Cada uno trae el path:line del muro + el cambio mínimo propuesto + por qué es lift y no
 > brand-local.
 
 ### ESC-1 — `scheduler_provider_for_tenant` ignora `tenant_id` (hardcodea "internal")
@@ -219,7 +219,7 @@ nunca se cableó, así que estos muros nunca se ejercieron. Los GAP-4/5 SÍ tien
   no tienen tool de engine equivalente** → siguen necesitando ESC-2/ESC-3. Y `get_available_slots`/
   `create_booking_link` siguen necesitando ESC-1 para tocar el lane vitalia.
 - **Net:** ESC-1 es el muro inescapable (sin él, ni siquiera los tools de engine tocan el lane vivo de
-  vitalia). ESC-2+ESC-3 son el muro de los tools nuevos (match/share). **Los tres deben ir a `/pm-luana`
+  vitalia). ESC-2+ESC-3 son el muro de los tools nuevos (match/share). **Los tres deben ir a `/pm-vitalia`
   juntos** como un lift cohesivo "abrir el engine sales_agent a scheduler+tools+stage per-brand".
 
 ### Lo que NO está bloqueado (buildable brand-local hoy — ready package abajo)
@@ -233,7 +233,7 @@ nunca se cableó, así que estos muros nunca se ejercieron. Los GAP-4/5 SÍ tien
   `vitalia/.../scheduling/` + `clinics/`).
 - FE composer modo-instrucción. **Cero engine.**
 
-> **Recomendación de secuenciamiento al PM:** mergear el lift `/pm-luana` (ESC-1/2/3) ANTES del BUILD de los
+> **Recomendación de secuenciamiento al PM:** mergear el lift `/pm-vitalia` (ESC-1/2/3) ANTES del BUILD de los
 > tickets agentic T-AG-* (book/match/share). Los tickets BE/FE (canal, scheduling, composer) NO dependen del
 > lift y pueden arrancar ya. El ready package marca esa frontera en el DAG (§ 06-tickets).
 
@@ -437,7 +437,7 @@ es sync pre-response (hipaa-lite). Idempotencia del book por natural key `(patie
 ## § 8 · Agentic Surfaces
 
 > Owner: `builder-agentic` (flagship). Auditor: `auditor-agentic` (flagship). **Patrones SOTA as of
-> 2026-06-21.** Detalle completo: `03-arch-agentic.md`. **★ Estas superficies dependen del lift `/pm-luana`
+> 2026-06-21.** Detalle completo: `03-arch-agentic.md`. **★ Estas superficies dependen del lift `/pm-vitalia`
 > (ESC-1/2/3) para los tools NUEVOS.** Lo brand-local agentic SIN lift = el overlay de estado + persona/playbook
 > tuning + eval goldens + operator-instruction wiring.
 
@@ -527,7 +527,7 @@ vitalia/frontend/src/features/adrian/
   api/operator-instruction.ts                         NEW
   hooks/use-operator-instruction.ts                   NEW
   types/operator-instruction.ts                        NEW
-# ENGINE — ⚠️ NO EDITAR (lift /pm-luana): providers.py, registry.py, agents/sales/tools.py
+# ENGINE — ⚠️ NO EDITAR (lift /pm-vitalia): providers.py, registry.py, agents/sales/tools.py
 ```
 
 ---
@@ -558,7 +558,7 @@ vitalia/frontend/src/features/adrian/
   **sin tocarse** (read-only).
 - **Allowlist:** ninguna nueva. La regla de no editar engine se enforza por boundary (los tickets agentic
   T-AG-* quedan `BLOCKED` hasta el lift; no se commitea edición de `core/`).
-- **NEW arch test recomendado (post-lift, en engine, por `/pm-luana`):** `test_extension_tool_dispatchable.py`
+- **NEW arch test recomendado (post-lift, en engine, por `/pm-vitalia`):** `test_extension_tool_dispatchable.py`
   + `test_scheduler_provider_per_tenant.py` (cierran ESC-1/2/3 con dientes).
 
 ---
@@ -610,24 +610,24 @@ vitalia/frontend/src/features/adrian/
   Hasta 4 breakpoints; ponerlos al final de bloques estáticos. **Por qué importa acá:** una conversación de
   agendamiento dental tiene gaps de minutos entre turnos → el 1h explícito sostiene el ≥60% cache-read target.
   **Acción para el architect del engine (no esta story):** verificar que `compose.py` declare `ttl:1h` en el
-  cache marker; si no, es un item de tuning del engine (`/pm-luana`, no brand).
+  cache marker; si no, es un item de tuning del engine (`/pm-vitalia`, no brand).
 - **LangGraph version pin** — engine pinea `langgraph>=0.2` (`pyproject.toml:11`). Viejo pero estable; **NO
-  bumpear desde esta story** (engine = `/pm-luana`). Verificado contra el pin real.
+  bumpear desde esta story** (engine = `/pm-vitalia`). Verificado contra el pin real.
 
 ---
 
 ## § 16 · Open Questions for PM
 
-1. **★ DECISIÓN MAYOR (Chris/`/pm-luana`):** ¿se aprueba el lift `/pm-luana` ESC-1/2/3 (abrir scheduler
+1. **★ DECISIÓN MAYOR (Chris/`/pm-vitalia`):** ¿se aprueba el lift `/pm-vitalia` ESC-1/2/3 (abrir scheduler
    per-tenant + extension-tool merge + stage-scope per-brand en `core/luana-core-sales-agent`) ANTES del BUILD
    agentic? **Sin él, los tools `book_appointment`/`match`/`share` NO se pueden cablear sin editar engine.** Mi
    recomendación: SÍ — es un lift cohesivo (~80 LOC + 2 arch tests) que beneficia toda brand con sales_agent
    propio, y completa el wiring EP-3 que quedó a medias (Stories 11-13 "wiring real adapters" nunca terminó).
-   El gate `/pm-luana` puede correr en paralelo al BUILD de los tickets BE/FE (que NO lo necesitan).
+   El gate `/pm-vitalia` puede correr en paralelo al BUILD de los tickets BE/FE (que NO lo necesitan).
 2. **cap derivada:** ¿OK crear `sales_agent.adrian-canal-inbound` (derived) o mantenemos todo en `adrian.inbox`?
    Recomiendo derivada (el loop es caja propia en el cockpit).
 3. **`tuning.py` (umbrales stage/fatiga/score) es engine.** Si querés tunear para contexto médico (cerrar a
-   score más bajo, fatiga a 2 preguntas), ¿per-tenant config (brand-local) o lift `/pm-luana`? Recomiendo
+   score más bajo, fatiga a 2 preguntas), ¿per-tenant config (brand-local) o lift `/pm-vitalia`? Recomiendo
    per-tenant config (no editar engine).
 4. **Slot-marking gap (RN-26):** ¿cerramos el marcado de `availability_slot` acá (canal-inbound lo necesita
    sí o sí) o vive en `vitalia-scheduling-mateo-review`? Recomiendo cerrarlo acá + que mateo-review lo verifique.

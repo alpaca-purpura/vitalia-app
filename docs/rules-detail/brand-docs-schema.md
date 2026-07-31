@@ -6,7 +6,7 @@
 
 **Cement-date:** 2026-05-19.
 
-**Scope:** aplica a `{brand}/docs/` para `{brand}` ∈ {vitalia, nicolify, comunify, lupulo + 6 brands pendientes bootstrap}. NO aplica a `docs/` raíz (ese tiene su propio schema cross-brand en CLAUDE.md § SDD Level 3).
+**Scope:** aplica a `vitalia/docs/`. NO aplica a `docs/` raíz (ese tiene su propio schema en CLAUDE.md § SDD Level 3).
 
 ## Schema canónico TARGET — qué SÍ puede existir en `{brand}/docs/`
 
@@ -73,7 +73,7 @@
 
 **Why:** la purga 2026-05-19 detectó 4 platform stories + 2 vitalia stories en state=done viviendo en `product/stories/` desde semanas, contaminando vistas de "stories activas". Además detectó 1 duplicate exacto (`vitalia-slice-1-onboarding-wizard` en active + archive) — sin enforce de auto-move, los duplicates se acumulan.
 
-**How to apply:** `/pm-{brand}` ejecuta como parte del 07-merge:
+**How to apply:** `/pm-vitalia` ejecuta como parte del 07-merge:
 
 ```bash
 YEAR=$(date +%Y)
@@ -82,11 +82,11 @@ git mv {brand}/docs/product/stories/{story-id} {brand}/docs/archive/${YEAR}/stor
 
 El move debe ir en el commit del squash-merge a main (mismo commit que escribe `07-merge.md`).
 
-Esto está mencionado en cada `pm-{brand}/SKILL.md` § "Capability promotion (al merge)" paso 5, y profundamente codificado en `.claude/rules/story-closure-gate.md` § Fase F MERGE.
+Esto está mencionado en cada `pm-vitalia/SKILL.md` § "Capability promotion (al merge)" paso 5, y profundamente codificado en `.claude/rules/story-closure-gate.md` § Fase F MERGE.
 
 **Anti-pattern:** mergear story a main con state=done sin mover a archive. Resultado: story aparece en BACKLOG auto-gen como "active" eternamente. `make portfolio` overhead crece linealmente sin auto-cleanup.
 
-**Detección:** scanner heuristic — story con `state: done` en `{brand}/docs/product/stories/` (fuera de archive) → flag para `/pm-{brand}` cleanup en próxima sesión.
+**Detección:** scanner heuristic — story con `state: done` en `{brand}/docs/product/stories/` (fuera de archive) → flag para `/pm-vitalia` cleanup en próxima sesión.
 
 ## R3 — Auto-gen files son GITIGNORED + NO se editan manual
 
@@ -104,7 +104,7 @@ Esto está mencionado en cada `pm-{brand}/SKILL.md` § "Capability promotion (al
 | `docs/portfolio/INFRA-MATRIX.md` | `scripts/generate_infra_matrix.py` | `make infra-matrix` | ❌ gitignored |
 | `docs/promotion-protocol/scan-{date}.yaml` | `scripts/scan_promotables.py` | `make scan-promotables` | ❌ gitignored |
 | `docs/etl/extraction-contract.md` (cuando exista) | `make extraction-contract` | post analytics provider change | TBD |
-| `**/__generated__/*` (frontend, ej. offer-field-paths.ts) | `nicolify/backend/scripts/generate_offer_field_paths.py` | post field-paths change | ❌ gitignored |
+| `**/__generated__/*` (frontend, ej. offer-field-paths.ts) | `vitalia/backend/scripts/generate_offer_field_paths.py` | post field-paths change | ❌ gitignored |
 
 **Why gitignored (2026-05-20 cement):** durante semanas múltiples sesiones paralelas regeneraban con timestamps + ordenamientos distintos → merge conflicts crónicos (top 14 días: BACKLOG/PORTFOLIO con 9-11 modifs cada uno). Chris ratificó "gitignore total": SSoT vive en sources (`stories/`, `capabilities/`, `releases/`, `brand.yaml`); estos files son **vistas derivadas regenerables**, no fuente. Trade-off aceptado: GitHub UI no muestra la vista master sin clonar+regen, pero el costo de mantenerlos sincronizados era mayor.
 
@@ -147,8 +147,8 @@ Esto está mencionado en cada `pm-{brand}/SKILL.md` § "Capability promotion (al
 Toda story creada (desde `state: idea`) MUST tener `chris-input.md` en su directorio, **junto con `checkpoint.md`**. Nace con la idea — NO se espera a `refining`. Es el buzón donde Chris vuelca lo que desea; Claude lo puede rebatir (verdict ❌ REFUTADO) durante el ciclo de vida.
 
 **How to apply:**
-- `/pm-{brand}` al CREAR la story (`state: idea`) crea `checkpoint.md` + `chris-input.md` juntos (desde template `docs/specs/templates/00-chris-input-template.md`). El cockpit (`extend-cap`, `from-done`) ya lo hace vía `createNewStoryDocs`.
-- `/pm-{brand}` Fase F MERGE (`reviewing → done`) ejecuta `git mv` de chris-input.md junto con el resto de la story al `archive/{year}/stories/{id}/`
+- `/pm-vitalia` al CREAR la story (`state: idea`) crea `checkpoint.md` + `chris-input.md` juntos (desde template `docs/specs/templates/00-chris-input-template.md`). El cockpit (`extend-cap`, `from-done`) ya lo hace vía `createNewStoryDocs`.
+- `/pm-vitalia` Fase F MERGE (`reviewing → done`) ejecuta `git mv` de chris-input.md junto con el resto de la story al `archive/{year}/stories/{id}/`
 - Pre-commit hook (Section 16) bloquea commit de checkpoint.md con `state ∈ {idea, refining...reviewing}` si chris-input.md ausente (magic comment `# chris-input-skip: razón` permite override puntual).
 
 **Anti-pattern:** Chris invoca `/po-ux <story>` sin que exista chris-input.md → skill debe rechazar. Story creada en `idea` sin chris-input.md.
@@ -159,7 +159,7 @@ Doc canónico: `docs/process/chris-input-protocol.md`.
 
 | Layer | Mecanismo | Status |
 |---|---|---|
-| 1 — `/pm-{brand}` skill | "Surfaces propias" lista enforce schema. "NO toca" anti-creep. Bootstrap Step 0 scan stories done sin archivar. | ✅ active |
+| 1 — `/pm-vitalia` skill | "Surfaces propias" lista enforce schema. "NO toca" anti-creep. Bootstrap Step 0 scan stories done sin archivar. | ✅ active |
 | 2 — Pre-commit hook (opcional) | Section nueva: bloquea stage de `*.md` directo en `{brand}/docs/` raíz (R1) | ⏳ TBD (decisión Chris) |
 | 3 — Auditor backend/agentic/frontend | Cat 12 (anti-duplication) extendida: detect stories done viviendo en `product/stories/` (R2) | ✅ already covers |
 | 4 — `scripts/reconcile_capabilities.py --check-mode` | Exit 1 si detecta R1 o R2 violations | ✅ exists, ⏳ extend opcional |
@@ -175,7 +175,7 @@ Doc canónico: `docs/process/chris-input-protocol.md`.
 
 ## Multibrand awareness
 
-- Esta rule aplica a las 4 brands activas (vitalia, nicolify, comunify, lupulo) y a todas las brands futuras bootstrap (saasora, inmoflow, retailly, fixia, guestly, fitflow).
+- Esta rule aplica a `vitalia/docs/` (única marca del repo).
 - El template `.claude/skills/_pm-brand-template/SKILL.md` debe enforce esta rule desde el día 1 de bootstrap.
 
 ## Referencias

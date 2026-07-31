@@ -54,7 +54,7 @@ Resolución natural cuando F1-S5/S6 (`vitalia-fase1-valeria-rail-history` / `vit
 ## Pre-condiciones para arrancar
 
 - F1-S5 + F1-S6 en state ≥ developed (refactor conversational shell el área natural)
-- Promotion candidate scan `/pm-luana` decide si lift a core/luana-core-platform/ (depende de 2da brand encontrar problema similar)
+- Promotion candidate scan `/pm-vitalia` decide si lift a core/luana-core-platform/ (depende de 2da brand encontrar problema similar)
 
 ## Next action
 

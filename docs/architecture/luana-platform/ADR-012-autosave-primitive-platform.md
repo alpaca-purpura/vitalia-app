@@ -1,6 +1,6 @@
 # ADR-012 — Autoguardado como primitiva compartida de plataforma
 
-**Status:** accepted (ratificado por Chris 2026-05-31) · **Date:** 2026-05-31 · **Decider:** Chris · **Scope:** platform-wide (cross-brand · design system) · **Owner:** `/pm-luana`
+**Status:** accepted (ratificado por Chris 2026-05-31) · **Date:** 2026-05-31 · **Decider:** Chris · **Scope:** platform-wide (cross-brand · design system) · **Owner:** `/pm-vitalia`
 
 ## Contexto
 

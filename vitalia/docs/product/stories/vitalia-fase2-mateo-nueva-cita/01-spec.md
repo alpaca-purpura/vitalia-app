@@ -434,4 +434,4 @@ Cada `Bif-N` y `RN-N` del Mapa funcional → ≥1 SC → verificación REAL (acc
 - **Patrón UX:** Tebra (input manual + chip disponibilidad + reasignar), Jane/Acuity (política de conflicto), Cal.com (reassign). Ver `00-research-availability.md`.
 - **Algoritmia/DB:** half-open overlap + Postgres `EXCLUDE`/btree_gist + 23P01→409 (PostgreSQL docs, Cybertec). Ver `00-research-availability.md`.
 - **Net-new justificado:** endpoint de disponibilidad para el form + constraint DB (no existían; el bug de doble-booking estaba abierto).
-- **Lift candidate:** el cómputo free/busy + la condición de solape podrían lift a `core/luana-core-scheduling` si otra marca agenda con disponibilidad → escalar `/pm-luana` en `/architect` (no ahora).
+- **Lift candidate:** el cómputo free/busy + la condición de solape podrían lift a `core/luana-core-scheduling` si otra marca agenda con disponibilidad → escalar `/pm-vitalia` en `/architect` (no ahora).

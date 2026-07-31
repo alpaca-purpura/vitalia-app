@@ -128,7 +128,7 @@ export function useStoreHydration(store: { persist: { rehydrate: () => void } })
 
 `nicolify/frontend/src/features/notifications/store/dismiss-store.ts` también usa `persist` raw →
 mismo hazard latente. El patrón es transversal a futuros brand frontends (Next 16 + Zustand 5).
-**Lift candidate `/pm-luana`** a `core/@luana/hooks` (o similar). NO se mirror cross-brand en esta
+**Lift candidate `/pm-vitalia`** a `core/@luana/hooks` (o similar). NO se mirror cross-brand en esta
 story (fix vitalia-local); se captura learning `promotable: candidate` al merge.
 
 ---

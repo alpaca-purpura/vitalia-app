@@ -7,7 +7,7 @@ consumes: 01-spec.md (v5.1, ratified · incl. § Agendar el turno)
 agent: adrian
 audience: sales_agent (externo · habla al lead)
 channel: telegram (Telegram-first)
-engine_edit_target: ZERO   # diseño MONTA sobre el engine; cualquier gap real → /pm-luana promotion gate
+engine_edit_target: ZERO   # diseño MONTA sobre el engine; cualquier gap real → /pm-vitalia promotion gate
 sota_reviewed: 2026-06-21   # WebSearch SOTA agentic dialogue/intent/objection (ver § 14)
 ratified_by_chris: true     # diseño v3 ratificado Chris 2026-06-21 → story refining→refined
 ---
@@ -21,7 +21,7 @@ ratified_by_chris: true     # diseño v3 ratificado Chris 2026-06-21 → story r
 > razonamiento + 3 especialistas + 13 rutas semánticas + objeciones + señales + workers de momentum/no-show)
 > y nuestra extensión `vitalia/.../sales_agent` ya le pone la cara médica (persona Adrián + rails de seguridad
 > + screening + 5 tools). **Adrián NO se construye: se MONTA sobre eso + se le agrega el objetivo "agendar".**
-> **Cero edición de engine** (gap real → `/pm-luana`). Verificación: § 2 (mapa de reuso, cita path:line).
+> **Cero edición de engine** (gap real → `/pm-vitalia`). Verificación: § 2 (mapa de reuso, cita path:line).
 
 ## § 0 · Boundary engine vs brand-extension (qué se monta vs qué se construye)
 
@@ -213,7 +213,7 @@ doctor_profile_shared_at: datetime | None # share_doctor_profile (audit/glass-bo
 El `scheduled_meetings` del engine (`agent_state_checkpoint_model.py:69-74`) ya modela el turno (tracking,
 status, appointment_id, scheduled_at, reminders) → **se reusa, no se duplica**. El `MeetingEntry` puede
 necesitar `doctor_id`/`service_id` en su metadata → `/architect` decide (extender MeetingEntry = engine →
-`/pm-luana`; o llevarlo en el overlay brand). Honor-modo (`handler_mode`) y operator-instruction
+`/pm-vitalia`; o llevarlo en el overlay brand). Honor-modo (`handler_mode`) y operator-instruction
 (`metadata_info`) ya están en el engine state.
 
 ## § 7 · Instrucción del operador por-conversación (★ rescate legacy · ratificado · sin cambio)
@@ -344,7 +344,7 @@ PII/PHI: sanitize_payload(compliance_level="hipaa_lite") en CADA write (VitaliaS
 4. **Extender `state_overlay`** con keys de booking (§ 6) + (si hace falta) `MeetingEntry.doctor_id/service_id`.
 5. **Tuning de persona/playbook** médico para descubrimiento (reweight señales médicas; ¿bajar
    `STAGE_CLOSING_SCORE`/`CONSECUTIVE_QUESTION_FATIGUE_LIMIT` para contexto médico? — `tuning.py` es engine,
-   evaluar per-tenant vs `/pm-luana`). Guardrails éticos NO se tocan (ya están).
+   evaluar per-tenant vs `/pm-vitalia`). Guardrails éticos NO se tocan (ya están).
 6. **Plomería scheduling** (de 01-spec): que `create_appointment` marque `availability_slot.has_confirmed_appointment`
    (gap/bug actual de la agenda de Mateo) + hold-TTL (mayormente vía `verify_pending_bookings` + estado del hold).
 7. **Net-new de canal (de v1, vigente):** receiver webhook Telegram + adapter de marca + honor-modo gate +
@@ -352,7 +352,7 @@ PII/PHI: sanitize_payload(compliance_level="hipaa_lite") en CADA write (VitaliaS
 
 **Notas duras para `/architect`:**
 - **CERO edición de engine.** `SchedulerProvider`/`STAGE_TOOL_SCOPE`/state-extension se consumen por las APIs
-  existentes. Si algo obliga a tocar `core/luana-core-sales-agent/src/` → `/pm-luana` promotion gate.
+  existentes. Si algo obliga a tocar `core/luana-core-sales-agent/src/` → `/pm-vitalia` promotion gate.
 - **Un solo lane de turno:** `VitaliaSchedulerProvider` bookea en el `scheduling` vivo (agenda Mateo), NUNCA en
   `vitalia_bookings` deprecado. `scheduled_meetings` referencia, no duplica.
 - **Screening precede al book** (gate ético). **Emergency_protocol** corta el booking.

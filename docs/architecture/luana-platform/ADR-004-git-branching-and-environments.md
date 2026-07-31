@@ -12,7 +12,7 @@
 > - `.claude/rules/parallel-safety.md` — multi-sesion paralela reglas (S-GIT-STRATEGY-CORE T-2)
 > - `scripts/git/new-session.sh` — helper automatiza creacion worktree + branch wip/*
 > - `scripts/git/cleanup-session.sh` — helper automatiza push final + remocion worktree
-> - `docs/process/git-workflow-multibrand.md` — runbook cheatsheet diario
+> - `docs/process/git-workflow.md` — flujo git actual (trunk-based; el runbook multibrand quedó archivado en `docs/archive/2026/multibrand-legacy/process/git-workflow-multibrand.md`)
 
 ## 1. Context
 
@@ -187,7 +187,7 @@ hay autosave automatico, stashes pueden perderse en garbage collection).
 - `.claude/rules/git-haiku-delegation.md` — delegacion commit+push a Haiku (3 destinos)
 - `scripts/git/new-session.sh` — helper creacion worktree + branch wip/*
 - `scripts/git/cleanup-session.sh` — helper push final + remocion worktree
-- `docs/process/git-workflow-multibrand.md` — runbook cheatsheet diario
+- `docs/process/git-workflow.md` — flujo git actual (trunk-based; runbook multibrand archivado)
 
 ## 7. Historial de revisiones
 

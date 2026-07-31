@@ -28,8 +28,7 @@ Detalle (rules error/warn, per-file overrides, jscpd/knip/madge, FSD boundaries,
 
 **No-skip:** disable ESLint rule sin justification comment. `// eslint-disable-next-line` solo con explanation. Many violations → refactor, not disable.
 
-## Multibrand awareness (post reorg 2026-05-15)
+## Engine awareness
 
-- Cada brand tiene su `{brand}/frontend/` independiente (nicolify, vitalia, comunify, lupulo).
-- Shared TS packages: `core/luana-core-*/` (TS) via `@luana/*` imports — modificar requiere `/pm-luana` promotion gate.
-- Brands futuras (saasora, inmoflow, retailly, fixia, guestly, fitflow) heredan estos gates al bootstrap.
+- Estos gates aplican a `vitalia/frontend/`.
+- Shared TS packages: `core/luana-core-*/` (TS) via `@luana/*` imports — modificar sigue el flujo engine de `/pm-vitalia` (arch tests como gate).

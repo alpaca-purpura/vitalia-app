@@ -83,4 +83,4 @@ Paths per brand:
 ### Multibrand awareness (post reorg 2026-05-15)
 
 - Cada brand decide si bootstrap admin panel o no (no es obligatorio).
-- Lógica admin común a todas las brands → candidate para `core/luana-core-platform/src/luana_core_platform/admin/` (requiere `/pm-luana` promotion gate).
+- Lógica admin genérica/compartible → candidate para `core/luana-core-platform/src/luana_core_platform/admin/` (flujo engine `/pm-vitalia`).

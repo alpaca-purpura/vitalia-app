@@ -19,12 +19,12 @@ ANTES de crear archivo nuevo en `{brand}/backend/src/modules/{brand}/sales_agent
 2. Grep cross-codebase:
    ```bash
    WS=$(git rev-parse --show-toplevel)
-   find ${WS}/core ${WS}/{nicolify,vitalia,comunify,lupulo}/backend/src -name "<basename>.py" 2>/dev/null
-   grep -rn "class <ClassName>" ${WS}/core/ ${WS}/{nicolify,vitalia,comunify,lupulo}/backend/src/modules/ 2>/dev/null
+   find ${WS}/core ${WS}/vitalia/backend/src -name "<basename>.py" 2>/dev/null
+   grep -rn "class <ClassName>" ${WS}/core/ ${WS}/vitalia/backend/src/modules/ 2>/dev/null
    ```
-3. Si match en `core/luana-core-*/` o en brand extension de otra brand → STOP, escalate `/pm-luana`. Tres opciones:
+3. Si match en `core/luana-core-*/` o en brand extension de otra brand → STOP, escalate `/pm-vitalia`. Tres opciones:
    - **EXTEND**: heredar desde engine base (`luana_core_observability.*`)
-   - **LIFT-TO-ENGINE**: subir abstracción a `core/luana-core-observability/` vía `/pm-luana` promotion gate
+   - **LIFT-TO-ENGINE**: subir abstracción a `core/luana-core-observability/` vía `/pm-vitalia` flujo engine
    - **NEW** (último recurso): justificar path:line por qué existing no sirve
 
 NUNCA mirror `turn_envelope.py` / `callback_handler.py` / `cost_calculator.py` / `fx_resolver.py` / similar cross-brand ni cross-módulo. Si el engine lo tiene Y la brand extension lo necesita → consumir vía import `luana_core_observability.*`, no copiar.
@@ -66,7 +66,7 @@ Tocar §3 → **PARAR, preguntar al usuario**.
 - ❌ Bypass `sanitize_payload` en writes a `*_trace_event` o `*_llm_call`.
 - ❌ Duplicar plumbing del `BaseAgentCallbackHandler` shared. Solo overrides agent-specific.
 - ❌ Bypass channel registry shared. Nuevo canal → `register_channel` en startup.
-- ❌ Crear feature branches/worktrees salvo instrucción explícita. Trabajar en el hub canónico `wip/{brand}` (ADR-009).
+- ❌ Crear feature branches/worktrees salvo instrucción explícita. Trabajar en la branch de trabajo actual.
 - ❌ Aliases DeepSeek retired Jul 24 2026 (`deepseek-chat`, `deepseek-reasoner`). Usar `deepseek-v4-flash` / `deepseek-v4-pro`. Arch ratchet bloquea.
 - ❌ Tier pricing >200k tokens sin resolver. Si LiteLLM declara `input_cost_per_token_above_200k_tokens`, calculator debe split (`TIER_THRESHOLD = 200_000`). Arch ratchet.
 
@@ -159,7 +159,7 @@ Decisiones arquitectónicas que impactan el módulo, ordenadas por fecha. Fuente
 
 - `CLAUDE.md` raíz.
 - `docs/domains/sales-agent/redesign-2026-04/{README,00-vision-and-objectives,02-architecture-target,04-principles,05-tech-debt-log}.md`.
-- `.claude/rules/{copilot-resilience,copilot-observability,sales-agent-brand-voice,parallel-safety,spanish-text}.md`.
+- `.claude/rules/{copilot-resilience,copilot-observability,sales-agent-brand-voice,spanish-text}.md`.
 - `references/` (pre-redesign conversation craft — útil para evolución de copy, no arquitectura post-S12).
 
 ## Budget + Outbound Gating (PI-1 S0 PR-2)

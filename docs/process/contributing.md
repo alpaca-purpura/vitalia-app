@@ -1,6 +1,6 @@
-# Guía de Contribución — Luana Platform
+# Guía de Contribución — vitalia-app
 
-Esta guía cubre el flujo completo de trabajo para contribuir al monorepo `luana-platform`.
+Esta guía cubre el flujo completo de trabajo para contribuir al repo `vitalia-app` (marca vitalia + engine vendored `core/`).
 
 ## Conventional Commits
 
@@ -30,33 +30,30 @@ Todos los commits deben seguir el formato [Conventional Commits](https://www.con
 ### Scopes sugeridos
 
 Usa el nombre del workspace member o área afectada:
-`core`, `nicolify`, `vitalia`, `comunify`, `lupulo`, `ci`, `docs`, `repo`
+`core`, `vitalia`, `ci`, `docs`, `repo`
 
 ### Ejemplos
 
 ```
 feat(core): agregar abstracción BaseCallbackHandler para agentes AI
-fix(nicolify): corregir filtro tenant_id en query de offers
+fix(vitalia): corregir filtro tenant_id en query de offers
 docs: actualizar ARCHITECTURE con topología de subfolders
 chore(ci): actualizar pnpm/action-setup a v4
 ```
 
-## Flujo de trabajo (solo-operador · Triple-Branch)
+## Flujo de trabajo (trunk-based)
 
-Chris trabaja solo. No hay reviews multi-developer ni ramas `feat/`. El flujo es:
+**SSoT: [`git-workflow.md`](git-workflow.md)** — léelo antes de tu primer commit. Resumen:
 
-1. Desarrollar en `wip/{brand}` (autosave, commits frecuentes con Conventional Commits)
-2. TDD obligatorio: tests primero, implementación después
-3. Push frecuente a `wip/{brand}` — nunca más de 30 min sin push si hay cambios significativos
-4. Squash-merge a `main` cuando la story cierra (`reviewing → done`) — gatekeado por `/pm-{brand}`
-5. `release/{brand}-vX.Y.Z` se crea desde `main` validado para cada despliegue a producción
+1. `main` es el único branch permanente. Por story: branch `story/{story-id}` de vida corta (horas) → squash-merge → borrar. Bugfix chico: `fix/{slug}`.
+2. TDD obligatorio: tests primero, implementación después.
+3. Push frecuente al story branch — nunca más de 30 min sin push si hay cambios significativos.
+4. Stories llevan review IA con contexto fresco (`/code-review`) antes del merge; el **tier de riesgo** (auth, tenant-isolation, migraciones, pagos, comportamiento de agentes) exige PR + review humano. Dev nuevo: TODO vía PR el primer mes. El merge a `done` lo gatekea `/pm-vitalia`.
+5. Releases: hoy `release/vitalia-vX.Y.Z` desde `main` validado (Actions deferred); objetivo = tag `vX.Y.Z`.
 
-**Prohibido:** `git pull`, `git fetch && merge` automático, `git push --force`, ramas `feat/` sueltas, `git add .` / `-A`.
-Sync `wip/{brand} ↔ main` SOLO vía `scripts/git/sync-from-main.sh`.
+**Prohibido:** `git pull` (salvo `--ff-only` sobre branch limpio), `git push --force`, `git commit --no-verify`, amend de pusheados, `git add .` / `-A` / `-u`.
 
-GitHub Actions están en modo **deferred** (sentinel `.ci-parity-deferred`). La calidad se enforce con hooks locales (`scripts/git-hooks/pre-commit` + `pre-push`) y `make ci-parity`.
-
-Ver detalle completo en `.claude/rules/git-safety.md` y `.claude/rules/parallel-safety.md`.
+GitHub Actions están en modo **deferred** (sentinel `.ci-parity-deferred`). La calidad se enforce con hooks locales (`make install-hooks` → `scripts/git-hooks/pre-commit` + `pre-push`) y `make ci-parity`. Los protocolos multi-worktree/multi-sesión del monorepo quedaron archivados en `docs/archive/2026/multibrand-legacy/process/` (histórico, no normativo).
 
 ## Reglas ADR (Architecture Decision Records)
 
@@ -67,10 +64,10 @@ Ver el proceso completo en [docs/architecture/ADR/README.md](architecture/ADR/RE
 
 ### Cuándo es obligatorio un ADR
 
-- Nuevo abstract en `core/luana-core-*/` consumido cross-brand
+- Nuevo abstract en `core/luana-core-*/` (engine) consumido por la marca
 - Cambio de contrato API que rompe consumidores
 - Schema migration con impacto cross-módulo
-- Nueva abstracción cross-brand
+- Nueva abstracción del engine
 
 ### Cuándo NO se necesita ADR
 
@@ -93,7 +90,7 @@ Antes de abrir PR, verificar localmente:
 
 ```bash
 WS=$(git rev-parse --show-toplevel)
-BRAND=vitalia  # o nicolify / comunify / lupulo
+BRAND=vitalia
 
 # Python lint (venv raíz)
 cd ${WS}/${BRAND}/backend && ${WS}/.venv/bin/ruff check src/ tests/

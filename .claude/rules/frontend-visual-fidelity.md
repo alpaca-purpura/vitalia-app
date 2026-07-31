@@ -27,7 +27,7 @@ El FE construido debe cumplir tres disciplinas (una verificación vía Playwrigh
 El catálogo de componentes **REALES** vive en **Storybook** (`core/@luana/ui-kit` · `pnpm --filter @luana/ui-kit build-storybook` → `storybook-static/`, o dev `:6007`). **Es la ÚNICA fuente de verdad visual** — "lo que ves en Storybook = lo que se programa". **MUERTOS (SUPERSEDED):** `_shared.css` espejo · mockup-kit CSS · `preview.html` · el protocolo per-brand `shell-mockup-per-component.md` (ADR-vitalia-003). **El bucle (los 5 actores):**
 1. **Partir** de Storybook — el TSX se consume como **HTML renderizado** (`storybook-static/` o iframe `…/iframe.html?id=<story>&viewMode=story`) → misma base que el build. NO inventar CSS ni copiar `_shared.css`.
 2. **No limitarse** — si falta algo o hay algo genuinamente mejor, se **PROPONE** (Storybook es el piso, no el techo).
-3. **Promover de vuelta** — lo que se usa y prueba bien se **PROMUEVE a `@luana/ui-kit` + su story** (vía `core-ds-*` / promotion gate `/pm-luana`) para reuso de futuras historias. Una pieza net-new que queda en `features/{m}/` sin promover = **deuda** (la caza el auditor).
+3. **Promover de vuelta** — lo que se usa y prueba bien se **PROMUEVE a `@luana/ui-kit` + su story** (vía `core-ds-*` / flujo engine `/pm-vitalia`) para reuso de futuras historias. Una pieza net-new que queda en `features/{m}/` sin promover = **deuda** (la caza el auditor).
 
 Detalle + el bucle por actor: `design-system-canon.md § 5`.
 

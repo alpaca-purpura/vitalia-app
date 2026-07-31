@@ -20,16 +20,14 @@
 #
 # Usage
 # =====
-#   bash scripts/ci-parity.sh --brand=nicolify            # full sweep brand
-#   bash scripts/ci-parity.sh --brand=nicolify --skip-fe  # backend only
-#   bash scripts/ci-parity.sh --brand=nicolify --skip-be  # frontend only
+#   bash scripts/ci-parity.sh --brand=vitalia             # full sweep brand
+#   bash scripts/ci-parity.sh --brand=vitalia --skip-fe   # backend only
+#   bash scripts/ci-parity.sh --brand=vitalia --skip-be   # frontend only
 #
 # Direct invocation (no flags) prints usage.
 #
-# Decisión 8 (Story 10): cross-brand pattern lives at luana-platform root.
-# Per-brand pre-extraction: brand=nicolify resolves paths to nicolify/{backend,frontend}/.
-# Post-brand-extraction (future per-brand repo): this script may delegate
-# to brand-repo-internal ci-parity.sh via git submodule or relative path.
+# Repo standalone single-brand (2026-07-31): brand = vitalia. La interfaz
+# --brand=NAME se conserva (el marker y el hook pre-push la usan).
 
 set -euo pipefail
 

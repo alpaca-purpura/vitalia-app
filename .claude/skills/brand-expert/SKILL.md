@@ -47,7 +47,7 @@ PersonalityProfile (motor 3-pilar)
 ## Convención de paths (multibrand post-reorg 2026-05-15)
 
 - Engine brand-studio: `core/luana-core-brand-studio/src/luana_core_brand_studio/`
-- Brand extension: `{brand}/backend/src/modules/{brand}/brand_studio/` (cada brand activa: vitalia, nicolify, comunify, lupulo)
+- Brand extension: `vitalia/backend/src/modules/vitalia/brand_studio/`
 - Engine tests: `core/luana-core-brand-studio/tests/`
 - Brand tests: `{brand}/backend/tests/modules/{brand}/brand_studio/`
 - FE (feature-scoped per brand): `{brand}/frontend/src/features/{brand}/` y/o `{brand}/frontend/src/features/lisa/types/marca/`
@@ -357,7 +357,7 @@ User dice "no se entiende" / "muy genérico" / "querés que pregunte mejor":
 
 ```bash
 WS=$(git rev-parse --show-toplevel)
-BRAND=vitalia   # reemplazá según brand activa (vitalia/nicolify/comunify/lupulo)
+BRAND=vitalia
 
 # Engine brand-studio arch tests
 cd ${WS}/core/luana-core-brand-studio && ${WS}/.venv/bin/pytest tests/ -x -q --tb=short

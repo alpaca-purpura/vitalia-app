@@ -1,6 +1,6 @@
 # Demo script — canal-inbound Adrián · OLA 1 (G · Chris-verify)
 
-> Verificación live para tu firma `chris_verify.signoff`. **OLA 1 = carril brand-local cero-engine.** El book/match/share (OLA 2) espera el lift /pm-luana — NO está en esta demo.
+> Verificación live para tu firma `chris_verify.signoff`. **OLA 1 = carril brand-local cero-engine.** El book/match/share (OLA 2) espera el lift /pm-vitalia — NO está en esta demo.
 
 ## Setup (una vez)
 ```bash

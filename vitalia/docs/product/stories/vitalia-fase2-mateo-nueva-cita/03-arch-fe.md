@@ -34,7 +34,7 @@ Partir de Storybook (`core/@luana/ui-kit`, dev `:6007` o `storybook-static/`). N
 | **Crear paciente sin salir** | **`EntityPicker.createAction`** | `entitypicker--with-create-action` (a crear) | — | **★ PROMOTE** |
 | Mini-vista del día | `DayAvailabilityStrip` | n/a — componente feature scheduling | — | ◆ feature (lift-candidate) |
 
-> **★ PROMOTE = soft-dep de build.** Los 4 atoms viven en `@luana/ui-kit` (CORE). El FE de vitalia los CONSUME. NO se editan local en `features/`. Precursora: `/pm-luana` promotion proposal `2026-06-22-ui-kit-nueva-cita-atoms.md` (contrato en `mockups/PROPOSED-CANON-ATOMS.md`). Si al arrancar el build el kit no los tiene → bloqueo soft (ver dispatch-plan: secuenciar la promoción primero). **El builder NUNCA re-implementa estos atoms en `features/mateo/`** (driftea → auditor CHANGES_REQUESTED).
+> **★ PROMOTE = soft-dep de build.** Los 4 atoms viven en `@luana/ui-kit` (CORE). El FE de vitalia los CONSUME. NO se editan local en `features/`. Precursora: `/pm-vitalia` promotion proposal `2026-06-22-ui-kit-nueva-cita-atoms.md` (contrato en `mockups/PROPOSED-CANON-ATOMS.md`). Si al arrancar el build el kit no los tiene → bloqueo soft (ver dispatch-plan: secuenciar la promoción primero). **El builder NUNCA re-implementa estos atoms en `features/mateo/`** (driftea → auditor CHANGES_REQUESTED).
 > **◆ DayAvailabilityStrip** = componente NUEVO de feature scheduling (`features/mateo/components/nueva-cita/`). Default = vitalia. Lift-candidate a `core/luana-core-scheduling` NO ahora (comunify no agenda con disponibilidad).
 
 ## 1. Routing (ADR-vitalia-004 § 3.1)

@@ -83,7 +83,7 @@ El cockpit ("Mapa Implementado") agrupa toda capability en **una de tres zonas**
 
 1. **Toda acción existe una sola vez.** Web y trabajadores comparten la misma acción (Plano 2). Cero reimplementación.
 2. **Los trabajadores orquestan, no reimplementan.** Un agente que recrea lógica de negocio es un bug de arquitectura.
-3. **Un solo engine.** Persona + scope + guardrails diferencian al trabajador. Nunca un engine por agente ni por marca (lift a `core/` vía `/pm-luana`).
+3. **Un solo engine.** Persona + scope + guardrails diferencian al trabajador. Nunca un engine por agente ni por marca (lift a `core/` vía `/pm-vitalia`).
 4. **Audiencia explícita.** Interno (dueño, `copilot`) vs externo (leads, `sales_agent`). Adrián es el único puente.
 5. **Una supervisora conversacional** (Valeria). La pestaña es sesgo de ruteo, no un chat aislado. Se preserva la composición multi-paso.
 6. **El cockpit LEE, no genera.** El SSoT son archivos estructurados (caps YAML + código con header `# cap:` + SYSTEM-MAP + service layer). Las vistas e índices son **derivados** regenerables, nunca fuente.
@@ -101,7 +101,7 @@ Dos dimensiones que extienden los 3 planos. Detalle completo: `ADR-013` + `docs/
 
 **(B) El producto es un equipo vendido por puesto.** Base obligatoria (identidad + Configuración + supervisora) + **cadena de valor** (Atraer→Vender→Operar→Retener) como **SKUs** combinables. Cada empleado = cara (FE) · dominio acotado (un engine, no motor propio) · autonomía (tiers) · SKU. **Cross-brand 60/40 (Liskov):** la etapa = interfaz estable (core); roster + procesos = instancia por marca (extension).
 
-**Barandas SOLID (las que evitan el caos):** la supervisora **reenvía intención, no construye** en dominio ajeno (el dueño construye lo suyo); **orquestación fractal** (supervisora↔empleados = flujo↔acciones, siempre vía interfaces/eventos, nunca internals); **coordinación de 3 modos** (coreografía por eventos = default · supervisora para ambiguo/PHI · handoff directo = excepción medida); **read/write split** (reads componibles vía read-models, writes con dueño por outcome); **techo de auto-extensión** (core invariante → gate humano `/pm-luana`); **separación de poderes** (el agente pide autonomía, el humano la concede).
+**Barandas SOLID (las que evitan el caos):** la supervisora **reenvía intención, no construye** en dominio ajeno (el dueño construye lo suyo); **orquestación fractal** (supervisora↔empleados = flujo↔acciones, siempre vía interfaces/eventos, nunca internals); **coordinación de 3 modos** (coreografía por eventos = default · supervisora para ambiguo/PHI · handoff directo = excepción medida); **read/write split** (reads componibles vía read-models, writes con dueño por outcome); **techo de auto-extensión** (core invariante → gate humano `/pm-vitalia`); **separación de poderes** (el agente pide autonomía, el humano la concede).
 
 ---
 

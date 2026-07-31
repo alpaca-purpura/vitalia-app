@@ -11,7 +11,7 @@ model: opus
 
 ## ★ Postura cardinal — el refinamiento es la fase #1 (W0.5-bis, ratificado Chris 2026-06-08)
 
-> SSoT del método cross-tipo: `docs/process/harness-refactor-w0.5/REQ-TAKING-DETAIL.md`.
+> SSoT del método cross-tipo: `docs/archive/2026/multibrand-legacy/process/harness-refactor-w0.5/REQ-TAKING-DETAIL.md`.
 
 El refiner **NUNCA es escriba**. Propone · pone a Chris en TODOS los casos · **mejora lo que existe en vez de reinventar** · **CONTRADICE cuando el pedido se aleja de la visión o no aporta valor** (Chris explica el porqué → enriquece tu contexto, queda en `chris-input.md`). La falla a matar: la historia llega al GO en vivo y falla porque el refinamiento no cubrió los huecos.
 
@@ -41,9 +41,9 @@ La postura + sombreros + método son **CORE** (portables); el roster/stack/dev-a
 
 ## REQUIRED first input: `<brand>`
 
-`<brand>` ∈ `vitalia | nicolify | comunify | lupulo | platform`. Si Chris no lo provee, **PREGUNTAR antes de proceder**. `platform` = stories cross-brand que tocan engine (raro — requiere `/pm-luana` autorización).
+`<brand>` ∈ `vitalia | platform`. Si Chris no lo provee, **PREGUNTAR antes de proceder**. `platform` = stories que tocan engine (raro — requiere ratificación Chris vía `/pm-vitalia`).
 
-Si invocado vía `/pm-{brand}` handoff, el brand viene en el handoff. Si invocado directo por Chris → preguntar primero.
+Si invocado vía `/pm-vitalia` handoff, el brand viene en el handoff. Si invocado directo por Chris → preguntar primero.
 
 ## Scope decision
 
@@ -59,9 +59,9 @@ Si invocado vía `/pm-{brand}` handoff, el brand viene en el handoff. Si invocad
 ## Inputs obligatorios
 
 1. `<brand>` (REQUIRED, ver sección arriba)
-2. Outcome de Chris/`/pm-{brand}` o `/pm-luana` con story en state=`refining` (idea ya pasó por trigger Chris "refinemos")
-3. `{brand}/docs/product/stories/{story-id}/checkpoint.md` (creado por `/pm-{brand}` con state=refining)
-4. (opcional) `{brand}/docs/product/stories/{story-id}/00-story.md` — si `/pm-{brand}` ya escribió brief
+2. Outcome de Chris/`/pm-vitalia` o `/pm-vitalia` con story en state=`refining` (idea ya pasó por trigger Chris "refinemos")
+3. `{brand}/docs/product/stories/{story-id}/checkpoint.md` (creado por `/pm-vitalia` con state=refining)
+4. (opcional) `{brand}/docs/product/stories/{story-id}/00-story.md` — si `/pm-vitalia` ya escribió brief
 5. `{brand}/docs/product/modules/{m}.md` — estado funcional módulo per-brand
 6. `{brand}/docs/product/capabilities/{m}/` — capabilities existentes per-brand (no duplicar)
 7. `docs/specs/templates/01-spec-template.md` — template (transversal core, reusable cross-brand)
@@ -79,14 +79,14 @@ Si invocado vía `/pm-{brand}` handoff, el brand viene en el handoff. Si invocad
 
 ```bash
 WS=$(git rev-parse --show-toplevel)
-BRAND={brand}                                                  # vitalia | nicolify | comunify | lupulo | platform
+BRAND={brand}                                                  # vitalia | platform
 cat ${WS}/${BRAND}/docs/product/BACKLOG.md                     # estado overall brand
 cat ${WS}/${BRAND}/docs/product/stories/{story-id}/checkpoint.md  # state=refining requerido
 cat ${WS}/${BRAND}/docs/product/stories/{story-id}/chris-input.md  # idea/contexto origen (R4: nace con la story)
 ls ${WS}/${BRAND}/docs/product/capabilities/{m}/               # caps existentes (no duplicar)
 ```
 
-Si checkpoint state ≠ `refining` → STOP. Si state=`idea`, escala `/pm-{brand}` para transition idea→refining. Si state=`refined` o avanzado, story ya pasó por `/po`.
+Si checkpoint state ≠ `refining` → STOP. Si state=`idea`, escala `/pm-vitalia` para transition idea→refining. Si state=`refined` o avanzado, story ya pasó por `/po`.
 
 ### Step 2 — Cargar domain skill
 
@@ -274,12 +274,12 @@ Si `/ux-agentico` (después que tu spec ratificó) descubre edge case nuevo dura
 - ❌ Hardcodear scenarios cuando expert skill define invariantes — leélo primero
 - ❌ Usar `/po` para UI std stories → use `/po-ux` (fusión más eficiente, evita design.md separado)
 - ❌ Editar paths legacy `docs/archive/2026/legacy-pis/PI-N/...` → snapshot inmutable, NO modificar
-- ❌ Redactar spec en root `docs/product/stories/` — only `<brand>: platform` cross-brand outcomes van ahí (requiere `/pm-luana` ratificación)
+- ❌ Redactar spec en root `docs/product/stories/` — only `<brand>: platform` cross-brand outcomes van ahí (requiere `/pm-vitalia` ratificación)
 
 ## Anti cross-brand pollution
 
-- ❌ NUNCA editar `{other_brand}/...` cuando trabajás en `{brand}`. Si la story necesita tocar otra brand → STOP, escalate `/pm-luana` (trabajo cross-brand).
-- ❌ NUNCA editar `core/luana-core-*/src/` directamente. Requiere lift via `/pm-luana` (promotion gate).
+- ❌ NUNCA editar paths fuera de `vitalia/**` (+ story docs). STOP + escalate `/pm-vitalia`.
+- ❌ NUNCA editar `core/luana-core-*/src/` directamente. Requiere lift via `/pm-vitalia` (flujo engine).
 - ❌ NUNCA escribir specs/archs/tickets en root `docs/product/stories/` — solo `platform` (cross-brand) outcomes van ahí, y eso requiere `<brand>: platform` explícito.
 - ❌ NUNCA inferir el brand del contexto si Chris no lo dijo — PREGUNTAR primero.
 

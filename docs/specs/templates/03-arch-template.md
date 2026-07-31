@@ -25,7 +25,7 @@ links:
 
 Scan cross-brand + core ANTES de diseñar (grep `core/` + brands activas):
 - ¿Engine cubre el patrón? → consumir vía import `luana_core_*` (NO recrear).
-- ¿Otra brand tiene algo parecido? → lift candidate → escalar `/pm-luana`.
+- ¿Patrón compartible con el engine? → lift candidate → escalar `/pm-vitalia` (flujo engine: cambio directo en `core/`, arch tests como gate).
 - ¿Learning previo aplicable?
 
 Resultado del scan (evidencia grep + decisión `consume | extend | lift | net-new`): `<...>`

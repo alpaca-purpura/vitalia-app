@@ -25,7 +25,7 @@ if [ "${CODE_INDEX_SKIP:-0}" != "1" ]; then
 
   # Detect staged code files (per-brand backend/frontend/src)
   CODE_STAGED=$(git diff --cached --name-only --diff-filter=ACMR 2>/dev/null \
-    | grep -E '^(vitalia|nicolify|comunify|lupulo|saasora|inmoflow|retailly|fixia|guestly|fitflow)/(backend|frontend)/src/.*\.(py|ts|tsx)$' \
+    | grep -E '^(vitalia)/(backend|frontend)/src/.*\.(py|ts|tsx)$' \
     || true)
 
   if [ -n "${CODE_STAGED}" ]; then

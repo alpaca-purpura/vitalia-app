@@ -1,14 +1,14 @@
-# CODEOWNERS — luana-platform
+# CODEOWNERS — vitalia-app (standalone single-brand)
 # Default: Chris owns everything until collaborators onboard
 *                                @alpacapurpura
 
-# Critical core paths require Chris review explicitly
-core/copilot/**                  @alpacapurpura
-core/sales-agent/**              @alpacapurpura
-core/shared/**                   @alpacapurpura
+# Critical engine paths require Chris review explicitly
+core/luana-core-copilot/**       @alpacapurpura
+core/luana-core-sales-agent/**   @alpacapurpura
+core/luana-core-platform/**      @alpacapurpura
 
 # Architecture decisions require Chris review
-docs/architecture/ADR/**         @alpacapurpura
+docs/architecture/**             @alpacapurpura
 docs/process/**                  @alpacapurpura
 
 # Workspace root config requires Chris review

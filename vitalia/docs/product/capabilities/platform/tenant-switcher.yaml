@@ -285,7 +285,7 @@ Ver `vitalia/docs/archive/2026/stories/vitalia-fase1-tenant-switcher/06-audit/gh
 ## Dependencies
 
 - Engine: `core/luana-core-iam` (GET /api/tenants shipped Story 11).
-- Cross-brand: ninguna. Pattern adaptado de `nicolify/frontend/src/components/shared/layout/TenantSwitcher.tsx` (75% reuse + adaptación Vitalia tokens + path preservation). 2 brands con TenantSwitcher = under threshold 3 brands para lift to core. Si comunify/lupulo lo necesitan Fase 2 → escala `/pm-luana`.
+- Cross-brand: ninguna. Pattern adaptado de `nicolify/frontend/src/components/shared/layout/TenantSwitcher.tsx` (75% reuse + adaptación Vitalia tokens + path preservation). 2 brands con TenantSwitcher = under threshold 3 brands para lift to core. Si comunify/lupulo lo necesitan Fase 2 → escala `/pm-vitalia`.
 
 ## Blocks (downstream)
 

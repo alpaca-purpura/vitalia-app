@@ -66,7 +66,7 @@ if [[ -z "${PROMPT}" ]]; then
 fi
 
 # --- Patrones ---
-PM_RE='/pm-(vitalia|nicolify|comunify|lupulo|luana|saasora|inmoflow|retailly|fixia|guestly|fitflow)\b'
+PM_RE='/pm-(vitalia)\b'
 SEC_RE='/(po-ux|po|ux-agentico|architect|dev-team|auditor)\b'
 
 # Verbo de intención de encadenado (debe aparecer en el prompt).

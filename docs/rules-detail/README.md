@@ -35,7 +35,7 @@ leé docs/rules-detail/{story-closure-gate,hotfix-repro-mandatory}.md
 ANTES de spawn.
 ```
 
-**PMs (`/pm-luana`, `/pm-{brand}`)**:
+**PM (`/pm-vitalia`)**:
 ```
 Si hay duda sobre flujo merge / capability promotion / archive pattern,
 leé docs/rules-detail/{story-closure-gate,brand-docs-schema}.md.
@@ -47,10 +47,8 @@ leé docs/rules-detail/{story-closure-gate,brand-docs-schema}.md.
 |---|---|---|
 | `auditor-downstream-regression.md` | `docs/rules-detail/auditor-downstream-regression.md` + `auditor-downstream-targets.md` | Tabla SSoT 9 secciones (A-I) en target doc |
 | `story-closure-gate.md` | `docs/rules-detail/story-closure-gate.md` | 07-merge schema verbatim + gherkin_coverage examples |
-| `parallel-safety.md` | `docs/rules-detail/parallel-safety.md` | Sub-agent worktree ban v2 + N sesiones bucket lock |
 | `auditor-self-fix-policy.md` | `docs/rules-detail/auditor-self-fix-policy.md` | Whitelist 17 + NEVER 16 + spawn templates verbatim |
 | `brand-docs-schema.md` | `docs/rules-detail/brand-docs-schema.md` | R1+R2+R3 cement detail + 12 paths auto-gen SSoT |
-| `step-0-worktree.md` | `docs/rules-detail/step-0-worktree.md` | 12 pasos logic v2 verbatim + output examples |
 | `hotfix-repro-mandatory.md` | `docs/rules-detail/hotfix-repro-mandatory.md` | Caso origen verbatim + 4 steps workflow |
 | `anti-default-flip-audit.md` | `docs/rules-detail/anti-default-flip-audit.md` | Ejemplos CORRECTO/INCORRECTO commit body |
 | `_CLAUDE-original-backup.md` | `docs/rules-detail/_CLAUDE-original-backup.md` | CLAUDE.md pre-slim (31KB) — federate docs schema, paradigm v4 full, 10 brands catalog detail, cost-routing, bootstrap completo |
@@ -73,7 +71,6 @@ Reglas phase-specific cuyo cuerpo vive en el skill DUEÑO (carga sólo cuando es
 | `test-design-doctrine.md` | `.claude/skills/dev-team/references/test-design-doctrine.md` |
 | `frontend-visual-fidelity.md` | `.claude/skills/frontend-expert/references/visual-fidelity.md` |
 | `git-haiku-delegation.md` | `.claude/skills/commit-push/references/haiku-delegation.md` |
-| `worktree-dual-strategy.md` | `.claude/skills/worktree-protocol/references/dual-strategy.md` |
 | `backend-ddd.md` (§ schema-mirror) | `.claude/skills/backend-expert/references/schema-mirror-exception.md` |
 | `pm-skill-chaining.md` | ya replicado en `.claude/skills/pm-*/SKILL.md § Auto-chain rule` |
 
@@ -98,4 +95,4 @@ Cuando agregás nueva rule grande (>5KB):
 | CLAUDE.md + AGENTS.md + 8 rules + references/ deleted | 142.4 KB | 56.3 KB | **-86.1 KB** |
 | Tokens auto-loaded | ~40k tokens | ~16k tokens | **-24k tokens (~60% reducción)** |
 
-Sin pérdida de información: detalle preservado al 100% en `docs/rules-detail/` + skills `worktree-protocol` / `auditor` / `dev-team` saben dónde buscar.
+Sin pérdida de información: detalle preservado al 100% en `docs/rules-detail/` + skills `auditor` / `dev-team` saben dónde buscar.

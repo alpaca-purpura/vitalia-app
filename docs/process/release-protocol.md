@@ -31,7 +31,7 @@ Un **Release** es una agrupación temporal de stories que se mergean juntas a ma
 
 **Path canónico:** `{brand}/docs/product/releases/{release_id}.yaml`.
 
-**Por qué NO base de datos:** mantenemos filesystem-as-DB. El cockpit lee + escribe estos YAMLs directo. `/pm-{brand}` y `/pm-luana` también.
+**Por qué NO base de datos:** mantenemos filesystem-as-DB. El cockpit lee + escribe estos YAMLs directo. `/pm-vitalia` también.
 
 ---
 

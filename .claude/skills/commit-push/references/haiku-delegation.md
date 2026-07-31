@@ -35,7 +35,7 @@ Todo Agent spawn que ejecute git workflow MUST contener estos guardrails verbati
 - Stage ONLY by exact filename (lista provista)
 - HUB único (N sesiones mismo árbol · ADR-009): el índice git es COMPARTIDO entre sesiones (= yo en N terminales) → **commit por pathspec** `git commit --only <file1> <file2> -m ...` (commitea SOLO esos paths, ignora lo demás del índice). NO `git add` + `git commit` suelto. **★ Trap real (caso 0072388f, 2026-05-29):** `git mv` AUTO-stagea el rename en el índice compartido → un `git commit` pelado en otra sesión lo barre. Helper que lo blinda: `scripts/git/commit-paths.sh "<msg>" <paths...>` (usa `--only`, rechaza `.`/`-A`/sin paths). Si por algo usás `git add`, primero `git reset` para limpiar el índice ajeno.
 - NEVER `git commit --no-verify` — pre-commit hook mandatory
-- NEVER `git pull` / `git fetch && merge` — banned per parallel-safety.md
+- NEVER `git pull` / `git fetch && merge` — banned per git-safety.md
 - NEVER `git push --force` / `--force-with-lease` — banned
 - NEVER `git revert` sin aprobación explícita — banned
 - Si push fails non-fast-forward → STOP, report. NO pull.
@@ -43,7 +43,7 @@ Todo Agent spawn que ejecute git workflow MUST contener estos guardrails verbati
 
 ## Destination branch (triple-branch policy — ver git-safety.md)
 Orchestrator indica destino. Guardrails por destino:
-  wip/*      → push OK siempre que sea el branch del worktree actual. No force.
+  wip/*      → push OK siempre que sea el branch de trabajo actual. No force.
   main       → squash-merge previo requerido. Si non-fast-forward → STOP.
   release/*  → solo desde main validado. Verificar CI green antes push.
 NUNCA cambiar destino sin instrucción explícita del orchestrator.
@@ -127,5 +127,5 @@ Haiku worker last-line:
 ## Referencias
 
 - `.claude/rules/git-safety.md` — git fundamentals (single branch development, no pull, etc.)
-- `.claude/rules/parallel-safety.md` — multi-session WIP protection
+- `.claude/rules/git-safety.md` — prohibiciones git + stage por pathspec
 - `.claude/skills/commit-push/SKILL.md` — slash command wrapping este pattern

@@ -36,11 +36,11 @@ pesado, que el sistema agéntico facilite" · ver `01-spec.md § Modelo de conoc
 - Que cargar la ficha rica sea asistido (autocompletar/sugerir desde la voz de marca + documentos),
   no un formulario pesado manual.
 - Estructurar el conocimiento de modo que Adrián lo cite limpio (capa curada, no texto libre).
-- Distinto de Sub-phase B RAG (eso es runtime indexer/retrieval engine-lift /pm-luana). Esta story =
+- Distinto de Sub-phase B RAG (eso es runtime indexer/retrieval engine-lift /pm-vitalia). Esta story =
   la **capa estructurada brand-local** del conocimiento del servicio.
 
 ## Anti-objetivos (preliminar)
-- NO RAG runtime (Qdrant indexer + tool retrieval) → Sub-phase B `/pm-luana` (STOP-2).
+- NO RAG runtime (Qdrant indexer + tool retrieval) → Sub-phase B `/pm-vitalia` (STOP-2).
 - NO tocar engine offer-studio.
 
 ## Referencias

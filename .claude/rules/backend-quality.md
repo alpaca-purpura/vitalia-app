@@ -29,9 +29,9 @@ cd ${WS}/core/luana-core-{pkg} && ${WS}/.venv/bin/pytest -v
 
 Detalle (rules list completa, per-file overrides, jscpd/interrogate, naming conventions, todos los arch tests) en `backend-expert` skill → `references/backend-quality.md`.
 
-## Multibrand awareness (post reorg 2026-05-15)
+## Engine awareness
 
-- Engine: `core/luana-core-*/src/luana_core_*/` — modificar requiere `/pm-luana` promotion gate.
-- Brand backend: `{brand}/backend/src/modules/{brand}/...` per brand (nicolify, vitalia, comunify, lupulo).
-- Venv único raíz: NUNCA `cd {brand}/backend && python -m venv .venv` (rompe resolución `luana_core_*`).
-- Cada brand consumer corre su propia suite arch fitness además del engine core.
+- Engine: `core/luana-core-*/src/luana_core_*/` — modificar sigue el flujo engine de `/pm-vitalia` (arch tests como gate).
+- Brand backend: `vitalia/backend/src/modules/vitalia/...`.
+- Venv único raíz: NUNCA `cd vitalia/backend && python -m venv .venv` (rompe resolución `luana_core_*`).
+- Vitalia corre su propia suite arch fitness además del engine core.

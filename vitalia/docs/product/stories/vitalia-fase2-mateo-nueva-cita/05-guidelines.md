@@ -52,7 +52,7 @@
 ## Patterns FORBIDDEN
 
 - ❌ Editar `core/luana-core-scheduling/src/` o `appointment_model.py` (engine boundary — D-A). El EXCLUDE va en `vitalia_appointment_clinic_map` (brand-local).
-- ❌ Editar `core/@luana/ui-kit/src/` desde un ticket de marca (los 4 atoms = PROMOTE vía `/pm-luana`).
+- ❌ Editar `core/@luana/ui-kit/src/` desde un ticket de marca (los 4 atoms = PROMOTE vía `/pm-vitalia`).
 - ❌ Re-implementar FormActionBar / Badge success-warning / PageHeader back-pill / EntityPicker.createAction en `features/mateo/` (consumir del kit; net-new local = drift = CHANGES_REQUESTED).
 - ❌ Stub de paciente con `uuid.uuid4()` (el bug actual — el create recibe `patient_id` real).
 - ❌ Drawer/modal para Nueva cita (AC-9 — hoja full-page, data-safe). El `CrearCitaButton` Dialog MUERE → `router.push`.
@@ -113,7 +113,7 @@ features/mateo/components/agenda/CrearCitaForm.tsx                 [REMOVE/migra
 ### Forbidden to touch
 ```
 core/luana-core-scheduling/src/**          (engine)
-core/@luana/ui-kit/src/**                  (CORE — 4 atoms via /pm-luana)
+core/@luana/ui-kit/src/**                  (CORE — 4 atoms via /pm-vitalia)
 otros features (lisa/, adrian/, etc.)
 otras marcas (comunify/, nicolify/, lupulo/)
 ```

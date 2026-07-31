@@ -26,7 +26,7 @@ if [ "${DOCS_ORPHAN_SKIP:-0}" != "1" ]; then
       ND_BASE=$(basename "$nd")
       ND_HITS=$(grep -rl --exclude-dir=__pycache__ --exclude-dir=node_modules \
         -e "$nd" -e "$ND_BASE" \
-        "${REPO_ROOT}/.claude" "${REPO_ROOT}/core-harness" "${REPO_ROOT}/scripts" \
+        "${REPO_ROOT}/.claude" "${REPO_ROOT}/scripts" \
         "${REPO_ROOT}/tools/luana-cockpit-go" "${REPO_ROOT}/Makefile" \
         "${REPO_ROOT}/CLAUDE.md" "${REPO_ROOT}/AGENTS.md" 2>/dev/null | head -1 || true)
       if [ -z "$ND_HITS" ]; then

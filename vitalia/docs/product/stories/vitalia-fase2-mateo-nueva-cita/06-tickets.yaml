@@ -6,7 +6,7 @@ total_tickets: 9
 autonomous_mode: false                 # architect propone; Chris ratifica en checkpoint
 
 # Precursora (NO es un ticket de builder):
-#   P-0 · /pm-luana promotion proposal de los 4 atoms del canon
+#   P-0 · /pm-vitalia promotion proposal de los 4 atoms del canon
 #         → docs/promotion-protocol/proposals/2026-06-22-ui-kit-nueva-cita-atoms.md
 #         → contrato en mockups/PROPOSED-CANON-ATOMS.md
 #         Los tickets FE (T-FE-*) consumen los atoms desde @luana/ui-kit (soft-dep).
@@ -277,7 +277,7 @@ tickets:
       rationale: "FormActionBar (PROMOTE) + integración + live-verify gate Rule #37 (funcional)."
 
 # ── DAG (orden de build) ──────────────────────────────────────────────────────
-# P-0 (/pm-luana promote atoms) ──┐ (soft-dep de los FE)
+# P-0 (/pm-vitalia promote atoms) ──┐ (soft-dep de los FE)
 # T-BE-1 ─┐
 # T-BE-2 ─┼─→ T-BE-3 ─→ T-BE-4    (BE core)
 # T-BE-5 ─┘ (independiente)

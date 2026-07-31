@@ -5,7 +5,7 @@ Extrae una sección de {brand}/CHANGELOG-PUBLIC.md y la imprime por stdout.
 
 Uso:
     python scripts/extract_changelog_section.py --brand vitalia --section Unreleased
-    python scripts/extract_changelog_section.py --brand nicolify --section Unreleased
+    python scripts/extract_changelog_section.py --brand vitalia --section Unreleased
 
 Salida:
     - Contenido de la sección solicitada (sin la línea de cabecera ## [...]).
@@ -92,7 +92,7 @@ def main() -> int:
     parser.add_argument(
         "--brand",
         required=True,
-        help="Slug del brand (ej: vitalia, nicolify, comunify, lupulo).",
+        help="Slug del brand (vitalia).",
     )
     parser.add_argument(
         "--section",

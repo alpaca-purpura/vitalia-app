@@ -8,7 +8,7 @@
 # Usage:
 #   ./scripts/learning/capture.sh \
 #     --type {technical|business|process|tooling} \
-#     --brand {vitalia|nicolify|comunify|lupulo|none} \
+#     --brand {vitalia|none} \
 #     --slug "clerk-storage-state-freshness-gate" \
 #     --title "Clerk storage state freshness gate" \
 #     --hook "E2E auth Clerk requiere check freshness pre-test, retry+sanity, no cachear >5min" \
@@ -57,7 +57,7 @@ Required:
   --hook HOOK          1 línea ≤120 chars que explica por qué importa al futuro Claude
 
 Optional:
-  --brand BRAND        vitalia | nicolify | comunify | lupulo (mandatory si type=business)
+  --brand BRAND        vitalia (mandatory si type=business)
   --tags TAGS          comma-separated, 3-7 grep-friendly tags
   --content-file PATH  archivo .md con cuerpo. Si omitido → abre \$EDITOR.
   --dry-run            no escribe nada, sólo muestra el path target + pointer
@@ -138,8 +138,8 @@ fi
 # Validate brand value
 if [[ -n "${BRAND}" ]]; then
   case "${BRAND}" in
-    vitalia|nicolify|comunify|lupulo|saasora|inmoflow|retailly|fixia|guestly|fitflow) ;;
-    *) echo "ERROR: --brand inválido: ${BRAND}" >&2; exit 1 ;;
+    vitalia) ;;
+    *) echo "ERROR: --brand inválido: ${BRAND} (single-brand: vitalia)" >&2; exit 1 ;;
   esac
 fi
 
@@ -214,7 +214,7 @@ fi
 # Calculate brands_affected for frontmatter
 BRANDS_AFFECTED="[]"
 if [[ "${TYPE}" == "technical" || "${TYPE}" == "tooling" ]]; then
-  BRANDS_AFFECTED="[vitalia, nicolify, comunify, lupulo]"
+  BRANDS_AFFECTED="[vitalia]"
 elif [[ "${TYPE}" == "business" ]]; then
   BRANDS_AFFECTED="[${BRAND}]"
 fi
@@ -312,5 +312,5 @@ echo "✓ MEMORY.md pointer agregado"
 echo ""
 echo "=== Próximos pasos ==="
 echo "1. Revisa el contenido escrito: cat ${TARGET}"
-echo "2. Si querés promover a rule (futura aplicación enforce-able): /pm-luana propone path .claude/rules/{slug}.md"
+echo "2. Si querés promover a rule (futura aplicación enforce-able): /pm-vitalia propone path .claude/rules/{slug}.md"
 echo "3. Commit en mismo PR del trabajo que originó el learning"

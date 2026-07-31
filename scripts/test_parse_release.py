@@ -25,8 +25,8 @@ import argparse
 import re
 import sys
 
-# Brands conocidas (whitelist igual que en cd-prod.yml)
-KNOWN_BRANDS = {"nicolify", "vitalia", "comunify", "lupulo"}
+# Brands conocidas (whitelist igual que en cd-prod.yml — single-brand standalone)
+KNOWN_BRANDS = {"vitalia"}
 
 # Pattern SemVer con prerelease opcional: X.Y.Z o X.Y.Z-rc1, X.Y.Z-alpha.1, etc.
 RELEASE_PATTERN = re.compile(

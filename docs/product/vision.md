@@ -1,7 +1,9 @@
 # Luana Platform — Vision
 
 **Fecha snapshot:** 2026-05-27 (regenerado post-multibrand reorg).
-**Owner:** `/pm-luana` (mantiene este file actualizado).
+**Owner:** `/pm-vitalia` (fusión pm-vitalia+pm-luana, repo standalone 2026-07-31).
+
+> ★ **Nota 2026-07-31 (vitalia-app standalone):** este file describe la visión del monorepo multimarca `luana-platform` del que se extrajo este repo. La filosofía engine-como-acumulador-de-aprendizajes sigue válida; la maquinaria cross-brand referenciada (portfolio, promotion gate, otras marcas) quedó archivada en `docs/archive/2026/multibrand-legacy/`. Visión viva de la marca: `vitalia/docs/product/vision.md`. Vista master: `vitalia/docs/product/checkpoint.md`.
 
 > Luana es una plataforma multimarca multitenant SaaS que **multiplica el ROI por marca** consolidando engine compartido (`core/luana-core-*`, 26 paquetes) + verticales brand-specific (10 brands). Cada brand aprende independiente, **el engine acumula los aprendizajes técnicos transversales**, las brands acumulan los aprendizajes de negocio per-vertical. Resultado: lift+expand más rápido + costos infra-ingeniería compartidos.
 
@@ -37,17 +39,14 @@ Una brand que descubre un pattern técnico (ej: cómo manejar storage state fres
 
 **Brands NUNCA importan código de otras brands** — sólo consumen engine via `from luana_core_X import Y`. Mirror cross-brand prohibido (anti-duplication.md + anti-duplication-refining.md).
 
-## Promotion gate brand→core
+## Flujo engine (ex promotion gate brand→core — retirado 2026-07-31)
 
-Cuando una brand descubre un pattern reusable cross-brand:
-1. `/pm-luana` evalúa con `docs/promotion-protocol/scan-promotables.yaml`
-2. Si pattern reusable ≥2 brands → escribir proposal `docs/promotion-protocol/proposals/`
-3. Chris ratifica → carve-out engine package (lift)
-4. Worktree `~/Proyectos/luana-core-{slug}/` con branch `wip/core-{slug}`
-5. Implementación + tests + arch fitness en cada brand consumer activa
-6. Squash-merge a main → engine v++ → brands consumer actualizan import
+Cuando la marca descubre un pattern que pertenece al engine:
+1. `/pm-vitalia` evalúa el lift (flujo engine — repo standalone, sin promotion gate cross-brand)
+2. Cambio directo en `core/luana-core-{pkg}` gateado por: arch tests del paquete + arch tests de vitalia en verde
+3. Bump semver + CHANGELOG del paquete; breaking change de contrato (Extension SDK EP-1..EP-18) → ADR + ratificación de Chris ANTES
 
-Workflow detalle: `docs/promotion-protocol/README.md`.
+Detalle: `CLAUDE.md § Engine` + `docs/core-modules/README.md`. El promotion protocol multibrand quedó archivado en `docs/archive/2026/multibrand-legacy/`.
 
 ## Paradigm 3 conversaciones (paradigm v4)
 

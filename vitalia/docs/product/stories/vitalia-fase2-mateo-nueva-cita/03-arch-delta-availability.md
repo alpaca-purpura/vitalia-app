@@ -53,7 +53,7 @@
 
 ### Decisión por sistema
 - **BE endpoint `service-day`** = **EXTEND** del router/service/repo existentes. Es un **método nuevo que COMPONE métodos existentes** (`get_working_hours` + `get_busy_ranges` por médico, `list_active_doctors` para labels, `offer_service_specialist_links` para el set). **CERO recreación** del cómputo free/busy. No es una capa nueva: es una proyección read-only sobre tablas y métodos ya ttesteados.
-- **DatePicker (date-only)** = **NEW shared atom → PROMOTE a `@luana/ui-kit`** (no existe; sólo `SmartDateTimePicker` combinado y `Calendar` raw). Justificación NEW: ningún atom date-only-en-popover existe; es reusable platform-wide (toda hoja con campo fecha). Por canon §5 = se construye en el kit + story, **NO** se re-implementa local-y-olvidado. Fold en el deliverable de `T-D2` (no precursora `/pm-luana` separada — el ticket lo crea en el kit antes del merge).
+- **DatePicker (date-only)** = **NEW shared atom → PROMOTE a `@luana/ui-kit`** (no existe; sólo `SmartDateTimePicker` combinado y `Calendar` raw). Justificación NEW: ningún atom date-only-en-popover existe; es reusable platform-wide (toda hoja con campo fecha). Por canon §5 = se construye en el kit + story, **NO** se re-implementa local-y-olvidado. Fold en el deliverable de `T-D2` (no precursora `/pm-vitalia` separada — el ticket lo crea en el kit antes del merge).
 - **Filtro 1c client-side** = mirror advisory del half-open `[s,e)`. NO crea capa server: el server (`check`/`free-doctors`/EXCLUDE) sigue siendo la autoridad en submit (RN-10).
 
 **Cross-brand mirror check:** ninguno. `offer_service_specialist_links`, `availability_query_repository`, `DayAvailabilityStrip` son todos brand-local vitalia. Cero patrón a liftar a core en este delta.

@@ -9,10 +9,10 @@
 #          loader scripts/harness_config.py reads it; consumers (bash/python/cockpit) wired.
 #
 #  WHAT THIS IS: the single store of every PROJECT/BRAND/TECH-specific value the
-#  harness CORE (core-harness/) is written against. The CORE names ZERO concrete
-#  tech/brand/locale/engine/dev-app; it reads these abstract SLOTS. This file fills
-#  them for THIS product (luana-platform). A different product writes a different
-#  project.config.yaml — the CORE is unchanged. (charter §0.5 north-star · §3 seam)
+#  harness is written against. This file fills the slots for THIS product
+#  (vitalia-app). Post 2026-07-31 el harness está MATERIALIZADO en el repo
+#  (.claude/ archivos reales, sin plugin ni kit externo); este seam sigue siendo
+#  el SSoT de valores para scripts/hooks/cockpit (harness_config.py).
 #
 #  HOW IT IS READ (verified date-aware against official Claude Code docs 2026-06-09):
 #    · bash / git-hooks  → `${WS}/.venv/bin/python -m harness_config <dotted.slot>`
@@ -25,11 +25,7 @@
 #        Optional skill-ONLY native upgrade: `` !`python -m harness_config <slot>` ``
 #        (never a hard dependency — `disableSkillShellExecution` can kill it).
 #
-#  EXTRACTION (the program DoD): drop core-harness/ + this file (every value
-#  __FILL_ME__) into a fresh repo → `python -m harness_config --doctor` lists the
-#  unfilled slots → fill them → idea→done runs without editing the CORE.
-#
-#  Sentinel for an unfilled slot: __FILL_ME__   (the doctor flags these)
+#  Sentinel for an unfilled slot: __FILL_ME__   (`python -m harness_config --doctor` los lista)
 # ════════════════════════════════════════════════════════════════════════
 
 meta:
@@ -46,8 +42,8 @@ meta:
 #  ⚠ design fork flagged in W5-OUTPUT §F1: centralize here (this draft, = PROCESS-MODEL §4
 #    ratified shape) vs delegate per-brand facets to {brand}/config/brand.yaml (BRAND layer).
 brands:
-  cockpit_main_port: 4000          # cross-brand consolidated cockpit (worktree PRINCIPAL)
-  # canonical order for cross-brand loops (cleanup-session.sh:109 order)
+  cockpit_main_port: 4000          # legacy multi-cockpit (chris-corp); este repo usa brands.active[].ports.cockpit (4002)
+  # canonical order for brand loops (single-brand)
   loop_order: [vitalia]
 
   # ── per-brand facets (F1 centralized): cap_gate = is the bidirectional cap-gate HARD
@@ -75,11 +71,10 @@ toolchain:
   package_manager_fe: "pnpm@9.15.9"      # node 20 LTS via nvm
   venv_path: "${WS}/.venv"               # venv AT WORKSPACE ROOT
   postgres_port: 5435                    # shared dev postgres
-  # Cockpit = binario externo del repo prenter-harness (NO vendored — se consume POR VERSIÓN; el código
-  # de prenter jamás se copia a luana). Pin = la release tag de prenter contra la que luana fue probada.
-  # cockpit-daemon.sh avisa (NO bloquea) si el repo prenter local difiere. Subir el pin = deliberado,
-  # tras testear una release nueva. Boundary completo: .claude/rules/cockpit-boundary.md
-  cockpit_min_version: "0.4.0"           # prenter git tag (proxy: el cockpit no expone -version flag)
+  # Cockpit = VENDORED en tools/cockpit/ (fork consciente ratificado por Chris 2026-07-30,
+  # snapshot de prenter-harness products/devhub). Se buildea local: make cockpit-build.
+  # El pin de versión externa quedó obsoleto — se conserva como referencia del snapshot origen.
+  cockpit_min_version: "0.4.0"           # tag prenter del snapshot vendored (histórico)
   backend:
     cwd: "{brand}/backend"
     lint:      "${WS}/.venv/bin/ruff check ."          # line-length 120, py312
@@ -118,8 +113,8 @@ engine_prefix:
   python_glob: "core/luana-core-*"         # internal: core/luana-core-*/src/luana_core_*/
   python_module_prefix: "luana_core_"
   ts_scope: "@luana/*"                      # core/@luana/<pkg> consumed via import @luana/...
-  python_package_count: 27                  # ⚠ CLAUDE.md header says "26" — STALE (real dirs = 27)
-  lift_gate: "/pm-luana promotion (brand→core) — docs/promotion-protocol/"
+  python_package_count: 27
+  lift_gate: "flujo engine /pm-vitalia — cambio directo en core/ gateado por arch tests (paquete + vitalia) + semver bump + CHANGELOG; breaking EP-1..18 → ADR + Chris ratifica"
   # full list maintained for anti-dup / doctor; ts packages under core/@luana/
   ts_packages: [api-client, design-tokens, eslint-config, extension-sdk, format, hooks, schemas, ui-kit]
 
@@ -244,7 +239,7 @@ wip_caps:
 # ── SLOT 12 ─────────────────────────────────────────────────────────────
 #  models  ·  SSoT de ruteo de modelos Claude del harness (pedido Chris 2026-06-12).
 #  REEMPLAZA: nombres de modelo hardcodeados en frontmatter `model:` de
-#  .claude/{agents,skills} (+ espejos .claude-shared/ y core-harness/agents/).
+#  .claude/{agents,skills}.
 #  CONVENCIÓN: la doctrina (rules/skills/templates) habla en TIERS
 #  (flagship/coordinator/workhorse/mechanical) — NUNCA nombres de modelo.
 #  El frontmatter `model:` es ARTEFACTO GENERADO: `make models-sync` lo parchea
@@ -258,7 +253,7 @@ models:
     coordinator: opus      # PMs + orquestación git (commit-push/handoff)
     workhorse: sonnet      # builders BE/FE no-agentic
     mechanical: haiku      # gate-runner / context / grep workers
-  agents:                  # .claude/agents/{name}.md (+ espejo .claude-shared/agents/ y core-harness/agents/ si existen)
+  agents:                  # .claude/agents/{name}.md
     architect-orchestrator: flagship
     auditor-agentic: flagship
     auditor-backend: flagship
@@ -270,7 +265,7 @@ models:
     context-validator: mechanical
     gate-runner: mechanical
     grep-bot: mechanical
-  skills:                  # .claude/skills/{name}/SKILL.md (+ espejo .claude-shared/skills/ si existe)
+  skills:                  # .claude/skills/{name}/SKILL.md
     architect: flagship
     auditor: flagship
     dev-team: flagship
@@ -278,9 +273,7 @@ models:
     po-ux: flagship
     ux-agentico: flagship
     pm: coordinator
-    pm-luana: coordinator
     pm-vitalia: coordinator
-    _pm-sistema-template: coordinator
     commit-push: coordinator
     handoff: coordinator
     harness-issue: mechanical

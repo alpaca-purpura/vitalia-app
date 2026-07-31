@@ -1,13 +1,10 @@
-name: "CD — Staging multibrand (manual)"
+name: "CD — Staging vitalia (manual)"
 
 # Deploy a staging MANUAL (post 2026-05-19 policy change ratificada Chris).
-# Detecta por brand cuales tienen cambios (dorny/paths-filter) y
-# dispara el workflow reutilizable _deploy-brand.yml solo para las marcas afectadas.
+# Detecta si vitalia tiene cambios (dorny/paths-filter) y dispara el workflow
+# reutilizable _deploy-brand.yml solo si aplica.
 #
-# Objetivo de tiempo total: < 8 minutos (paralelo entre brands sin cambios = skip inmediato).
-#
-# Nota sobre lupulo: no tiene backend operativo aun (Story 13 pendiente).
-# El job de staging para lupulo esta explicitamente omitido hasta Story 13.
+# Repo standalone single-brand (2026-07-31): solo vitalia.
 #
 # Trigger: workflow_dispatch (manual desde GH Actions UI o gh CLI). NO auto-trigger.
 # Cambio policy 2026-05-19: push a main YA NO dispara staging auto-deploy.
@@ -16,14 +13,14 @@ name: "CD — Staging multibrand (manual)"
 #
 # Ref: ADR-004 § CI/CD (post 2026-05-19 update) — staging manual not auto.
 # Cómo invocar:
-#   gh workflow run "CD — Staging multibrand (manual)" --ref main
+#   gh workflow run "CD — Staging vitalia (manual)" --ref main
 #   o desde GitHub UI: Actions → workflow → Run workflow
 
 on:
   workflow_dispatch:
     inputs:
       force_all_brands:
-        description: 'Deploy todas las brands sin detección de paths (true) o solo brands afectadas (false)'
+        description: 'Deploy sin detección de paths (true) o solo si vitalia/core cambiaron (false)'
         required: false
         default: 'false'
         type: choice
@@ -37,14 +34,11 @@ permissions:
 
 jobs:
   detect-brand-changes:
-    name: "Detectar cambios por brand"
+    name: "Detectar cambios en vitalia"
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
-      nicolify: ${{ steps.filter.outputs.nicolify }}
       vitalia: ${{ steps.filter.outputs.vitalia }}
-      comunify: ${{ steps.filter.outputs.comunify }}
-      lupulo: ${{ steps.filter.outputs.lupulo }}
 
     steps:
       - uses: actions/checkout@v4
@@ -55,61 +49,17 @@ jobs:
         id: filter
         with:
           filters: |
-            nicolify:
-              - 'nicolify/**'
-              - 'core/**'
             vitalia:
               - 'vitalia/**'
               - 'core/**'
-            comunify:
-              - 'comunify/**'
-              - 'core/**'
-            lupulo:
-              - 'lupulo/**'
-              - 'core/**'
-
-  deploy-nicolify-staging:
-    name: "Staging nicolify"
-    needs: detect-brand-changes
-    if: needs.detect-brand-changes.outputs.nicolify == 'true'
-    uses: ./.github/workflows/_deploy-brand.yml
-    with:
-      brand: nicolify
-      version: ${{ github.sha }}
-      environment: nicolify-staging
-    secrets: inherit
 
   deploy-vitalia-staging:
     name: "Staging vitalia"
     needs: detect-brand-changes
-    if: needs.detect-brand-changes.outputs.vitalia == 'true'
+    if: needs.detect-brand-changes.outputs.vitalia == 'true' || github.event.inputs.force_all_brands == 'true'
     uses: ./.github/workflows/_deploy-brand.yml
     with:
       brand: vitalia
       version: ${{ github.sha }}
       environment: vitalia-staging
     secrets: inherit
-
-  deploy-comunify-staging:
-    name: "Staging comunify"
-    needs: detect-brand-changes
-    if: needs.detect-brand-changes.outputs.comunify == 'true'
-    uses: ./.github/workflows/_deploy-brand.yml
-    with:
-      brand: comunify
-      version: ${{ github.sha }}
-      environment: comunify-staging
-    secrets: inherit
-
-  # lupulo-staging: omitido hasta Story 13 (lupulo no tiene backend aun)
-  # Cuando Story 13 se implemente, agregar:
-  # deploy-lupulo-staging:
-  #   name: "Staging lupulo"
-  #   needs: detect-brand-changes
-  #   if: needs.detect-brand-changes.outputs.lupulo == 'true'
-  #   uses: ./.github/workflows/_deploy-brand.yml
-  #   with:
-  #     brand: lupulo
-  #     version: ${{ github.sha }}
-  #     environment: lupulo-staging
-  #   secrets: inherit

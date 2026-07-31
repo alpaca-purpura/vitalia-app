@@ -37,15 +37,15 @@ autonomous_mode_caps:
 - Story es **ui-story standard** (CRUD/list/detail/form/dashboard) sin agentic
 - ≤5 tickets en 06-tickets.yaml
 - Ningún ticket toca `core/luana-core-*/` (engine ban)
-- Ningún ticket toca `{other_brand}/...`
+- Ningún ticket toca paths fuera de `vitalia/**` + `core/` read-only
 - Ningún ticket es `production_code: true + AGENTIC` (flagship-only — Chris debería supervisar)
 - Validators tienen `must_pass: true` claros, no `pass_k` ambiguos
 
 ### Cuándo autonomous_mode debe ser false (HARD)
 
 - Cualquier ticket AGENTIC `production_code: true` (requiere Chris supervise el tier flagship)
-- Story toca engine (`/pm-luana` promotion gate obligatorio)
-- Story toca cross-brand (`/pm-luana` outcome)
+- Story toca engine (`/pm-vitalia` flujo engine obligatorio)
+- Story cross-cutting platform (ratificación `/pm-vitalia`)
 - Validators incluyen `pass_k` con thresholds < 0.66 (eval ruido riesgo)
 - Hot-fix repro_verified: false (necesita Chris ratify diagnosis)
 - Cualquier story marked `defer_audit: true` en checkpoint
@@ -74,7 +74,7 @@ Cada ticket en `06-tickets.yaml` MUST incluir bloque `assignment`:
       - "{brand}/docs/product/stories/{id}/04-validators.yaml § test_construction_plan"
     forbidden_to_touch:
       - "core/luana-core-*/src/"
-      - "{other_brand}/"
+      - "paths fuera de vitalia/"
       - "{brand}/backend/src/modules/{brand}/{copilot,sales_agent}/"
     rationale: "BE CRUD non-agentic, workhorse sweet spot; flagship_required:false"
 
@@ -137,7 +137,7 @@ playwright_visual_scope:
 
   forbidden_visual_changes:
     paths:
-      - "{brand}/frontend/src/components/ui/"        # Shadcn primitives — escalate /pm-{brand}
+      - "{brand}/frontend/src/components/ui/"        # Shadcn primitives — escalate /pm-vitalia
       - "{brand}/frontend/src/components/shared/"    # cross-feature shared
       - "{brand}/frontend/src/app/layout.tsx"        # app shell
     reasons:
@@ -146,7 +146,7 @@ playwright_visual_scope:
       - "Cambios en layout app shell romperían navegación global"
 
   if_visual_change_needed_outside_scope:
-    action: "STOP. Document in T-{n}-impl-log.md. Escalate /pm-{brand} para spec extension o spawn dedicated cross-cutting story."
+    action: "STOP. Document in T-{n}-impl-log.md. Escalate /pm-vitalia para spec extension o spawn dedicated cross-cutting story."
 
   playwright_assertions_scope:
     - "Assertions visual SOLO sobre story_scope_routes + story_scope_components"
@@ -166,7 +166,7 @@ Al cerrar ready package, architect genera `dispatch-plan.md` (1 sólo file ≤ 1
 
 ## autonomous_mode
 - value: false                   # Chris opt-in al ratificar
-- chain_if_true: [/dev-team → /auditor → /pm-{brand} merge]
+- chain_if_true: [/dev-team → /auditor → /pm-vitalia merge]
 - caps: {iterations: 10, audit_iter: 3, cost_usd: 5.00, walltime: 90min}
 
 ## Ticket→Agent→Model→Cost matrix
@@ -191,7 +191,7 @@ T-1 → T-2 → T-3 (sequential)
 ```bash
 # Chris opt-in autonomous chain
 echo 'autonomous_mode: true' >> {brand}/docs/product/stories/{id}/checkpoint.md
-# /dev-team picks up T-1, completes T-1, auto-handoff T-2 → T-3 → /auditor → /pm-{brand} merge
+# /dev-team picks up T-1, completes T-1, auto-handoff T-2 → T-3 → /auditor → /pm-vitalia merge
 ```
 
 ## Recommended invocation if manual

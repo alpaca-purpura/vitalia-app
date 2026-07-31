@@ -5,7 +5,7 @@
 
 ## Estado del ready package
 - `verdict: BLOCKED-PARTIAL`. Las superficies BE/FE + agentic-overlay son buildable HOY. El **valor agentic
-  central (book/match/share via grafo)** está BLOQUEADO hasta el lift `/pm-luana` (ESC-1/2/3, ver 03-arch.md
+  central (book/match/share via grafo)** está BLOQUEADO hasta el lift `/pm-vitalia` (ESC-1/2/3, ver 03-arch.md
   § Engine-boundary escalations).
 - **No se puede transicionar a `developing` el carril agentic lift-gated** hasta merge del lift. El carril
   BE/FE + T-AG-1 SÍ puede arrancar.
@@ -18,7 +18,7 @@
 
 | Ticket | Surface | Agent | Model (tier) | Bloqueado | Costo estimado |
 |---|---|---|---|---|---|
-| T-LIFT-1 | engine | **/pm-luana** (gate, no builder) | coordinator | 🔴 (es el desbloqueante) | — (promotion proposal) |
+| T-LIFT-1 | engine | **/pm-vitalia** (gate, no builder) | coordinator | 🔴 (es el desbloqueante) | — (promotion proposal) |
 | T-BE-1 | be | builder-backend | workhorse | ✅ no | medio (canal + dedup + security tests) |
 | T-BE-2 | be | builder-backend | workhorse | ✅ no | medio-alto (slot-marking + hold + sweep + migrations) |
 | T-BE-3 | be | builder-backend | workhorse | ✅ no | medio (bridge + endpoint) |
@@ -34,7 +34,7 @@
 ## DAG
 
 ```
-T-LIFT-1 (/pm-luana) ──┬─→ T-AG-2 ──→ T-AG-3
+T-LIFT-1 (/pm-vitalia) ──┬─→ T-AG-2 ──→ T-AG-3
                        ├─→ T-AG-4 ──→ T-AG-3
                        └─→ T-AG-5
 T-BE-1 ──┬─→ T-AG-1
@@ -47,7 +47,7 @@ Carril lift-gated (espera T-LIFT-1 merge): T-AG-2 → T-AG-4 → T-AG-3 ; T-AG-5
 ```
 
 ## Secuenciamiento recomendado al PM
-1. **Disparar `/pm-luana` T-LIFT-1 (ESC-1/2/3) en paralelo** — es un lift cohesivo (~80 LOC + 2 arch tests) que
+1. **Disparar `/pm-vitalia` T-LIFT-1 (ESC-1/2/3) en paralelo** — es un lift cohesivo (~80 LOC + 2 arch tests) que
    completa el wiring EP-3 (Stories 11-13 "wiring real adapters" quedó a medias). Beneficia toda brand con
    sales_agent propio.
 2. **Arrancar carril BE/FE + T-AG-1** ya (no depende del lift). Cierra el canal + plomería + overlay + composer.
@@ -69,6 +69,6 @@ trace, costo). CERO "GET 200". `chris_verify.signoff` antes del `/auditor`.
 # carril buildable (tras ratify Chris del ready package):
 /dev-team vitalia vitalia-fase2-adrian-canal-inbound   # arranca T-BE-1 (+ paralelos BE/FE)
 # carril lift (paralelo):
-/pm-luana   # T-LIFT-1 promotion proposal ESC-1/2/3
+/pm-vitalia   # T-LIFT-1 promotion proposal ESC-1/2/3
 # tras builds: G (Chris-verify live) → /auditor vitalia → /pm-vitalia merge → done
 ```

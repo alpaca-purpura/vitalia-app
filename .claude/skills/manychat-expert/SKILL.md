@@ -70,9 +70,9 @@ These features are **NOT available** via the ManyChat API — do not attempt to 
 
 ---
 
-## Existing Integration (HB-65 2026-06-09: el módulo connections vive en el ENGINE `core/luana-core-connections/src/luana_core_connections/` — las marcas lo consumen vía Extension SDK; "Nicolify" abajo = lineage histórica)
+## Existing Integration (HB-65 2026-06-09: el módulo connections vive en el ENGINE `core/luana-core-connections/src/luana_core_connections/` — la marca lo consume vía Extension SDK)
 
-Read `references/nicolify-integration.md` for the full file map. Summary:
+Read `references/connections-integration-map.md` for the full file map. Summary:
 
 | Layer | File | What It Does |
 |---|---|---|

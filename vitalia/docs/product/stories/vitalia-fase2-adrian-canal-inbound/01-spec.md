@@ -568,7 +568,7 @@ Detalle de cimientos: `00-research-data-foundation.md`. Decisión: **secuenciar 
 > (Strategy) + workers `appointment_reminder_engine` (T-24h/T-1h/post-cita, **no-show gratis**) + `verify_pending_
 > bookings` (reconcilia hold→confirmado→no-show) + `follow_up_engine`/`frozen_detection` (momentum/se-enfría). El
 > delta brand = un **`VitaliaSchedulerProvider`** (envuelve el lane scheduling vivo) + `match_service_and_specialist`
-> + `share_doctor_profile`. `/architect` lo aterriza sin tocar engine (gap → `/pm-luana`).
+> + `share_doctor_profile`. `/architect` lo aterriza sin tocar engine (gap → `/pm-vitalia`).
 
 - **AC-15** · En `decide`, lead elige un slot propuesto → se crea una **fila booking** `status: sin-pago`
   con advisory lock + se envía el `payment_link` de seña por Telegram. Verificado LIVE (leer logs + DB).

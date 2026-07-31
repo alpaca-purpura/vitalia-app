@@ -1,14 +1,14 @@
 # Debugging — detalle (ex always-on rule body, evicted W1-Phase2 2026-06-09)
 
-> Runbook completo: `docs/process/docker-dev-multibrand.md`. Docker-compose **per-brand** (post 2026-05-15 reorg). Stack: `make dev-{brand}` o `make dev-all`.
+> Runbook completo: `docs/process/docker-dev.md`. Docker-compose **per-brand** (post 2026-05-15 reorg). Stack: `make dev-{brand}` o `make dev-all`.
 
 ## Diagnóstico
 
-Containers naming convention: `luana-dev-{brand}_{service}_dev-1` (ej: `luana-dev-nicolify_backend_dev-1`, `luana-dev-vitalia_frontend_dev-1`).
+Containers naming convention: `luana-dev-vitalia_{service}_dev-1` (ej: `luana-dev-vitalia_backend_dev-1`, `luana-dev-vitalia_frontend_dev-1`).
 
 ```bash
 WS=$(git rev-parse --show-toplevel)
-BRAND=nicolify   # o vitalia/comunify/lupulo
+BRAND=vitalia
 
 # BE logs
 docker logs luana-dev-${BRAND}_backend_dev-1 --tail 100
@@ -40,7 +40,7 @@ docker exec -t luana-dev-${BRAND}_backend_dev-1 bash -c "cd /workspace/${BRAND}/
 8. ETL credential expiry (Meta/GA4)
 9. Missing env var (silencioso) — verify `{brand}/.env.dev` vs `{brand}/docker-compose.dev.yml`
 10. Qdrant unavailable → vector search falla silencioso
-11. Wrong brand port: nicolify=8001/3001, vitalia=8002/3002, comunify=8003/3003, lupulo=8004/3004
+11. Wrong port: vitalia=8002 (BE) / 3002 (FE)
 12. Engine package not editable in venv → `cd ${WS} && uv sync` desde root (NUNCA dentro de `{brand}/backend/`)
 
 ## Fix Quality

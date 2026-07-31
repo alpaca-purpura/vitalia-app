@@ -63,7 +63,7 @@ if [[ -n "${STRONG_HIT}" ]]; then
 {
   "hookSpecificOutput": {
     "hookEventName": "UserPromptSubmit",
-    "additionalContext": "learning-capture flow authorized — Chris pidió explícitamente capturar aprendizaje (trigger: \"${STRONG_HIT}\"). Per .claude/rules/learning-capture.md § Trigger 1: (1) determiná tipo (técnico transversal | negocio per-brand | process | tooling), (2) determiná brand si business-specific (inferí del worktree actual + confirmá), (3) proponé slug kebab-case ≤60 chars, (4) escribí archivo en path canónico siguiendo template, (5) agregá pointer 1 línea a MEMORY.md, (6) confirmá ratificación. SI el aprendizaje no está claro aún (Chris dijo \"aprendamos\" sin contenido específico) → preguntá QUÉ es el aprendizaje antes de capturar. NO uses scripts/learning/capture.sh sin contenido ratificado."
+    "additionalContext": "learning-capture flow authorized — Chris pidió explícitamente capturar aprendizaje (trigger: \"${STRONG_HIT}\"). Per .claude/rules/learning-capture.md § Trigger 1: (1) determiná tipo (técnico transversal | negocio vitalia | process | tooling), (2) si es negocio → vitalia/docs/learnings/, (3) proponé slug kebab-case ≤60 chars, (4) escribí archivo en path canónico siguiendo template, (5) agregá pointer 1 línea a MEMORY.md, (6) confirmá ratificación. SI el aprendizaje no está claro aún (Chris dijo \"aprendamos\" sin contenido específico) → preguntá QUÉ es el aprendizaje antes de capturar. NO uses scripts/learning/capture.sh sin contenido ratificado."
   }
 }
 EOF

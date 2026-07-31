@@ -2,7 +2,7 @@
 
 > **Technical-story · platform-engineering · `user_visible: false`.** Contract-spec (NO Gherkin).
 > Modelo YA fijado por **ADR-016 (accepted 2026-06-25)** — esto es el package de EJECUCIÓN del Tramo C2.
-> Suffix `-C2` (no clobbera los deliverables de Fase 0). El checkpoint lo maneja `/pm-luana` (story sigue `developing`).
+> Suffix `-C2` (no clobbera los deliverables de Fase 0). El checkpoint lo maneja `/pm-vitalia` (story sigue `developing`).
 
 ## 0. Context Summary
 
@@ -18,7 +18,7 @@
   | C2-T3 | brand: `vitalia/frontend/src/**` (globals + consumers + arch-test) | `builder-frontend` (workhorse) | `auditor-frontend` (flagship) |
   | C2-T4 | engine: `core/@luana/ui-kit/src/{EntityInfoCard,chart,rich-select,smart-datetime-picker}.tsx` + 4 stories | `builder-frontend` (workhorse) | `auditor-frontend` (flagship) |
 
-- **ENGINE BOUNDARY (T-2, T-4 tocan `core/@luana`):** NO requiere `/pm-luana` lift aparte. ADR-016 (accepted) **es** la ratificación + esta es una technical-story core-targeting (la story justifica el build de core, no es un lift WT6). NO abrir promotion proposal. Los src-bugfixes y los value-adds promueven con los commits DS (no cambian API pública del kit salvo el slot aditivo de T-4).
+- **ENGINE BOUNDARY (T-2, T-4 tocan `core/@luana`):** NO requiere `/pm-vitalia` lift aparte. ADR-016 (accepted) **es** la ratificación + esta es una technical-story core-targeting (la story justifica el build de core, no es un lift WT6). NO abrir promotion proposal. Los src-bugfixes y los value-adds promueven con los commits DS (no cambian API pública del kit salvo el slot aditivo de T-4).
 - **Skills consultados:** ADR-016 §1-6 · design-system-canon §2/§2.10/§6.1/§6.8 · frontend-visual-fidelity (Storybook=SSoT). Decisiones tomadas: ver § Existing systems audit + § 4 piezas.
 - **CONTEXT-BRIEF source:** sin brief — recon directo (ADR-016 + checkpoint + chris-input §2026-06-25 + código real: design-tokens/src, ui-kit/src/index.ts, vitalia+nicolify globals.css, .storybook/main.ts).
 - **cap YAML afectados:** ninguno (`cap_target: null` — infra del DS, no capability de producto). Updates de doctrina (canon/ADR) ya cableados en C1.
@@ -36,7 +36,7 @@ Audit cross-codebase ejecutado (recon directo · paths reales):
 | Catalog tooling | Fase 0 T-1 (`scripts/generate_ui_catalog.mjs` planned) | aún no built (Fase 0 T-1 no cerró) | **EXTEND/REPLACE-forward**: C2-T1 ES el catálogo generado + parity-gate (supersede el T-1 Fase-0; mismo home, ahora con lifecycle + paridad shrink-only). |
 | Storybook autodocs pipeline | `.storybook/main.ts` (react-docgen-typescript + autodocs:"tag") + `storybook-static/index.json` | corre, props+"cuándo usar" viven en stories | **REUSE como SOURCE** (T-1): el catálogo se EXTRAE de este pipeline (cero tooling de props nuevo). |
 
-**Decisión cardinal — NO se reintroduce el CSS shipeado desde el package.** El canon §6.8 (cement 2026-06-16) **evaluó y DESCARTÓ** empaquetar un `.css` importable desde `@luana/design-tokens` (superficie de export versionada + `@source` con path relativo frágil, para ahorrar ~2 líneas/marca). El mecanismo ratificado es: **el package es TS-only (SSoT de los VALORES); cada marca escribe su bloque `@theme` que PROYECTA esos valores; un arch-test per-brand asserta no-drift.** "Consumir vía @theme (patrón nicolify)" = ese mirror GUARDADO, NO un `@import` literal de CSS. Si C2 reintrodujera un CSS-ship → viola canon §6.8 → auditor FAIL. (Un re-litigio de §6.8 sería decisión aparte de `/pm-luana`, fuera de C2.)
+**Decisión cardinal — NO se reintroduce el CSS shipeado desde el package.** El canon §6.8 (cement 2026-06-16) **evaluó y DESCARTÓ** empaquetar un `.css` importable desde `@luana/design-tokens` (superficie de export versionada + `@source` con path relativo frágil, para ahorrar ~2 líneas/marca). El mecanismo ratificado es: **el package es TS-only (SSoT de los VALORES); cada marca escribe su bloque `@theme` que PROYECTA esos valores; un arch-test per-brand asserta no-drift.** "Consumir vía @theme (patrón nicolify)" = ese mirror GUARDADO, NO un `@import` literal de CSS. Si C2 reintrodujera un CSS-ship → viola canon §6.8 → auditor FAIL. (Un re-litigio de §6.8 sería decisión aparte de `/pm-vitalia`, fuera de C2.)
 
 **Sin cross-brand mirror nuevo.** T-3 toca SOLO vitalia (declarado). nicolify YA es el patrón bueno (no se toca en C2). comunify/lupulo = C3/adopción (fuera de C2).
 
@@ -165,7 +165,7 @@ Sin investigación externa novel — Tailwind v4 `@theme`/`@custom-variant`, rea
 - `docs/architecture/luana-platform/design-system-canon.md` — §2.10 + §6.8 dark-wiring + **el descarte explícito del CSS-ship desde el package** (driver de la decisión cardinal de T-2).
 - Evidencia Fase 1: `core-ds-foundation/chris-input.md §2026-06-25` (kit 156/83/0-tier3/4-tier2 · 4 fuentes de drift · color names-only = driver #1 · nicolify @theme bueno · vitalia dual-system).
 
-## 9. Open Questions for PM (`/pm-luana`)
+## 9. Open Questions for PM (`/pm-vitalia`)
 
 1. **Split color shared-vs-identity (T-2).** El contrato fija: shared-value (shadow/typo-scale/radius-scale) = igualdad guardada; color-identidad = completitud+contraste (no hex), preservando RN-5. **Confirmar** que NO se quieren hornear hexes de agente cross-brand (eso rompería la identidad per-brand). Si Chris quisiera una paleta semántica (success/warning/danger/info) compartida por VALOR cross-brand → declarar cuáles, el resto queda override.
 2. **`@config` de vitalia (T-3).** El unwind del dual-system NO obliga a migrar off-`@config` (canon §2.10 lo acepta como equivalente legacy). Recomendación: migrar solo si limpia el unwind de los `--vitalia-*`; si no, dejar `@config` válido. **Ratificar** que migrar off-`@config` es opcional (no scope-creep obligatorio).

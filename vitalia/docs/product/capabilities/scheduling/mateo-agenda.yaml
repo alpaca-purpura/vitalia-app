@@ -470,4 +470,4 @@ test_coverage:
 
 ## Promotion candidate notes
 
-ADR-vitalia-004 shell-feature-architecture es source pattern de esta story. Brands futuras con sub-tabs en shell-organism agéntico pueden adoptar el patrón si construyen shell agéntico similar. `/pm-luana` evalúa lift candidate.
+ADR-vitalia-004 shell-feature-architecture es source pattern de esta story. Brands futuras con sub-tabs en shell-organism agéntico pueden adoptar el patrón si construyen shell agéntico similar. `/pm-vitalia` evalúa lift candidate.

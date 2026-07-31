@@ -1,7 +1,7 @@
 # 05-guidelines — canal-inbound (Adrián)
 
 > Guía enforceable para los builders. **Frontera dura:** los tickets agentic `book`/`match`/`share` están
-> BLOQUEADOS hasta el lift `/pm-luana` (ESC-1/2/3, ver 03-arch.md § Engine-boundary escalations). Lo demás es
+> BLOQUEADOS hasta el lift `/pm-vitalia` (ESC-1/2/3, ver 03-arch.md § Engine-boundary escalations). Lo demás es
 > buildable hoy.
 
 ## Patterns REQUIRED
@@ -39,7 +39,7 @@
 - `tenant_id` via `useTenantId()` (NUNCA Clerk org). React Query server data + Zustand UI state.
 
 ## Patterns FORBIDDEN
-- ❌ Editar `core/luana-core-*/src/` (cualquier paquete engine). → `/pm-luana` promotion gate.
+- ❌ Editar `core/luana-core-*/src/` (cualquier paquete engine). → `/pm-vitalia` promotion gate.
 - ❌ Usar `BookingService`/`vitalia_bookings` (deprecated) — turno solo en lane vivo `scheduling`.
 - ❌ Reimplementar orchestrator/debounce/graph/OutputManager/follow_up_engine (§3 protected sales-agent-expert).
 - ❌ Selección de slot con regex/parser/if-chain (bar no-`if`s).
@@ -57,7 +57,7 @@
 - FE buildable: `features/adrian/components/inbox/composer/*` · `api/` · `hooks/` · `types/`.
 
 ## Files NEVER touch
-- `core/luana-core-*/src/` (engine — `/pm-luana`).
+- `core/luana-core-*/src/` (engine — `/pm-vitalia`).
 - `vitalia/.../application/services/booking_service.py` + `vitalia_bookings` (deprecated).
 - Otros brands (`nicolify/`, `comunify/`, `lupulo/`). Otras sub-tabs del inbox.
 
@@ -65,4 +65,4 @@
 - **BE:** `backend-expert` · `hipaa-lite` (rule) · `anti-duplication` · `tenant-isolation` · `tdd-mandatory` · `chrome-devtools-verify` (route con consumer).
 - **Agentic:** `sales-agent-expert` · `copilot-expert` (si toca observability shared) · `hipaa-lite` · `anti-duplication` · `tenant-isolation` · `tdd-mandatory` · LangGraph canonical docs · `chrome-devtools-verify`.
 - **FE:** `frontend-expert` · `vitalia-design-system` · `playwright-expert` · `chrome-devtools-verify` · `tenant-isolation`.
-- **PM (lift):** `pm-luana` (ESC-1/2/3 promotion proposal).
+- **PM (lift):** `pm-vitalia` (ESC-1/2/3 promotion proposal).

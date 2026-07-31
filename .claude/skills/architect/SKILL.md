@@ -12,9 +12,9 @@ model: opus
 
 ## REQUIRED first input: `<brand>`
 
-`<brand>` ∈ `vitalia | nicolify | comunify | lupulo | platform`. Si Chris no lo provee, **PREGUNTAR antes de proceder**. `platform` = stories cross-brand que tocan engine (raro — requiere `/pm-luana` autorización + outcome platform-level).
+`<brand>` ∈ `vitalia | platform`. Si Chris no lo provee, **PREGUNTAR antes de proceder**. `platform` = stories que tocan engine (raro — requiere ratificación Chris vía `/pm-vitalia`).
 
-Si invocado vía `/pm-{brand}` o vía `/po-ux`/`/po`/`/ux-agentico` handoff, el brand viene en el handoff. Si invocado directo por Chris → preguntar primero.
+Si invocado vía `/pm-vitalia` o vía `/po-ux`/`/po`/`/ux-agentico` handoff, el brand viene en el handoff. Si invocado directo por Chris → preguntar primero.
 
 **Cross-package surface scope (CRÍTICO):**
 
@@ -23,7 +23,7 @@ Si invocado vía `/pm-{brand}` o vía `/po-ux`/`/po`/`/ux-agentico` handoff, el 
 | Brand backend modules | `{brand}/backend/src/modules/{brand}/{m}/` | ✅ libre per-brand |
 | Brand frontend features | `{brand}/frontend/src/features/{m}/` | ✅ libre per-brand |
 | Brand tests | `{brand}/backend/tests/` + `{brand}/frontend/src/**/*.test.ts` + `{brand}/frontend/e2e/` | ✅ libre per-brand |
-| Engine core packages | `core/luana-core-*/src/luana_core_*/` | ⛔ requiere lift via `/pm-luana` (promotion gate) — NO se edita en story brand-específica |
+| Engine core packages | `core/luana-core-*/src/luana_core_*/` | ⛔ requiere lift via `/pm-vitalia` (flujo engine) — NO se edita en story brand-específica |
 | Brand-extension agentic | `{brand}/backend/src/modules/{brand}/{copilot,sales_agent}/{tools,extractors,workflows,personas,goldens,kb}/` | ✅ libre per-brand |
 
 ## ★ Technical-story lane (WT5) — `/architect` ES el refiner, sombrero CTO-al-CEO (W0.5-bis · ratificado Chris 2026-06-08)
@@ -34,7 +34,7 @@ Para technical-story, el `/architect` **no consume** una `01-spec.md` Gherkin de
 
 **El sombrero es CTO recomendando a su CEO:** investigás **SOTA en internet** (date-aware) + proponés **opciones con una recomendación**; **Chris toma las decisiones grandes**. 1 pregunta a la vez, reflejo-primero, sin cave (mismo protocolo que `/po`). Firma = **una sola, sobre el approach propuesto en lenguaje humano** (Chris decide). El **GO en vivo (G)** es aparte.
 
-**Quién abre la story:** brand-infra → `/pm-{brand}` · **core-infra → `/pm-luana`**.
+**Quién abre la story:** brand-infra → `/pm-vitalia` · **core-infra → `/pm-vitalia`**.
 
 **Contract-spec (el análogo del spec, NO Gherkin)** — 4 piezas:
 - **Contrato / interface / extension-point** que se provee (la superficie nueva).
@@ -44,7 +44,7 @@ Para technical-story, el `/architect` **no consume** una `01-spec.md` Gherkin de
 
 **Verificación = `técnica`** (gates + evidencia runtime por efecto). Bar por sub-dominio: cifrado → round-trip decrypt · idempotencia → replay dedup · observabilidad → fila de traza · durable-flow → persist+resume · audit → fila de audit + access-denied. **Spec-first** (contract-spec RED-first) **excepto `nature: scaffold`** (exento).
 
-**Net-new core infra** = `technical-story` con `cap_change_type: new` apuntando a `core/` (la story ES la justificación del use-case; la regla "no research en core" de promotion aplica sólo a los **lifts** WT6, no a builds nuevos). **Worktree:** core-targeting → worktree core efímero (`wip/core-{slug}`); brand-infra → hub de la marca. **WT5 construye / WT6 liftea** (no confundir: el lift brand→core es off-spine, `/pm-luana`).
+**Net-new core infra** = `technical-story` con `cap_change_type: new` apuntando a `core/` (la story ES la justificación del use-case; la regla "no research en core" de promotion aplica sólo a los **lifts** WT6, no a builds nuevos). **Branch:** core-targeting o brand-infra → la branch de trabajo actual (el flujo engine es de `/pm-vitalia`).
 
 **Artefactos:** contract-spec (`new_cap.py` en modo infra) + ready-package **reducido** (`06-tickets` + `04-validators` siempre; `03-arch`/`05`/`dispatch` según haya decisión de arquitectura). **Cockpit:** slot `tech` + zona Infraestructura.
 
@@ -66,7 +66,7 @@ Para technical-story, el `/architect` **no consume** una `01-spec.md` Gherkin de
 
 > SSoT: `.claude/rules/anti-duplication-refining.md`.
 
-ANTES de Step 1 (decidir surfaces), revalidar el scan que `/pm-{brand}` + `/po-ux` debieron documentar. Si `01-spec.md` NO tiene sección `## Prior art applied` documentada → REFUSE producir ready package y escalá:
+ANTES de Step 1 (decidir surfaces), revalidar el scan que `/pm-vitalia` + `/po-ux` debieron documentar. Si `01-spec.md` NO tiene sección `## Prior art applied` documentada → REFUSE producir ready package y escalá:
 
 ```
 ERROR: 01-spec.md sin sección "## Prior art applied" verbatim per
@@ -76,13 +76,13 @@ documentar el scan antes de architect.
 
 Si sección existe, **re-ejecutar el scan** desde architect (verificación):
 - Engine packages `core/luana-core-*/` que cubren dominio
-- Brands shipped (especialmente nicolify) con módulo paralelo
-- Lift candidates → si detectás pattern cross-brand sin lift, escalate `/pm-luana` ANTES de cerrar package
-- Stories archivadas done relacionadas (`{brand}/docs/archive/*/stories/` + nicolify equivalent)
+- Snapshot histórico pre-multibrand con módulo paralelo (`docs/archive/2026/snapshot-pre-multibrand-pm-redesign/`)
+- Lift candidates → si detectás pattern genérico sin lift a engine, escalate `/pm-vitalia` ANTES de cerrar package
+- Stories archivadas done relacionadas (`vitalia/docs/archive/*/stories/`)
 
 Documentá resultado en `03-arch.md § Prior art audit` con:
 - Engine packages consumed via import (lista verbatim)
-- Reused components/services (paths cross-brand)
+- Reused components/services (paths)
 - Lift candidates created (paths a proposals si aplica)
 - Net-new justificado (con razón)
 
@@ -156,7 +156,7 @@ Agent({
            - Tickets > 10 → split story
            - Each ticket: acceptance.validator_ids + DAG + gherkin_coverage (post 2026-05-18)
            - Hot-fix: repro_verified field si aplica (R26)
-           - Engine boundaries: NUNCA proponer tickets que editen `core/luana-core-*/src/` directamente. Si scope requiere editar engine → escalá `/pm-luana` (promotion gate) ANTES de cerrar package.
+           - Engine boundaries: NUNCA proponer tickets que editen `core/luana-core-*/src/` directamente. Si scope requiere editar engine → escalá `/pm-vitalia` (flujo engine) ANTES de cerrar package.
            - Brand-extension agentic: `{brand}/backend/src/modules/{brand}/{copilot,sales_agent}/{tools,extractors,workflows,personas,goldens,kb}/` SÍ es editable.
            - ★ v4.1 Playwright mandatory para surface funcional: test_construction_plan.playwright_required=true SIEMPRE que story sea ui-story o ui-mixed
            - ★ v4.1 must_load_skills enforceable: dev-team builder spawn cita lista verbatim
@@ -180,9 +180,9 @@ Antes de cerrar el package, validar que el orchestrator respetó `.claude/rules/
 - Channel format / intent detector → shared
 - Extraction orchestrator → subclass `BaseExtractionOrchestrator`
 
-Si orchestrator propone NEW cuando shared existe ≥80% → escala `/pm-luana` (engine surface) o `/pm-{brand}` (brand-extension surface): "orchestrator propone NEW para subsystem Y, pero shared tiene Z. Decidir EXTEND vs NEW."
+Si orchestrator propone NEW cuando shared existe ≥80% → escala `/pm-vitalia` (engine surface) o `/pm-vitalia` (brand-extension surface): "orchestrator propone NEW para subsystem Y, pero shared tiene Z. Decidir EXTEND vs NEW."
 
-**Cross-brand mirror check:** si la abstracción propuesta ya vive en `{other_brand}/...`, escalá `/pm-luana` como promotion candidate (brand→core lift) en lugar de mirror por-brand.
+**Engine mirror check:** si la abstracción propuesta ya vive en `core/luana-core-*/`, consumila vía import (o escalá `/pm-vitalia` si necesita extensión del engine) en lugar de mirror local.
 
 ### Step 4 — Validar 03-arch.md producido por orchestrator
 
@@ -260,7 +260,7 @@ Template (paths brand-scoped; workspace root parametrizado via `${WS}` o `cd {br
 # Esqueleto (forma) — el TEMPLATE COMPLETO (SSoT) vive en docs/specs/templates/04-validators-template.yaml.
 # Leelo + expandilo. NO copiar verbatim acá (DRY · single-source-of-truth · HB-24).
 story_id: STORY_ID
-brand: BRAND_SLUG            # vitalia | nicolify | comunify | lupulo
+brand: BRAND_SLUG            # vitalia
 schema_version: v4.1
 verification:                # Critical Rule #37 — nature + technical_gates.mutation + dev_app_verified + playwright_visual_scope + business_rules
 validators:                  # 5 categorías: non_functional / functional / visual / agentic_eval / architectural_validation (cada uno must_pass:true + cmd shell)
@@ -294,7 +294,7 @@ story_id / brand / arch_version            # frontmatter
 ## Patterns required                        # ### Backend · ### Frontend · ### Agentic
 ## Patterns forbidden
 ## Files in scope                           # Sonnet edita SOLO estos, brand-scoped
-## Files Builder NEVER touches              # engine / copilot+sales_agent runtime / other_brand / config flags / ui primitives / .claude
+## Files Builder NEVER touches              # engine / copilot+sales_agent runtime / fuera de vitalia / config flags / ui primitives / .claude
 ```
 
 Template completo (SSoT) en `docs/specs/templates/05-guidelines-template.md` — leelo + expandí. Trae `must_load_skills` con `chrome-devtools-verify` (DoD #37) + `git-safety.md`, los patterns split por surface (BE/FE/AGENTIC), y la lista NEVER-touches completa.
@@ -394,7 +394,7 @@ Ejemplo:
     primary_agent: builder-backend
     model_preference: workhorse
     must_load_skills: [backend-expert, "FastAPI canonical patterns", .claude/rules/tenant-isolation.md, .claude/rules/backend-ddd.md]
-    forbidden_to_touch: ["core/luana-core-*/src/", "{other_brand}/", "{brand}/backend/src/modules/{brand}/{copilot,sales_agent}/"]
+    forbidden_to_touch: ["core/luana-core-*/src/", "vitalia/backend/src/modules/vitalia/{copilot,sales_agent}/"]
     rationale: "BE CRUD non-agentic, Sonnet sweet spot"
 
 - id: T-2
@@ -425,7 +425,7 @@ playwright_visual_scope:
     reasons:
       - "Cambios visuales en primitives Shadcn impactan TODA la app"
   if_visual_change_needed_outside_scope:
-    action: "STOP. Document en T-{n}-impl-log.md. Escalate /pm-{brand} para spec extension."
+    action: "STOP. Document en T-{n}-impl-log.md. Escalate /pm-vitalia para spec extension."
   non_egoismo_clause: "Bug visible fuera scope = reportar en T-{n}-impl-log § Cross-story observed bugs + opcionalmente abrir hotfix-story-id separada. NO arreglar inline (rompe scope discipline)."
 ```
 
@@ -436,7 +436,7 @@ Producir `dispatch-plan.md` (≤100 líneas, 1 sólo file por story) en `{brand}
 
 ## autonomous_mode
 - value: false                # default. Chris opt-in al ratificar
-- chain_if_true: [/dev-team → /auditor → /pm-{brand} merge]
+- chain_if_true: [/dev-team → /auditor → /pm-vitalia merge]
 - caps: {iterations: 10, audit_iter: 3, cost_usd: 5.00, walltime: 90min}
 
 ## Ticket→Agent→Model→Cost matrix
@@ -460,7 +460,7 @@ T-1 → T-2 → T-3 (sequential)
 
 ## Invocation autonomous
 echo 'autonomous_mode: true' >> {brand}/docs/product/stories/{id}/checkpoint.md
-# /dev-team picks up T-1, auto-handoff T-2 → T-3 → /auditor → /pm-{brand} merge
+# /dev-team picks up T-1, auto-handoff T-2 → T-3 → /auditor → /pm-vitalia merge
 ```
 
 Al cerrar Step 7.5, el ready package incluye **5 artifacts** (era 4):
@@ -575,9 +575,9 @@ Próximo: Conv 2 (autonomous build). /dev-team <brand>: {brand} toma T-1 (state:
 
 ## Anti cross-brand pollution
 
-- ❌ NUNCA generar tickets que editen `{other_brand}/...` cuando trabajás en `{brand}`. Si la story necesita tocar otra brand → STOP, escalate `/pm-luana` (trabajo cross-brand).
-- ❌ NUNCA generar tickets que editen `core/luana-core-*/src/` directamente. Requiere lift via `/pm-luana` (promotion gate) — propuesta en `docs/promotion-protocol/proposals/` ANTES de cerrar package.
-- ❌ NUNCA escribir specs/archs/tickets en root `docs/product/stories/` — solo `<brand>: platform` (cross-brand) outcomes van ahí, y eso requiere autorización explícita `/pm-luana`.
+- ❌ NUNCA generar tickets que editen paths fuera de `vitalia/**` + story docs. STOP + escalate `/pm-vitalia`.
+- ❌ NUNCA generar tickets que editen `core/luana-core-*/src/` directamente. Requiere lift via `/pm-vitalia` (flujo engine) — propuesta en `docs/promotion-protocol/proposals/` ANTES de cerrar package.
+- ❌ NUNCA escribir specs/archs/tickets en root `docs/product/stories/` — solo `<brand>: platform` (cross-brand) outcomes van ahí, y eso requiere autorización explícita `/pm-vitalia`.
 - ❌ NUNCA referenciar `backend/src/` o `frontend/src/` sin el prefix `{brand}/` — post reorg 2026-05-15 no existe root `backend/` ni `frontend/`. Solo `core/luana-core-*/src/luana_core_*/` (engine) y `{brand}/backend/src/` (brand).
 - ❌ NUNCA hardcodear paths absolutos `/home/chris/AISALESHT/...` o `/home/chalreme/Proyectos/luana-platform/...` — usar `${WS}` resuelto via `git rev-parse --show-toplevel`.
 

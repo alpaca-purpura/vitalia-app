@@ -14,18 +14,18 @@ WS=`$(git rev-parse --show-toplevel)` (root del workspace `luana-platform/`).
 # Para cada call path afectado por el flip, grep mocks legacy en CORE + TODAS las brands activas:
 grep -rn "<legacy_call_path>" \
   ${WS}/core/luana-core-*/tests/ \
-  ${WS}/{nicolify,vitalia,comunify,lupulo}/backend/tests/ \
+  ${WS}/vitalia/backend/tests/ \
   2>/dev/null | grep -v __pycache__
 
 # Ejemplo flag USE_OUTBOX_PATTERN_*:
 grep -rln "luana_core_events.EventBus.publish" \
   ${WS}/core/luana-core-*/tests/ \
-  ${WS}/{nicolify,vitalia,comunify,lupulo}/backend/tests/
+  ${WS}/vitalia/backend/tests/
 
 # Ejemplo provider direct adapter (legacy histórico):
 grep -rln "OpenAIService\|KimiService\|DeepSeekService" \
   ${WS}/core/luana-core-*/tests/ \
-  ${WS}/{nicolify,vitalia,comunify,lupulo}/backend/tests/
+  ${WS}/vitalia/backend/tests/
 ```
 
 Output capture obligatorio en commit body sección `## Tests audited`.
@@ -50,7 +50,7 @@ cd ${WS}/core/luana-core-events && ${WS}/.venv/bin/pytest -x -q --tb=short
 USE_OUTBOX_PATTERN_DEFAULT=false ${WS}/.venv/bin/pytest -x -q --tb=short
 
 # Cada brand consumer activa (post-flip default + pre-flip legacy):
-for B in nicolify vitalia comunify lupulo; do
+for B in vitalia; do
   cd ${WS}/${B}/backend && ${WS}/.venv/bin/pytest -x -q --tb=short
   USE_OUTBOX_PATTERN_DEFAULT=false ${WS}/.venv/bin/pytest -x -q --tb=short
 done
@@ -105,12 +105,12 @@ flag <NAME> flipped <OLD_VALUE>→<NEW_VALUE>
 
 | Layer | Mecanismo | Owner |
 |---|---|---|
-| 1 PM PR.md | Bloque "Default flips audited" mandatory cuando aplique flip | `/pm-{brand}` o `/pm-luana` (si flag vive en core) |
+| 1 PM PR.md | Bloque "Default flips audited" mandatory cuando aplique flip | `/pm-vitalia` |
 | 2 Architect CONTRACT.md | Bloque "Tests audit: paths mockeados antes/después" obligatorio si CONTRACT propone flip | `/architect` |
 | 3 Builder Step 0 | Grep tests path viejo antes flip code cross-core + brands | `/dev-team` (builder-{backend,agentic}) |
 | 4 Auditor Cat review | Cat 14 (business) / Cat 13 (agentic) "Default flip side-effect coverage" | `/auditor` (auditor-{backend,agentic}) |
 | 5 Arch fitness test | `test_no_legacy_eventbus_mock_when_outbox_on.py` (PR-3) bloquea automatic | `core/luana-core-*/tests/architecture/` + `{brand}/backend/tests/architecture/` |
-| 6 TDD rule | `.claude/rules/tdd-mandatory.md` § "Default flag flips" obligatoria | `/pm-luana` / `/pm-{brand}` |
+| 6 TDD rule | `.claude/rules/tdd-mandatory.md` § "Default flag flips" obligatoria | `/pm-vitalia` |
 | 7 Runtime warning | `LegacyEventBus.publish` DeprecationWarning cuando flag True (PR-1 § 5) | `core/luana-core-events/src/luana_core_events/__init__.py` |
 
 > Pattern análogo: `anti-duplication.md` (cross-module mirror detection). Anti-default-flip
@@ -159,7 +159,6 @@ feat(events): switch emisores to outbox event bus adapter
 
 ## Multibrand awareness (post reorg 2026-05-15)
 
-- Flag default flip en `core/luana-core-*/` (engine) → impacto cross-brand. Auditar suites de **todas** las brands consumer activas (nicolify, vitalia, comunify, lupulo) además del core package.
+- Flag default flip en `core/luana-core-*/` (engine) → auditar la suite de vitalia consumer además del core package.
 - Flag override per-brand en `{brand}/config/brand.yaml` o `{brand}/backend/src/.../config.py` → audit scope = sólo esa brand + arch tests.
-- Promotion gate: flip que afecta `core/` requiere `/pm-luana` ratification antes merge (ver `docs/promotion-protocol/README.md`).
-- Brands futuras (saasora, inmoflow, retailly, fixia, guestly, fitflow) deben revalidar este inventario al opt-in al engine package afectado.
+- Flip que afecta `core/` sigue el flujo engine `/pm-vitalia` (ratificación antes de merge).

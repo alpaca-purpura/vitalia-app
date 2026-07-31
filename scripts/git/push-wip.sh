@@ -65,7 +65,7 @@ if [[ "${BEHIND}" -gt 0 ]]; then
   fi
   echo ""
   echo "Acción requerida ANTES de push (regla v2 D10):"
-  echo "  scripts/git/sync-from-main.sh"
+  echo "  git fetch origin main && git merge origin/main"
   echo ""
   echo "Override (emergencias documentadas):"
   echo "  PUSH_WIP_SKIP_SYNC=1 scripts/git/push-wip.sh ${TARGET}"

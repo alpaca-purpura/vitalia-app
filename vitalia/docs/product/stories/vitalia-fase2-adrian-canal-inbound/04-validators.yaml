@@ -81,7 +81,7 @@ functional:
     rule: "Instrucción persiste + lead no la ve + el siguiente reply la refleja · pausa→directo"
     must_pass: true
     scenario: SC-8
-  # ── lift-gated (book/match) — must_pass:false hasta merge del lift /pm-luana (HB-79: deferred) ──
+  # ── lift-gated (book/match) — must_pass:false hasta merge del lift /pm-vitalia (HB-79: deferred) ──
   - id: V-FN-8   # SC-7 tools acción (payment/reschedule)
     rule: "decide → payment_link/reschedule enviado + idempotente · consulta → borrador"
     must_pass: false
@@ -161,7 +161,7 @@ agentic_eval:
 # ─────────────────────────────────────────────────────────────
 architectural_validation:
   - id: V-ARCH-1
-    rule: "CERO edición de core/luana-core-*/src/ en los tickets BUILDABLE (lift = /pm-luana separado)"
+    rule: "CERO edición de core/luana-core-*/src/ en los tickets BUILDABLE (lift = /pm-vitalia separado)"
     must_pass: true
   - id: V-ARCH-2
     rule: "NO usar BookingService/vitalia_bookings (deprecated) — turno solo en lane vivo scheduling"

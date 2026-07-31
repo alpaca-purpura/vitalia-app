@@ -36,7 +36,7 @@ Scan ejecutado sobre el shell-organism real + brands activas (anti-duplication-r
   - Consumidores LIVE: `lisa/staff` (directorio → workspace doctor), `adrian/embudo` (lista → lead workspace), nicolify `abel/icp` (`[agent]/[subtab]/[subsubtab]/[leaf]`).
 - **Engine consumed:** `@luana/hooks/create-ssr-safe-persisted-store` (store SSR-safe, ADR-vitalia-006). No recrear.
 - **Learnings aplicados:** `vitalia/docs/learnings/2026-06-03-next16-softnav-redirect-rendered-more-hooks.md` (shell `ssr:false` — cuidado con nav dura/blanda) · ADR-vitalia-006 (4 técnicas fallidas de persistencia).
-- **Lift candidates detectados:** el wrapper del shell completo está en proposal `accepted` de lift a `@luana/ui-kit` (256517a3) — esta story es ruta crítica. El **patrón N3 list/detail** (EntitySubNavBar) es candidato lift cross-brand (vive igual en nicolify) → escalar a `/pm-luana` post-merge.
+- **Lift candidates detectados:** el wrapper del shell completo está en proposal `accepted` de lift a `@luana/ui-kit` (256517a3) — esta story es ruta crítica. El **patrón N3 list/detail** (EntitySubNavBar) es candidato lift cross-brand (vive igual en nicolify) → escalar a `/pm-vitalia` post-merge.
 - **Net-new justificado:** el **modelo de estados legacy-push (punto 6)** es net-new para AMBAS marcas (ver comparación abajo) — ninguna lo implementa hoy.
 
 ### Nicolify comparison (2026-06-06 · pedido Chris "¿lo tiene igual?")
@@ -54,7 +54,7 @@ Nicolify = **port re-skinneado** del mismo shell (Valeria→Luana). Mismos compo
 **Decisiones derivadas de la comparación:**
 - **Punto 6:** diseñar modelo limpio NUEVO (`closed / chat` + `historyOpen` aditivo que empuja) que supere a ambas marcas — NO copiar el `collapsed/rail/full` conflado de ninguna. Candidato lift cross-brand.
 - **Punto 7:** adoptar el patrón de nicolify `EntityWorkspaceLayout` como contrato canónico vitalia (port verbatim re-temizado, NO reinventar). Es la mejor factorización existente del list/detail.
-- **Cross-brand (flag /pm-luana):** ambas marcas casi gemelas + shell aprobado para lift a `@luana/ui-kit` (256517a3). El punto 6 + `EntityWorkspaceLayout` + quitar web-mode deberían CONVERGER ambas y alimentar el lift. /po-ux vitalia NO toca nicolify — se escala como promotion candidate post-merge.
+- **Cross-brand (flag /pm-vitalia):** ambas marcas casi gemelas + shell aprobado para lift a `@luana/ui-kit` (256517a3). El punto 6 + `EntityWorkspaceLayout` + quitar web-mode deberían CONVERGER ambas y alimentar el lift. /po-ux vitalia NO toca nicolify — se escala como promotion candidate post-merge.
 
 ---
 
@@ -92,7 +92,7 @@ El mockup `shell-valeria-states.html` es **behavior-fi, NO pixel-fi** — comuni
 - ❌ Cambiar el contenido de cualquier sub-tab de agente (solo el wrapper + el patrón N3, no las features).
 - ❌ Lift del shell a `@luana/ui-kit` — es otra story (esta es prerequisito).
 - ❌ Construir instancias N3 list/detail NUEVAS (sub-tabs que hoy no son list/detail). Punto 7 = portar `EntityWorkspaceLayout` + migrar las instancias EXISTENTES (staff/embudo) al patrón canónico, no inventar casos nuevos.
-- ❌ Tocar nicolify (`abel/icp`) — cross-brand prohibido; convergencia vía `/pm-luana` + lift.
+- ❌ Tocar nicolify (`abel/icp`) — cross-brand prohibido; convergencia vía `/pm-vitalia` + lift.
 
 ---
 

@@ -4,7 +4,7 @@
 >
 > **⚠️ Catálogo histórico (2026-06-07).** Lo construido vive ahora en `core-ds-foundation` + **`design-system-canon.md § 5` (Storybook = SSoT visual)**. El "Mockup-kit para /po-ux" derivado de `_shared.css` que proponía este doc quedó **DESCARTADO** — Storybook-only: `/po-ux` parte del HTML de las stories `@luana/ui-kit`, no de un mockup-kit CSS espejo (que driftea). El resto (átomos/archetypes/Storybook como catálogo vivo) sigue vigente como referencia.
 
-> **Para revisión de Chris antes de dar OK.** Owner: `/pm-luana`. Origen: pedido Chris 2026-06-07 (ampliar Fase 0 a homologación completa + plantillas obligatorias por átomo + mismas plantillas en `/po-ux` para que el mockup = lo construido). Método: 5 catalogadores read-only barrieron vitalia+nicolify+comunify+`@luana/ui-kit` y extrajeron el mejor de cada arquetipo (con `file:line`). **Cero código nuevo todavía** — esto es el catálogo para que decidas qué se vuelve canónico.
+> **Para revisión de Chris antes de dar OK.** Owner: `/pm-vitalia`. Origen: pedido Chris 2026-06-07 (ampliar Fase 0 a homologación completa + plantillas obligatorias por átomo + mismas plantillas en `/po-ux` para que el mockup = lo construido). Método: 5 catalogadores read-only barrieron vitalia+nicolify+comunify+`@luana/ui-kit` y extrajeron el mejor de cada arquetipo (con `file:line`). **Cero código nuevo todavía** — esto es el catálogo para que decidas qué se vuelve canónico.
 
 > Complementa: ADR-014 (doctrina) · proposal 2026-06-07 (plan core+lift) · `core-ds-foundation/01-spec.md` (Fase 0 = el lock). Este doc llena el "muéstrame todo y saquemos lo mejor".
 

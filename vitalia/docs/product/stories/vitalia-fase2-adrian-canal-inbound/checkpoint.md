@@ -46,7 +46,7 @@ pending_chris_G:
   - "scheduling sweep/slot-marking live (SC-10) contra Postgres dev con migración 047/048 aplicada"
 chris_decision_2026-06-21: "OLA 1 build-local-ya + OLA 2 lift-en-paralelo (ratificado Chris vía /architect). /dev-team builda carril cero-engine T-BE-1/2/3+T-AG-1+T-FE-1 → G → auditor → merge slice 1. T-LIFT-1 (ESC-1/2/3) → /pm-luana en worktree core efímero (lane paralela). T-AG-2/3/4/5 esperan el lift → slice 2."
 channel_scope: telegram-first   # Chris 2026-06-04 — WhatsApp/IG = follow-up (sin API hoy)
-gateway_improvement: out-of-scope   # mejora del LLM gateway = item /pm-luana aparte (toca engine)
+gateway_improvement: out-of-scope   # mejora del LLM gateway = item /pm-vitalia aparte (toca engine)
 parallel_safe: true
 priority: high
 estimated_dev_days: 4-6
@@ -132,7 +132,7 @@ webhook canal recibe mensaje
 
 | Pieza que YA EXISTE | Path | Cómo se usa |
 |---|---|---|
-| Runtime LangGraph (cerebro) | `core/luana-core-sales-agent/.../application/orchestrator/{chat.py,graph.py}` + `agents/sales/graph.py` + `smart_debounce_runner.py` | **CONSUMIR vía import. READ-ONLY.** Tocar = `/pm-luana` promotion gate |
+| Runtime LangGraph (cerebro) | `core/luana-core-sales-agent/.../application/orchestrator/{chat.py,graph.py}` + `agents/sales/graph.py` + `smart_debounce_runner.py` | **CONSUMIR vía import. READ-ONLY.** Tocar = `/pm-vitalia` promotion gate |
 | Extensión de marca vitalia | `vitalia/backend/src/modules/vitalia/sales_agent/` | tools (screening, payment_link, reschedule, reengagement, retract) + 5 personas voz + prompts + state_overlay — REUSE |
 | Adapters canal (OUTBOUND) | `vitalia/.../connections/{whatsapp,instagram}/adapter.py` | REUSE para enviar; **falta el INBOUND receiver** |
 | Format + intent + compliance | `core/luana-core-channels/format_for_channel.py` + `intent_detector.py` · `core/luana-core-compliance` | REUSE |
@@ -146,7 +146,7 @@ Reutilizar al máximo lo que ya existe, **mejorarlo**, y seguir haciendo de este
 
 ## Anti-objetivos
 
-- ❌ NO recrear el agente / grafo LangGraph — vive en `core/luana-core-sales-agent` (engine, `/pm-luana` para tocarlo)
+- ❌ NO recrear el agente / grafo LangGraph — vive en `core/luana-core-sales-agent` (engine, `/pm-vitalia` para tocarlo)
 - ❌ NO duplicar tools/personas/prompts — reusar la extensión `vitalia/.../sales_agent/` shipped
 - ❌ NO reconstruir la UI del inbox — es `vitalia-fase2-adrian-inbox` (esta story la CONSUME + nutre)
 - ❌ NO campañas/outbound masivo — eso es `adrian-outbound`

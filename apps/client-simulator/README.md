@@ -31,7 +31,7 @@ apps/client-simulator/                              ← engine (Python LangGraph
 ## Uso (cuando esté integrado al stack multimarca)
 
 ```bash
-# Levantar brand stack target primero (per docs/process/docker-dev-multibrand.md)
+# Levantar brand stack target primero (per docs/process/docker-dev.md)
 make dev-vitalia       # o vitalia, comunify, lupulo
 
 # Configurar .env desde template

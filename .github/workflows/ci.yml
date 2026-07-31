@@ -53,10 +53,7 @@ jobs:
       - name: Install Python workspace dependencies
         run: uv sync --all-packages
       - name: Ruff lint — all workspace packages
-        run: |
-          uv run ruff check core/ nicolify/ vitalia/ comunify/ lupulo/ \
-            --no-cache \
-            || echo "::warning::No Python sources found in one or more brand dirs — expected during initial brand bootstrap"
+        run: uv run ruff check core/ vitalia/ --no-cache
 
   python-test:
     name: python-test
@@ -70,9 +67,7 @@ jobs:
       - name: Install Python workspace dependencies
         run: uv sync --all-packages
       - name: Run full test suite (including arch-fitness)
-        run: |
-          uv run pytest -x -q --tb=short \
-            || echo "::warning::No tests found yet — expected during initial brand bootstrap"
+        run: uv run pytest -x -q --tb=short
 
   arch-fitness:
     name: arch-fitness
@@ -85,12 +80,19 @@ jobs:
           python-version: "3.12"
       - name: Install Python workspace dependencies
         run: uv sync --all-packages
-      - name: Run architecture fitness tests
+      - name: Arch fitness — vitalia backend
+        working-directory: vitalia/backend
+        run: uv run pytest tests/architecture/ -v --tb=short --override-ini="addopts="
+      - name: Arch fitness — core packages
         run: |
           # arch-fitness tests enforce DDD boundaries, API contracts, naming conventions.
-          # Run separately so failures are clearly attributed.
-          uv run pytest tests/architecture/ -v --tb=short --override-ini="addopts=" \
-            || echo "::warning::No architecture tests found yet — will activate when tests/architecture/ is populated"
+          # Run per-package so failures are clearly attributed.
+          for d in core/luana-core-*/tests/architecture; do
+            [ -d "$d" ] || continue
+            pkg="${d%/tests/architecture}"
+            echo "── arch fitness: $pkg"
+            (cd "$pkg" && uv run pytest tests/architecture/ -v --tb=short --override-ini="addopts=")
+          done
 
   ts-lint:
     name: ts-lint
@@ -105,10 +107,8 @@ jobs:
           cache: "pnpm"
       - name: Install Node.js workspace dependencies
         run: pnpm install --frozen-lockfile
-      - name: ESLint — all frontend workspaces
-        run: |
-          pnpm lint \
-            || echo "::warning::No eslint config found yet — expected during initial brand bootstrap"
+      - name: ESLint — all frontend workspaces (vitalia/frontend + core/@luana/*)
+        run: pnpm lint
 
   ts-test:
     name: ts-test
@@ -123,7 +123,5 @@ jobs:
           cache: "pnpm"
       - name: Install Node.js workspace dependencies
         run: pnpm install --frozen-lockfile
-      - name: Vitest — all frontend workspaces (with coverage)
-        run: |
-          pnpm test \
-            || echo "::warning::No frontend tests found yet — expected during initial brand bootstrap"
+      - name: Vitest — all frontend workspaces (vitalia/frontend + core/@luana/*, with coverage)
+        run: pnpm test

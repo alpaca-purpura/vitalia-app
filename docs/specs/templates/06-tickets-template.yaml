@@ -232,7 +232,7 @@ T1:
     model_preference: workhorse                        # qwen-opencode fallback ok; flagship_required:false
     # must_load_skills + must_load_artifacts → campos `must_load_skills` + `inputs` arriba (NO duplicar)
     forbidden_to_touch:
-      - "core/luana-core-*/src/"                    # engine → /pm-luana lift gate
+      - "core/luana-core-*/src/"                    # engine → flujo engine /pm-vitalia
       - "{other_brand}/"                            # cross-brand prohibido
       - "{brand}/backend/src/modules/{brand}/{copilot,sales_agent}/"  # agentic → builder-agentic
     rationale: "BE CRUD non-agentic — Sonnet sweet spot; flagship_required:false"
@@ -295,7 +295,7 @@ T2:
     primary_agent: builder-agentic                 # NUNCA general-purpose
     model_preference: flagship                          # ⛔ HARD — qwen/sonnet PROHIBIDOS (R23)
     forbidden_to_touch:
-      - "core/luana-core-copilot/src/"             # engine → /pm-luana lift gate
+      - "core/luana-core-copilot/src/"             # engine → flujo engine /pm-vitalia
       - "core/luana-core-sales-agent/src/"
       - "{other_brand}/"
     rationale: "AGENTIC production code R23 → tier flagship obligatorio. NUNCA opencode/workhorse."

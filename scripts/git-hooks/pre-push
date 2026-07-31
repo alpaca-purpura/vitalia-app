@@ -17,8 +17,9 @@
 # ========
 # - Push to any branch other than ``main``: pass through, no checks.
 # - Push to ``main``: require a marker file
-#   ``.ci-parity-passed-<sha>`` matching HEAD. The marker is dropped
-#   by ``scripts/ci-parity.sh`` on success and is gitignored.
+#   ``.git/ci-parity-passed-vitalia-<sha>`` matching HEAD. The marker is
+#   dropped by ``scripts/ci-parity.sh`` on success (format:
+#   ``ci-parity-passed-<brand>-<sha>`` — aligned 2026-07-31, single brand).
 # - To bypass for emergencies, set ``CI_PARITY_OVERRIDE=1``. The hook
 #   will print a loud warning and continue. Document why in the push
 #   commit message — the override is auditable in shell history.
@@ -31,7 +32,9 @@ set -euo pipefail
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 HEAD_SHA="$(git rev-parse HEAD)"
-MARKER="${REPO_ROOT}/.git/ci-parity-passed-${HEAD_SHA}"
+# Marker format = ci-parity-passed-<brand>-<sha> (same as scripts/ci-parity.sh
+# writes — mismatch fixed 2026-07-31; single brand = vitalia).
+MARKER="${REPO_ROOT}/.git/ci-parity-passed-vitalia-${HEAD_SHA}"
 
 # Read remote + ref pairs from stdin (git pre-push protocol).
 while read -r local_ref _local_sha remote_ref _remote_sha; do

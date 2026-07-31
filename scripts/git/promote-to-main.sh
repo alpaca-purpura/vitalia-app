@@ -11,17 +11,15 @@ set -euo pipefail
 # ★ Caveat: el cherry-pick es limpio SOLO si el commit compartido se hizo sobre
 #   un base sincronizado con main. Si main avanzó tocando los MISMOS archivos
 #   (típico: el log append-only `harness-backlog.md`), el cherry-pick da
-#   falso-conflicto por mismatch de base → corré `sync-from-main` ANTES de hacer
-#   el commit compartido, o reconstruí los archivos a mano (superset verificado).
+#   falso-conflicto por mismatch de base → sincronizá tu wip con main ANTES
+#   (git fetch origin main && git merge origin/main), o reconstruí a mano.
 #
 # Usage:
 #   scripts/git/promote-to-main.sh <sha> [<sha2> ...]   # oldest-first si son varios
 #   scripts/git/promote-to-main.sh --self-check
-#
-# Después: corré `make sync-all` para poner al día las demás worktrees.
 
-BRAND_DIRS="vitalia nicolify comunify lupulo saasora inmoflow retailly fixia guestly fitflow"
-# ponytail: lista = los 10 brand verticals (CLAUDE.md). Marca nueva → agregar acá.
+BRAND_DIRS="vitalia"
+# Repo standalone single-brand (2026-07-31): solo vitalia.
 
 _brand_path() {  # lee files de stdin; echo la 1ra ruta brand-scoped tocada ('' si shared-only)
   while IFS= read -r f; do
@@ -36,7 +34,7 @@ if [[ "${1:-}" == "--self-check" ]]; then
   assert "$(printf 'core/x.py\nscripts/y.sh\nMakefile\n'        | _brand_path)" ""
   assert "$(printf 'core/x.py\nvitalia/backend/z.py\n'          | _brand_path)" "vitalia/backend/z.py"
   assert "$(printf 'docs/process/a.md\n'                        | _brand_path)" ""
-  assert "$(printf 'nicolify/frontend/app/page.tsx\n'           | _brand_path)" "nicolify/frontend/app/page.tsx"
+  assert "$(printf 'vitalia/frontend/app/page.tsx\n'            | _brand_path)" "vitalia/frontend/app/page.tsx"
   echo "✓ promote-to-main self-check passed"
   exit 0
 fi
@@ -74,4 +72,4 @@ if ! git -C "${MAIN_WT}" cherry-pick "${SHAS[@]}"; then
 fi
 
 git -C "${MAIN_WT}" push origin main
-echo "✓ main → $(git -C "${MAIN_WT}" rev-parse --short HEAD). Ahora: make sync-all"
+echo "✓ main → $(git -C "${MAIN_WT}" rev-parse --short HEAD)."

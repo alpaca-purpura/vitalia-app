@@ -36,4 +36,4 @@ Wave-based LLM extraction (brand/offer/buyer_persona/landing) MUST subclass `lua
 
 - Engine packages: `core/luana-core-*/src/luana_core_*/` — DDD interno aplica + contracts Extension SDK pública.
 - Brand backends: `{brand}/backend/src/modules/{brand}/...` — DDD interno aplica + opcional registro Extension SDK.
-- Compartir lógica entre brands → lift a engine vía `/pm-luana` promotion gate (NUNCA cross-brand import).
+- Lógica compartible/genérica → lift a engine vía flujo `/pm-vitalia` (arch tests como gate).

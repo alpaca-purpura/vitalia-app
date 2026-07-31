@@ -47,7 +47,7 @@ El builder implementa para **parecerse al mockup** de `02-design-ui.md` (wirefra
 El mockup puede mostrar MÁS de lo que la historia desarrolla (secciones futuras, features adyacentes, datos de relleno). El builder implementa **solo lo que scopean los scenarios de `01-spec.md` + los `deliverables` del ticket**. Lo demás del mockup: NO se construye en esta story.
 
 - El architect declara en `04-validators.yaml § playwright_visual_scope`: `story_scope_routes` + `story_scope_components` (lo que SÍ es de esta historia) y `out_of_mockup_scope` (lo que el mockup muestra pero NO va ahora).
-- Si el builder cree que algo del mockup es necesario pero está fuera de scope → lo documenta en `T-{n}-impl-log.md § Mockup scope notes`, NO lo construye (escalate `/pm-{brand}` para spec extension).
+- Si el builder cree que algo del mockup es necesario pero está fuera de scope → lo documenta en `T-{n}-impl-log.md § Mockup scope notes`, NO lo construye (escalate `/pm-vitalia` para spec extension).
 - Anti-exceso: construir secciones del mockup fuera de los scenarios = scope creep → auditor WARN/CHANGES_REQUESTED + posible isla (anti-orphan).
 
 ## Verificación Playwright (cumplimiento visual)

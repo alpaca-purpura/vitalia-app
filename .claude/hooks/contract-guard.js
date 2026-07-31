@@ -18,16 +18,13 @@
 // intentionally terse (≤2 lines per match) to minimize token cost.
 // Silent on non-match.
 //
-// Multibrand (refactor 2026-05-15 post multibrand reorg):
+// Single-brand (repo standalone vitalia-app, 2026-07-31):
 // Cada regla distingue ENGINE (core/luana-core-*/src/luana_core_*/) de
-// BRAND EXTENSION ({brand}/backend/src/modules/{brand}/) y legacy
+// BRAND EXTENSION (vitalia/backend/src/modules/vitalia/) y legacy
 // (backend/src/modules/). El mensaje hint cambia según dónde vive el file:
-//   - ENGINE: afecta TODAS las brands consumidoras → run en TODAS.
-//   - BRAND: scoped a esa brand → run scoped.
-//   - LEGACY: heredado pre-multibrand → mantenido por backcompat.
-//
-// Brands activas (hardcoded por ahora): vitalia, nicolify, comunify, lupulo.
-// 6 pendientes bootstrap: saasora, inmoflow, retailly, fixia, guestly, fitflow.
+//   - ENGINE: SSoT compartido → run tests engine + vitalia (consumer).
+//   - BRAND: scoped a vitalia → run scoped.
+//   - LEGACY: heredado pre-reorg → mantenido por backcompat.
 
 const RULES = [
   // ──────────────────────────────────────────────────────────────
@@ -42,7 +39,7 @@ const RULES = [
       /^core\/luana-core-analytics-engine\/src\/luana_core_analytics_engine\/workers\/(scheduler|tasks)\.py$/,
       /^core\/luana-core-analytics-engine\/src\/luana_core_analytics_engine\/domain\/extraction_contract\.py$/,
     ],
-    msg: 'ETL SSoT (ENGINE) touched — afecta TODAS las brands consumidoras. Run: `make extraction-contract && .venv/bin/pytest core/luana-core-analytics-engine/tests/architecture/test_extraction_contract.py -x -q` (rule: .claude/rules/etl-extraction-contract.md)',
+    msg: 'ETL SSoT (ENGINE) touched — afecta engine + vitalia consumer. Run: `make extraction-contract && .venv/bin/pytest core/luana-core-analytics-engine/tests/architecture/test_extraction_contract.py -x -q` (rule: .claude/rules/etl-extraction-contract.md)',
   },
   {
     name: 'etl-contract-brand',
@@ -50,7 +47,7 @@ const RULES = [
       /^[a-z][a-z0-9_-]*\/backend\/src\/modules\/[a-z][a-z0-9_-]*\/analytics\/(providers|etl)\/[^/]+\.py$/,
       /^[a-z][a-z0-9_-]*\/backend\/src\/modules\/[a-z][a-z0-9_-]*\/analytics\/(application\/services\/etl_service|workers\/(scheduler|tasks))\.py$/,
     ],
-    msg: 'ETL SSoT (BRAND extension) touched — brand-specific. Run: `make extraction-contract-{brand}` (si soporta) o scoped pytest a esa brand backend (rule: .claude/rules/etl-extraction-contract.md)',
+    msg: 'ETL SSoT (BRAND extension) touched — vitalia-specific. Run: `make extraction-contract` + scoped pytest en vitalia/backend (rule: .claude/rules/etl-extraction-contract.md)',
   },
   {
     name: 'etl-contract-legacy',
@@ -73,7 +70,7 @@ const RULES = [
     patterns: [
       /^core\/luana-core-analytics-engine\/src\/luana_core_analytics_engine\/domain\/metric_catalog\.py$/,
     ],
-    msg: 'metric_catalog.py (ENGINE) edited — afecta TODAS las brands. Run: `.venv/bin/pytest core/luana-core-analytics-engine/tests/architecture/test_extraction_contract.py -x -q` (verify catalog↔contract alignment).',
+    msg: 'metric_catalog.py (ENGINE) edited — afecta engine + vitalia. Run: `.venv/bin/pytest core/luana-core-analytics-engine/tests/architecture/test_extraction_contract.py -x -q` (verify catalog↔contract alignment).',
   },
   {
     name: 'metric-catalog-brand',
@@ -98,7 +95,7 @@ const RULES = [
       /^core\/luana-core-extension-sdk\/src\/luana_core_extension_sdk\/.*\/expert_business_type\.py$/,
       /^core\/luana-core-platform\/src\/luana_core_platform\/.*\/expert_business_type\.py$/,
     ],
-    msg: 'Offer catalog SSoT (ENGINE) touched — afecta TODAS las brands (vitalia, nicolify, comunify, lupulo + futuras). Bump _CATALOG_VERSION en matching API + run arch tests both stacks PER cada brand consumidora. Run: `.venv/bin/pytest core/luana-core-offer-studio/tests/architecture/ -x -q` + per-brand `cd {brand}/frontend && npx vitest run src/__tests__/architecture/test-no-catalog-duplicates.test.ts` (rule: .claude/rules/offer-catalogs.md)',
+    msg: 'Offer catalog SSoT (ENGINE) touched — afecta engine + vitalia consumer. Bump _CATALOG_VERSION en matching API + run arch tests both stacks. Run: `.venv/bin/pytest core/luana-core-offer-studio/tests/architecture/ -x -q` + `cd vitalia/frontend && npx vitest run src/__tests__/architecture/test-no-catalog-duplicates.test.ts` (rule: .claude/rules/offer-catalogs.md)',
   },
   {
     name: 'offer-catalogs-legacy',
@@ -117,7 +114,7 @@ const RULES = [
     patterns: [
       /^core\/luana-core-analytics-engine\/src\/luana_core_analytics_engine\/application\/services\/channel_registry\.py$/,
     ],
-    msg: 'channel_registry.py (ENGINE) edited — afecta TODAS las brands. Do NOT duplicate STAGE_CHANNEL_MAP / PROVIDER_TO_CHANNEL_TYPES en stage services per-brand (rule: .claude/rules/analytics-metrics.md).',
+    msg: 'channel_registry.py (ENGINE) edited — afecta engine + vitalia. Do NOT duplicate STAGE_CHANNEL_MAP / PROVIDER_TO_CHANNEL_TYPES en stage services de vitalia (rule: .claude/rules/analytics-metrics.md).',
   },
   {
     name: 'channel-registry-legacy',
@@ -133,7 +130,7 @@ const RULES = [
     patterns: [
       /^core\/luana-core-copilot\/src\/luana_core_copilot\/domain\/module_registry\.py$/,
     ],
-    msg: 'module_registry.py (ENGINE) edited — afecta TODAS las brands. New modules need ModuleDescriptor entry. Per-brand copilot extensions registran sus modules via Extension SDK (rule: .claude/rules/copilot-resilience.md).',
+    msg: 'module_registry.py (ENGINE) edited — afecta engine + vitalia. New modules need ModuleDescriptor entry. Las copilot extensions de vitalia registran sus modules via Extension SDK (rule: .claude/rules/copilot-resilience.md).',
   },
   {
     name: 'copilot-registry-legacy',
@@ -166,12 +163,10 @@ async function main() {
   const filePath = data.tool_input?.file_path || data.tool_input?.path || '';
   if (!filePath) process.exit(0);
 
-  // Normalize to repo-relative path so the multibrand patterns (anchored with ^)
-  // match consistently whether the hook receives an absolute or relative file_path.
-  // WORKTREE-AGNOSTIC: must work from the main hub (luana-platform) AND from every
-  // per-worktree clone (luana-vitalia, luana-nicolify, luana-comunify, ...). Prefer
-  // CLAUDE_PROJECT_DIR (the actual project root); fall back to stripping up to and
-  // including the luana workspace-root dir (last occurrence).
+  // Normalize to repo-relative path so the anchored patterns (^) match consistently
+  // whether the hook receives an absolute or relative file_path. Prefer
+  // CLAUDE_PROJECT_DIR (the actual project root); fall back to stripping any legacy
+  // luana-* root dir prefix (last occurrence — backcompat).
   let relPath = filePath;
   const projDir = process.env.CLAUDE_PROJECT_DIR;
   if (projDir && relPath.startsWith(projDir)) {

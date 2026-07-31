@@ -41,7 +41,7 @@ citado en el handoff doc. Captura output verbatim:
 ```bash
 WS=$(git rev-parse --show-toplevel)
 
-# Per brand (ejemplo nicolify — adaptar al brand citado en handoff):
+# Vitalia:
 cd ${WS}/{brand}/backend && ${WS}/.venv/bin/pytest <repro test paths> -v --tb=short
 
 # Si bug vive en engine compartido (core/luana-core-*/):
@@ -74,8 +74,8 @@ Ticket entry en `04-tickets.yaml` MUST incluir:
 ```yaml
 repro_verified: true                                  # R26 — hotfix repro confirmed
 repro_evidence:
-  brand: "nicolify"                                   # brand donde se reprodujo (o "core/luana-core-<pkg>" si engine)
-  command: "cd ${WS}/nicolify/backend && ${WS}/.venv/bin/pytest tests/X/test_y.py::test_z -v"
+  brand: "vitalia"                                    # o "core/luana-core-<pkg>" si engine
+  command: "cd ${WS}/vitalia/backend && ${WS}/.venv/bin/pytest tests/X/test_y.py::test_z -v"
   output: |
     AssertionError: '>' not supported between NoneType and int
     at line 153 of test_y.py

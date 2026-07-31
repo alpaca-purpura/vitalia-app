@@ -2,7 +2,7 @@
 
 **Origen:** PI-12 S1 Story A T-1 (2026-05-04). Auditor `auditor-backend` aprobó cost_recorder canonicalization PASS — pero NO corrió tests downstream que mockean callback_handler en `modules/{copilot,sales_agent}/observability/`. Bug `litellm.get_llm_provider("kimi/kimi-k2.6")` raises BadRequestError llegó a S1 (T-1-bis micro-ticket nuevo). Severidad: **CRÍTICA**.
 
-**Multibrand update 2026-05-15:** post reorg, shared abstractions viven en `core/luana-core-*/src/luana_core_*/` (26 packages), no en `backend/src/shared/`. Tests viven en `core/luana-core-*/tests/` (engine consumers) Y en `{brand}/backend/tests/` (brand-specific consumers). Brands actuales: **vitalia · nicolify · comunify · lupulo** (4 activos; 6 pendientes bootstrap: saasora, inmoflow, retailly, fixia, guestly, fitflow). Workspace root: `$(git rev-parse --show-toplevel)` (variable `${WS}` en comandos).
+**Single-brand update 2026-07-31:** shared abstractions viven en `core/luana-core-*/src/luana_core_*/` (27 packages). Tests viven en `core/luana-core-*/tests/` (engine) Y en `vitalia/backend/tests/` (brand consumer). Workspace root: `$(git rev-parse --show-toplevel)` (variable `${WS}` en comandos).
 
 **Split 2026-05-16:** tabla SSoT (secciones A-I, ~30k chars) movida a `docs/rules-detail/auditor-downstream-targets.md` para mantener rule principal <40k chars context budget. Auditores leen el reference doc on-demand (Read tool) durante Step `downstream_regression_scope`.
 
@@ -26,16 +26,16 @@ Cuando auditor reviewing PR toca código `core/luana-core-*/` (engine), brand ex
 >
 > 9 secciones: **A** observability · **B** extraction+llm · **C** events+idempotency+billing+compliance · **D** extension-sdk+platform · **E** copilot+sales-agent · **F** agentic evals (simulator+grader+goldens) · **G** brand business modules (analytics/offer/landing) · **H** frontend per-brand · **I** brand overlay rules + extensions registry.
 >
-> **Convención `${WS}` + `${BRANDS} = {vitalia, nicolify, comunify, lupulo}`.**
+> **Convención `${WS}` + `${BRANDS} = {vitalia}`.**
 >
 > Maintainer rules + ratchet (shrink-only) documentados al final del reference doc.
 
-## Workflow auditor (Step `downstream_regression_scope` — multibrand)
+## Workflow auditor (Step `downstream_regression_scope`)
 
 ```
 # Pseudocode auditor agent inserts post consume_gate_output, pre audit_categories.
 # WS = $(git rev-parse --show-toplevel)
-# BRANDS = vitalia nicolify comunify lupulo
+# BRANDS = vitalia
 
 1. List files modified in diff: git diff HEAD~N..HEAD --name-only
 
@@ -48,33 +48,30 @@ Cuando auditor reviewing PR toca código `core/luana-core-*/` (engine), brand ex
    - Otherwise → scope=UNCLASSIFIED, escalate Chris (likely LEGACY path needing migration)
 
 2a. ENGINE scope (Step `engine_edit_detection`) — MANDATORY:
-    - Verify `docs/promotion-protocol/proposals/*-{pkg}-*.md` exists with `state: accepted|migrated`
-    - If NO proposal → FAIL with verdict: "engine edit sin promotion proposal. Escalar `/pm-luana` ANTES merge."
-    - Read `docs/rules-detail/auditor-downstream-targets.md` → downstream_test_targets includes engine tests + ALL ${BRANDS} consumers
+    - Verify que el cambio de engine está DECLARADO en el scope de la story/ticket (ratificado
+      vía flujo engine `/pm-vitalia`) y que los arch tests del paquete corren GREEN.
+    - Engine edit "de contrabando" (no declarado en 03-arch/06-tickets) → FAIL: "engine edit
+      no declarado. Escalar `/pm-vitalia` ANTES merge."
+    - Read `docs/rules-detail/auditor-downstream-targets.md` → downstream_test_targets includes engine tests + vitalia consumer
 
-2b. BRAND scope (Step `cross_brand_mirror_scan`) — MANDATORY for brand extensions
-    bajo `{brand}/backend/src/modules/{brand}/{copilot,sales_agent}/`:
+2b. BRAND scope (Step `engine_mirror_scan`) — MANDATORY for brand extensions
+    bajo `vitalia/backend/src/modules/vitalia/{copilot,sales_agent}/`:
 
-    BRAND_A=<brand from step 2>
-    for OTHER_BRAND in $BRANDS; do
-      [ "$OTHER_BRAND" = "$BRAND_A" ] && continue
-      BASENAME=$(basename <path>)
-      MATCHES=$(find ${WS}/$OTHER_BRAND/backend/src -name "$BASENAME" 2>/dev/null)
-      if [ -n "$MATCHES" ]; then
-        diff <(git show HEAD:<path>) "$MATCHES" | head -50
-      fi
-    done
+    BASENAME=$(basename <path>)
+    MATCHES=$(find ${WS}/core/luana-core-*/src -name "$BASENAME" 2>/dev/null)
+    if [ -n "$MATCHES" ]; then
+      diff <(git show HEAD:<path>) "$MATCHES" | head -50
+    fi
 
     Si MIRROR detected → FAIL AUTOMÁTICO con verdict:
-    "cross-brand mirror detected: ${BRAND_A}/... <-> ${OTHER_BRAND}/...
-     Pattern debe vivir en `core/luana-core-*/`, NUNCA mirror per-brand
-     (per anti-duplication.md § lift shared rule).
-     Escalar `/pm-luana` promotion proposal en `docs/promotion-protocol/proposals/`."
+    "engine mirror detected: vitalia/... <-> core/luana-core-*/...
+     Pattern debe consumirse desde `core/luana-core-*/` vía import, NUNCA mirror local
+     (per anti-duplication.md § lift shared rule). Escalar `/pm-vitalia` (flujo engine)."
 
-3. Aggregate downstream_test_targets = unión sets per matched path (expanded ∀ brand).
+3. Aggregate downstream_test_targets = unión sets per matched path.
 
 4. Verify gate-output.json scope cubre downstream_test_targets:
-   - gate-runner.command was full multibrand suite (`make test-all`)? → cubierto
+   - gate-runner.command was full suite (`make test-all`)? → cubierto
    - gate-runner.command was scoped (e.g., `core/luana-core-X/tests/`)? → puede no cubrir brand consumers
 
 5. Si NO cubre → SPAWN gate-runner adicional con scope=downstream_test_targets:
@@ -94,7 +91,7 @@ Cuando auditor reviewing PR toca código `core/luana-core-*/` (engine), brand ex
    E2E smoke scope (when downstream targets include `{brand}/frontend/e2e/`):
      command: cd ${WS}/<BRAND>/frontend && E2E_BASE_URL=http://localhost:300X npx playwright test --project=smoke <specs>
      iter: <N>-downstream-e2e-<BRAND>
-     (Port: nicolify=3001, vitalia=3002, comunify=3003, lupulo=3004)
+     (Port: vitalia=3002)
 
 6. Read new gate-output.json (gate-runner renames previous → gate-output.iter-N.json automatic).
 
@@ -118,16 +115,14 @@ BRAND_A=<brand inferido en Step 2>
 TARGET_PATH=<path tocado>
 BASENAME=$(basename "$TARGET_PATH")
 
-for OTHER_BRAND in vitalia nicolify comunify lupulo; do
-  [ "$OTHER_BRAND" = "$BRAND_A" ] && continue
-  find ${WS}/$OTHER_BRAND/backend/src -name "$BASENAME" 2>/dev/null
-  find ${WS}/$OTHER_BRAND/frontend/src -name "$BASENAME" 2>/dev/null
-done
+find ${WS}/core/luana-core-*/src -name "$BASENAME" 2>/dev/null
+find ${WS}/vitalia/backend/src -name "$BASENAME" 2>/dev/null | grep -v "$TARGET_PATH"
+find ${WS}/vitalia/frontend/src -name "$BASENAME" 2>/dev/null | grep -v "$TARGET_PATH"
 ```
 
 **Resultado match → FAIL AUTOMÁTICO:**
-- Cita ambos paths exactos (BRAND_A + OTHER_BRAND)
-- Verdict: "cross-brand mirror detected. Pattern debe vivir en `core/luana-core-*/`, NUNCA mirror per-brand (per anti-duplication.md § lift shared rule). Escalar `/pm-luana` con promotion proposal en `docs/promotion-protocol/proposals/{date}-lift-{pattern}.md` (state=draft). PR queda BLOCKED hasta proposal accepted + migration completed."
+- Cita ambos paths exactos (vitalia + engine, o los dos módulos de vitalia)
+- Verdict: "mirror detected. Pattern compartible debe vivir en `core/luana-core-*/` y consumirse vía import, NUNCA mirror local (per anti-duplication.md § lift shared rule). Escalar `/pm-vitalia` (flujo engine). PR queda BLOCKED hasta resolver."
 
 **Falso positivo guard:** si match es solo `__init__.py` vacío o `conftest.py` de test scaffold local → no es mirror. Diff conceptual >50% del archivo es el threshold para flag MIRROR.
 
@@ -139,26 +134,27 @@ done
 
 ```bash
 PKG=$(echo "$TARGET_PATH" | sed -nE 's#^core/luana-core-([^/]+)/.*#\1#p')
-ls docs/promotion-protocol/proposals/*${PKG}*.md 2>/dev/null
-grep -E '^state:\s*(accepted|migrated)' docs/promotion-protocol/proposals/*${PKG}*.md
+# 1. El scope de la story/ticket declara el cambio de engine (03-arch / 06-tickets, ratificado /pm-vitalia)
+# 2. Arch tests del paquete GREEN:
+cd ${WS}/core/luana-core-${PKG} && ${WS}/.venv/bin/pytest tests/architecture/ -x -q
 ```
 
-**Sin proposal accepted → FAIL:**
-- Verdict: "engine edit sin promotion proposal. Engine `core/luana-core-${PKG}/` es SSoT cross-brand (consumido por todos brands listados). Cambios runtime requieren proposal en `docs/promotion-protocol/proposals/{date}-${PKG}-{change}.md` con state=accepted ANTES merge. Escalar `/pm-luana`."
+**Engine edit no declarado → FAIL:**
+- Verdict: "engine edit no declarado en el scope de la story. Engine `core/luana-core-${PKG}/` es SSoT compartido. Cambios runtime siguen el flujo engine `/pm-vitalia` (declarados en el ready package + arch tests GREEN) ANTES merge."
 
-**Downstream regression scope:** engine edit → reference doc row engine + expandir ∀ brand ∈ ${BRANDS} para los consumer tests (este es el costo del SSoT engine).
+**Downstream regression scope:** engine edit → reference doc row engine + vitalia consumer tests (este es el costo del SSoT engine).
 
-**Exception:** hotfix engine bug crítico (per `.claude/rules/hotfix-repro-mandatory.md`) con `repro_verified: true` + Chris ratificación explícita en checkpoint.md → proposal puede ir post-fix (state=draft → migrated dentro mismo sprint).
+**Exception:** hotfix engine bug crítico (per `.claude/rules/hotfix-repro-mandatory.md`) con `repro_verified: true` + Chris ratificación explícita en checkpoint.md → la declaración formal puede ir post-fix (mismo sprint).
 
 ## Brand overlay scope
 
-**Cuándo aplica:** PR toca `{brand}/.claude/rules/*.md` (brand-specific rule overlay) o `{brand}/.claude/skills/*.md` (brand-specific skill overlay, raro).
+**Cuándo aplica:** PR toca `vitalia/.claude/rules/*.md` (brand-specific rule overlay) o `vitalia/.claude/skills/*.md` (brand-specific skill overlay, raro).
 
 **Verificación obligatoria:**
 
 1. **No-contradicción con root:** read root `.claude/rules/<same-basename>.md` (si existe). Brand overlay debe EXTEND (override de defaults específicos brand) NUNCA SOBREESCRIBIR completamente regla raíz. Si overlay anula una hard rule raíz → FAIL.
-2. **Referencias absolutas consistentes:** todos los paths citados deben prefix con `{brand}/` (no paths sueltos que parezcan engine pero apunten brand-local).
-3. **Cross-brand pattern detection:** si overlay describe un patrón aplicable a >1 brand (ej. "todos los brands deben hacer X") → flag CHANGES_REQUESTED con verdict: "patrón overlay aplicable cross-brand. Propose lift a `.claude/rules/` raíz vía `/pm-luana` (no per-brand duplicación de reglas)."
+2. **Referencias absolutas consistentes:** todos los paths citados deben prefix con `vitalia/` (no paths sueltos que parezcan engine pero apunten brand-local).
+3. **Generic pattern detection:** si overlay describe un patrón repo-wide (no vitalia-específico) → flag CHANGES_REQUESTED con verdict: "patrón overlay genérico. Propose lift a `.claude/rules/` raíz (no duplicación de reglas en el overlay)."
 
 **Default verdict:** overlay self-contained brand-specific con override claro → APPROVED.
 
@@ -226,42 +222,39 @@ Read reference doc § A (luana-core-observability):
   cost_recorder.py → cost recorder row →
     core/luana-core-copilot/tests/observability/test_callback_handler_usage_fallbacks.py
     core/luana-core-sales-agent/tests/observability/test_callback_handler.py
-    {brand}/backend/tests/modules/{brand}/{copilot,sales_agent}/observability/ ∀ brand
+    vitalia/backend/tests/modules/vitalia/{copilot,sales_agent}/observability/
 
-Spawn gate-runner downstream (engine + per-brand parallel).
+Spawn gate-runner downstream (engine + vitalia).
 
 Resultado engine: 2 fail con `cost_usd > 0` AssertionError → bug `kimi/kimi-k2.6 → BadRequestError`.
 
 Verdict: REVIEW.md FAIL Cat 10 (Tests/TDD) — "T-1 cost_recorder canonicalization
-introduces regression cross-brand: litellm.get_llm_provider() doesn't recognize
+introduces regression downstream: litellm.get_llm_provider() doesn't recognize
 'kimi' as provider (custom yaml alias). Add fallback in
 `core/luana-core-observability/src/luana_core_observability/cost/cost_recorder.py`:
 if get_llm_provider() raises, set provider = model.split('/')[0].lower() if '/' in
-model else 'unknown'. Re-run downstream tests engine + all 4 brands."
+model else 'unknown'. Re-run downstream tests engine + vitalia."
 ```
 
-## Ejemplo CORRECTO (cross-brand mirror detection)
+## Ejemplo CORRECTO (engine mirror detection)
 
 ```
 git diff HEAD~1..HEAD --name-only
-→ nicolify/backend/src/modules/nicolify/sales_agent/tools/scheduler_tool.py
+→ vitalia/backend/src/modules/vitalia/sales_agent/tools/scheduler_tool.py
 
-Step 2: scope=BRAND, brand=nicolify
-Step 2b (cross_brand_mirror_scan):
+Step 2: scope=BRAND
+Step 2b (engine_mirror_scan):
   BASENAME=scheduler_tool.py
-  for OTHER in vitalia comunify lupulo; do
-    find ${WS}/$OTHER/backend/src -name "$BASENAME"
-  done
-  → vitalia/backend/src/modules/vitalia/sales_agent/tools/scheduler_tool.py EXISTS
+  find ${WS}/core/luana-core-*/src -name "$BASENAME"
+  → core/luana-core-scheduling/src/luana_core_scheduling/tools/scheduler_tool.py EXISTS
   → diff conceptual: 80% código compartido (scheduling logic) + 20% brand-specific (booking policy)
 
-Verdict: FAIL AUTOMÁTICO — "cross-brand mirror detected:
-  nicolify/backend/src/modules/nicolify/sales_agent/tools/scheduler_tool.py
-  <-> vitalia/backend/src/modules/vitalia/sales_agent/tools/scheduler_tool.py
-  Pattern compartido debe vivir en core/luana-core-scheduling/src/ (engine) con
-  BookingPolicyDef per-brand via EP-X. Escalar /pm-luana con promotion proposal
-  en docs/promotion-protocol/proposals/2026-MM-DD-lift-scheduler-tool.md
-  (state=draft). PR BLOCKED hasta proposal accepted + migration completed."
+Verdict: FAIL AUTOMÁTICO — "engine mirror detected:
+  vitalia/backend/src/modules/vitalia/sales_agent/tools/scheduler_tool.py
+  <-> core/luana-core-scheduling/src/.../scheduler_tool.py
+  Pattern compartido debe consumirse desde el engine vía import, con
+  BookingPolicyDef de la marca via EP-X. Escalar /pm-vitalia (flujo engine).
+  PR BLOCKED hasta resolver."
 ```
 
 ## Referencia cruzada

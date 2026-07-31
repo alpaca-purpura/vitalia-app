@@ -13,8 +13,3 @@
 .claude/skills/data-storyteller/SKILL.md :: references/data-viz-conventions.md
 .claude/skills/offer-expert/SKILL.md :: docs/domains/offer/INDEX.md
 .claude/skills/playwright-expert/SKILL.md :: .github/workflows/e2e-tests.yml
-.claude/skills/pm-luana/SKILL.md :: docs/product/outcomes/voice-cloning-platform.md
-.claude/skills/pm-luana/SKILL.md :: scripts/generate_core_modules.py
-.claude/skills/po-ux/SKILL.md :: docs/learnings/2026-04-15-tanstack-query-cache-invalidation.md
-.claude/skills/po-ux/SKILL.md :: nicolify/docs/learnings/2026-03-22-agenda-overbooking-edge-case.md
-.claude/skills/po-ux/SKILL.md :: nicolify/frontend/src/features/scheduling/components/SlotPicker.tsx

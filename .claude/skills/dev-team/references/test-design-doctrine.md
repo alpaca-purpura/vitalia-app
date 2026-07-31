@@ -2,7 +2,7 @@
 
 <!-- voseo-allowed: doc interno de doctrina de maquinaria agéntica (no user-facing) -->
 
-**Origen:** sesión 2026-05-28 — Chris pidió que el dev tenga, además de TDD, una **base sólida propia** para diseñar QUÉ probar y CÓMO según la naturaleza del ticket (unitarios, comportamiento/E2E, y todas las pruebas que correspondan), de forma inteligente pero no improvisada. Refuerzo: seguimos usando el stack de calidad de nicolify (ruff, vitest, eslint, mypy, jscpd, etc.) — esta doctrina lo trata como base obligatoria de autoverificación.
+**Origen:** sesión 2026-05-28 — Chris pidió que el dev tenga, además de TDD, una **base sólida propia** para diseñar QUÉ probar y CÓMO según la naturaleza del ticket (unitarios, comportamiento/E2E, y todas las pruebas que correspondan), de forma inteligente pero no improvisada. Refuerzo: seguimos usando el stack de calidad heredado (ruff, vitest, eslint, mypy, jscpd, etc.) — esta doctrina lo trata como base obligatoria de autoverificación.
 
 **Cement-date:** 2026-05-28. **Aplica a:** `builder-{backend,frontend,agentic}` (diseñan tests), `/architect` (declara el plan en `04-validators.yaml`), `/auditor` (verifica cobertura). **Complementa:** `tdd-mandatory.md` (orden RED→GREEN) + `architectural-fitness.md` + `backend-quality.md` + `frontend-quality.md`.
 
@@ -96,7 +96,7 @@ Ref: `.claude/rules/definition-of-done-live-verify.md` §1-§6.
 
 ## Toolchain de calidad = base obligatoria de autoverificación
 
-El builder corre (vía gate-runner) y deja verde ANTES de cerrar — esto es la "base sólida" heredada de nicolify, ahora innegociable:
+El builder corre (vía gate-runner) y deja verde ANTES de cerrar — esto es la "base sólida" heredada, ahora innegociable:
 
 | Gate | Qué protege | Nota Chris |
 |---|---|---|

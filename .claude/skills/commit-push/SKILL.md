@@ -8,7 +8,7 @@ model: opus
 # /commit-push — Haiku-delegated git workflow
 
 > SSoT guardrails: `.claude/rules/git-haiku-delegation.md`
-> SSoT git fundamentals: `.claude/rules/git-safety.md` + `.claude/rules/parallel-safety.md`
+> SSoT git fundamentals: `.claude/rules/git-safety.md`
 
 ## Cuándo usar
 
@@ -28,7 +28,7 @@ model: opus
 
 ```bash
 git status --short            # categorizar files MINE vs OTHERS
-git branch --show-current     # captura BRANCH; debe ser wip/* (autosave per worktree, ADR-009)
+git branch --show-current     # captura BRANCH; debe ser wip/* (branch de trabajo)
 git log --oneline -3          # contexto reciente
 ```
 
@@ -71,12 +71,12 @@ $(git rev-parse --show-toplevel) (current branch: $(git branch --show-current) �
 - NEVER `git add .` / `git add -A` / `git add -u` — parallel sessions WIP en tree
 - Stage ONLY by exact filename (lista provista abajo)
 - NEVER `git commit --no-verify` — pre-commit hook mandatory
-- NEVER `git pull` / `git fetch && merge` — banned per parallel-safety.md
+- NEVER `git pull` / `git fetch && merge` — banned per git-safety.md
 - NEVER `git push --force` / `--force-with-lease` — banned
 - NEVER `git revert` sin aprobación explícita
 - Si `git push origin "$(git branch --show-current)"` fails non-fast-forward → STOP, report. NO pull.
 - Si pre-commit hook fails → fix and create NEW commit (never `--amend` pushed commits)
-- Working branch = `wip/{brand}` (autosave per worktree). NUNCA push directo a `main` ni `release/*`.
+- Working branch = `wip/*` (branch de trabajo). NUNCA push directo a `main` ni `release/*`.
 
 ## Files to stage (exact names — these belong to MY session)
 <exact list from MINE>
@@ -139,4 +139,4 @@ Próximo paso: <orchestrator decision based on failure mode>
 
 - `.claude/rules/git-haiku-delegation.md` — pattern + cost saving + guardrails completos
 - `.claude/rules/git-safety.md` — git fundamentals
-- `.claude/rules/parallel-safety.md` — M1-M8 multi-session protection
+- `.claude/rules/git-safety.md` — prohibiciones git + stage por pathspec

@@ -43,7 +43,7 @@ git log --oneline -10
 git diff --stat HEAD~5..HEAD 2>/dev/null
 
 # Estado /pm flow (si aplica)
-test -f docs/product/BACKLOG-TLDR.md && cat docs/product/BACKLOG-TLDR.md
+test -f vitalia/docs/product/BACKLOG-TLDR.md && cat vitalia/docs/product/BACKLOG-TLDR.md
 ls docs/product/stories/ 2>/dev/null | head -20
 
 # Active stories con state intermedio
@@ -120,7 +120,7 @@ Write a session handoff doc to <HANDOFF_PATH>.
 \```
 
 ## References
-- Latest BACKLOG-TLDR: `docs/product/BACKLOG-TLDR.md`
+- Latest BACKLOG-TLDR: `vitalia/docs/product/BACKLOG-TLDR.md`
 - Story checkpoints: `docs/product/stories/{id}/checkpoint.md`
 - Process learnings: `docs/process/learnings.md`
 ```
@@ -168,4 +168,3 @@ Próxima session: leé el handoff doc PRIMERO, luego paste el bootstrap prompt.
 
 - `.claude/rules/git-haiku-delegation.md` — Haiku delegation pattern
 - `.claude/commands/cierra-limpio.md` — clean close sin handoff (commit pendientes only)
-- `docs/process/parallel-sessions-protocol.md` — multi-session WIP rules

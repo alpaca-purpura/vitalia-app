@@ -3,7 +3,7 @@
 
 **Origen:** sesión 2026-05-28 — Chris, viendo el panorama desde el cockpit, detectó **funcionalidades huérfanas**: código creado que no está realmente conectado a la solución (islas). Causa raíz diagnosticada: no había un rol tipo CTO velando que lo construido **tenga sentido, esté conectado, viva en un lugar real del sistema y no duplique**. Esta rule codifica ese rol como gate desde la idea hasta el `done`.
 
-**Cement-date:** 2026-05-28. **Aplica a:** `/pm-{brand}`, `/architect`, `/dev-team` (builders), `/auditor`. **Complementa:** `anti-duplication.md` (no recrear) + `anti-duplication-refining.md` (prior-art scan) + `capability-protocol.md` (cap como hogar permanente).
+**Cement-date:** 2026-05-28. **Aplica a:** `/pm-vitalia`, `/architect`, `/dev-team` (builders), `/auditor`. **Complementa:** `anti-duplication.md` (no recrear) + `anti-duplication-refining.md` (prior-art scan) + `capability-protocol.md` (cap como hogar permanente).
 
 ## Regla cardinal
 
@@ -22,11 +22,11 @@ Ninguna story alcanza `done` si su salida es una **isla**. Toda funcionalidad co
 
 | Fase | Owner | Gate de conexión |
 |---|---|---|
-| **idea / refining** | `/pm-{brand}` | Declara `cap_target` + hogar en el map (módulo/funcionalidad). Si es técnico-puro (sin user-facing), declara el **consumidor explícito** ("esto lo consume X"). Sin hogar declarado → no pasa a `refined`. |
+| **idea / refining** | `/pm-vitalia` | Declara `cap_target` + hogar en el map (módulo/funcionalidad). Si es técnico-puro (sin user-facing), declara el **consumidor explícito** ("esto lo consume X"). Sin hogar declarado → no pasa a `refined`. |
 | **refined → ready** | `/architect` | **`03-arch.md § Integration design` OBLIGATORIA** (ver abajo). Cada surface nuevo declara: entry point(s), consumer(s), registration point(s), y el **reachability path** verbatim. Si un ticket crea un artefacto sin ticket/deliverable de wiring → el ready package está incompleto, NO cierra `ready`. |
 | **developing** | `/dev-team` builders | El builder **CABLEA**, no solo crea: registra router/nav/DI/tool-registry/event en el MISMO ticket. `register_router` (BE) / barrel + nav (FE) / tool registry (agentic) son deliverables, no opcionales. |
 | **developed → reviewing** | `/auditor` | **Categoría Connectivity (anti-isla)**: verifica las 4 contenciones CONN sobre el diff. Huérfano (creado sin consumer/registro) → CHANGES_REQUESTED. Duplica un cap existente → FAIL (ver anti-duplication). |
-| **reviewing → done** | `/pm-{brand}` | Fase F.3: el cap YAML refleja `dev_preview` real (entry_points + main_component + api_endpoints existen en filesystem). cross-check 3 (scenarios→e2e) verde. |
+| **reviewing → done** | `/pm-vitalia` | Fase F.3: el cap YAML refleja `dev_preview` real (entry_points + main_component + api_endpoints existen en filesystem). cross-check 3 (scenarios→e2e) verde. |
 
 ## `03-arch.md § Integration design` (schema obligatorio architect)
 
@@ -93,7 +93,7 @@ Una funcionalidad huérfana es **valor perdido + deuda + ruido**: ocupa código,
 
 | Layer | Mecanismo | Status |
 |---|---|---|
-| 1 | `/pm-{brand}` refining: exige `cap_target` + hogar antes de `refined` | ⏳ skill update |
+| 1 | `/pm-vitalia` refining: exige `cap_target` + hogar antes de `refined` | ⏳ skill update |
 | 2 | `/architect` Step: `03-arch.md § Integration design` obligatoria + reachability path | ⏳ skill update (architect SKILL.md) |
 | 3 | builders: registro (router/nav/DI/tool) es deliverable del mismo ticket | ✅ parcial (register_router BE) → generalizar FE/agentic |
 | 4 | `/auditor` categoría Connectivity (anti-isla) sobre el diff | ⏳ auditor SKILL + sub-auditores |

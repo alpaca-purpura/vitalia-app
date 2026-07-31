@@ -4,7 +4,7 @@
 >
 > **★ SUPERSEDED 2026-06-08:** el showcase fue RATIFICADO (8 rondas /po-ux) y el build se **consolidó en UNA story**: `docs/product/stories/core-ds-foundation/` (Fase 0+1+2). El contrato + ejemplos de código viven en `docs/architecture/luana-platform/design-system-canon.md`. Los bindings de skills/rule ya están hechos. **Para retomar: leé `core-ds-foundation/checkpoint.md` + `design-system-canon.md` → `/architect brand: platform core-ds-foundation`.** Las stories `S-CORE-DS-*` listadas abajo NO se crearon por separado (fusionadas). Lo de abajo es histórico.
 
-> Bootstrap para retomar en **conversación nueva**. Leé esto + los 3 artefactos linkeados y arrancá. Owner: `/pm-luana`. Origen: sesión 2026-06-06/07 (Chris: "el dev-team crea cada interfaz a su forma → se siente otra app; homologar todo de una vez").
+> Bootstrap para retomar en **conversación nueva**. Leé esto + los 3 artefactos linkeados y arrancá. Owner: `/pm-vitalia`. Origen: sesión 2026-06-06/07 (Chris: "el dev-team crea cada interfaz a su forma → se siente otra app; homologar todo de una vez").
 
 ## TL;DR
 
@@ -34,7 +34,7 @@ TRACK A (independiente · arranca YA · sirve el req#2 desde el día 1)
     · escala spacing en @luana/design-tokens (hoy solo z-index)
     · eslint no-arbitrary-value (allowlist ratchet shrink-only)
     · frena el drift NUEVO de inmediato · no toca código de feature
-    Owner: /pm-luana → /po(-ux) define escala → /architect → /dev-team
+    Owner: /pm-vitalia → /po(-ux) define escala → /architect → /dev-team
 
 TRACK B (gateado · el outcome ya gatea "no arrancar encima de las 4 stories abiertas")
   1. Cerrar las 4 abiertas:  shell-valeria-responsive (refined→build) · lisa-doctores · adrian-embudo · nicolify abel-icp
@@ -59,7 +59,7 @@ TRACK B (gateado · el outcome ya gatea "no arrancar encima de las 4 stories abi
 **Arrancar Track A** (independiente + sirve el req#2 ya):
 
 ```
-/pm-luana  →  "arrancá S-CORE-DS-TOKENS-LOCK (Fase 0 design-system homologation)"
+/pm-vitalia  →  "arrancá S-CORE-DS-TOKENS-LOCK (Fase 0 design-system homologation)"
 ```
 
 Eso abre: definir la escala spacing (con vos) → /architect ready package → /dev-team build en `@luana/design-tokens` + la regla eslint. En paralelo, las 4 stories abiertas siguen cerrando (Track B) sin bloquear.

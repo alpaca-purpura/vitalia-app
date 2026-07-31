@@ -21,7 +21,7 @@ Anti-duplication audit (per `.claude/rules/anti-duplication.md` § Inventario):
     brands (nicolify, comunify, lupulo) do not have an analogous concept.
   - If a SECOND brand emerges with a similar wizard surface, this state class
     should be lifted to engine `core/luana-core-copilot/` per
-    `/pm-luana` promotion proposal. Cross-brand mirror prohibited.
+    `/pm-vitalia` promotion proposal. Cross-brand mirror prohibited.
 
 Tenant isolation:
   ``tenant_id`` is REQUIRED in every initial state. Checkpointer thread_id

@@ -22,13 +22,13 @@ blocks_hard: []
 blocks_soft: []
 engine_coordination:
   # El campo primary (default_currency) YA existe en engine iam. El secondary
-  # currency + validación ISO 4217 en core/luana-core-iam es un LIFT /pm-luana
+  # currency + validación ISO 4217 en core/luana-core-iam es un LIFT /pm-vitalia
   # (engine change cross-brand). Esta story vitalia owns el FE + el wiring +
-  # test-data PEN; la extensión del engine se escala a /pm-luana en refinement.
-  - "core/luana-core-iam: agregar secondary_currency a Tenant settings + validación ISO 4217 (lift /pm-luana)"
+  # test-data PEN; la extensión del engine se escala a /pm-vitalia en refinement.
+  - "core/luana-core-iam: agregar secondary_currency a Tenant settings + validación ISO 4217 (lift /pm-vitalia)"
 reuse_map_summary: >-
   EXTEND engine iam (core/luana-core-iam: tenant.default_currency YA existe + settings
-  GET/PATCH) — primary currency ya modelada. NET-NEW: secondary_currency (lift /pm-luana),
+  GET/PATCH) — primary currency ya modelada. NET-NEW: secondary_currency (lift /pm-vitalia),
   selector ISO 4217 (UI + lista de códigos), UI settings en Plataforma/Configuración,
   wire useTenantLocale al source canónico del tenant (matar fallback hardcoded ARS),
   test tenants → PEN. CONSUME core/luana-core-platform locale.py + currency.py
@@ -42,7 +42,7 @@ parent_story: null
 next_action: >-
   /pm-vitalia intake-handshake hecho (zona Plataforma/Configuración · extends iam settings).
   Próximo: refinar con /po-ux (UI selector ISO 4217 primary+secondary) — coordinar el lift
-  engine iam (secondary_currency) con /pm-luana. Quick-win previo posible: flip test tenants
+  engine iam (secondary_currency) con /pm-vitalia. Quick-win previo posible: flip test tenants
   a PEN (seed default_currency + publicMetadata.currency + --clerk-sync) vía /dev-team.
 ---
 
@@ -78,14 +78,14 @@ El ARS NO era bug de lisa-servicios (consume `locale.currency` correctamente). S
 
 | Fuente | Resultado | Decisión |
 |---|---|---|
-| `core/luana-core-iam` (`domain/tenant.py`, `infrastructure/models/tenant_model.py`, `api/settings.py`) | `tenant.default_currency` (String, server_default=FALLBACK_CURRENCY) + settings GET/PATCH ya exponen `default_currency` | **EXTEND vía /pm-luana lift** — primary currency YA existe; agregar `secondary_currency` + validación ISO 4217 |
+| `core/luana-core-iam` (`domain/tenant.py`, `infrastructure/models/tenant_model.py`, `api/settings.py`) | `tenant.default_currency` (String, server_default=FALLBACK_CURRENCY) + settings GET/PATCH ya exponen `default_currency` | **EXTEND vía /pm-vitalia lift** — primary currency YA existe; agregar `secondary_currency` + validación ISO 4217 |
 | `core/luana-core-platform/domain/{locale,currency}.py` | `TenantLocale` VO (`currency: str`) + `FALLBACK_CURRENCY="USD"` + `TenantLocale.default()` | CONSUMIR — la conversión/display ya está modelada en el engine |
 | `vitalia/frontend/src/hooks/useTenantLocale.ts` | lee `user.publicMetadata.currency` + fallback hardcoded ARS | **MODIFICAR** — wire al source canónico del tenant + matar fallback AR-specific |
 | `comunify/` live | (revisar en refining — currency display) | posible patrón paralelo / lift candidate |
 
 ## Scope (borrador — refinar con /po-ux)
 
-1. **Engine (lift /pm-luana):** `core/luana-core-iam` Tenant settings → agregar
+1. **Engine (lift /pm-vitalia):** `core/luana-core-iam` Tenant settings → agregar
    `secondary_currency: str | None` + validación ISO 4217 (primary + secondary).
    Settings API GET/PATCH expone ambos.
 2. **FE selector ISO 4217:** UI en Plataforma → Configuración → Cuenta: selector de
