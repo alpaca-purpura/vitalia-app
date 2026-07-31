@@ -135,10 +135,13 @@ fitflow/.env.prod
 # Regenerar: .venv/bin/python scripts/generate_backlog.py --brand vitalia
 # Ver `.claude/rules/sistema-docs-schema.md` R3.
 
-# BACKLOG per-brand (auto-gen)
+# BACKLOG auto-gen (per-brand + platform root)
 */docs/product/BACKLOG.md
 */docs/product/BACKLOG.yaml
 */docs/product/BACKLOG-TLDR.md
+docs/product/BACKLOG.md
+docs/product/BACKLOG.yaml
+docs/product/BACKLOG-TLDR.md
 
 # areas/ user-facing (auto-gen scripts/generate_capability_index.py · 1 file por agent_owner)
 */docs/product/areas/*.md
