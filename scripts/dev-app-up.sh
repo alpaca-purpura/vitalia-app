@@ -112,7 +112,7 @@ else
   echo "    ${CF_CREDS}"
   echo "  FALLBACK localhost (verificación VÁLIDA per rule #37; falta solo el"
   echo "  dominio público + JWT Clerk del dominio real). Para el dominio público:"
-  echo "    scripts/cloudflared-setup.sh ${BRAND}   # requiere login Cloudflare (Chris)"
+  echo "    scripts/cloudflared-setup.sh ${BRAND}   # usa CF API token (deploy/cloudflared/.credentials/cf-api.env)"
 fi
 
 # ── 5. Resumen + credenciales de prueba ──────────────────────────────────────

@@ -29,7 +29,7 @@ Nada se declara "funciona/verified-live" por un GET 200. Para cada cap: **ejerce
 | recepcion@vitalialat.com | recepcion | — |
 | admin@vitalialat.com | super_admin (×3 tenants) | — |
 
-- **Password** (los nuevos): `VitaliaRoles2026!`. dr.demo legacy mantiene `DrDemo2026!`.
+- **Password** (los nuevos): `<VITALIA_TEST_USERS_PASSWORD — pedir a Chris>`. dr.demo legacy mantiene `<DEV_APP_TEST_PASSWORD en vitalia/.env.dev>`.
 - **Clínica branch** seedeada en Sanaré: `f035be5b-0ac4-5210-8fc3-395650ca2b83` (slug `sanare-principal`) → es el `clinicId` para `X-Clinic-ID` (dual-filter PHI) y `useClinicId` (FE).
 - **SSoT idempotente**: `vitalia/backend/scripts/seed_test_users_link.py`. Reconstruye todo (Clerk + DB) con un comando (abajo). Lint/format limpios.
 - **Verificado ejerciendo** (no 200 a secas): minté JWT real de Clerk para doctor.demo → `GET /me` 200, body `role:"doctor"`, mapeo DB correcto, log `200 OK`.

@@ -132,4 +132,4 @@ Rule #37 requires live writes. The following need verification in dev-app:
 3. Force time overlap (same doctor, same slot) → 409 conflict label shown in chip
 4. Patiente inline create: type name not in list → "Crear {q}" → POST /crm/patients → 201
 
-These require the Clerk auth token + real clinic seed data. Run from `dev-app.vitalialat.com` or `localhost:3002` with `dr.demo@vitalialat.com` / `DrDemo2026!`.
+These require the Clerk auth token + real clinic seed data. Run from `dev-app.vitalialat.com` or `localhost:3002` with `dr.demo@vitalialat.com` / `<DEV_APP_TEST_PASSWORD en vitalia/.env.dev>`.

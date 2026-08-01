@@ -20,8 +20,9 @@
 # SECRETS: keys come from env (os.environ/*) — NEVER inline. This file is tracked;
 # keys live in the gitignored deploy/litellm/.env.
 #
-# SSoT proposal (platform integration + core default-flip): see
-# docs/promotion-protocol/proposals/*-llm-gateway-chinese-first.md (/pm-luana).
+# SSoT proposal (histórico, archivado post-extracción standalone):
+# docs/archive/2026/multibrand-legacy/promotion-protocol/proposals/2026-06-04-llm-gateway-chinese-first.md
+# Doc vivo: docs/domains/llm-routing.md · bring-up: scripts/litellm-proxy-up.sh (make litellm-up).
 
 model_list:
   # ── NANO / FAST → DeepSeek V4 Flash NON-THINKING (classification, routing,

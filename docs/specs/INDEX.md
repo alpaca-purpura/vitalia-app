@@ -45,15 +45,14 @@ LLM-as-judge rubrics. Cada rubric tiene:
 
 ### `personas/`
 
-YAML con persona profile + simulated-user prompt. Consumidas por agentic-story scenarios `user_simulation:`.
+YAML con persona profile + simulated-user prompt. Consumidas por agentic-story scenarios `user_simulation:` y por las eval suites (`vitalia/backend/tests/agentic_evals/`).
 
-| Persona | Para |
+| Sub-dir | Qué hay |
 |---|---|
-| `lead-frio-impaciente.yaml` | sales_agent — adversarial, presión por precio |
-| `lead-tibio-dudoso.yaml` | sales_agent — needs nurturing |
-| `lead-caliente-ready.yaml` | sales_agent — happy path closing |
-| `tenant-novato-tech.yaml` | copilot — usuario poco técnico, directo |
-| `tenant-experto-saturado.yaml` | copilot — usuario experto, sin tiempo |
+| `archetype-aware/` | **29 personas activas** — dialect-coded (es-AR/CL/MX), con `actor_goal`, `traits`, `objections`, `persona_kind` (happy/nurture/adversarial) + ejes `persona_gym_axes`. Ej: `patient-anxious-dental-ar`, `lead-prompt-injection-attempt`, `pregunton-comparador-pe`. Schema enforced por `vitalia/backend/tests/architecture/test_vitalia_personas_yaml_completeness.py`. |
+| `_legacy/` | 5 originales (`lead-frio-impaciente`, `tenant-novato-tech`, …) — superseded por archetype-aware. |
+
+Personas per-agent adicionales viven junto a sus suites: `vitalia/backend/tests/agentic_evals/sales_agent/personas/` (20) + `copilot/wizard_personas/` (4). El generador de conversaciones IA↔IA (`apps/client-simulator/`) está **dormant** — rescatado de Nicolify, integración pendiente.
 
 ## Versionado
 

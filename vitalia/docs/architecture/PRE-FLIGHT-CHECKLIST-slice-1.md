@@ -23,9 +23,11 @@ purpose: |
 Clerk instance: `moral-gator-27.clerk.accounts.dev` (test).
 
 - [ ] **A.1** — Verificar testing token fresco.
-  Current: `CLERK_TESTING_TOKEN_VITALIA=1779166200-U2unS5MYsyTOGnFGxaS0lsTDuh-eNafxtE7Hwpnce3E`
+  Current: `CLERK_TESTING_TOKEN_VITALIA=<valor en vitalia/.env.dev — NUNCA pegarlo en este doc tracked>`
   Verify expiry: Clerk dashboard → Testing → Tokens → expiry date.
   Si <30 días → regenerar y reemplazar en `vitalia/.env.dev`.
+  > ⚠ 2026-08-01: un token literal estuvo commiteado aquí — fue redactado y DEBE rotarse
+  > (Clerk dashboard → Testing → Tokens → regenerate) antes de dar acceso al repo a terceros.
 
 - [ ] **A.2** — Verificar Clerk webhook `VITALIA_CLERK_WEBHOOK_SECRET` configurado en `vitalia/.env.dev`.
   Sin secret → engine webhook handler no acepta payloads → no auto-sync user.created.
@@ -38,10 +40,14 @@ Clerk instance: `moral-gator-27.clerk.accounts.dev` (test).
 
 - [ ] **B.1** — Crear 3 test users (Clerk-side):
   ```bash
+  # Passwords: NUNCA en este doc (tracked). Generar y guardar en vitalia/.env.dev
+  # (DEV_APP_TEST_PASSWORD etc.). Los 3 passwords que estuvieron commiteados aquí
+  # fueron redactados 2026-08-01 → rotar esos users si siguen existiendo.
+
   # Test user #1 — owner+doctor
   npx clerk users create \
     --email dr.demo@vitalia.test \
-    --password "DrDemo2026!" \
+    --password "$DEV_APP_TEST_PASSWORD" \
     --first-name "Dr. Demo" \
     --last-name "Vitalia" \
     --public-metadata '{"vitalia_role":"doctor"}'
@@ -49,7 +55,7 @@ Clerk instance: `moral-gator-27.clerk.accounts.dev` (test).
   # Test user #2 — recepción
   npx clerk users create \
     --email recepcion@vitalia.test \
-    --password "Recepcion2026!" \
+    --password "<generar — guardar en .env.dev>" \
     --first-name "Recepción" \
     --last-name "Demo" \
     --public-metadata '{"vitalia_role":"recepcion"}'
@@ -57,7 +63,7 @@ Clerk instance: `moral-gator-27.clerk.accounts.dev` (test).
   # Test user #3 — super_admin
   npx clerk users create \
     --email admin@vitalia.test \
-    --password "AdminVit2026!" \
+    --password "<generar — guardar en .env.dev>" \
     --first-name "Admin" \
     --last-name "Demo" \
     --public-metadata '{"vitalia_role":"super_admin"}'
@@ -120,7 +126,7 @@ Clerk instance: `moral-gator-27.clerk.accounts.dev` (test).
   cd vitalia/frontend
   E2E_BASE_URL=http://localhost:3002 \
   E2E_USER_EMAIL=dr.demo@vitalia.test \
-  E2E_USER_PASSWORD="DrDemo2026!" \
+  E2E_USER_PASSWORD="$DEV_APP_TEST_PASSWORD" \
   npx playwright test --grep "@auth-setup" --project=smoke
   ```
 

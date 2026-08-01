@@ -16,6 +16,9 @@ report/
 *.env.local
 *.env.dev.local
 *.env.example
+# Excepción: el example del proxy LiteLLM SÍ se trackea (documenta las 4 keys
+# que un dev nuevo necesita — los valores reales van en deploy/litellm/.env).
+!deploy/litellm/.env.example
 
 # Cloudflare tunnel credentials (per brand, gitignored)
 **/deploy/cloudflared/.credentials/

@@ -34,7 +34,6 @@ assigned_at: null
 
 **Reglas/skills cargar:**
 - `.claude/rules/{rules-relevantes}.md`
-- Tessl skills: `[lista]`
 - Domain skills: `[backend-expert | brand-expert | ...]`
 
 ## Scope de ESTE ticket

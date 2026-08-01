@@ -1,16 +1,28 @@
 # LLM Routing — SSoT (Single Source of Truth)
 
-> **Owner:** PM + nicolify-architect. Origen: PR-3 PI-2 S2 audit failure 2026-04-30 — codebase tenía dos sistemas paralelos (ModelTier copilot vs ModelRole global) + capa duplicada introducida por PR-3.
+> **★ Estado repo standalone (actualizado 2026-08-01).** Los conceptos de este doc (ModelRole único, proxy LiteLLM como único dispatch, CustomLogger cost pattern) siguen VIGENTES, pero varios paths/nombres citados abajo son de la era nicolify pre-extracción. Mapa actual:
 >
-> **Estado actual (2026-05-06):** **CANONICALIZADO**. LiteLLM Proxy es el camino único de dispatch LLM en runtime (PI-12 S1 sales-agent-litellm-canonicalization, T-4/T-5 merged). Per-provider adapters legacy (`openai.py`, `kimi.py`, `deepseek.py`, `qwen.py`, `gemini.py`, `_openai_compat.py`) eliminados físicamente. El feature flag que históricamente toggleaba proxy vs adapters fue eliminado de `Settings` (no existe fallback ni toggle). Cost runtime se captura vía `CustomLogger` pattern (ver sección dedicada abajo).
+> | Concepto | Path/valor ACTUAL |
+> |---|---|
+> | Adapter único | `core/luana-core-llm/src/luana_core_llm/providers/litellm.py` |
+> | Factory/router | `core/luana-core-llm/src/luana_core_llm/{factory,router}.py` |
+> | Enums `ModelRole`/`AIProvider` | `core/luana-core-platform/src/luana_core_platform/core/enums.py` |
+> | Settings (`get_model`, `get_provider_for_role`) | `core/luana-core-platform/src/luana_core_platform/core/config.py` |
+> | Config del proxy | `deploy/litellm/config.dev.yaml` (tracked; keys en `deploy/litellm/.env` gitignored — example tracked) |
+> | Bring-up dev | `make litellm-up` → `scripts/litellm-proxy-up.sh` (container standalone `luana_litellm_dev` :4000, NO es parte de `make dev-vitalia`) |
+> | `LITELLM_BASE_URL` (backend dockerizado) | `http://luana_litellm_dev:4000/v1` (localhost = ESC-11 bug) |
+> | Política de modelos | **Chinese-first** (cement 2026-06-04): DeepSeek V4 Flash + Kimi K2 base; OpenAI excepción (embeddings + `gpt-4o-mini` raro). Fallbacks solo cross-Chinese. |
+> | DB hot-swap per-role | tabla `llm_role_binding` (`core/luana-core-llm/.../application/config_service.py`) — DB-first, env fallback |
+>
+> Lo que sigue abajo se conserva como referencia histórica/conceptual (nicolify-era: `visionarias_litellm`, `backend/src/shared/`, `src.core.enums`, tabla de modelos 2026-04-30 — pre Chinese-first).
 
 ## Regla de oro
 
-**Para seleccionar qué modelo LLM usar en cualquier capa del backend Nicolify, hay UNA sola API:**
+**Para seleccionar qué modelo LLM usar en cualquier capa del backend, hay UNA sola API:**
 
 ```python
-from src.core.enums import ModelRole
-from src.core.config import settings
+from luana_core_platform.core.enums import ModelRole
+from luana_core_platform.core.config import settings
 
 model_name = settings.get_model(ModelRole.NANO)
 provider = settings.get_provider_for_role(ModelRole.NANO)  # AIProvider enum

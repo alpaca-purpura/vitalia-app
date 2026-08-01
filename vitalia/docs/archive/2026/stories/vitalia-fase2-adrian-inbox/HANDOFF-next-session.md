@@ -49,7 +49,7 @@ cd ${WS}; set -a; source vitalia/.env.dev 2>/dev/null; set +a
 cd vitalia/frontend
 export E2E_BASE_URL="https://dev-app.vitalialat.com"
 export E2E_CLERK_USER_EMAIL="${DEV_APP_TEST_EMAIL:-dr.demo@vitalialat.com}"
-export E2E_CLERK_USER_PASSWORD="${DEV_APP_TEST_PASSWORD:-DrDemo2026!}"
+export E2E_CLERK_USER_PASSWORD="${DEV_APP_TEST_PASSWORD}"
 
 # 1. AUTH: el setup REUSA storageState viejo si "fresco" → si quedó de localhost, los specs
 #    aterrizan en "Sign in to Vitalia". FORZAR re-auth contra dev-app:

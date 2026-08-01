@@ -62,17 +62,27 @@ Usa `setupClerkTestingToken(page)` + storageState. Es lo que queda en la suite p
 | dev-app timeout / 502 | `docker logs luana-dev-vitalia_cloudflared_dev-1 --tail 30` · re-`make dev-app-vitalia` |
 | sign-in loop / bot detected | confirmar `allowed_origins` (Clerk) incluye dev-app · usar testing token |
 | sirve código de otro worktree | **footgun:** re-`make dev-app-vitalia` desde tu worktree (ver abajo) |
-| falta `.credentials/dev-tunnel.json` | copiar de otro worktree o `bash vitalia/deploy/cloudflared/setup-tunnel.sh` |
-| recrear creds desde cero | CF API token en `.env.dev` (`CLOUDFLARE_API_TOKEN`) + tunnel ID — vía CF API/`cloudflared` |
+| falta `.credentials/dev-tunnel.json` | (solo máquina de Chris) copiar del worktree origen `~/Proyectos/luana-vitalia` o re-provisionar con `scripts/cloudflared-setup.sh vitalia` |
+| recrear creds desde cero | `scripts/cloudflared-setup.sh vitalia` — usa CF API token (`deploy/cloudflared/.credentials/cf-api.env`) |
 
 ### ⚠️ Footgun cross-worktree
 
 El compose usa project compartido `luana-dev`. Los bind-mounts (incluido el del tunnel) apuntan al worktree desde donde se corrió `up` por última vez. Si construís en `luana-vitalia` pero el stack se levantó desde `luana-platform`, **dev-app sirve el código de `luana-platform`.** Solución: corré `make dev-app-vitalia` desde tu worktree antes de verificar — el script avisa si detecta mismatch.
 
+## ⚠️ 2º developer — el tunnel NO se comparte
+
+El tunnel `dev-vitalia` (locally-managed) admite **una máquina**. Reglas duras:
+
+1. **NUNCA copiar `.credentials/dev-tunnel.json` a otra máquina.** Cloudflared trataría ambas como réplicas HA del mismo tunnel → los requests a `dev-app.vitalialat.com` caen al azar en una u otra máquina (cada dev ve código ajeno, silencioso, sin error).
+2. **NUNCA correr `scripts/cloudflared-setup.sh --recreate` desde otra máquina** — DELETEa el tunnel de Chris, repointa el CNAME compartido y muta el `dev-config.yml` trackeado.
+3. **Default para el 2º dev: fallback `localhost:3002`.** Es live-verify VÁLIDO per rule #37 (solo falta el dominio público + JWT Clerk de dominio real — anotarlo en `dod_evidence`). `make dev-app-vitalia` cae solo a este modo si no hay credencial.
+4. **Tunnel propio (opcional, cuando lo necesite):** Chris emite un CF API token propio (scoped `Tunnel:Edit` + `DNS:Edit` + `Zone:Read`), se acuerda un subdominio `dev-app-{nombre}.vitalialat.com`, y se agrega ese origin en Clerk `allowed_origins`. Requiere parametrizar `TUNNEL_NAME`/hostname en `cloudflared-setup.sh` (hoy hardcodeados) — pedirlo como chore.
+
 ## Seguridad
 
 - `vitalia/.env.dev` y `.credentials/` son **gitignored** — nunca se commitean.
 - El `CLOUDFLARE_API_TOKEN` guardado fue pegado en chat el 2026-05-31 → **rotar** desde el dashboard CF cuando se pueda.
+- 2026-08-01: un `CLERK_TESTING_TOKEN_VITALIA` + 3 passwords de test users estuvieron commiteados en `PRE-FLIGHT-CHECKLIST-slice-1.md` (ya redactados) → **rotar ambos ANTES de invitar a un 2º dev al repo** (siguen en la historia git).
 
 ## Referencias
 

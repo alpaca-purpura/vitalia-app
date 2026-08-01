@@ -43,7 +43,7 @@ Usage:
     docker exec luana-dev-vitalia_backend_dev-1 \
       bash -c "cd /workspace/vitalia/backend && uv run python scripts/seed_test_users_link.py"
 
-Test password (all god-matrix users): VitaliaRoles2026!  (dr.demo legacy keeps its own)
+Test password (all god-matrix users): env VITALIA_TEST_USERS_PASSWORD (dr.demo legacy keeps its own)
 
 downstream-regression-na: brand-local seed script; no cross-brand consumers
 """
@@ -71,7 +71,11 @@ PATIENT_SANARE_DEMO = uuid.uuid5(NAMESPACE, "patient:sanare-latam-mx:demo")
 LEAD_SANARE_DEMO = uuid.uuid5(NAMESPACE, "lead:sanare-latam-mx:demo")
 
 CLERK_API = "https://api.clerk.com/v1"
-TEST_PASSWORD = "VitaliaRoles2026!"  # noqa: S105 — dev-only fixture password
+# Dev-only fixture password — desde env (redactado del código 2026-08-01; rotar el
+# valor viejo en Clerk). Fuente: vitalia/.env.dev::VITALIA_TEST_USERS_PASSWORD.
+TEST_PASSWORD = os.environ.get("VITALIA_TEST_USERS_PASSWORD", "")
+if not TEST_PASSWORD:
+    sys.exit("✗ VITALIA_TEST_USERS_PASSWORD no seteada (vitalia/.env.dev) — requerida para seed")
 
 # Hardcoded Clerk IDs (resolved live when --clerk-sync; fallback for in-container DB-only runs).
 CLERK_IDS = {

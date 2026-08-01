@@ -117,7 +117,7 @@ test_construction_plan:
           tenant_sanare: "e69a691d-070e-5caf-a053-6e74642ec100"
           clinic_sanare: "f035be5b-0ac4-5210-8fc3-395650ca2b83"
           seed: "vitalia/backend/scripts/seed_test_users_link.py"
-          password: "VitaliaRoles2026!"
+          password: "<VITALIA_TEST_USERS_PASSWORD — pedir a Chris>"
           doctor_user: "user_3EQJjxsvxiZ5exQjucSB651xnUd (doctor.demo)"
     arch_fitness:
       extend_keep_green:

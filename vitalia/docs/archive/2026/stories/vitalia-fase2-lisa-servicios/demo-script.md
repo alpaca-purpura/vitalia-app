@@ -1,7 +1,7 @@
 # demo-script — vitalia-fase2-lisa-servicios (Lisa · Servicios)
 
 > Funcional (demo_required). Ejercé esto en dev-app y firmá `checkpoint.md::chris_verify.signoff`.
-> Stack: `make dev-vitalia` (up) · `dev-app.vitalialat.com` o `localhost:3002` · login `dr.demo@vitalialat.com` / `DrDemo2026!` · tenant Sanaré LATAM.
+> Stack: `make dev-vitalia` (up) · `dev-app.vitalialat.com` o `localhost:3002` · login `dr.demo@vitalialat.com` / `<DEV_APP_TEST_PASSWORD en vitalia/.env.dev>` · tenant Sanaré LATAM.
 > Migración 045+046 ya aplicadas al dev DB.
 
 ## Happy path (live-verified 2026-06-16 — replicable)

@@ -35,7 +35,7 @@ Reemplazar el decoder stub por verificación **JWKS real reusando `core/luana-co
 - **REUSE engine JWKS:** `core/luana-core-iam/src/luana_core_iam/application/auth.py::verify_token_payload(token) -> dict` (usa `jwt.PyJWKClient(JWKS_URL)`, RS256, leeway 60s, `verify_aud: False` para dev). El decoder vitalia lo IMPORTA — NO recrea PyJWKClient ni la lógica JWKS.
 - **REUSE rol DB:** `core/luana-core-iam/.../repositories/user_tenant_repository.py` + `user_tenant_model.py` (`user_tenants.role`). El rol se resuelve desde DB por `(user_id, tenant_id)`, NO del token.
 - **MANTENER contrato brand:** `ClerkJwtPayload` dataclass + `VitaliaRole` domain (`vitalia/.../iam/domain/role.py`) se preservan — los consumers no cambian su interfaz.
-- **REUSE fixture verificación:** god-matrix (8 usuarios Sanaré, `vitalia/backend/scripts/seed_test_users_link.py`, password `VitaliaRoles2026!`, tenant Sanaré `e69a691d-…`, clinic `f035be5b-…`).
+- **REUSE fixture verificación:** god-matrix (8 usuarios Sanaré, `vitalia/backend/scripts/seed_test_users_link.py`, password `<VITALIA_TEST_USERS_PASSWORD — pedir a Chris>`, tenant Sanaré `e69a691d-…`, clinic `f035be5b-…`).
 - **Engine boundary:** consume engine vía import; NO edita `core/luana-core-*/src/`. Si requiere cambio engine → escala /pm-luana (no esperado).
 
 ## Consumers afectados (cablear repos reales)

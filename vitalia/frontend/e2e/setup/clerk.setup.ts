@@ -13,7 +13,7 @@
  * Run:
  *   E2E_BASE_URL=http://localhost:3002 \
  *   E2E_CLERK_USER_EMAIL=dr.demo@vitalialat.com \
- *   E2E_CLERK_USER_PASSWORD='DrDemo2026!' \
+ *   E2E_CLERK_USER_PASSWORD='<DEV_APP_TEST_PASSWORD en vitalia/.env.dev>' \
  *   E2E_TENANT_ID=e69a691d-070e-5caf-a053-6e74642ec100 \
  *   npx playwright test --project=setup
  *

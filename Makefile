@@ -21,7 +21,7 @@ BRANDS := vitalia
 
 .PHONY: dev-vitalia dev-all dev-active dev-which
 .PHONY: dev-vitalia-admin dev-vitalia-admin-down
-.PHONY: dev-vitalia-tunnel dev-app-vitalia lane-auth lane-auth-vitalia
+.PHONY: dev-vitalia-tunnel dev-app-vitalia lane-auth lane-auth-vitalia litellm-up litellm-down litellm-status
 .PHONY: dev-vitalia-vector dev-vitalia-cache
 .PHONY: dev-down-vitalia dev-down-all dev-clean-vitalia dev-clean-all
 
@@ -67,6 +67,20 @@ dev-vitalia-tunnel:
 # real, dejando todo listo para verificación live. SSoT: .claude/rules/definition-of-done-live-verify.md
 dev-app-vitalia:
 	bash scripts/dev-app-up.sh vitalia
+
+# ── LiteLLM proxy (gateway LLM dev — requerido para cualquier llamada LLM) ──
+# Keys: deploy/litellm/.env (copiar de deploy/litellm/.env.example, gitignored).
+# Config: deploy/litellm/config.dev.yaml (tracked). Puerto 4000.
+litellm-up:
+	bash scripts/litellm-proxy-up.sh
+
+litellm-down:
+	docker rm -f luana_litellm_dev 2>/dev/null || true
+	@echo "✓ litellm proxy down"
+
+litellm-status:
+	@docker ps --filter name=luana_litellm_dev --format '{{.Names}}  {{.Status}}' | grep . \
+		|| echo "✗ luana_litellm_dev DOWN (make litellm-up)"
 
 # ── lane-auth: seed Chrome DevTools MCP lane profile with a Clerk session (HB-89) ────
 # El perfil MCP de la lane no tiene sesión Clerk → los writes autenticados redirigen
@@ -241,6 +255,8 @@ help:
 	@echo "  make dev-down-vitalia         Stop vitalia containers (alias: dev-down-all)"
 	@echo "  make dev-clean-vitalia        Stop + remove volumes (alias: dev-clean-all)"
 	@echo "  make lane-auth                Seed lane MCP Clerk session [FORCE=1]"
+	@echo "  make litellm-up               Proxy LLM dev (:4000) — keys en deploy/litellm/.env"
+	@echo "  make litellm-status           Proxy LLM: estado"
 	@echo ""
 	@echo "  Git:"
 	@echo "  make install-hooks            Install git hooks (pre-commit, pre-push)"
